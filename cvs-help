@@ -1,0 +1,266 @@
+t=>ci; update=>up; checkout=>co; remove=>rm;
+----------------------------------------------
+检出模块
+如果检出模块时没有指定分支名称，默认就是 CVS 中模块的 HEAD 分支。
+cvs co  <module-name></module-name>
+----------------------------------------------
+文件的状态
+cvs status  filename
+仓库文件的状态报告如下所示：
+Up-to-date  您的文件版本正是 CVS 服务器上的最新版本。
+Locally Modified  您已从服务器上更新了最新的版本，并且做了修改。
+Locally Added 您使用 cvs add 命令添加了文件，但是尚未提交文件的添加。
+Locally Removed 您使用 cvs remove 命令删除了文件，但是尚未提交文件的删除。
+Needs Checkout 服务器上有新版本的文件，您需要更新。尽管状态中说，需要检出，实际的意思是，您需要用 cvs update 命令更新文件。
+Needs Patch 本地文件需要打补丁以更新到服务器的最新版。执行 cvs update 命令来解决。
+Needs Merge 服务器上有更新的版本，您的本地版本却做了未提交的修改。这种情况可能经常发生，如果您没有获取最新版本就进行修改的话。
+File had conflicts on merge 类似 Needs Merge，但是当您执行 cvs update 命令时，将无法自动解决冲突。关于如何解决冲突请参考 第 10.4.8 节 “解决冲突”。
+Unknown CVS 服务器不知道文件的任何信息。它没有被本地添加或删除，也从未提交到服务器上。这种情况通常发生在不应被提交到 CVS 服务器的文件上，例如 generated-index.sgml，或者是想添加到仓库但尚未执行 cvs add 命令的文件。
+----------------------------------------------
+annotate—在文件中具体做了哪些修改
+annotate 选项
+这些是 annotate 所支持的标准选项(参阅 Common options，了解详细信息):
+-l 只作用于本目录，不递归。 
+-R 递归处理目录。 
+-f 如果不指定标签/日期，使用最新修订版。 
+-F 批注二进制文件。 
+-r tag[:date]批注指定修订版/标签的文件，或者当指定 date 并且 tag 是分支标签时， tag 分支上的版本当作存在于 date 上。见 Common options。 
+-D date 批注指定日期的文件。
+----------------------------------------------
+
+查看文件现有的标签和分支 (check tag of the file)
+cvs status -v <filename></filename>
+----
+File: mmeMakefile   Status: Up-to_date
+Wroking revision: 1.6.4.5
+Sticky Tag: TBPT_3_3_0_5
+-------
+
+cat CVS/Entires
+------------
+buld.bat/1.1..../TTBPT_3_3_0_5
+---------------
+
+//if no such tag name means it's trunk not branch
+Sticky Tag: (none)
+buld.bat/1.1....//
+
+
+----------------------------------------------
+将文件同步到最新的版本
+不制定文件名，cvs将同步所有子目录下的文件
+cvs update
+或者
+cvs update file_name
+cvs update -C file_name
+       -C
+
+         Overwrite locally modified files with clean copies from the  reposi-
+         tory (the modified file is saved in .#file.revision, however).
+
+----------------------------------------------
+确认修改写入到CVS库里：
+cvs commit -m "write some comments here" file_name
+----------------------------------------------
+修改某个文件某个版本的注释：
+cvs admin -m 1.3:"write some comments here" file_name
+----------------------------------------------
+添加文件:
+cvs add new_file
+对于图片，Word文档等非纯文本的项目，需要使用cvs add -b选项 ,比如：cvs add -kb new_file.gif
+然后确认修改并注释 
+cvs ci -m "write some comments here"
+----------------------------------------------
+删除文件：
+将某个源文件物理删除后，比如：rm file_name
+cvs rm file_name
+然后确认修改并注释
+cvs ci -m "write some comments here"
+以上面前2步合并的方法为：
+cvs rm -f file_name
+cvs ci -m "why delete file"
+----------------------------------------------
+添加目录：
+cvs add dir_name
+----------------------------------------------
+查看修改历史：cvs log file_name
+cvs history file_name
+----------------------------------------------
+查看当前文件不同版本的区别:
+cvs diff -r1.3 -r1.5 file_name
+----------------------------------------------
+查看当前文件（可能已经修改了）和库中相应文件的区别
+cvs diff file_name
+----------------------------------------------
+给文件加一个STICK TAG： "1.2"
+cvs update -r1.2 file.name
+----------------------------------------------
+通过CVS恢复旧版本的方法：
+cvs update -p -r1.2 file_name > file_name
+如果不小心已经加成STICK TAG的话：用cvs update -A 解决
+----------------------------------------------
+移动文件：文件重命名
+cvs里没有cvs move或cvs rename，因为这两个操作是先cvs remove old_file_name，然后cvs add new_file_name实现的。
+----------------------------------------------
+删除，移动目录：
+最方便的方法是让管理员直接移动，删除CVSROOT里相应目录（因为CVS一个项目下的子目录都是独立的，移动到$CVSROOT目录下都可以作为新的独立项目：好比一颗树，其实砍下任意一枝都能独立存活），对目录进行了修改后，要求其开发人员重新导出项目cvs checkout project_name 或者用cvs update -dP同步。
+----------------------------------------------
+确认版本里程碑：多个文件各自版本号不一样，项目到一定阶段，可以给所有文件统一指定一个阶段里程碑版本号，方便以后按照这个阶段里程碑版本号导出项目，同时也是项目的多个分支开发的基础。
+cvs tag release_1_0
+开始一个新的里程碑：
+cvs commit -r 2 标记所有文件开始进入2.x的开发
+
+for more info 
+man cvs
+
+
+
+The likely cause of your error, and how to fix it
+It is likely that you did something like this, to trigger this error:
+
+cvs co -r DRUPAL-6--1-0 contributions/modules/foo
+cd contributions/modules/foo
+edit foo.module to fix a bug
+cvs commit -m "fixed some bug" foo.module
+The problem is that the CVS checkout you did in step one was against "DRUPAL-6--1-0", which is a tag indicating version 6.x-1.0 of the module.
+
+What you should have done is to check out the 6.x branch, which is "DRUPAL-6--1":
+
+cvs co -r DRUPAL-6--1 contributions/modules/foo
+Assuming that you have just seen this error in the checkin step, the steps to fix it are:
+
+cd ../../..
+cvs update -r DRUPAL-6--1 contributions/modules/foo
+cd contributions/modules/foo
+cvs commit -m "fixed some bug" foo.module
+
+
+
+------------------------
+To get a all patch of the cvs files
+
+1. cvs log >alllog
+2. [guolili@localhost src]$ grep -e "2010/11/05" -e "RCS" -B 1  alllog  |grep -B 3 2010/11/05
+++++++++++++++++++
+RCS file: /isource/cvsroot/ttcn3ts/TBPT/protocols/gtp/gtpV1/codec/src/GtpCodecT3.c,v
+--
+revision 1.6
+date: 2010/11/05 13:08:51;  author: paberg;  state: Exp;  lines: +2 -2
+--
+iCS file: /isource/cvsroot/ttcn3ts/TBPT/protocols/gtp/gtpV1/codec/src/GtpCustomCodecs.c,v
+--
+revision 1.5
+date: 2010/11/05 13:08:51;  author: paberg;  state: Exp;  lines: +142 -3
+--
+RCS file: /isource/cvsroot/ttcn3ts/TBPT/protocols/gtp/gtpV1/codec/src/GtpCustomCodecs.h,v
+--
+revision 1.3
+date: 2010/11/05 13:08:51;  author: paberg;  state: Exp;  lines: +6 -1
+++++++
+get the date which files been modified
+
+3.
+cvs diff -r1.6 -r1.5 TBPT/protocols/gtp/gtpV1/codec/src/GtpCodecT3.c >> patch.diff
+cvs diff -r1.5 -r1.4 TBPT/protocols/gtp/gtpV1/codec/src/GtpCustomCodecs.c >>patch.diff
+....
+----------------------------------------
+
+
+also can using cvs history -c -a -D "2011-12-20" 
+jinyang has do some comit on 2011-12-20, if you want to get the revision, here it is:
+------
+A 2011-12-20 09:54 +0000 jinyang  1.1.2.1   LipV2Extension.cpp                 ttcn3libs/sa/iprouter/sa/src              == <remote>
+A 2011-12-20 09:54 +0000 jinyang  1.1.2.1   LipV2Extension.h                   ttcn3libs/sa/iprouter/sa/src              == <remote>
+M 2011-12-20 09:54 +0000 jinyang  1.35.6.3  Makefile                           ttcn3libs/sa/iprouter/sa/src              == <remote>
+M 2011-12-20 09:54 +0000 jinyang  1.33.6.1  Makefile.files                     ttcn3libs/sa/iprouter/sa/src              == <remote>
+M 2011-12-20 09:54 +0000 jinyang  1.154.6.3 ProtocolTestingApi.cpp             ttcn3libs/sa/iprouter/sa/src              == <remote>
+M 2011-12-20 09:54 +0000 jinyang  1.56.6.3  T3Api.h                            ttcn3libs/sa/iprouter/sa/src              == <remote>
+M 2011-12-20 09:55 +0000 jinyang  1.37.6.1  IprStaticInitializations.cpp       ttcn3libs/sa/iprouter/sa/src              == <remote>
+M 2012-02-21 05:04 +0000 humi     1.7.6.2   LicExtension.cpp                   ttcn3libs/sa/iprouter/sa/src              == <remote>
+M 2012-03-20 09:33 +0000 sobenin  1.24      EAPTypeT3.c                        ttcn3libs/codec/EAPcodecAPI/TauT3/src     == <remote>
+M 2012-03-20 09:33 +0000 sobenin  1.34      EAPValueT3.c                       ttcn3libs/codec/EAPcodecAPI/TauT3/src     == <remote>
+M 2012-03-20 09:33 +0000 sobenin  1.22      t3log_xml.c                        ttcn3libs/logging/xml/src                 == <remote>
+M 2012-03-20 09:33 +0000 sobenin  1.10      AutoLock.cpp                       ttcn3libs/sa/iprouter/sa/src              == <remote>
+-----------------------------------
+cvs diff -r1.37.6.1 -r1.37  IprStaticInitializations.cpp
+cvs diff -r1.154.6.3 -r1.154.6.2 ProtocolTestingApi.cp
+//here the revesion piror to 1.154.6.3 is 1.154.6.2 from guessing.
+//but for 1.37.6.1, this is the first revision for that branch, no 1.37.6.0, and 1.37.6 is the branch,
+so the revision is 1.37
+
+
+if you want to get the revision of IprStaticInitializations.cpp, using cvs log IprStaticInitializations.cpp,
+this will list all branches of an revisions, but
+=----
+----------------------------
+revision 1.37
+date: 2007/06/29 14:16:31;  author: sobenin;  state: Exp;  lines: +4 -0
+branches:  1.37.6;
+TOFE 1585903 (reassembly/separation)
+----------------------------
+all the diff need to based on the revisions, an revision must have odd dots, and brach has even dots.
+For example, 1,37 is a revession, but 1.37.6 is a branch from revision 1.37,
+and all the revisions in branch 1.37 begin with 1.37.6.1 ->1.37.6.2 
+================
+
+how to get cvs diff all the files at a specific date see ~/.vim/cvsdif
+---------------------------------------
+cvs log >aclog
+" get the log like
+"RCS file: /isource/cvsroot/ttcn3/ttcn3libs/sa/iprouter/sa/src/IprIndSettings.cpp,v
+"Working file: IprIndSettings.cpp
+"head: 1.6
+"branch:
+"locks: strict
+"access list:
+"symbolic names:
+"	ttcn3libs_3_3_0_5_MME: 1.6.0.12
+"	ttcn3libs_3_3_0_4_Branch: 1.6.0.8
+"	ttcn3libs_3_3_0_4: 1.6
+"ate: 2005/02/10 10:50:30;  author: nyberg;  state: Exp;  lines: +4 -0
+"=Missing cvs variables added. No code changes done. Checking in since these simple classes might reamain unchanged from now on.
+"----------------------------
+"revision 1.1
+"date: 2005/02/08 13:21:16;  author: nyberg;  state: Exp;
+"=- Port aliases implemented.
+"----------------------------
+"revision 1.6.12.1
+"date: 2013/04/22 08:35:18;  author: zhiqiang;  state: Exp;  lines: +1 -1
+"update for IProuter indication
+"----------------------------
+"revision 1.6.6.1
+"date: 2013/04/17 09:27:40;  author: humi;  state: Exp;  lines: +1 -1
+"Add new feature: send indication message to data port.
+"=============================================================================
+
+"get the date of some specific modification, and printout only that date block
+sed -n  '/^RCS/{:a; N; /=======/!ba; /2013\/04\/17/p  } ' aclog >achuilog
+"get only filename and revison info
+grep -B 1 'RCS\|2013/04/17' achuilog > hui.diff 
+grep 'RCS\|revision'  hui.diff >hui2.diff
+sed '/RCS/{N; s/\n//g; s/revision/ -r/; s/,v// }' hui2.diff |awk -F "/" '{print $NF}'
+"IprIndSettings.cpp -r 1.6.6.1
+"ProtocolTestingApi.cpp  -r 1.154.6.5  
+"" modified manully, revison end with 1 will using another for ex: pre rev of 1.6.6.1 is 1.6
+""revison number is even, 4 number or 2number no 3number like,1.6, 1.6.6.1, no 1.6.6
+"  for ex: pre rev of 1.154.6.5 is 1.154.6.4
+" cvs diff -r 1.6.6.1 1.6 IprIndSettings.cpp 
+
+
+===================
+commit in files to tag ** in trunk working copy.
+
+Does CVS allow committing a file to a different branch than the one it was checked out from? The man page and some sites suggest that we can do a cvs ci -r branch-1 file.c but it gives the following error:
+
+    cvs commit: Up-to-date check failed for `file.c'
+    cvs [commit aborted]: correct above errors first!
+
+cvs 
+Note that a file may not be up-to-date even if diff shows zero output. For example, if you add a line of text to a file in one commit and remove it in the next you have zero difference along the path of two revisions.
+
+As for the commit -r -issue. To me it seems like an experimental feature, and actually one you are better off by just using:
+
+cvs update -r <branch> <file>
+cvs update -j <ver> -j <ver> <file>   // cvs updat -j HEAD <file>
+cvs commit <file>
+

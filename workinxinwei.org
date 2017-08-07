@@ -1,0 +1,1754 @@
+
+* multiple thread/process prgramming
+** deadlock
+*** priority reverse
+There are A, B, C process(priority from high to low)
+if C took a resource which A is requiring, and due to priority, C can't take cpu,
+and A is waiting for resourse, so B is scheduled to cpu resource instead.
+so it's a deadlock, A is waiting, C couldn't release the resource since its lowest prio
+B is always get executed,  in real OS, the prg will crash, since A should be executed 
+priority to B.
+
+
+** deadlock solution
+let process got all the resoures it needed when startup, if can't get all the resource, then resart
+numbered the resource, process must apply the res by the number order
+a process will restart when it waiting for a resource for a rrandom time
+
+* 消息队列的设计与实现(multiple producer, a single consumer)
+it's a prototype of multiple producer and single consumer,
+every task has a message queue, and other tasks could send the messge to the message queue,
+write message invoked by other threads/tasks,
+read message invlode by the owner task of the message queue
+
+a multiple thread prototype muliple producer(need mutex) and synchronization needed between producer and consumer(to ensure producer has some space left or 
+consumer has some message to consume).
+but synchronization must before the mutex lock step.
+
+消息驱动机制是 GUI 系统的基础，消息驱动的底层基础设施之一是消息队列，它是整个 GUI 系统运转中枢，
+环形队列
+环行队列是一种首尾相连的队列数据结构，遵循先进先出原则 
+
+
+在环形队列中用一组连续地址的存储单元依次存放从队列头到队列尾的元素，通过两个指针 read_pos 和 write_pos 分别指向读取位置和写入位置。
+
+初始化队列时，令 read_pos = write_pos = 0，每当写入一个新元素时， write_pos 增 1；每当读取一个元素时，read_pos 增 1 。若队列已满，不能往队列写入数据；若队列为空，则不能读取数据。判断列是否为满的的方法是看 (write_pos + 1)% QUEUE_SIZE == read_pos 是否成立，判断队列是否为空的方法是看 write_pos == read_pos 是否成立。
+
+鉴于多个线程同时访问环形队列，需要考虑线程之间的互斥和同步问题，拟采用锁控制多个线程互斥访问环形队列，使用信号量控制线程之间的同步。
+
+一段时间内只能有一个线程获得锁，当它持有锁时，其它线程要访问环形队列必须等待，直到前者释放锁。由此，锁可以保证多个线程互斥的访问环形队列。
+
+线程从队列对数据前首先判断信号量是否大于 1 ，若是，则从队列读数据；否则，进入等待状态，直到信号量大于 1 为止；线程往队列写入一个数据后，会将信号量增 1 ，若有线程在等待，则会被唤醒。由此，信号量实现了多线程同步访问环形队列。
+
+ 
+
+初始化时为环形队列分配内存空间，并完成锁和信号量的初始化； 
+若往环形队列写数据，首先要获得锁， 若锁已被占用，则进入等待状态，否则进一步去判断环形队列是否已满。若满了，则释放锁并返回；若队列未满，将数据写入 write_pos 位置，write_pos 增 1，释放锁并将信号量增 1，表示已写入一个数据； 
+若从环形队列读数据，首先判断信号量是否大于 1 ，若不是，则等待，否则去获取锁，若锁已被占用，则等待，否则从 read_pos 位置读取数据，将 read_pos 增 1 ，释放锁，读取完毕。 
+数据结构
+环形队列的数据结构如下所示：
+
+
+typedef _MSG {
+    int message;
+    void* param;
+} MSG;
+
+typedef _MSGQUE {
+    pthread_mutex_t lock;
+    sem_t  wait;
+
+    MSG* msg;
+    int size;
+
+    int read_ops;
+    int write_ops;
+} MSGQUEUE;
+
+
+
+环形队列包括如下数据：
+
+lock：互斥锁； 
+wait：信号量 
+msg：指向数据区的指针； 
+size：环形队列数据最大个数； 
+read_ops：读取位置； 
+write_ops：写入位置。 
+队列初始化
+初始化主要完成三个任务：
+
+为环形队列分配内存； 
+初始化互斥锁，用 pthread_mutex_init 完成； 
+初始化信号量，用 sem_init 完成。 
+/* Create message queue */
+_msg_queue = malloc (sizeof (MSGQUEUE));
+
+/* init lock and sem */
+pthread_mutex_init (&_msg_queue->lock, NULL);
+sem_init (&_msg_queue->wait, 0, 0);
+
+/* allocate message memory */
+_msg_queue -> msg = malloc (sizeof(MSG) * nr_msg);
+_msg_queue -> size = nr_msg;
+
+
+** 写操作
+如上面的流程图介绍，写操作主要包括如下几步： - 获取锁；
+
+判断队列是否已满； 
+若没满，将数据写入 write_pos 处，将 write_pos 增 1，并判断 write_pos 是否越界； 
+释放锁，并将信号量增 1。 
+
+/* lock the message queue */
+pthread_mutex_lock (_msg_queue->lock);
+
+/* check if the queue is full. */
+if ((_msg_queue->write_pos + 1)% _msg_queue->size == _msg_queue->read_pos) {
+    /* Message queue is full. */
+    pthread_mutex_unlock (_msg_queue->lock);
+    return;
+}
+
+/* write a data to write_pos. */
+_msg_queue -> msg [write_pos] = *msg;
+write_pos ++;
+
+/* check if write_pos if overflow. */
+if (_msg_queue->write_pos >= _msg_queue->size)
+    _msg_queue->write_pos = 0;
+
+/* release lock */
+pthread_mutex_unlock (_msg_queue->lock);
+
+sem_post (_msg_queue->wait); // semphore should be operated without lockon
+
+
+** 读操作
+同理，读操作分如下几个步骤：
+
+检查信号量； 
+获取锁； 
+判断队列是否为空； 
+若不为空，则读取 read_ops 处的数据，将 read_ops 增 1，并判断 read_pos 是否越界； 
+并释放锁。 
+
+sem_wait (_msg_queue->wait);// wait sem, should be outside the mutex protection to avoid dead lock
+
+/* lock the message queue */
+pthread_mutex_lock (_msg_queue->lock);
+
+/* check if queue is empty */
+if (_msg_queue->read_pos != _msg_queue->write_pos) {
+    msg = _msg_queue->msg + _msg_queue->read_pos;
+
+/* read a data and check if read_pos is overflow */
+    _msg_queue->read_pos ++;
+    if (_msg_queue->read_pos >= _msg_queue->size)
+        _msg_queue->read_pos = 0;
+
+    return;
+}
+
+/* release lock*/
+pthread_mutex_unlock (_msg_queue->lock);
+
+
+
+问题
+本文采用的环形队列是固定长度的，还可进一步改进，设计成可变长度的环形队列； 
+本文的消息队列是“先进先出”原则，没有考虑带优先级的消息，但这种场合是存在的； 
+本文重点介绍了消息队列的原理和实现，对于一个 GUI 程序来讲，还需要一个消息循环与消息队列一起工作，消息循环将单独总结。 
+ 
+ 
+
+--------------------------------------------------------------------------------
+* multiple consumer, one single producer
+the prototype is a thread pool.
+Threads in thread pools are multiple consmer, and sigle producer is a taskqueue which needed to be executed by those threads.
+** example of a thread pool implementation
+#include "threadpool.h"
+
+#include <errno.h>
+#include <string.h>
+
+Task::Task(void (*fn_ptr)(void*), void* arg) : m_fn_ptr(fn_ptr), m_arg(arg)
+{
+}
+
+Task::~Task()
+{
+}
+
+void Task::operator()()
+{
+  (*m_fn_ptr)(m_arg);
+  if (m_arg != NULL) {
+    delete m_arg;
+  }
+}
+
+void Task::run()
+{
+  (*m_fn_ptr)(m_arg);
+}
+
+ThreadPool::ThreadPool() : m_pool_size(DEFAULT_POOL_SIZE)
+{
+  cout << "Constructed ThreadPool of size " << m_pool_size << endl;
+}
+
+ThreadPool::ThreadPool(int pool_size) : m_pool_size(pool_size)
+{
+  cout << "Constructed ThreadPool of size " << m_pool_size << endl;
+}
+
+ThreadPool::~ThreadPool()
+{
+  // Release resources
+  if (m_pool_state != STOPPED) {
+    destroy_threadpool();
+  }
+}
+
+// We can't pass a member function to pthread_create.
+// So created the wrapper function that calls the member function
+// we want to run in the thread.
+extern "C"
+void* start_thread(void* arg)
+{
+  ThreadPool* tp = (ThreadPool*) arg;
+  tp->execute_thread();
+  return NULL;
+}
+
+int ThreadPool::initialize_threadpool()
+{
+  // TODO: COnsider lazy loading threads instead of creating all at once
+  m_pool_state = STARTED;
+  int ret = -1;
+  for (int i = 0; i < m_pool_size; i++) {
+    pthread_t tid;
+    ret = pthread_create(&tid, NULL, start_thread, (void*) this);
+    if (ret != 0) {
+      cerr << "pthread_create() failed: " << ret << endl;
+      return -1;
+    }
+    m_threads.push_back(tid);
+  }
+  cout << m_pool_size << " threads created by the thread pool" << endl;
+
+  return 0;
+}
+
+int ThreadPool::destroy_threadpool()
+{
+  // Note: this is not for synchronization, its for thread communication!
+  // destroy_threadpool() will only be called from the main thread, yet
+  // the modified m_pool_state may not show up to other threads until its 
+  // modified in a lock!
+  m_task_mutex.lock();
+  m_pool_state = STOPPED;  // to avoid consumer still waiting while producer won't produce any more
+  m_task_mutex.unlock();
+  cout << "Broadcasting STOP signal to all threads..." << endl;
+  m_task_cond_var.broadcast(); // notify all threads we are shttung down
+
+  int ret = -1;
+  for (int i = 0; i < m_pool_size; i++) {
+    void* result;
+    ret = pthread_join(m_threads[i], &result);
+    cout << "pthread_join() returned " << ret << ": " << strerror(errno) << endl;
+    m_task_cond_var.broadcast(); // try waking up a bunch of threads that are still waiting
+  }
+  cout << m_pool_size << " threads exited from the thread pool" << endl;
+  return 0;
+}
+
+void* ThreadPool::execute_thread()
+{
+  Task* task = NULL;
+  cout << "Starting thread " << pthread_self() << endl;
+  while(true) {
+    // Try to pick a task
+    cout << "Locking: " << pthread_self() << endl;
+    m_task_mutex.lock();
+    
+    // We need to put pthread_cond_wait in a loop for two reasons:
+    // 1. There can be spurious wakeups (due to signal/ENITR)
+    // 2. When mutex is released for waiting, another thread can be waken up
+    //    from a signal/broadcast and that thread can mess up the condition.
+    //    So when the current thread wakes up the condition may no longer be
+    //    actually true!
+    while ((m_pool_state != STOPPED) && (m_tasks.empty())) {
+      // Wait until there is a task in the queue
+      // Unlock mutex while wait, then lock it back when signaled
+      cout << "Unlocking and waiting: " << pthread_self() << endl;
+      m_task_cond_var.wait(m_task_mutex.get_mutex_ptr());
+      cout << "Signaled and locking: " << pthread_self() << endl;
+    }
+
+    // If the thread was woken up to notify process shutdown, return from here
+    if (m_pool_state == STOPPED) {
+      cout << "Unlocking and exiting: " << pthread_self() << endl;
+      m_task_mutex.unlock();
+      pthread_exit(NULL);
+    }
+
+    task = m_tasks.front();
+    m_tasks.pop_front();
+    cout << "Unlocking: " << pthread_self() << endl;
+    m_task_mutex.unlock();
+
+    //cout << "Executing thread " << pthread_self() << endl;
+    // execute the task
+    (*task)(); // could also do task->run(arg);
+    //cout << "Done executing thread " << pthread_self() << endl;
+    delete task;
+  }
+  return NULL;
+}
+
+int ThreadPool::add_task(Task* task)
+{
+  m_task_mutex.lock();
+
+  // TODO: put a limit on how many tasks can be added at most
+  m_tasks.push_back(task);
+
+  m_task_cond_var.signal(); // wake up one thread that is waiting for a task to be available
+
+  m_task_mutex.unlock();
+
+  return 0;
+}
+
+
+** futex VS. pthread_mutex_lock /pthread_mutex_unlock
+futex is a raw call in linux kernel for (Fast Usersapce Mutex), and the latter is a system call function in user space.
+In c file pthread_mutex_(un)lock funtion
+in strace result, there's a futex and not only invoking from your own c file will result in futex calling, even if there's no pthread_mutex calling, there might be futex calling
+for example, if two threads calling printf, there's futex operation when printf call, for you don't want standard output will be mixed with two thread's output.
+
+If a c file has pthread_create calling, then there's a futex in main thread always.
+strace -f -tt -o log ./exe
+============================
+765   11:18:11.880012 set_tid_address(0xb7f52708) = 765
+765   11:18:11.880048 set_robust_list(0xb7f52710, 0xc) = 0
+765   11:18:11.880086 futex(0xbfed2d94, FUTEX_WAKE_PRIVATE, 1) = 0
+========================
+
+pthread_join
+=================
+./example.4686:     05:53:16.256380 futex(0xb7f40bd8, FUTEX_WAIT, 4687, NULL) = 0
+============
+4686 is a main thread which created tid 4687, and it will wait for 4687 to finish
+
+
+** futex OPERATION
+
+    WAIT (addr, val) Checks if the value stored at the address addr is val, and if it is puts the current thread to sleep.
+        Returns 0 if the process was woken by a FUTEX_WAKE call. See ERRORS for the various possible error returns. 
+
+    WAKE (addr, val) Wakes up val number of threads waiting on the address addr. 
+	    Returns the number of processes woken up. 
+
+In this system an atomic increment and test operation is performed on the mutex variable in user space.
+If the result of the operation indicates that there was no contention on the lock(No thread WAIT on this), the call to pthread_mutex_lock returns without ever context switching into
+the kernel, so the operation of taking a mutex can be very fast.
+
+Only if contention was detected does a system call (called futex) and context switch into the kernel occurs that puts the calling process to sleep until the mutex is released.
+
+pthread_mutex_lock won't always trigger futex(WAIT), for if the lock is available, then no futex operation needed, and no futex in strace log file.
+
+but pthread_mutex_unlock will always trigger WAKE, if no thread is waiting for that mutex, then return value will be  0.
+
+
+if you want to get the pthread_mutex function related futex operation, you need to identify which one is which, for printf in diffenret tids  will trigger futex also.
+=============================================================================================
+ex2log_1|80| 6840  11:57:25.147408 futex(0x8049c04, FUTEX_WAIT_PRIVATE, 1, NULL <unfinished ...>
+ex2log_1|82| 6841  11:57:25.147461 futex(0x8049c04, FUTEX_WAKE_OP_PRIVATE, 1, 1, 0x8049c00, {FUTEX_OP_SET, 0, FUTEX_OP_CMP_GT, 1}) = 1
+ex2log_1|83| 6840  11:57:25.147501 <... futex resumed> ) = 0
+ex2log_1|85| 6840  11:57:25.147559 futex(0x8049be0, FUTEX_WAIT_PRIVATE, 2, NULL <unfinished ...>
+ex2log_1|91| 6841  11:57:28.149439 futex(0x8049be0, FUTEX_WAKE_PRIVATE, 1) = 1
+ex2log_1|92| 6840  11:57:28.149485 <... futex resumed> ) = 0
+ex2log_1|94| 6840  11:57:28.149551 futex(0xa0f0d0, FUTEX_WAIT_PRIVATE, 2, NULL <unfinished ...>
+ex2log_1|96| 6841  11:57:28.149598 futex(0xa0f0d0, FUTEX_WAKE_PRIVATE, 1) = 1
+ex2log_1|97| 6840  11:57:28.149631 <... futex resumed> ) = 0
+=======================================================================
+this 0xa0f0d0 is for printf, and 0x8049be0 is for pthread_mutex
+
+---------------------------------------------------------------
+69 6841  11:57:23.145857 futex(0x8049be0, FUTEX_WAIT_PRIVATE, 2, NULL <unfinished ...>
+ 70 6840  11:57:23.145877 write(1, "Consumer 3086379920 get lock wai"..., 55) = 55
+ 71 6840  11:57:23.145932 futex(0xa0f0d0, FUTEX_WAKE_PRIVATE, 1) = 0
+ 72 6840  11:57:23.145973 rt_sigprocmask(SIG_BLOCK, [CHLD], [], 8) = 0
+ 73 6840  11:57:23.146024 rt_sigaction(SIGCHLD, NULL, {SIG_DFL, [], 0}, 8) = 0
+ 74 6840  11:57:23.146072 rt_sigprocmask(SIG_SETMASK, [], NULL, 8) = 0
+ 75 6840  11:57:23.146120 nanosleep({2, 0}, {2, 0}) = 0
+ 76 6840  11:57:25.147286 futex(0x8049be0, FUTEX_WAKE_PRIVATE, 1 <unfinished ...>
+ 77 6841  11:57:25.147324 <... futex resumed> ) = 0
+ 78 6840  11:57:25.147346 <... futex resumed> ) = 1
+ 79 6841  11:57:25.147370 write(1, "Producer 3075890064 get lock to "..., 40 <unfinished ...>
+ 80 6840  11:57:25.147408 futex(0x8049c04, FUTEX_WAIT_PRIVATE, 1, NULL <unfinished ...>
+ 81 6841  11:57:25.147429 <... write resumed> ) = 40
+ 82 6841  11:57:25.147461 futex(0x8049c04, FUTEX_WAKE_OP_PRIVATE, 1, 1, 0x8049c00, {FUTEX_OP_SET, 0, FUTEX_OP_CMP_GT, 1}) = 1
+ 83 6840  11:57:25.147501 <... futex resumed> ) = 0
+ 84 6841  11:57:25.147524 write(1, "Producer 3075890064 signal 3 sec"..., 33 <unfinished ...>
+ 85 6840  11:57:25.147559 futex(0x8049be0, FUTEX_WAIT_PRIVATE, 2, NULL <unfinished ...>
+ 86 6841  11:57:25.147579 <... write resumed> ) = 33
+ 87 6841  11:57:25.147604 rt_sigprocmask(SIG_BLOCK, [CHLD], [], 8) = 0
+ 88 6841  11:57:25.147655 rt_sigaction(SIGCHLD, NULL, {SIG_DFL, [], 0}, 8) = 0
+ 89 6841  11:57:25.147704 rt_sigprocmask(SIG_SETMASK, [], NULL, 8) = 0
+ 90 6841  11:57:25.147745 nanosleep({3, 0}, {3, 0}) = 0
+ 91 6841  11:57:28.149439 futex(0x8049be0, FUTEX_WAKE_PRIVATE, 1) = 1
+ 92 6840  11:57:28.149485 <... futex resumed> ) = 0
+ 93 6841  11:57:28.149510 write(1, "Producer 3075890064 mutex unlock"..., 35 <unfinished ...>
+ 94 6840  11:57:28.149551 futex(0xa0f0d0, FUTEX_WAIT_PRIVATE, 2, NULL <unfinished ...>
+ 95 6841  11:57:28.149572 <... write resumed> ) = 35
+ 96 6841  11:57:28.149598 futex(0xa0f0d0, FUTEX_WAKE_PRIVATE, 1) = 1
+ 97 6840  11:57:28.149631 <... futex resumed> ) = 0
+ 98 6841  11:57:28.149654 _exit(0)          = ?
+ 99 6840  11:57:28.149676 write(1, "Consumer 3086379920 get  conditi"..., 38) = 38
+100 6840  11:57:28.149736 futex(0xa0f0d0, FUTEX_WAKE_PRIVATE, 1) = 0
+101 6840  11:57:28.149775 futex(0x8049be0, FUTEX_WAKE_PRIVATE, 1) = 0
+--------------------------------------------------------------
+
+this 0x8049c04 is for pthread_cond_wait/signal's conditional variable
+===============================================================
+6840  11:57:25.147408 futex(0x8049c04, FUTEX_WAIT_PRIVATE, 1, NULL <unfinished ...>
+6841  11:57:25.147429 <... write resumed> ) = 40
+6841  11:57:25.147461 futex(0x8049c04, FUTEX_WAKE_OP_PRIVATE, 1, 1, 0x8049c00, {FUTEX_OP_SET, 0, FUTEX_OP_CMP_GT, 1}) = 1
+6840  11:57:25.147501 <... futex resumed> ) = 0
++++++++++++++++++++++++++++++++++++++++++++++
+
+** pthread_cond_wait(cond, mutex)
+==========================
+release the mutex(WAKE)
+wait  for conditional
+condition get woked
+try to ge the mutex(WAIT)
+Got the mutex
+========================
+After above steps ptrhead_cond_wait will return,
+*** why?
+to avoid dead lock. if consumer that got mutex waiting for a producer to produce, it should assure that there's something to consume, if not, then producer will wait for the mutex lock to produce something. So each one will wait for each other,and no one will get singaled for ever.
+
+So when a consumer wait for a conditioner, it can't hold the mutex lock.
+So this pthread_cond_wait will release the mutex if it has gotten the mutex.and when it got conditional signaled it will got the mutex to return.
+
+** pthread_cond_broadcast vs. pthread_cond_signal
+======================================================
+28914 09:14:20.719046 futex(0x8049c44, FUTEX_WAIT_PRIVATE, 2, NULL <unfinished ...>
+28915 09:14:20.719069 futex(0x8049c44, FUTEX_CMP_REQUEUE_PRIVATE, 1, 2147483647, 0x8049c20, 4 <unfinished ...>
+28914 09:14:20.719088 <... futex resumed> ) = -1 EAGAIN (Resource temporarily unavailable)
+28915 09:14:20.719113 <... futex resumed> ) = 1
+28913 09:14:20.719129 <... futex resumed> ) = 0
+28915 09:14:20.719151 write(1, "condition signalded\n", 20 <unfinished ...>
+28914 09:14:20.719180 futex(0x8049c20, FUTEX_WAIT_PRIVATE, 2, NULL <unfinished ...>  //wait for mutex, returned from condition var,
+28915 09:14:20.719217 <... write resumed> ) = 20
+28913 09:14:20.719238 futex(0x8049c20, FUTEX_WAIT_PRIVATE, 2, NULL <unfinished ...>  //wait for mutex, returned from condition var
+28915 09:14:20.719325 futex(0x8049c20, FUTEX_WAKE_PRIVATE, 1) = 1            //producer release mutex lock
+28915 09:14:20.719363 write(1, "mutex released\n", 15 <unfinished ...>
+28914 09:14:20.719386 <... futex resumed> ) = 0                               // got mutex lock
+28915 09:14:20.719533 _exit(0)          = ?
+28914 09:14:20.719581 write(1, "child 1 passing wait phanseThe c"..., 47) = 47 //return from pthread_cond_wait
+28914 09:14:20.719637 futex(0x8049c20, FUTEX_WAKE_PRIVATE, 1) = 1          //release mutex lock
+28914 09:14:20.719674 _exit(0)          = ?
+28913 09:14:20.719691 <... futex resumed> ) = 0                            //got mutex lock, return from pthred_cond_wait
+28913 09:14:20.719736 write(1, "child 0 passing wait phanseThe c"..., 47 <unfinished ...>
+
+==================================================
+tid 28915 invoke pthread_cond_broadcast, it use FUTEX_CMP_REQUEUE_PRIVATE and wake up only 1 thread,
+so tid 28913 get it successfully, but tid 28914 get -1, but they both returned from waiting for condition variable, 28914 try to get mutex lock.
+
+but if use pthread_cond_signal here, then only 1 thread will return from condition var waiting, the other one will still waiting for the signalling(pthread_cond_signal/broadcast) again. 
+
+** example of usage
+There's two different ways of doing this and you're mixing them up.
+
+1. always signal
+pop:
+pthread_mutex_lock(&mutex);
+while (stack.isEmpty())
+pthread_cond_wait(&cvar, &mutex);
+item = stack.pop();
+pthread_mutex_unlock(&mutex);
+return item;
+
+push:
+pthread_mutex_lock(&mutex);
+stack.push(item);
+pthread_cond_signal(&cvar); // always signal
+pthread_mutex_unlock(&mutex);
+
+2. broadcast if empty
+pop: // same as 1.
+
+push:
+pthread_mutex_lock(&mutex);
+bWasEmpty = stack.isEmpty();
+stack.push(item);
+if (bWasEmpty)
+pthread_cond_broadcast(&cvar); // broadcast if previously empty
+pthread_mutex_unlock(&mutex);
+--
+
+* Message Queue
+every task has its own message queue, so when one task send a message to another, it will get that
+dst task's message queue to send.
+meantime, every task will poll it's own message queue. To avoid deadlock, we need semphore to know
+if there's any message in our own message queue, if so, we can get sem to get it. if not, we wait for
+other task to put sem(sending message) in our message queue.
+mutex lock is for sending message task to compete for sending to the same dst.  
+
+** 消息队列的基本概念
+消息队列实际是个链表，链表的结点存储消息头的指针
+消息队列有信号量和互斥锁保证线程之间的同步和互斥
+信号量用于消息读写之间的同步（是否有消息可读），互斥锁用于对消息队列的操作，同时只能一个线程读或写消息队列
+*** 信号量和互斥锁
+semphore 
+sem_init(),信号量的创建有初始值，比如N
+ 信号量可以是多个资源，也就是说同一时刻可以有N个线程拥有信号量，
+但第N+1个线程要get semphore就需要wait，
+只要信号量的值大于0，就可以get到信号量，每get信号量成功一次，信号量的值就减1.
+同理，put信号量就是将信号量的值增1
+
+mutex_lock
+互斥锁其实就是同时只有1个线程得到资源
+
+*** 在读消息和写消息时需要同步，这时需要用信号量表示
+读消息前要sem_get,表示消息队列中有消息可读，再进入互斥锁区域操作队列
+写消息成功后要sem_put,表示消息队列中增加了一条消息，
+
+*** 对消息队列的读写都需要互斥
+读消息和写消息时都需要mutex_lock, 为了让同时只有一个线程在读消息，
+同时只有一个线程在写消息，同时只有一个线程在操作消息队列，或在读或在写
+
+XPUBLIC XS32  QUE_MsgQSend(t_XOSMSGQ *pQue, t_XOSCOMMHEAD*pMsg, e_MSGPRIO prio)
+{
+    t_QUEELEM queElem;
+    XS32 ret;
+    XS32 curMsgs;
+
+   
+    if (XNULLP == pQue ||	XNULLP == pMsg||  prio >=eMAXPrio )
+    {
+        XOS_CpsTrace(MD(FID_ROOT, PL_ERR), "QUE_MsgQSend()->bad input param !");
+        return XERROR;
+    }
+
+    /*填写消息*/
+    XOS_MemSet(&queElem, 0, sizeof(t_QUEELEM));
+    queElem.pMsg = (XCHAR*) pMsg;
+####上锁    
+    /* 发送消息*/
+    XOS_MutexLock(&(pQue->queueLock));
+    curMsgs = XOS_listCurSize(pQue->queueList);
+    
+    /*消息队列容量超过80 %, 不容许低优先级消息发送*/
+    if((XOS_listMaxSize(pQue->queueList)-eMAXPrio-1)*4 <  (curMsgs-eMAXPrio-1)*5
+        && pMsg->prio <= eAdnMsgPrio/*紧急优先级*/)
+    {
+        XOS_CpsTrace(MD(FID_ROOT, PL_WARN), "QUE_MsgQSend()->que is full of 80 persent, discard msg prio[%d] !",
+                           pMsg->prio);
+	
+        XOS_MutexUnlock(&(pQue->queueLock));
+        return XERROR;
+    }
+
+    /*消息放到消息队列里*/
+    ret = XOS_listAdd(pQue->queueList, pQue->prio[pMsg->prio], (nodeType)&queElem);
+    if(ret == XERROR)
+    {
+         XOS_CpsTrace(MD(FID_ROOT, PL_ERR), "QUE_MsgQSend()->add msg to que failed !, que cursize: %d",
+                           XOS_listCurSize(pQue->queueList));
+      
+       QUE_MsgQWalk(pQue);
+		 
+         XOS_MutexUnlock(&(pQue->queueLock));                   
+         return XERROR;
+    }
+    
+    /*调整游标*/
+    pQue->prioCursor = XOS_MAX(pQue->prioCursor, (pMsg->prio+1));
+### 存储当前队列中的消息的最高优先级  
+    /*解琐*/
+    XOS_MutexUnlock(&(pQue->queueLock));
+#解锁，对于消息队列的操作要放在锁住的区域
+    /*释放信号量*/
+    XOS_SemPut(&(pQue->sem));
+###表示多了一条消息，这句不在互斥锁的保护范围内，
+######       sem_post()  increments (unlocks) the semaphore pointed to by sem.  If the semaphore's value
+###       consequently becomes greater than zero,  then  another  process  or  thread  blocked  in  a
+###       sem_wait(3) call will be woken up and proceed to lock the semaphore.
+##如果放在互斥区域内是没有意义的，因为sem_wait成功后依然要取得互斥锁才能操作队列
+    return XSUCC;
+
+}
+
+/************************************************************************
+函数名: QUE_MsgQRecv
+功能：  从一个消息队列接收一条消息
+输入：  pQue  消息队列标识
+                  ppMsg  指向消息的缓冲区结构地址的指针
+输出： 
+返回：函数操作成功返回XSUCC, 函数操作失败返回XERROR
+说明：
+************************************************************************/
+XPUBLIC XS32  QUE_MsgQRecv(t_XOSMSGQ *pQue, t_XOSCOMMHEAD **ppMsg)
+{
+   XU32   i;
+   XBOOL isRecieve;
+   t_QUEELEM *pQueElem;
+   XS32 listIndex;
+   
+   /*入口安全性检查*/
+   if (pQue == XNULLP || ppMsg == XNULLP)
+   {
+      XOS_Trace(MD(FID_ROOT, PL_ERR), "QUE_MsgQRecv()-> bad input param!"); 
+      return XERROR;
+   }
+
+   /*等待信号量*/
+   XOS_SemGet(&(pQue->sem));
+##先等待看可有消息在消息队列里再开始操作消息队列，再开始上锁
+   /*接收消息*/
+   /*先接受优先级高的消息*/
+   XOS_MutexLock(&(pQue->queueLock));
+   isRecieve = XFALSE;
+   for(i = pQue->prioCursor; i>eMinPrio; i--)
+   {
+       pQueElem = (t_QUEELEM*)XNULLP;
+       listIndex = XOS_listPrev(pQue->queueList, pQue->prio[i]);
+       pQueElem = (t_QUEELEM*)XOS_listGetElem(pQue->queueList, listIndex);
+####得到这个优先级在链表中的位置     
+  if(pQueElem != XNULLP && (XU32)(pQueElem->pMsg) != (XU32)(i-1))
+       {
+           *ppMsg = (t_XOSCOMMHEAD*)(pQueElem->pMsg);
+           XOS_listDelete(pQue->queueList, listIndex);
+           isRecieve = XTRUE;
+           pQue->prioCursor = i;
+###为了效率，每次从已存在的最高优先级消息头开始接收消息
+           break;
+       }
+   }
+   /*解琐*/
+   XOS_MutexUnlock(&(pQue->queueLock));
+   
+   /* 没有收到消息, 肯定是出了错*/
+   if(!isRecieve)
+   {
+        XOS_Trace(MD(FID_ROOT, PL_ERR), "QUE_MsgQRecv()-> not recieve msg! que cursize: %d",
+                           XOS_listCurSize(pQue->queueList)); 
+        return XERROR;
+   }
+   return XSUCC;
+
+}
+
+
+** 分优先级的消息队列的数据结构
+假设把消息分为几类优先级，读消息时从最高优先级的队列里读出消息
+这里的技巧是把其中一些结点作为优先级大小，而不是消息头的指针。
+XPUBLIC XS32   QUE_MsgQCreate(t_XOSMSGQ *pMsgQ,XU32 maxMsgs) 
+{
+    XS32 i;
+    XS32 nodeIndex;
+    t_QUEELEM queElem;
+    
+    /*入口的安全性检查*/
+    if(pMsgQ == XNULLP
+       || maxMsgs == 0 ||maxMsgs > 0xffff)/*最大长度不能超过u16的最大值*/
+    {
+         XOS_Trace(MD(FID_ROOT, PL_ERR), "QUE_MsgQCreate()->bad input params !max msgs: %d", maxMsgs);
+         return XERROR;
+    }
+
+    /*创建list*/
+    pMsgQ->queueList = (XOS_HLIST)XNULLP;
+    
+    pMsgQ->queueList = XOS_listConstruct(sizeof(t_QUEELEM), maxMsgs+eMAXPrio+1, " ");
+###这里消息队列比实际可以存放的消息数多eMaXPrio+1
+    if(pMsgQ->queueList == XNULLP)
+    {
+        XOS_Trace(MD(FID_ROOT, PL_ERR), "QUE_MsgQCreate()->create msg queue failed !max msgs: %d", maxMsgs);
+        return XERROR;
+    }
+    /*填写各优先级的归宿节点*/
+##先填写优先级的归宿结点，此后再分别插入各类相应优先级的消息头
+    for(i = eMinPrio; i<=eMAXPrio; i++)
+    {
+        XOS_MemSet(&queElem, 0, sizeof(t_QUEELEM));
+        queElem.pMsg = (XCHAR*)i;
+##这里把结点的pMsg写成优先级大小，以区别于普通的消息头地址        
+        nodeIndex = XOS_listAddTail(pMsgQ->queueList, &queElem);
+        if(nodeIndex == XERROR)
+        {
+            XOS_Trace(MD(FID_ROOT, PL_ERR), "QUE_MsgQCreate()->add the node [%d] failed", i);
+            XOS_listDestruct(pMsgQ->queueList);
+            return XERROR;
+        }
+        pMsgQ->prio[i] = nodeIndex; 
+####存储各种优先级结点在链表中的位置       
+    }
+
+    /*创建琐*/
+    if(XSUCC != XOS_MutexCreate(&(pMsgQ->queueLock)))
+    {
+         XOS_Trace(MD(FID_ROOT, PL_ERR), "QUE_MsgQCreate()->create queueLock failed !");
+         XOS_listDestruct(pMsgQ->queueList);
+         return XERROR;
+    }
+    
+    /*创建信号量*/
+    if(XSUCC != XOS_SemCreate(&(pMsgQ->sem), 0))
+    {
+         XOS_Trace(MD(FID_ROOT, PL_ERR), "QUE_MsgQCreate()->create queue semphore failed !");
+         XOS_listDestruct(pMsgQ->queueList);
+         XOS_MutexDelete(&(pMsgQ->queueLock));
+         return XERROR;
+    }
+
+    return XSUCC;
+}
+
+
+** 消息内存空间的释放
+消息空间的分配由send函数负责，回收则由receive函数负责，这种模式称为零拷贝
+
+
+* Timer
+** 设计思想
+定时器会启动一个任务，作为整个时钟的驱动源，这个任务会在固定时刻向注册了定时器的fid发送时钟消息
+
+高精度定时器任务会去循环sem_get一个信号量，而一个时钟源（操作系统自带的定时器）驱动sem_put一个信号量
+低精度定时器任务是由任务里sleep(),得到时钟源的
+
+相应fid收到时钟消息后，用其timer management来遍历定时器列表的刻度，增加该刻度上相应定时器结点的walktime，看是否有超时
+的定时器，所以超时消息是fid自己的线程里实现的，定时器的轮转也是在fid自己的线程里
+
+** 平台的定时器实际是每个fid有一个自己的timermanagement， 
+收到定时器消息：
+   /*时钟源的驱动消息*/
+        if(pMsg->datasrc.FID == FID_TIME
+            && (pMsg->msgID == eTimeHigClock ||pMsg->msgID == eTimeLowClock))
+        { 
+             /*时钟源消息的处理函数*/
+           if(pMsg->msgID == eTimeHigClock)
+           {
+			  TIM_ClckProc(MOD_getTimMntByFid(TIMER_PRE_HIGH,pMsg->datadest.FID));
+		   }
+		   else
+	  	   {
+		   	TIM_ClckProc(MOD_getTimMntByFid(TIMER_PRE_LOW,pMsg->datadest.FID));
+		   }
+		   	
+		  /*所有的定时器时钟驱动消息都是由平台释放*/
+          XOS_MsgMemFree(pMsg->datadest.FID, pMsg);
+          continue;
+
+
+
+** 相应fid收到定时器消息后，开始转轮子
+management.runlist表示正在运行的定时器结点链表数组management->stRunList[LOC_TIMER_LINKLEN]
+management->stRunList[management->nowclock]表示现在的刻度，在这个刻度上，有的结点可能到期，有的没有到，增加遍历次数
+
+/************************************************************************
+函数名  : TIM_ClckProc
+功能    : 各任务收到时钟任务消息的统一处理函数
+输入    : management - 任务管理定时器链的结构指针
+输出    : none
+返回    : XSUCC, 函数操作失败返回XERROR 
+说明    :
+************************************************************************/
+XPUBLIC XS32 TIM_ClckProc(t_TIMERMNGT *management)
+{
+
+    XU32 i=0,timermaxscale=0,ulTimerLinkIndex=0;
+    t_LISTENT    *head , list ;
+    t_TIMERNODE  *pstTmp= XNULLP, *pstTmpNext= XNULLP;
+    modTimerProcFunc timerExpFunc;
+
+
+    if(XNULL == management)
+    {
+        return XERROR;
+    }
+   
+####    /* 刻度往前走一步 */
+    management->nowclock = (management->nowclock + 1) % LOC_TIMER_LINKLEN;
+    head = &(management->stRunList[management->nowclock]);
+### 找到nowclock相应的链表头  
+###  /*初始化到期的链表*/
+   CM_INIT_TQ(&list);
+   timermaxscale =LOC_TIMER_LINKLEN * (management->timeruint);
+    for(pstTmp=(t_TIMERNODE *)head->next; &pstTmp->stLe!=head;)
+    {
+       if(!pstTmp)
+	   return XERROR;
+		pstTmpNext = (t_TIMERNODE *)pstTmp->stLe.next;
+  		i = ((pstTmp->walktimes + 1) * timermaxscale);
+####       /*定时器节点已到期*/
+        if (pstTmp->para.len <= i)
+        {
+            /* 从定时器链表中删除 */
+            CM_RMV_TQ(&pstTmp->stLe);            
+            /* 加入到期链表中 */
+           CM_PLC_TQ(list.prev, &pstTmp->stLe);
+        }
+###没有到期，增加遍历的次数 
+       else
+        {
+            pstTmp->walktimes++;
+        }
+		 pstTmp = pstTmpNext;    /*指针下移*/
+    }
+####遍历完nowclock的链表头，把刚才所有的到期结点一并处理
+    /* 处理到期链表 */
+   for(pstTmp=(t_TIMERNODE *)list.next; &pstTmp->stLe!=&list; pstTmp=(t_TIMERNODE *)list.next)
+    {
+
+		/*从到期链表中删除*/
+		CM_RMV_TQ(&pstTmp->stLe);       
+        
+        if(pstTmp->para.mode == TIMER_TYPE_LOOP)
+        {/* 如果是循环定时器 ,加入到运行链表中*/
+        	ulTimerLinkIndex = (pstTmp->para.len / management->timeruint + management->nowclock)% LOC_TIMER_LINKLEN;
+      	     pstTmp->walktimes = 0;
+            CM_PLC_TQ(management->stRunList[ulTimerLinkIndex].prev,&pstTmp->stLe);
+         
+        }
+		else
+		{ 	  
+          if(!pstTmp->flag)/*两接口的定时器类型*/
+		  {
+		     *(pstTmp->pTimer) = XNULL;  /*一次性定时器句柄置空*/
+			CM_PLC_TQ(&(management->idleheader), &(pstTmp->stLe));
+		    pstTmp->tmnodest = TIMER_STATE_NULL;
+		  }
+		   else /*四接口的定时器类型*/
+		    pstTmp->tmnodest = TIMER_STATE_FREE; 
+        }
+
+        /* 回调相应处理函数 */
+      timerExpFunc = MOD_getTimProcFunc(pstTmp->para.fid);
+      if(!timerExpFunc )
+      {
+           return XERROR;
+      }	
+	timerExpFunc( &pstTmp->backpara);
+		
+    }
+    return XSUCC;
+}
+
+**  启动一个定时器
+/************************************************************************
+函数名: XOS_TimerStart
+功能：  定时器启动函数
+输入：  tHandle     - 定时器句柄
+        timerpara   - 定时器参数
+        backpara    - 定时器超时回传参数
+        
+输出：  tHandle
+返回：  XSUCC, 函数操作失败返回XERROR 
+说明：
+************************************************************************/
+XS32 XOS_TimerStart(PTIMER *ptHandle, t_PARA *timerpara, t_BACKPARA *backpara)
+{
+    t_TIMERNODE *pstTmp = XNULLP;
+    XU32        ulTimerLinkIndex = -1 ;
+    t_TIMERMNGT *tmmanager = XNULLP;
+	XS32  TimerpoolIndex =-1;
+   
+
+	 if(!timerpara ||!XOS_isValidFid( timerpara->fid) ||!ptHandle
+		 ||timerpara->mode >= TIMER_TYPE_END || timerpara->pre >= TIMER_PRE_END )
+    {
+		XOS_PRINT(MD(FID_TIME, PL_ERR), "\r\nThe argument is  illeagl");
+		return XERROR;
+    }
+
+
+	  if(*ptHandle)
+	{
+	   if(TIM_isValidDTHdle(*ptHandle))
+	   	 /*先停止定时器*/
+	     XOS_TimerStop(timerpara->fid,ptHandle[0]);
+	
+	   else
+	   {
+	   	 XOS_PRINT(MD(FID_TIME, PL_ERR), "\r\nThe content of ptHandle isn't null and the ptHandle is not illegal  ");
+	   	 return XERROR;
+	   	}
+	}
+ 
+	tmmanager	= MOD_getTimMntByFid(timerpara->pre,timerpara->fid);
+
+    if(!tmmanager)
+	{
+		XOS_PRINT(MD(FID_TIME, PL_ERR), "\r\nThe timer manager  is  null");
+		 return XERROR;
+	}
+
+   if(tmmanager->timeruint == 0 ||timerpara->len <(tmmanager->timeruint) 
+      ||timerpara->len % (tmmanager->timeruint) != 0)
+    {
+		XOS_PRINT(MD(FID_TIME, PL_ERR), "\r\nThe length of timer is wrong\n");
+		return XERROR;
+    }
+	pstTmp = (t_TIMERNODE *)tmmanager->idleheader.next;
+	/*if there's no free node in the list*/
+    if((XNULLP == pstTmp) || (&tmmanager->idleheader == &pstTmp->stLe))
+    {
+         XOS_PRINT(MD(FID_TIME, PL_ERR), "\r\nThere's no free node in the list\n");
+		  return XERROR;
+     }
+     /* 从空闲链中删除 */
+	CM_RMV_TQ(&pstTmp->stLe);
+	pstTmp->tmnodest= TIMER_STATE_RUN;
+	TimerpoolIndex = pstTmp - tmmanager->pstTimerPool;
+	ptHandle[0] = TIM_buildDHandle(timerpara->pre,(XU16)TimerpoolIndex);
+	 pstTmp->pTimer      = ptHandle;
+	 pstTmp->stLe.next  = XNULL;
+	 pstTmp->stLe.prev  = XNULL;
+     pstTmp->para.fid   = timerpara->fid;
+     pstTmp->para.len   = timerpara->len;
+     pstTmp->para.pre  = timerpara->pre;
+   	 pstTmp->para.mode  = timerpara->mode;
+	 pstTmp->flag = 0;
+		if(backpara)
+    	{
+       		 XOS_MemCpy(&pstTmp->backpara, backpara, backparalen);
+    	}
+       	pstTmp->walktimes = 0;
+
+#####计算好刻度
+####       /* 将该节点加到定时器运行链表中 */
+   		ulTimerLinkIndex = (timerpara->len / tmmanager->timeruint + tmmanager->nowclock)% LOC_TIMER_LINKLEN;
+      	CM_PLC_TQ(tmmanager->stRunList[ulTimerLinkIndex].prev,&pstTmp->stLe);
+	   	return XSUCC;   
+}
+
+* XOS Memory Management(内存池）
+** bucket array 
+在程序启动之初分配好内存，避免频繁用new/malloc，系统需要根据 最先匹配，最优匹配等算法在内存空闲块表中查找一块空闲内存
+，调用free/delete，系统需要合并空闲内存块，这些会产生额外开销
+频繁使用heap内存的分配和释放，会产生大量的内存碎片，降低程序运行效率
+容易造成内存泄漏
+内存池（memory pool)是代替直接调用malloc/free、new/delete进行内存管理的常用方法，当我们申请内存空间时，首先到我们的内存池中查找合适的内存块，而不是直接向操作系统申请，优势在于：
+ 1.比malloc/free进行内存申请/释放的方式快
+ 2.不会产生或很少产生堆碎片
+ 3.可避免内存泄漏
+
+
+bucket array
+ba[index]  is the list  of 2^index size block.
+|2|4|5|.......|
+ |          
+ |---------> |list |     addr0            addr1
+             |-----|     ========         ======   
+             |free |---->| block| ------> |block|  (available to be allocated)  
+             |-----|     ========         =======
+          
+
+
+block has a tail and head filled with magic number
+=====================================================================
+|size=log2N |head-magic |bucket size space....|tail-magic|netx pointer
+======================================================================
+                       /|\ 
+                        pointer returned to the application who want the bucket.   
+when a block is freed, we check size in head-magic field, and add it to the tail of  ba[size].list->free
+when allocated sizerequest memory, 
+###########这里计算sizerequest是2的多少次方，不足多少次方的，按最近似的值去2的n次方。
+
+#--------------------------------------------------------
+#     /* Get the power of the bktQnSize */
+#     regCb->bktQnPwr = 0; 
+#    while( !((sizerequest >> regCb->bktQnPwr) & 0x01))
+#     {
+#        regCb->bktQnPwr++;
+#     }
+#  bktQnSize= 2^bktQnPwr;
+####################################
+    
+
+
+** hash table to get bucket list head
+
+|---------|
+|pool     |
+----------|     -------
+|list     |---->|list |      
+----------|     -------
+|list_last|     |size |          addr0            addr1
+-----------     |-----|     ========         ======       =======  
+ |              |free |---->| block| ------> |block|----> |block|     (available to be allocated)  
+ |              |-----|     ======== <-----  =======<---- =======    
+ |              |     |     ========         ======   
+ |              |used |---->| block| ------> |block|  (not available to be allocated)  
+ |              |-----|     ======== <----   =======
+ |              |size |
+ |              -------
+ |              | next|
+ |              -------
+ |             . |
+ |             . |
+ |             .\|/
+ |           ------
+ |---------> |list |     addr0            addr1
+             |-----|     ========         ======   
+             |free |---->| block| ------> |block|  (available to be allocated)  
+             |-----|     ======== <-----  =======
+             |     |     ========         ======   
+             |used |---->| block| ------> |block|  (not available to be allocated)  
+             |-----|     ======== <-----  =======
+             |size |
+             -------
+             | next|
+             -------
+要包含block、list 和pool这三个结构体，block结构包含指向实际内存空间的指针，前向和后向指针让block能够组成双向链表；
+list结构中free指针指向空闲 内存块组成的链表，used指针指向程序使用中的内存块组成的链表，size值为内存块的大小，list
+之间组成单向链表；pool结构记录list链表的头和尾。要包含block、list 和pool这三个结构体，block结构包含指向实际内存空间
+的指针，前向和后向指针让block能够组成双向链表；list结构中free指针指向空闲 内存块组成的链表，used指针指向程序使用中的内存块组
+成的链表，size值为内存块的大小，list之间组成单向链表；pool结构记录list链表的头和尾。要包含block、list 和pool这三个结构体，
+block结构包含指向实际内存空间的指针，前向和后向指针让block能够组成双向链表；list结构中free指针指向空闲 内存块组成的链表，used
+指针指向程序使用中的内存块组成的链表，size值为内存块的大小，list之间组成单向链表；pool结构记录list链表的头和尾。          
+
+
+内存跟踪策略
+ 
+该方案中，在进行内存分配时，将多申请12个字节，即实际申请的内存大小为所需内存大小+12。在多申请的12个字节中，分别存放对应的list指针
+（4字节）、used指针（4字节）和校验码（4字节）。通过这样设定，我们很容易得到该块内存所在的list和block，校验码起到粗略检查是否出错的作用
+。该结构图示如下：
+
+=====================================================================
+|p_list |p_block |checksum|.....
+======================================================================
+                       /|\ 
+                        pointer returned to the application who want the bucket.   
+when a block is freed, we check size in head-magic field, and add it to the tail of  ba[size].list->free
+when allocated sizerequest memory, 
+
+*** 分配内存，并初始化内存
+根据内存配置文件，读出需要分配哪些大小（这个大小是2的n次方）的内存，各种大小的内存块需要的个数
+在xos程序一启动之前，就一次性分配好这些内存，并且以bucket形式管理起来，每个bucket对应内存块的大小，里面有所有这样大小的内存块
+
+XS32 MEM_Initlize(XVOID )
+{
+   t_MEMCFG memCfg;
+   t_MEMBLOCK *pMemBlock;
+   t_BUCKETCB  bucketCb;
+   t_BUCKETCB*  pBucketCb;
+   t_BUCKETCB*  pTempCb;
+   XVOID *pLocation;
+   t_BUCKPTR*pTemp;
+   t_BUCKPTR *pTemp1;
+   t_BUCKPTR temp2;
+   XS32 ret;
+   XU16 i;
+   XU16 j;
+   
+   /*如果已经初始化*/
+    if(g_memMnt.initialized)
+    {
+       XOS_Trace(MD(FID_ROOT, PL_WARN), "MEM_init()-> reInit mem!");
+       return XSUCC;
+    }
+   
+   /*读内存配置文件*/
+    XOS_MemSet(&memCfg, 0, sizeof(t_MEMCFG));
+    ret = XML_readMemCfg(&memCfg, "xos.xml");
+    if(ret != XSUCC || memCfg.memTypes == 0||memCfg.pMemBlock == XNULLP)       
+    {
+        XOS_Trace(MD(FID_ROOT, PL_ERR), "MEM_init()-> read mem config file failed!");
+        return XERROR;
+    }
+    /*整理，除掉配置文件中配置数据块个数为零的情况*/
+    MEM_tidyCfgBlocks(memCfg.pMemBlock, &(memCfg.memTypes));
+    
+    /*保存配置信息*/
+    g_memMnt.buckTypes = memCfg.memTypes;
+    g_memMnt.pBlockPtr = memCfg.pMemBlock;
+    
+    /*分配资源*/
+
+    /*创建hash表*/
+    g_memMnt.buckHash = XOS_HashMemCst(memCfg.memTypes+1, memCfg.memTypes, sizeof(XS32), sizeof(t_BUCKETCB), "memHash");
+    if(!XOS_HashHandleIsValid(g_memMnt.buckHash) )
+    {
+        XOS_Trace(MD(FID_ROOT, PL_ERR), "MEM_init()-> construct hash  failed!");
+        if(memCfg.pMemBlock != XNULLP)
+        {
+            XOS_Free(memCfg.pMemBlock);
+        }        
+        return XERROR;
+    }
+     /*设置hash 函数*/
+    XOS_HashSetHashFunc(g_memMnt.buckHash, MEM_hashFunc);
+     
+    /*分配二分查找的内存空间*/
+    g_memMnt.pElements = (t_BUCKPTR*)XNULLP ;
+    g_memMnt.pElements = (t_BUCKPTR*)XOS_Malloc(sizeof(t_BUCKPTR)*memCfg.memTypes);
+    if(g_memMnt.pElements == XNULLP)
+    {
+         XOS_Trace(MD(FID_ROOT, PL_ERR), "MEM_init()-> malloc the elements failed !");
+         goto memInitErorr;
+    }
+    
+    /*分配内存*/
+    pMemBlock = (t_MEMBLOCK*)XNULLP;
+    for(i=0; i<memCfg.memTypes; i++)
+    {
+        pMemBlock = memCfg.pMemBlock+i;
+        XOS_MemSet(&bucketCb, 0, sizeof(t_BUCKETCB));
+        bucketCb.blockSize = pMemBlock->blockSize;
+        
+        /*创建互斥量*/
+        if( XSUCC != XOS_MutexCreate(&(bucketCb.bucketLock)))
+        {
+            XOS_Trace(MD(FID_ROOT, PL_ERR), "MEM_init()-> create mutex lock failed !");
+            goto memInitErorr;
+        }
+######for 循环里创建bucket数组，除了块大小，还要加上内存块的头和尾的大小（头尾存放关键字，以利于验证）
+        /*创建bucket 数组*/
+        bucketCb.blockArray = XOS_ArrayMemCst(pMemBlock->blockSize+sizeof(t_BLOCKHEAD)+sizeof(t_BLOCKTAIL), 
+                                                                          pMemBlock->blockNums, "bucket");
+        if(!XOS_ArrayHandleIsValid(bucketCb.blockArray))
+        {
+             XOS_Trace(MD(FID_ROOT, PL_ERR), "MEM_init()-> create array failed !");
+             goto memInitErorr;
+        }
+        bucketCb.headAddr = (XCHAR*)XOS_ArrayGetHeadPtr(bucketCb.blockArray);
+        bucketCb.tailAddr = (XCHAR*)XOS_ArrayGetTailPtr(bucketCb.blockArray);
+
+        /*添加到hash表中*/
+        pLocation = XNULLP;
+######把bucketCB和key即块大小存入hash表中，返回了hash表中的位置，用 g_memMnt.pElements[i].pLocation = pLocation;来保存
+######这种大小i的bucket，存放在hash表中的位置
+        pLocation = XOS_HashElemAdd(g_memMnt.buckHash, (XVOID*)&(pMemBlock->blockSize), (XVOID*)&bucketCb, XFALSE);
+        if(pLocation == XNULLP)
+        {
+             XOS_Trace(MD(FID_ROOT, PL_ERR), "MEM_init()-> add bucket cb to hash faililed !");
+             goto memInitErorr;
+        }
+        
+        /* 保存信息做二分查找*/
+        g_memMnt.pElements[i].pLocation = pLocation;
+        
+    }
+######冒泡排序按存放的pBucketCB的head地址从小到大的顺序排列g_memMnt.pElements[i]数组，便于free的时候查找
+    /*对二分查找的部分进行排序*/
+    /*按照内存地址增长的顺序排列*/
+    for(i= 0; i<memCfg.memTypes; i++)
+    {
+        pTemp = g_memMnt.pElements + i;
+       
+        for(j=i+1; j<memCfg.memTypes; j++)
+        {
+            pBucketCb = (t_BUCKETCB*)XOS_HashGetElem(g_memMnt.buckHash, pTemp->pLocation);
+            if(pBucketCb == XNULLP)
+            {
+                goto memInitErorr;
+            }
+            pTemp1 = g_memMnt.pElements + j;
+            pTempCb = (t_BUCKETCB*)XOS_HashGetElem(g_memMnt.buckHash, pTemp1->pLocation);
+            if(pTempCb == XNULLP)
+            {
+                goto memInitErorr;
+            }
+            if((XU32)(pBucketCb->headAddr) > (XU32)(pTempCb->headAddr) )
+            {
+                XOS_MemCpy(&temp2, pTemp1, sizeof(t_BUCKPTR));
+                XOS_MemCpy(pTemp1, pTemp, sizeof(t_BUCKPTR));
+                XOS_MemCpy(pTemp, &temp2, sizeof(t_BUCKPTR));
+            }          
+        }
+        
+    }
+
+    g_memMnt.initialized = XTRUE;
+    return XSUCC;
+
+    memInitErorr:
+    
+    /*释放读配置文件的空间*/
+     if(memCfg.pMemBlock != XNULLP)
+     {
+         XOS_Free(memCfg.pMemBlock);
+     }
+    
+     /*释放所有的bucket 内存*/
+     XOS_HashWalk(g_memMnt.buckHash, MEM_hashFree, XNULLP);
+     
+     /*释放hash内存*/
+     XOS_HashMemDst(g_memMnt.buckHash);
+
+     g_memMnt.initialized = XFALSE;
+     return XERROR;
+    
+}
+
+*** 分配一个内存块
+XVOID *XOS_MemMalloc1(XU32 fid, XU32 nbytes, XCHAR* fileName, XU32 lineNo)
+
+{
+
+    XS16 bits;
+    XS32 key;
+    t_BUCKETCB *pBuckCb;
+    t_BLOCKHEAD *pBlockHead;
+    t_BLOCKTAIL  *pBlockTail;
+    XS32 ret;
+
+    /*入口安全性检查*/
+    if(!XOS_isValidFid(fid) || nbytes == 0 ||!g_memMnt.initialized)
+    {
+        return XNULLP;
+    }
+    
+    /*构造key*/
+    bits = MEM_getBitsNum(nbytes-1);
+    /*正常状况下,第一次应该可以找到*/
+
+###nbytes <= 2^bits;从bits开始找，如果bits没有（可能分配完了，可能没有配置这么大的内存块），再往大的内存块找   
+    for(; bits <= MAX_BLOCK_BITS; bits++)
+    {
+        pBuckCb = (t_BUCKETCB*)XNULLP;
+        key = (1<<bits);
+####在hash表里同过key来查找相应的pBuckCB
+        pBuckCb = (t_BUCKETCB*)XOS_HashElemFind(g_memMnt.buckHash, (XVOID *)&key);
+        if(pBuckCb != XNULLP) /*找到*/
+        {
+             pBlockHead = (t_BLOCKHEAD*)XNULLP;
+             XOS_MutexLock(&(pBuckCb->bucketLock));
+             ret = XOS_ArrayAddExt(pBuckCb->blockArray, (XOS_ArrayElement*)&pBlockHead);
+             if(pBlockHead != XNULLP)
+             {
+                 /*填写内存的头部字段*/
+                 #ifdef MEM_FID_DEBUG
+                 pBlockHead->fid = fid;
+                 XOS_Time((t_XOSTT*)&(pBlockHead->time));
+                 Trace_abFileName(fileName, (XCHAR*)(pBlockHead->fileName), MEM_DBG_FILE_NAME_LEN-1);
+                 pBlockHead->lineNum = lineNo;
+                 #endif
+                 pBlockHead->memLen = RV_ALIGN(nbytes);
+                 pBlockHead->headCheck = MEM_MAGIC_VALUE;
+########headCheck和tailCheck用于以后验证
+                 /*填写尾部字段*/                 
+                 pBlockTail = (t_BLOCKTAIL*)(((XCHAR*)pBlockHead)+(sizeof(t_BLOCKHEAD)+pBlockHead->memLen));
+                 pBlockTail->tailCheck = MEM_MAGIC_VALUE;
+                 XOS_MutexUnlock(&(pBuckCb->bucketLock));
+                 return (XVOID*)(((XCHAR*)pBlockHead)+sizeof(t_BLOCKHEAD));
+             }
+             
+             /*当前内存块已经用尽的情况*/    
+            XOS_Trace(MD(FID_ROOT, PL_WARN), 
+            "XOS_MemMalloc()-> the blocSize[%d] bucket exhaust when fid %d call %d byetes!", pBuckCb->blockSize,fid,nbytes);
+            XOS_MutexUnlock(&(pBuckCb->bucketLock));           
+        }
+    }
+
+    /*在所有的bucket中都没有找到*/
+    /*to do 扩展成heap*/
+    XOS_Trace(MD(FID_ROOT, PL_ERR), "XOS_MemMalloc()-> the all buckets exhaust when fid %d call %d byetes!",fid,nbytes);
+    
+    return XNULLP;    
+}
+
+*** 释放内存块
+
+/************************************************************************
+函数名: XOS_MemFree
+功能：  释放一个内存块
+输入：  fid           - 功能块id
+        ptr           - 要释放的内存首地址
+输出：  N/A
+返回:   XSUCC  -	成功
+		XERROR -	失败
+说明： 
+************************************************************************/
+XS32 XOS_MemFree(XU32 fid, XVOID *ptr)
+{
+
+    XS32 i;
+    XS32 j;
+    t_BUCKPTR *pBuckPtr;
+    t_BUCKETCB *pBuckCb;
+    t_BLOCKHEAD *pBlockHead;
+    t_BLOCKTAIL  *pBlockTail;
+
+    /*安全性检查*/
+    if(ptr == XNULLP || !g_memMnt.initialized)
+    {
+        XOS_CpsTrace(MD(FID_ROOT, PL_WARN), "XOS_MemFree()->input ptr is null  !");
+        return XERROR;
+    }
+####因为初始化时 g_memMnt.pElement[]是按照bucket所在的地址从小到大排序的，所以，用二分查找
+    /*二分查找获取指针所在的array*/
+    i =  0;
+    j = g_memMnt.buckTypes-1;
+    while(i <= j)
+    {
+        pBuckPtr = g_memMnt.pElements+((i+j)/2);
+        pBuckCb = (t_BUCKETCB*)XNULLP;
+        pBuckCb = XOS_HashGetElem(g_memMnt.buckHash, (XVOID *)(pBuckPtr->pLocation));
+        if(pBuckCb == XNULLP)
+        {
+             XOS_CpsTrace(MD(FID_ROOT, PL_ERR), "XOS_MemFree()->error get hash elem !");
+             return XERROR;
+        }
+        /*查找成功*/
+        if((XU32)ptr > (XU32)(pBuckCb->headAddr)
+           &&(XU32)ptr < (XU32)(pBuckCb->tailAddr))
+        {
+             /*作安全性验证*/
+             /*前越界验证*/
+             pBlockHead = (t_BLOCKHEAD*)((XCHAR*)ptr-(sizeof(t_BLOCKHEAD)));
+             if(pBlockHead->headCheck != MEM_MAGIC_VALUE
+                 || pBlockHead->memLen > pBuckCb->blockSize)
+             {
+                 XOS_CpsTrace(MD(FID_ROOT, PL_ERR), "XOS_MemFree()->mem destroy before addr[0x%x] !", ptr);
+                 return XERROR;
+             }    
+             /*后越界验证*/
+             pBlockTail = (t_BLOCKTAIL*)((XCHAR*)ptr + pBlockHead->memLen);
+             if(pBlockTail->tailCheck != MEM_MAGIC_VALUE)
+             {
+                  XOS_CpsTrace(MD(FID_ROOT, PL_ERR), "XOS_MemFree()->mem destroy after addr[0x%x] !", ptr);
+                  return XERROR;
+             }
+             /*内存释放*/
+             XOS_MutexLock(&(pBuckCb->bucketLock));
+             XOS_ArrayDeleteByPos(pBuckCb->blockArray, XOS_ArrayGetByPtr(pBuckCb->blockArray, (XCHAR*)ptr-(sizeof(t_BLOCKHEAD))));
+             XOS_MutexUnlock(&(pBuckCb->bucketLock));
+             
+             return XSUCC;
+        }
+        
+      
+        /*在上半部*/
+        if((XU32)ptr >(XU32)(pBuckCb->tailAddr))
+        {
+            i = (i+j)/2+1;
+            continue;
+        }
+        
+        /*在下半部分*/
+        if((XU32)ptr < (XU32)pBuckCb->headAddr)
+        {
+            j = (i+j)/2 -1;
+            continue;
+        }
+        
+    }
+    
+    /*一直都没有找到, 应该是地址无效*/
+    XOS_CpsTrace(MD(FID_ROOT, PL_ERR), "XOS_MemFree()->error  input addr[0x%x] !", ptr);
+    
+    return XERROR;
+}
+
+** Trillium Memory Management
+*** 分配并初始化内存
+/*
+       Fun:   cmMmRegInit
+
+       Desc:  Configure the memory region for allocation. The function 
+              registers the memory region with System Service by calling
+              SRegRegion.
+*
+
+       Ret:   ROK     - successful, 
+              RFAILED - unsuccessful.
+
+       Notes: The memory owner calls this function to initialize the memory 
+              manager with the information of the memory region. Before 
+              calling this function, the memory owner should allocate memory 
+              for the memory region. The memory owner should also provide the 
+              memory for the control block needed by the memory manager. The 
+              memory owner should allocate the memory for the region control 
+              block as cachable memory. This may increase the average 
+              throughput in allocation and deallocation as the region control
+              block is mostly accessed by the CMM.
+*
+       File:  cm_mem.c
+*
+*/
+PUBLIC S16 cmMmRegInit(Region       region,CmMmRegCb   *regCb,CmMmRegCfg  *cfg)
+{
+   Data *memAddr;
+   U16   bktIdx;
+   U16   lstMapIdx;
+
+................................
+# error check omiting
+   /* Initialize the region control block */
+   regCb->region = region;
+   regCb->regInfo.regCb = regCb;
+   regCb->regInfo.start = cfg->vAddr;
+   regCb->regInfo.size  = cfg->size;
+
+#ifdef USE_PURE
+   avail_size = cfg->size;
+#endif /* USE_PURE */
+
+   if ( cfg->chFlag & CMM_REG_OUTBOARD)
+   {
+      /* Out_of_board memory */
+      regCb->regInfo.flags = CMM_REG_OUTBOARD;
+   } 
+  else
+   {
+      regCb->regInfo.flags = 0;
+   }
+
+
+   /* Initialize the memory manager function handlers */
+   regCb->regInfo.alloc = cmAlloc; 
+   regCb->regInfo.free  = cmFree; 
+   regCb->regInfo.ctl   = cmCtl;
+
+   /* Initialize the physical address */
+   if ((regCb->chFlag = cfg->chFlag) & CMM_REG_PHY_VALID)
+   {
+      regCb->pAddr = cfg->pAddr;
+   }
+
+   /* Initial address of the memory region block */
+   memAddr    = cfg->vAddr;
+
+   /* Initialize the fields related to the bucket pool */
+   regCb->bktMaxBlkSize = 0;
+   regCb->bktSize       = 0; 
+
+   if (cfg->numBkts)
+   {
+      /* Last bucket has the maximum size */
+      regCb->bktMaxBlkSize = cfg->bktCfg[cfg->numBkts - 1].size;
+   
+################取得cfg->bktQnSize = 2 ^ regCb->bktQnPwr
+      /* Get the power of the bktQnSize */
+      regCb->bktQnPwr = 0; 
+      while( !((cfg->bktQnSize >> regCb->bktQnPwr) & 0x01))
+      {
+         regCb->bktQnPwr++;
+      }
+################看一个数是2的n此方的方法
+    
+      /* Initilaize the bktIndex of the map entries to FF */
+      for ( lstMapIdx = 0; lstMapIdx < CMM_MAX_MAP_ENT; lstMapIdx++)
+      {
+         regCb->mapTbl[lstMapIdx].bktIdx = 0xFF;
+      }
+####  bktIdx为char，所以最大值为0xFF,假设有效bucketnum不会大于255=2^8 -1;
+      lstMapIdx = 0;
+      for ( bktIdx = 0; bktIdx < cfg->numBkts; bktIdx++)
+      {
+         /* Allocate the lock for the bucket pool */
+         if (SInitLock (&(regCb->bktTbl[bktIdx].bktLock), cfg->lType) != ROK)
+         {
+            /* Free the initialzed lock for the earlier buckets. */
+            for ( ;bktIdx > 0;)
+            {
+               SDestroyLock(&(regCb->bktTbl[--bktIdx].bktLock));
+            }
+
+            RETVALUE(RFAILED);
+         }
+#######初始化bucket
+         cmMmBktInit( &memAddr, regCb, cfg, bktIdx, &lstMapIdx); 
+##############################---------------------
+
+PRIVATE Void cmMmBktInit(Data      **memAddr,CmMmRegCb  *regCb,CmMmRegCfg *cfg,U16  bktIdx,U16 *lstMapIdx)
+{
+   U32   cnt;
+   U16   idx;
+   U32   numBlks;
+   Size  size;
+   Data **next;
+
+   TRC2(cmMmBktInit);
+
+
+   size = cfg->bktCfg[bktIdx].size; 
+   numBlks = cfg->bktCfg[bktIdx].numBlks; 
+#########自动生成一个链表，这个链表
+#######    地址C                     |NULL|
+#######    地址B                     |地址C|  地址C=地址B+size
+#######    地址A                     |地址B|  地址B=A+size 
+#######   regCb->bktTbl[bktIdx].next|地址A| 假设A是memAddr的初始值
+   /* Reset the next pointer */
+   regCb->bktTbl[bktIdx].next = NULLP; 
+
+   /* Initialize the link list of the memory block */
+   next = &(regCb->bktTbl[bktIdx].next); 
+   for (cnt = 0; cnt < numBlks; cnt++)
+   {
+      *next     = *memAddr;
+      next      = (CmMmEntry **)(*memAddr);
+      *memAddr  = (*memAddr) + size;
+   }
+   *next = NULLP;
+###################################这样就形成了一个链表
+   /* Initialize the Map entry */
+   idx = size / cfg->bktQnSize;
+
+   /* 
+    * Check if the size is multiple of quantum size. If not we need to initialize
+    * one more map table entry.
+    */ 
+   if(size % cfg->bktQnSize)
+   {
+      idx++;
+   }
+#######这里mapTbl的原理是用要分配的内存大小作为索引，能得到相应的bktIdx
+########这里内存块的大小通过/cfg->bktQnSiz来量化。
+####### lstMapIdx从0开始，bktIdx也从bucket blksize最小的开始， 这样，每个量化后的待分配内存大小都能在数组mapTbl[]中找到bktIdx，
+#########这里小于bktIdx的大小也要用bktIdx，这里自然是会把落在两个bucketindex区间的大小连续分布了
+   while ( *lstMapIdx < idx)
+   {
+      regCb->mapTbl[*lstMapIdx].bktIdx = bktIdx;
+
+#if (ERRCLASS & ERRCLS_DEBUG)
+      regCb->mapTbl[*lstMapIdx].numReq     = 0;
+      regCb->mapTbl[*lstMapIdx].numFailure = 0;
+#endif
+
+      (*lstMapIdx)++;
+   } 
+###########这样从分配多大asize的内存块，直接regCb->mapTbl[asize/cfg->bktQnSize]即可得到该用的bktIdx
+   /* Initialize the bucket structure */
+   regCb->bktTbl[bktIdx].size     = size; 
+   regCb->bktTbl[bktIdx].numBlks  = numBlks; 
+   regCb->bktTbl[bktIdx].numAlloc = 0;
+
+   /* Update the total bucket size */
+   regCb->bktSize += (size * numBlks); 
+
+   RETVOID;
+}
+
+##############################---------------------------
+      }
+
+      /* Used while freeing the bktLock in cmMmRegDeInit */
+      regCb->numBkts = cfg->numBkts;
+   }
+
+   /* 
+    * Initialize the heap pool if size the memory region region is more
+    * than the size of the bucket pool 
+    */
+    regCb->heapSize = 0;
+    regCb->heapFlag = FALSE;
+
+    /* Align the memory address */
+    memAddr = (Data *)(PTRALIGN(memAddr));
+
+    regCb->heapSize = cfg->vAddr + cfg->size - memAddr;  
+
+    /* 
+     * Round the heap size so that the heap size is multiple 
+     * of CMM_MINBUFSIZE 
+     */
+    regCb->heapSize -= (regCb->heapSize %  CMM_MINBUFSIZE);
+
+    if (regCb->heapSize)
+    {
+       /* Allocate the lock for the heap pool */
+       if (SInitLock (&regCb->heapCb.heapLock, cfg->lType) != ROK)
+       {
+          if ((bktIdx = cfg->numBkts))
+          {
+             /* Free the initialzed locks of the buckets */
+             for (; bktIdx > 0;)
+             {
+                SDestroyLock(&(regCb->bktTbl[--bktIdx].bktLock));
+             }
+          }
+
+          RETVALUE(RFAILED);
+       }
+        
+       regCb->heapFlag = TRUE;
+       cmMmHeapInit(memAddr, &(regCb->heapCb), regCb->heapSize); 
+    }
+
+    /* Call SRegRegion to register the memory region with SSI */
+    if (SRegRegion(region, &regCb->regInfo) != ROK)
+    {
+       RETVALUE(RFAILED);
+    }
+
+    RETVALUE(ROK);
+} /* end of cmMmRegInit*/
+
+*** 内存分配
+
+PRIVATE S16  cmAlloc(regionCb, size, flags, ptr)
+Void   *regionCb;
+Size   *size;
+U32     flags;
+Data  **ptr;
+{
+   U16        idx;
+   CmMmBkt   *bkt;
+   CmMmRegCb *regCb;
+
+   TRC2(cmAlloc);
+
+   UNUSED(flags);
+
+   regCb = (CmMmRegCb *)regionCb;
+
+
+
+   /* 
+    * Check if the requested size is less than or equal to the maximum block 
+    * size in the bucket. 
+    */
+   if ( *size <= regCb->bktMaxBlkSize)
+   {
+###########这里操作相当于*size/cfg->bktQnSize
+######   /* Check if the quantum size is power of 2 */
+## if ((cfg->numBkts) &&
+##     ((cfg->bktQnSize - 1) & (cfg->bktQnSize)))
+## {
+##    RETVALUE(RFAILED);
+## }
+#--------------------------------------------------------
+#     /* Get the power of the bktQnSize */
+#     regCb->bktQnPwr = 0; 
+#    while( !((cfg->bktQnSize >> regCb->bktQnPwr) & 0x01))
+#     {
+#        regCb->bktQnPwr++;
+#     }
+#  bktQnSize= 2^bktQnPwr;
+####################################
+      /* Get the map to the mapping table */
+      idx = ((*size - 1) >> regCb->bktQnPwr);
+#####################所以这里右移表示  *size/bktQnSize
+####原因是除法效率太低，如果除数是2的n次方，则可以 >>n来达到目的。
+      /* Dequeue the memory block and return it to the user */
+      bkt = &(regCb->bktTbl[regCb->mapTbl[idx].bktIdx]); 
+
+      /* While loop is introduced to use the "break statement inside */
+      while (1)
+      {
+         /*
+          * Check if the size request is not greater than the size available
+          * in the bucket
+          */
+         if (*size > bkt->size)
+         {
+            /* Try to go to the next bucket if available */
+            if((idx < (CMM_MAX_MAP_ENT - 1)) &&
+               (regCb->mapTbl[++idx].bktIdx != 0xFF))
+            {
+               bkt = &(regCb->bktTbl[regCb->mapTbl[idx].bktIdx]);
+            }
+            else
+            {
+               /* This is the last bucket, try to allocate from heap */
+               break;
+            }
+         }
+
+         /* Acquire the bucket lock */
+         (Void) SLock(&(bkt->bktLock));
+
+#if (ERRCLASS & ERRCLS_DEBUG)
+         regCb->mapTbl[idx].numReq++;
+#endif /* (ERRCLASS & ERRCLS_DEBUG) */
+
+         if ((*ptr = bkt->next))
+         {
+            bkt->next = *((CmMmEntry **)(bkt->next));
+
+            /* 
+             * Increment the statistics variable of number of memory block 
+             * allocated 
+             */
+            bkt->numAlloc++;
+#ifdef SSI_MEM_DEBUG	/* xingzhou.xu: added for debug statistics --07/10/2006 */
+            (bkt->maxAlloc < bkt->numAlloc) ? bkt->maxAlloc = bkt->numAlloc : 
+				                              bkt->maxAlloc;
+#endif
+
+            /* Update the size parameter */
+            *size = bkt->size;
+
+            /* Release the lock */
+            (Void) SUnlock(&(bkt->bktLock));
+
+            RETVALUE(ROK);
+         }
+         /* Release the lock */
+         (Void) SUnlock(&(bkt->bktLock));
+         break;
+      }
+   }
+
+   /* Memory not available in the bucket pool */
+   if (regCb->heapFlag &&  (*size < regCb->heapSize))
+   {
+      /* 
+       * The heap memory block is available. Allocate the memory block from
+       * heap pool.
+       */ 
+       RETVALUE(cmHeapAlloc(&(regCb->heapCb), ptr, size));
+   }
+
+   /* No memory available */
+   RETVALUE(RFAILED);
+
+
+
+} /* end of cmAlloc */
+
+* variant arguments of function
+** va_start 
+  he following example shows the usage of va_start() macro.
+
+#include<stdarg.h>
+#include<stdio.h>
+
+int sum(int, ...);
+
+int main(void)
+{
+   printf("Sum of 10, 20 and 30 = %d\n",  sum(3, 10, 20, 30) );
+   printf("Sum of 4, 20, 25 and 30 = %d\n",  sum(4, 4, 20, 25, 30) );
+
+   return 0;
+}
+
+int sum(int num_args, ...)
+{
+   int val = 0;
+   va_list ap;
+   int i;
+
+   va_start(ap, num_args);
+   for(i = 0; i < num_args; i++)
+   {
+      val += va_arg(ap, i);
+   }
+   va_end(ap);
+ 
+   return val;
+}
+Let us compile and run the above program, this will produce the following result:
+
+Sum of 10, 20 and 30 = 60
+Sum of 4, 20, 25 and 30 = 79
+
+** printf current soucecode filenaem, linenum,... 
+
+you use macros, I believe you can make this work by using __FILE__, __LINE__, and __FUNCTION__. For example,
+
+#define INFO(msg) \
+    fprintf(stderr, "info: %s:%d: ", __FILE__, __LINE__); \
+    fprintf(stderr, "%s", msg);

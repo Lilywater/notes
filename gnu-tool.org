@@ -1,0 +1,269 @@
+* Check source code (valgrind vs. pc-lint)
+** valgrind is a dynamical tool  checking source code
+
+** splint/c-lint is a statical tool checking  source code
+in linux 
+[]$ splint test.c
+
+some kind of memory leck
+=========================
+eg.
+void * func()
+{
+   if(n = malloc() ==NULL)
+     return NULL;
+   if(n->t = malloc() == NULL)
+      retrun NULL
+}
+============================
+
+
+* gcov-- this test the coverage of source code.
+** compile option
+-fprifile-arcs -ftest-coverage
+   g++ $(OBJECTS) -fprofile-arcs -ftest-coverage    -o $@
+
+** usage
+./program   ### execute the program when compiled with the compile option
+gcov *.c   ### show the coverage of the file
+[admin1@TeamCI-136 cleancodeContest]$ gcov hash.c
+File '/usr/include/sys/sysmacros.h'
+Lines executed:0.00% of 6
+/usr/include/sys/sysmacros.h:creating 'sysmacros.h.gcov'
+
+File 'hash.c'
+Lines executed:82.35% of 85
+hash.c:creating 'hash.c.gcov'
+
+[admin1@TeamCI-136 cleancodeContest]$vim hash.c.gcov
+        -:   60:
+        -:   61:/* Create a key-value pair. */
+    61441:   62:hash_entry_t *ht_newpair(const void *key, void *value, size_t key_size ) {
+        -:   63:    hash_entry_t *newpair;
+        -:   64:
+    61441:   65:    if( ( newpair =(hash_entry_t *) malloc( sizeof( hash_entry_t ) ) ) == NULL ) {
+    #####:   66:        return NULL;
+        -:   67:    }
+
+-------------------------------------------------------
+line 66 hasn't been executed.
+
+
+
+* gprof
+http://www.thegeekstuff.com/2012/08/gprof-tutorial/
+** Profiling enabled while compilation
+In this first step, we need to make sure that the profiling is enabled when the compilation of the code is done. This is made possible by adding the ‘-pg’ option in the compilation step.
+
+    -pg : Generate extra code to write profile information suitable for the analysis program gprof. You must use this option when compiling the source files you want data about, and you must also use it when linking.
+
+    So, lets compile our code with ‘-pg’ option :
+$ gcc -Wall -pg test_gprof.c test_gprof_new.c -o test_gprof
+    
+**  Execute the code
+
+In the second step, the binary file produced as a result of step-1 (above) is executed so that profiling information can be generated.
+
+$ ls
+test_gprof  test_gprof.c  test_gprof_new.c
+
+$ ./test_gprof 
+
+ Inside main()
+
+ Inside new_func1()
+
+ Inside func2 
+
+So we see that when the binary was executed, a new file ‘gmon.out’ is generated in the current working directory.
+
+** Run the gprof tool
+
+In this step, the gprof tool is run with the executable name and the above generated ‘gmon.out’ as argument. This produces an analysis file which contains all the desired profiling information.
+
+$  gprof test_gprof gmon.out > analysis.txt
+
+Note that one can explicitly specify the output file (like in example above) or the information is produced on stdout.
+
+$ ls
+analysis.txt  gmon.out  test_gprof  test_gprof.c  test_gprof_new.c
+
+So we see that a file named ‘analysis.txt’ was generated.
+
+On a related note, you should also understand how to debug your C program using gdb.
+Comprehending the profiling information
+
+As produced above, all the profiling information is now present in ‘analysis.txt’. Lets have a look at this text file :
+=================================================-
+Flat profile:
+
+Each sample counts as 0.01 seconds.
+%    cumulative self          self   total
+time seconds    seconds calls s/call s/call name
+33.86 15.52     15.52    1    15.52  15.52  func2
+33.82 31.02     15.50    1    15.50  15.50  new_func1
+33.29 46.27     15.26    1    15.26  30.75  func1
+0.07  46.30     0.03                        main
+
+% the percentage of the total running time of the
+==================================================
+
+ self      the number of seconds accounted for by this
+seconds    function alone.  This is the major sort for this
+           listing.
+
+calls      the number of times this function was invoked, if
+           this function is profiled, else blank.
+ 
+ self      the average number of milliseconds spent in this
+ms/call    function per call, if this function is profiled,
+### so slef seconds = self/call * calls
+
+ total     the average number of milliseconds spent in this
+ms/call    function and its descendents per call, if this 
+       function is profiled, else blank.
+
+
+* core-dump using
+** only for some user
+
+*** in command line
+在linux平台下，设置core dump文件生成的方法：
+1) 在终端中输入ulimit -c 如果结果为0，说明当程序崩溃时，系统并不能生成core dump。
+2) 使用ulimit -c unlimited命令，开启core dump功能，并且不限制生成core dump文件的大小。如果需要限制，加数字限制即可。ulimit - c 1024
+3) 默认情况下，core dump生成的文件名为core，而且就在程序当前目录下。新的core会覆盖已存在的core。通过修改/proc/sys/kernel/core_uses_pid文件，可以将进程的pid作为作为扩展名，生成的core文件格式为core.xxx，其中xxx即为pid
+4) 通过修改/proc/sys/kernel/core_pattern可以控制core文件保存位置和文件格式。例如：将所有的core文件生成到/corefile目录下，文件名的格式为core-命令名-pid-时间戳. echo "/corefile/core-%e-%p-%t" > /proc/sys/kernel/core_pattern
+
+*** user configuration
+如何打开core dump呢？最简单的方法是用户在自己的~/.bash_profile中加入ulimit -S -c unlimited > /dev/null 2>&1，这样设置后允许当前用户生成没有大小限制的core dump文件。此外还有两种系统级修改生成core dump的方法。
+
+** system configuration
+*** system configuration profile
+第一种方法是修改/etc/profile，把ulimit那一行改为
+ulimit -S -c unlimited > /dev/null 2>&1
+这样设置后系统允许所有用户生成没有大小限制的core dump文件。这样做的优点是不需要重起系统，缺点是无法控制只让某些用户生成core dump文件。
+
+*** system configuration limit 
+第二种方法是修改/etc/security/limits.conf文件。很多系统上限都可以通过修改这个文件改变，如最大子进程个数，最大打开文件数等等。这个文件有详细的注释，对如何修改这个文件做了说明。如果想对所有用户打开core dump，可以加入一行
+
+*** only for specific user/group
+ soft core 0
+如果只想对某些用户或用户组打开core dump，可以加入
+user soft core 0或@group soft core 0
+
+
+注意如果通过修改/etc/security/limits.conf文件打开core dump，还需要注释掉/etc/profile中的ulmit那一行
+#ulimit -S -c 0 > /dev/null 2>&1
+
+这样修改的优点是可以针对特定用户或特定组打开core dump文件，缺点是需要重起系统。
+
+** core dump file location
+生成core dump文件的位置，默认位置与可执行程序在同一目录下，文件名是core.***，其中***是一个数字。core dump文件名的模式保存在/proc/sys/kernel/core_pattern中，缺省值是core。通过以下命令可以更改core dump文件的位置(如希望生成到/tmp/cores目录下)
+echo "/tmp/cores/core" > /proc/sys/kernel/core_pattern 
+
+*  core dump的概念：
+A core dump is the recorded state of the working memory of a computer program at a specific time, generally when the program has terminated abnormally (crashed). In practice, other key pieces of program state are usually dumped at the same time, including the processor registers, which may include the program counter and stack pointer, memory management information, and other processor and operating system flags and information. The name comes from the once-standard memory technology core memory. Core dumps are often used to diagnose or debug errors in computer programs.
+
+On many operating systems, a fatal error in a program automatically triggers a core dump, and by extension the phrase "to dump core" has come to mean, in many cases, any fatal error, regardless of whether a record of the program memory is created.
+
+to debug the corefile:
+[localhost]#gdb exefile corefile
+
+
+* core dump SIGSGV
+mostly core dump file is generated by SIGSGV signal.
+** Try to wirte illegal address of memroy like 0x0, 0x1......
+In this case it is very easy to locate it like:
+gdb exefile corefile
+bt
+....
+when checked the calling stack, you could see where exactly.
+
+** Try to get illegal instruction memory address
+one example is:
+===================================================
+Program received signal SIGSEGV, Segmentation fault.
+0x08000a70 in ?? ()
+(gdb) bt
+#0  0x08000a70 in ?? ()
+#1  0xbfffe388 in ?? ()
+#2  0x080bf080 in ?? ()
+#3  0x0000001d in ?? ()
+#4  0x00000000 in ?? ()
+(gdb)
+================================================
+when the function couldn't be displayed properly, it means that the calling stack has been messed up.
+file tac.c
+=====================
+int f1(int p1,int p2 )
+{
+int f1_v1=2;
+int f1_v2=4;
+ int g = p1 + p2 + f1_v1 + f1_v2;
+  return g; //for return value, just put var g's value in eax, no extra stack space using
+}
+main()
+{
+  int m_v1 =9;
+  int m_v2 =3;
+  int m_v3 =  f1(m_v1,m_v2);
+
+-------------------------
+if f1_v1 was written by extra 20 bytes, then EBP, EIP, f1_v2, f1_v2
+have been destroyed. So when pop EBP EIP, it will lost the correct position,
+and when bt, it won't print out the corret value.
+
+stack:
+lower address
++----------------------------+----> esp for f1
+| f1_v1
++-----------------------------+      |ebp - to access local var
+| f1_v2
++-----------------------------+
+| f1_v3
++-----------------------------+
+| EBP (main函数的EBP)          |
++-----------------------------+----> ebp for f1
+ EIP (main 函数下一条指令的返回地址)
+-----------------------------+ --------
+| Arg0 of f1函数 |                       ebp+ to access the function parameter
+-----------------------------+ ------> esp for main
+| ....           |
+| Argn of f1 函数|                  using  esp of main to push these function parameter
++-----------------------------+      call f1
+|m_v1        |
+|m_v2        |
+|m_v3        |
++------------------------------
+|.........
+|
+|-----------------------------+---> ebp for main
+high adress
+ 
+
+another example
+===
+char line[100]="";
+    int i;
+    sprintf(line,"Cmd line arg count was : %d\n", programArgCount());
+    traceLine(line);
+    for (i=0;i<programArgCount();i++) {
+      sprintf(line,"cmd arg #%d : %s\n", i, programArgGet(i));
+      traceLine(line);
+    }
+  }
+============
+here if length of programArgGet(i) is bigger than 100, then i, EBP, EIP will be overwritten. 
+so sprintf is not safe, we should use snprintf to avoid such problem 
+ ===================================================
+ 60 Program received signal SIGSEGV, Segmentation fault.
+ 61 0x08000a70 in ?? ()
+ 62 (gdb) bt
+ 63 #0  0x08000a70 in ?? ()
+ 64 #1  0xbfffe388 in ?? ()
+ 65 #2  0x080bf080 in ?? ()
+ 66 #3  0x0000001d in ?? ()
+ 67 #4  0x00000000 in ?? ()
+ 68 (gdb)
+ 69 ================================================
+             

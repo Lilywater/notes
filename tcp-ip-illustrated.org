@@ -1,0 +1,1362 @@
+* Overview of IP packet
+how to connect all the hosts all over the world?
+through network, when connected network, router/gateway or bridged we focus on router, which is connected in the network layer.
+ip protocol not guarantee all the packed delvied to the end-user. It make all the effort to deliver as much packets as it can.
+If error, there will be an icmp packet to tell the sender in ip layer.  All routers will forward the ip  packet if the destination is not itself.
+
+A. the host is not itself or the broadcast address (upper protocol stack)
+B. the network is not itself(hosts connected directly with it)
+C. default
+.....
+netstat -rn
+Kernel IP routing table
+Destination     Gateway        Genmask        Flags  MSS Window irrt  Iface
+0.0.0.0        10.121.122.1   0.0.0.0         UG    0    0       0    eth0
+10.121.122.0   0.0.0.0      255.255.255.128    U    0    0       0    eth0
+--------------------------------------------------------------------
+U: useable
+G: gateway
+H: host
+
+But there will be a problem, the ip packet will be transfered in the network
+forever, if there's no proper route.
+So TTL(time to live) in routers, this value will be decreased in every next hop router which the packet will pass by
+if TTL is 1 in a router, there will be a icmp(time-to-live exceeded) to report error
+
+** IP(internet prococol) header packet
+*** ip header format
+IHL: Internet header Length since Options may variable length
+
+ Total Length:  16 bits
+
+    Total Length is the length of the datagram, measured in octets, including internet header and data.  This field allows the length of
+    a datagram to be up to 65,535 octets.  Such long datagrams are impractical for most hosts and networks.  All hosts must be prepared
+    to accept datagrams of up to 576 octets (whether they arrive whole or in fragments).  It is recommended that hosts only send datagrams
+    larger than 576 octets if they have assurance that the destination is prepared to accept the larger datagrams.
+
+    The number 576 is selected to allow a reasonable sized data block to be transmitted in addition to the required header information.  For
+    example, this size allows a data block of 512 octets plus 64 header octets to fit in a datagram.  The maximal internet header is 60
+    octets, and a typical internet header is 20 octets, allowing a margin for headers of higher level protocols.
+
+Differentiated Services Code Point (DSCP): Originally defined as the Type of service (ToS) field. This field is now defined by RFC 2474 (updated by RFC 3168 and RFC 3260) for Differentiated services (DiffServ). New technologies are emerging that require real-time data streaming and therefore make use of the DSCP field. An example is Voice over IP (VoIP), which is used for interactive data voice exchange.
+
+Explicit Congestion Notification (ECN): This field is defined in RFC 3168 and allows end-to-end notification of network congestion without dropping packets. ECN is an optional feature that is only used when both endpoints support it and are willing to use it. It is only effective when supported by the underlying network.
+
+0   1   2   3   4   5   6   7   8   9   10  11  12  13  14  15  16  17  18  19  20  21  22  23  24  25  26  27  28  29  30  31
+ Version      | IHL           |    DSCP                | ECN   |                 Total Length
+ Identification                                                |  Flags    |     Fragment Offset
+ Time To Live                 |             Protocol           |           Header Checksum
+ Source IP Address
+ Destination IP Address
+     Options (if IHL > 5)
+
+ 
+*** how to assemble a ip datagram according to ip header
+IP layer willl fragment the datagram which size is greater than MTU value, so when received, the reassembling is neccesary
+ip header
+7     6    5    4    3    2    1   0
+(Identification                    )                 // ID of the buffer
+Res   DF   MF  (   Fragment Offset )                 // DF bit means don't Fragment MF bit means More fragments, FO means Fragment Offset)
+(time to live   )    (Protocol     )                 // TTL and uppper Protocol
+
+ Procedure:[rfc 791]
+
+        (1)  BUFID <- source|destination|protocol|identification;
+        (2)  IF FO = 0 AND MF = 0
+        (3)     THEN IF buffer with BUFID is allocated
+        (4)             THEN flush all reassembly for this BUFID;
+        (5)          Submit datagram to next step; DONE.
+        (6)     ELSE IF no buffer with BUFID is allocated
+        (7)             THEN allocate reassembly resources
+                             with BUFID;
+                             TIMER <- TLB; TDL <- 0;
+        (8)          put data from fragment into data buffer with
+                     BUFID from octet FO*8 to
+                                         octet (TL-(IHL*4))+FO*8;
+        (9)          set RCVBT bits from FO
+                                        to FO+((TL-(IHL*4)+7)/8);
+
+*** how to assemble a packet over tcp datagram  
+tcp packet  will be sent not depend on the upper layer sent, but it deliver all the stream not upper layer packets.
+for example, when you send twice in sender in tcp upper layer, the receiver may only receive on packet.
+So a whole upper layer packet should with a length field of the upper layer to reassemble the upper layer packet
+
+
+
+
+
+
+
+* TCP/UDP SOCKET OPTION
+** setting option in file
+/etc/sysctl.conf:
+net.ipv4.ip_default_ttl =
+
+** socks program
+the sock program to test the sock option feature
+sock program usage in unpv12e source code folder 
+[admin1@TeamCI-136 sock]$ ./sock
+usage: sock [ options ] <host> <port>              (for client; default)
+       sock [ options ] -s [ <IPaddr> ] <port>     (for server)
+       sock [ options ] -i <host> <port>           (for "source" client)
+       sock [ options ] -i -s [ <IPaddr> ] <port>  (for "sink" server)
+       sink, source means no input need to transmit
+options: -b n  bind n as client's local port number
+         -c    convert newline to CR/LF & vice versa
+         -f a.b.c.d.p  foreign IP address = a.b.c.d, foreign port # = p
+         -g a.b.c.d  loose source route
+         -h    issue TCP half close on standard input EOF
+         -i    "source" data to socket, "sink" data from socket (w/-s)
+         -j a.b.c.d  join multicast group
+         -k    write or writev in chunks
+         -l a.b.c.d.p  client's local IP address = a.b.c.d, local port # = p
+         -n n  # buffers to write for "source" client (default 1024)
+         -o    do NOT connect UDP client
+         -p n  # ms to pause before each read or write (source/sink)
+         -q n  size of listen queue for TCP server (default 5)
+         -r n  # bytes per read() for "sink" server (default 1024)
+         -s    operate as server instead of client
+         -t n  set multicast ttl
+         -u    use UDP instead of TCP
+         -v    verbose
+         -w n  # bytes per write() for "source" client (default 1024)
+         -x n  # ms for SO_RCVTIMEO (receive timeout)
+         -y n  # ms for SO_SNDTIMEO (send timeout)
+         -A    SO_REUSEADDR option
+         -B    SO_BROADCAST option
+         -C    set terminal to cbreak mode
+         -D    SO_DEBUG option
+         -E    IP_RECVDSTADDR option
+         -F    fork after connection accepted (TCP concurrent server)
+         -G a.b.c.d  strict source route
+         -H n  IP_TOS option (16=min del, 8=max thru, 4=max rel, 2=min$)
+         -I    SIGIO signal
+         -J n  IP_TTL option
+         -K    SO_KEEPALIVE option
+         -L n  SO_LINGER option, n = linger time
+         -N    TCP_NODELAY option
+         -O n  # ms to pause after listen, but before first accept
+         -P n  # ms to pause before first read or write (source/sink)
+         -Q n  # ms to pause after receiving FIN, but before close
+         -R n  SO_RCVBUF option
+         -S n  SO_SNDBUF option
+         -U n  enter urgent mode before write number n (source only)
+         -V    use writev() instead of write(); enables -k too
+         -W    ignore write errors for sink client
+         -X n  TCP_MAXSEG option (set MSS)
+         -Y    SO_DONTROUTE option
+         -Z    MSG_PEEK
+
+ 
+
+
+** sock options could be set  
+
+/*    When  manipulating  socket options the level at which the option resides and the name of the option must be specified.  To manipulate options at the socket level, level is
+      specified  as SOL_SOCKET.  To manipulate options at any other level the protocol number of the appropriate protocol controlling the option is supplied.  For example,  to
+       indicate that an option is to be interpreted by the TCP protocol, level should be set to the protocol number of TCP; see getprotoent(3).*/
+
+***  SO_LINGER (-L)
+ "linger on close" socket option, when set it to 0, this cause the abort/RST(RESET) to be sent when connection closed not sending FIN as normal.
+ -L n  SO_LINGER option, n = linger time
+
+*** SO_REUSEADDR (-A)
+./sock -b45198 127.0.0.1 6666  //client tcp port binding  to 45198 connected ot server port 6666
+bind() error: Address already in use
+in this case, the client will be in TIME_WAIT for client end the connection firsly, by using ctrl+c.  So if you start the client using the same port which it used before, there will be error.
+
+SO_REUSEADDR opiton can make the address available if start the server using the 
+sun % sock -v -s  -A 6666
+there will be no "can't bind local address: Address already in use", and the server work well
+
+**** SO_REUSEPORT for UDP packet
+sun % sock -u-s-A 9999 so we try -A flag this time
+can't bind local address: Address already in use
+On systems that support multicasting (Chapter 12), this changes. Multiple end points can use the same local IP address and UDP port number, although the application normally must tell the
+API that this is OK (i.e., our -A flag to specify the SO_REUSEADDR socket option).  4.4BSD, which supports multicasting, requires the application to set a different socket option
+(SO_REUSEPORT) to allow multiple end points to share the same port. Furthermore each end point must specify this option, including the first one to use the port.
+When a UDP datagram arrives whose destination IP address is a broadcast or multicast address, and there are multiple end points at the destination IP address and port number, one copy of the
+incoming datagram is passed to each end point. (The end point's local IP address can be the wildcard, which matches any destination IP address.) But if a UDP datagram arrives whose
+destination IP address is a unicast address, only a single copy of the datagram is delivered toone of the end points. Which end point gets the unicast datagram is implementation dependent.
+
+***  SO_KEEPALIVE
+when a tcp connection has been established, if no data trasfer for some time(keepalive_time), one peer will send a a probe message to the other peer.
+and keepalive_probes is the count of probe message sent, keepalive_intvl is the interval of every probe message sent.
+the probe message is an ack message  ack number1..,length 0 ,  reply of probe message also a ack message ack number2, length 0
+
+$ /proc/sys/net/ipv4/tcp_keepalive_time
+$ /proc/sys/net/ipv4/tcp_keepalive_intvl
+$ /proc/sys/net/ipv4/tcp_keepalive_probes
+we can start a client process that establishes a TCP connection with a server, and walk away for hours, days, weeks or months, and the connection remains up. Intermediate
+routers can crash and reboot, phone lines may go down and back up, but as long as neither host at the ends of the connection reboots, the connection remains established.
+
+The keepalive option is a timer to probe the peer of the connection is available when no data whantsoever transmitted in a tcp connection.
+Many versions of the Telnet server and Rlogin server enable the keepalive option by default. This is why when you ssh a server, and no input for 2 hours, the connections will be shutdown.
+
+In case of the intermediate router has crashed and is rebooting, TCP will think that the client's host has crashed, which is not what was happened, if the keepalvie probe.
+
+client % sock -K 10.121.122.36 7788
+-K for keepalive option
+hello
+recv error: Connection timed out
+--------------------------
+[root@localhost test]# tcpdump -i eth0 -p tcp and -p ip host 10.121.122.36
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on eth0, link-type EN10MB (Ethernet), capture size 96 bytes
+10:45:02.998114 IP 10.121.122.12.32946 > 10.121.122.36.7788: P 1655330013:1655330042(29) ack 156085353 win 92 <nop,nop,timestamp 88357775 463165604>
+10:45:02.998689 IP 10.121.122.36.7788 > 10.121.122.12.32946: . ack 29 win 1448 <nop,nop,timestamp 463969380 88357775>
+10:45:04.917533 IP 10.121.122.12.32946 > 10.121.122.36.7788: P 29:30(1) ack 1 win 92 <nop,nop,timestamp 88359695 463969380>
+10:45:04.918156 IP 10.121.122.36.7788 > 10.121.122.12.32946: . ack 30 win 1448 <nop,nop,timestamp 463971422 88359695>
+12:45:04.918284 IP 10.121.122.12.32946 > 10.121.122.36.7788: . ack 1 win 92 <nop,nop,timestamp 95559696 463971422>
+12:45:04.939589 IP 10.121.122.36.7788 > 10.121.122.12.32946: . ack 30 win 1448 <nop,nop,timestamp 471568065 88359695>
+//when server's ethernet cable was unpluged, after 2 hours
+14:45:04.939287 IP 10.121.122.12.32946 > 10.121.122.36.7788: . ack 1 win 92 <nop,nop,timestamp 102759717 471568065>
+//no response from the server, that means server is down
+-----------------------------------------------------------------
+
+
+server % sock -s 7788
+------------------------
+10:48:32.842121 IP 10.121.122.12.32946 > 10.121.122.36.7788: P 33:34(1) ack 1 win 92 <nop,nop,timestamp 88359695 463969380>
+10:48:32.842163 IP 10.121.122.36.7788 > 10.121.122.12.32946: . ack 34 win 1448 <nop,nop,timestamp 463971422 88359695>
+
+
+12:55:08.330758 IP 10.121.122.12.32946 > 10.121.122.36.7788: . ack 1 win 92 <nop,nop,timestamp 95559696 463971422>
+12:55:08.330912 IP 10.121.122.36.7788 > 10.121.122.12.32946: . ack 34 win 1448 <nop,nop,timestamp 471568065 88359695>
+------------------------------
+
+client will send a probe message firstly, in 12:55/45, ack message sent,if no echo message
+client will actively close the connection.
+ which socket is set keep_alive option, which will send the probe message.
+
+If start a server like sock -s -K 7788,
+then the server will send a probe message firstly, if no echo, then the server will actively close the connection.
+
+
+
+
+*** SO_SNDBUF
+these two buffers means the buffer which is for receiving data and sending data, why?
+every tcp has a receive buffer in kernel, it won't overflow.
+For tcp will inform peer the size of it's receive buffer, if the peer ignore this,  a packet containing more than that, this packet will be discard. 
+If you want to specify the  tcp's receive buffer size, SO_REVBUF is that. 
+
+---------------------------------------------------
+Here it is the bug that the result is 2* parameter set. 
+
+
+[liguo@localhost sock]$ ./sock -s 5555 -S 8192
+sndbuflen = 8192, SO_SNDBUF = 16384
+function   ssize_t send(int s, const void *buf, size_t len, int flags);
+When prgm using send function to send data, tcp in kernel will copy the data from prg buffer to its
+buffer which is SO_SNDBUF, and if the data is bigger than SO_SNDBUF, the prg will goto sleep until all data be copied form pfg buffer to this buffer.
+So send() function return means the data has been copied into tcp's kernel buffer, not have been sent to the peer successfully.
+
+they will be stored in this buffer?
+When will these data be sent? 
+1. if the data has made the buffer full
+2. the data has been stored in the buffer for too much time
+either one of the condition meet, the data in buffer will be wrapped into one tcp/ip packet 
+and be sent really into the network
+In this case 
+1. a tcp packet may include two application layer messages,
+if these two messages are sent without a time gap and these two message were short enough to
+fit in one tcp packet.
+
+2. a tcp packet maybe a part of one application layer message
+if the application layer message is too long, it could be hold in the buffer of a tcp layer,
+(send(,,size,), but it couldn't be sent into one tcp message, because a tcp packet will have
+a limitation for two specific endpoints, that's the MSS(maximum send segment)
+why? because the lower layer of tcp is erhenet, MTU is the limit for every erthenet packet,
+ip packet will have a limit, thus tcp packet have a limit, this is MSS.
+When two endpoints connection through loop interface, the MTU is bigger than ethernet.
+--------
+[liguo@butter sock]$ netstat -i
+Kernel Interface table
+Iface       MTU Met    RX-OK RX-ERR RX-DRP RX-OVR    TX-OK TX-ERR TX-DRP TX-OVR Flg
+eth0       1500   0    55060      0      0      0      833      0      0      0 BMRU
+lo        16436  
+-------------------------------------------
+[liguo@butter sock]$ ./sock -v 127.0.0.1 5555
+connected on 10.121.122.66.32795 to 10.121.122.66.5555
+TCP_MAXSEG = 16383
+
+[guolili@cougar sock]$ ./sock -v butter 5555
+connected on 10.121.122.66.32795 to 10.121.122.66.5555
+TCP_MAXSEG = 1448
+
+
+in socket API function send(socket, send_buf, buf_len,0)
+send_buf in application layer should be less than the SO_SNDBUF in tcp layer
+
+So what is the maximum size of a tcp packet depends on three:
+1. SO_SNDBUF  the buffer size, the whole space to hold the data in tcp layer
+2. MSS, the connection of two end points, the maximum value of the interface's MTU( MTU limits the ethernet packet length, so ip packect will be fragmented to adapt this MUT size)
+3. the SO_RCVBUF of the received data peer, it will affect the r_wnd feild in tcp packet header, and when send data, the send data peer won't send more than r_wnd it get from the
+received dtat peer.
+
+so a tcp packet has two limits: 
+(1).tcp protocol itself will devide the messages in send buffer
+(2).the tcp payload in ip packet, and ip packet will be devided into MTU limited size
+In wiresharklog, you will get the whole ip packet which has been reassembled by wireshark
+
+3. a tcp packet contain one application message
+
+*** SO_RCVBUF
+
+[liguo@localhost sock]$ ./sock -s 5555 -R 1024
+rcvbuflen = 1024, SO_RCVBUF = 2048
+SO_SNDBUF is the send buffer of the socket in bytes,
+SO_RCVBUF is the receive buffer of the socket in bytes.
+the receivd buffer in tcp layer is for storing the data from ip layer.
+There are two parameters: size of the "buf",  and buf_len means when receive buf_len bytes, recvfrom function will return. 0 is flag.
+option SO_RCVBUF is the size value of buf(-R parameter for sock prg), buf_len is another thing, in this case -r parameter for sock prg.
+/*The receive buffer size is tied to TCP''s advertised window in SYN message*/
+
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+when retval=recvfrom(socket_id,buf,buf_len,0) retrun?
+1. when received some data, the buffer space is engough but tiemout 
+2. when rev buffer is almost full
+
+
+what data will a revfrom get?
+1.data is two sperated upper layer message
+So upper layer invoing retval=revfrom(socket_id, buf, buf_len,0 ) buf_len is the size of buf, means the maximum data get from tcp layer to upper layer
+one time from revfrom may get two upper layer mesage
+2. data is part of a uppper layer message 
+
+so application layer have it's own protocl, it can send length of a message, so revfrom could piece the framented data together. Though tcp layer could reassemble a upper layer
+data, but it wont' guarantee one revfrom is one peer upper layer message, it will guaranteen the stream order. So if you received it for many times, you can piece them together by 
+the header of the upper layer. usually the length.
+Firsly received a data, get header to get length, then count the bytes received until it is 
+equal to the length of the header, means a whole packet. 
+because the revfrom function  will be effected by many factors, by the rev buffer and data arrive timing.
+
+**** So tcp layer is ensuring the order of the received bytes, but not form once revfrom.
+So when using tcp for transportation layer, the upper layer protocol is needed, at least
+the lenghh field should be pre to the real data.
+
+tpkt header is for this purpose:
+TCP manages a continuous stream of octects, with no explicit bundaries.
+So what if two upper layer messages in one tcp pkt?(how the receivd peer could divide these two)
+what if a part of upper layer messages in one tcp pkt?(means the following-up packets is part of
+this upper layer messages too)
+ehenet header|ip header|tcp header|tpkt header|real data-0|
+ehenet header|ip header|tcp header|real data-1|
+if two packets are for only one upper layer message, the packet will be like above
+How to asseble it in upper layer of tcp?
+get the tpkt header, it will contian the whole lengthof this message, rev until get all the length
+data in continuous packts.
+Cause tcp is continuous stream, though in ip layer, the packet may not in order, via different
+routes, but when ip layer delivered to tcp layer, they are continuous stream in order.
+How?  tcp has the sequence nunber for them.
+
+***** tpkt header format
+   |---------+----------+---------------+------|
+   | version | reserved | packet length | TPDU |
+   |---------+----------+---------------+------|
+   <8 bits>   <8 bits>   <  16 bits    > < variable length >
+but there is a limitation, length is 16 bits, maximum is 65535, what if one upper layer message
+if large than that?
+So for tcp it is not the best protocol for messages(which has a bundaries) transport, sctp is a better choice.
+
+***** sctp support for the message transfer
+sctp support two bunddled messages, but each one has their individual chunk headers
+
+
+** tcp offload engine
+TCP offload engine or TOE is a technology used in network interface cards (NIC) to offload processing of the entire TCP/IP stack to the network controller. 
+==============
+> # ethtool -k eth0
+> Offload parameters for eth0:
+> rx-checksumming: off
+> tx-checksumming: off
+> scatter-gather: off
+> tcp segmentation offload: off
+> udp fragmentation offload: off
+> generic segmentation offload: on
+> 
+> Wow.  I turned gso off and now it works just like before.
+> No packets over size of mtu anymore, either.
+> 
+> State       Recv-Q Send-Q               Local Address:Port                 Peer Address:Port
+> ESTAB      0       122334               80.223.84.180:57694                74.54.226.166:80     timer:(on,4.475ms,0) uid:518 ino:4546485 sk:2ea3ac80ffff8800
+
+
+set MTU size with ifconfig command
+ifconfig eth0 mtu 1024 up
+in redhat
+vim /etc/sysconfig/network-scripts/ifcfg-eth0
+MTU-="9000"
+# service network restart
+
+why tcp pakcet length captured in wireshark is larger than MTU
+The MSS is what the TCP stack will use to segment data before it is being send out the network interface. However, libpcap captures the packets between the TCP stack and the
+NIC driver. In modern NICs, some functions of the TCP/IP stack can be offloaded to the NIC, saving CPU cycles on the system. One of the offloaded features is TCP segmentation.
+
+So you see the large segment being sent to the NIC and the NIC will segment it into packets that will fit the MTU of the network.
+
+You can verify this by making the trace on both sides, only on the sending side you will see the large packets
+[guolili@cougar test]$ ethtool -k eth0
+Offload parameters for eth0:
+rx-checksumming: on
+tx-checksumming: on
+scatter-gather: on
+tcp segmentation offload: on
+[guolili@cougar test]$ sudo ethtool -K eth0 tso off
+Password:
+[guolili@cougar test]$ ethtool -k eth0
+Offload parameters for eth0:
+rx-checksumming: on
+tx-checksumming: on
+scatter-gather: on
+tcp segmentation offload: off
+---------------------
+===================
+*** tcp parameter
+$ /proc/sys/net/core/netdev_max_backlog
+进入包的最大设备队列.默认是300,对重负载服务器而言,该值太低,可调整到1000.
+$ /proc/sys/net/core/somaxconn
+listen()的默认参数,挂起请求的最大数量.默认是128.对繁忙的服务器,增加该值有助于网络性能.可调整到256.
+$ /proc/sys/net/core/optmem_max
+socket buffer的最大初始化值,默认10K.
+$ /proc/sys/net/ipv4/tcp_max_syn_backlog
+进入SYN包的最大请求队列.默认1024.对重负载服务器,增加该值显然有好处.可调整到2048.
+$ /proc/sys/net/ipv4/tcp_retries2
+TCP失败重传次数,默认值15,意味着重传15次才彻底放弃.可减少到5,以尽早释放内核资源.
+$ /proc/sys/net/ipv4/tcp_keepalive_time
+$ /proc/sys/net/ipv4/tcp_keepalive_intvl
+$ /proc/sys/net/ipv4/tcp_keepalive_probes
+这3个参数与TCP KeepAlive有关.默认值是:
+tcp_keepalive_time = 7200 seconds (2 hours)
+tcp_keepalive_probes = 9
+tcp_keepalive_intvl = 75 seconds
+意思是如果某个TCP连接在idle 2个小时后,内核才发起probe.如果probe 9次(每次间隔75秒)不成功,内核才彻底放弃,认为该连接已失效.对服务器而言,显然上述值太大. 可调整到:
+/proc/sys/net/ipv4/tcp_keepalive_time 1800
+/proc/sys/net/ipv4/tcp_keepalive_intvl 30
+/proc/sys/net/ipv4/tcp_keepalive_probes 3
+$ proc/sys/net/ipv4/ip_local_port_range
+指定端口范围的一个配置,默认是32768 61000,已够大.
+ 
+net.ipv4.tcp_syncookies = 1
+表示开启SYN Cookies。当出现SYN等待队列溢出时，启用cookies来处理，可防范少量SYN攻击，默认为0，表示关闭；
+net.ipv4.tcp_tw_reuse = 1
+表示开启重用。允许将TIME-WAIT sockets重新用于新的TCP连接，默认为0，表示关闭；
+net.ipv4.tcp_tw_recycle = 1
+表示开启TCP连接中TIME-WAIT sockets的快速回收，默认为0，表示关闭。
+net.ipv4.tcp_fin_timeout = 30
+表示如果套接字由本端要求关闭，这个参数决定了它保持在FIN-WAIT-2状态的时间。
+net.ipv4.tcp_keepalive_time = 1200
+表示当keepalive起用的时候，TCP发送keepalive消息的频度。缺省是2小时，改为20分钟。
+net.ipv4.ip_local_port_range = 1024 65000
+表示用于向外连接的端口范围。缺省情况下很小：32768到61000，改为1024到65000。
+net.ipv4.tcp_max_syn_backlog = 8192
+表示SYN队列的长度，默认为1024，加大队列长度为8192，可以容纳更多等待连接的网络连接数。
+net.ipv4.tcp_max_tw_buckets = 5000
+表示系统同时保持TIME_WAIT套接字的最大数量，如果超过这个数字，TIME_WAIT套接字将立刻被清除并打印警告信息。默认为180000，改为 5000。对于Apache、Nginx等服务器，上几行的参数可以很好地减少TIME_WAIT套接字数量，但是对于Squid，效果却不大。此项参数可以控制TIME_WAIT套接字的最大数量，避免Squid服务器被大量的TIME_WAIT套接字拖死。
+
+
+
+=======================
+-------------------------
+*** tcp buffer
+Optimizing Linux network TCP/IP kernel parameters
+
+$ /proc/sys/net/ipv4/tcp_wmem   min    default    max
+TCP写buffer,可参考的优化值:     8192   436600    873200
+$ /proc/sys/net/ipv4/tcp_rmem
+TCP读buffer,可参考的优化值: 32768 436600 873200
+$ /proc/sys/net/ipv4/tcp_mem
+同样有3个值,意思是:
+net.ipv4.tcp_mem[0]:低于此值,TCP没有内存压力.
+net.ipv4.tcp_mem[1]:在此值下,进入内存压力阶段.
+net.ipv4.tcp_mem[2]:高于此值,TCP拒绝分配socket.
+上述内存单位是页,而不是字节.可参考的优化值是:786432 1048576 1572864
+Many Oracle professionals do not note the required setting for optimizing Oracle*Net on Oracle 10g release 2.  Here is a review of the suggested TCP/IP buffer parameters:
+
+You can verify the Linux networking kernel parms from the root user with these commands::
+4096 87380 8388608
+
+/proc/sys/net/ipv4/tcp_rmem
+
+
+4096 65536 8388608
+
+/proc/sys/net/ipv4/tcp_wmem
+
+
+4096 4096 4096
+
+/proc/sys/net/ipv4/tcp_mem
+
+
+Setting /etc/sysctl.conf
+
+You can enter them in sysctl.conf in /etc to have them persist through shutdowns. For setting the live values use sysctl –w  from the root user.
+
+$ sysctl –w net.core.rmem_default=262144  <== no spaces
+
+For multiple value entries:
+
+$ sysctl –w net.ipv4.tcp_rmem="4096 87380 8388608”
+
+In sysctl.conf:
+
+net.core.rmem_default = 262144 <== has spaces
+
+net.ipv4.tcp_rmem = 4096 87380 8388608
+
+
+
+when we modify tcp_rmem default vaule to 4096, then the Win size in SYN is
+1448, and the maximum value of the window can reach to is 4868, twice of the default value size.
+If the window size is 1448, then the peer will send the tcp packet with data
+less than 720 bytes, that's half value of the advitised window size.
+42                                  202
+./sock -i -s 5555                   ./sock -i -n1 -w8192 42 5555  
+|cat/proc/sys/net/ipv4/tcp_rmem     | cat /proc/sys/net/ipv4/tcp_rmem
+4096 4096 5000                       4096 87380 3530752
+|                                   |
+|/  SYN win= 4640                   |
+-----------                         |
+|\
+|
+|SYN, win=1448      \
+|-------------------                |
+|                   /               |  
+...................
+|                                   | 
+|     /data=720 (this fragmention is from the tcp layer,not from NIC(MTU)|
+|      --------------               |
+      \
+cause the peer rec window is small, so it won't send so large data
+..............
+|
+|win(max)=4868,ack=8192       \
+|------------------------------     |
+                              /     | 
+
+===============================
+setting the receive buffer
+[guolili@cougar test]$ cat /proc/sys/net/ipv4/tcp_rmem
+4096    87380   3530752
+//for 4096 is the minimum value in tcp_rmem, so -R option could only set 2048, 
+then SO_RCVBUF==4096
+
+cat [guolili@cougar test]$ cat ts.sh
+  while read line
+    do
+      echo `date '+%T.%N'` $line
+    done
+
+
+./sock -i -s  -v  -R2048  -P4 -p2 -r256 7777 2>&1 |./ts.sh
+11:02:56.389733546 SO_RCVBUF = 4096
+11:03:09.983845150 connection on 10.121.122.202.7777 from 10.121.122.122.55566
+11:03:09.992455346 SO_RCVBUF = 4096
+11:03:09.993827882 TCP_MAXSEG = 1148
+11:03:09.995618701 received 256 bytes
+11:03:09.997066876 received 256 bytes
+11:03:09.998543407 received 256 bytes
+11:03:10.000741475 received 256 bytes
+11:03:10.002205434 received 256 bytes
+
+./sock -i 10.121.122.202  -n10
+the window size in syn will be 2296 half of the actual recieve buffer size
+window advertisament
+len=1024   ->
+len=1148   ->
+win=256    <-
+len=256, dseq=2173  ->
+ack=2429, win =0     <-
+seq=2428 len=0  (window probing) ->
+ack=2429, win =0     <-
+seq=2428 len=0  (window probing) ->
+ack=2429, win =0     <-
+seq=2428 len=0  (window probing) ->
+......
+win=1344    <-   until window size is 1344, it update the window size(for half of the buffer szie)
+===============================
+sock option
+sock -u -v 10.121.122.99 6666
+sock -u -s -v -E -R256 - P30 6666
+
+limit the peer address
+./sock -s -u -v -E -f 10.121.122.202.4444  10.121.122.97   6666
+./sock -u -v -b 4444 10.121.222.97 6666
+===================
+ip packet reassemble
+IP fragment
+DF don't fragment
+ip packet reasseble is in the next hop, so ip reasseble is trasparent to tcp/udp layer.
+if not in order, ip packet could be reassemble also
+udp 1473 (frag 26304: 1480@0+)   (frag id: datalen@offset+) + means more data is coming
+udp (frag 26304:1@1480) no +this means the end of the fragment
+so there are 1481 bytes, it be devided into two fragments
+
+
+
+*** tcp packet reassemble
+(1).tcp protocol itself will devide the messages in send buffer
+for example
+[guolili@cougar test]$ nc  10.121.122.12 4444 <out.dat
+[guolili@cougar test]$ ll out.dat
+-rw-rw-r--  1 guolili guolili 5120 May  4 14:01 out.dat
+a 5k file, will be devided into three tcp packet only in tcp layer: 2896, 1448, 776
+
+but in received side, tcp packet in tcp layer is:1448, 1448,1448
+[gll@TTCN9 test]$ nc -l -p 4444 >aout
+[gll@TTCN9 test]$ ll aout
+-rw-rw-r--  1 gll gll 5120 May  4 14:03 aout
+
+So in tcp layer, one send tcp data will be fragmented into different frames in send side and receive side,
+cause ip is a stream oriented protocol, it won't guaranteen every send/receive will be the same data.
+And in tcp header, just sequence number, no length field, so the upper layer of tcp will have the length
+field to reassemble tcp streams into a complete packet.
+
+(2).the tcp payload in ip packet, and ip packet will be devided into MTU limited size, means
+ip packet will be reassembled by ip header lenghth field(16bit)
+In wiresharklog, you will get the whole ip packet which has been reassembled by wireshark
+
+*** udp packet reassemble
+udp won't be fragmented in udp layer, but udp will reassemlbe the ip fragment into one udp packet by the 
+length fields in udp layer
+it will be framgmented in ip layer for MTU limits
+
+
+
+
+** example of tcp transmission
+[root@TeamCI-136 glili]# /usr/sbin/tcpdump -i lo |tee p.cap
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on lo, link-type EN10MB (Ethernet), capture size 96 bytes
+11:45:08.912572 IP localhost.localdomain.53623 > localhost.localdomain.7788: S 3524904661:3524904661(0) win 32792 <mss 16396,sackOK,timestamp 1202389692 0,nop,wscale 7>
+//SYN, sequencenumber:sequencenumber, jwscale 7 means window scale will multiple 2**7=128 in the Pack packet, mss is MTU vaule
+// win is advertised window
+11:45:08.912801 IP localhost.localdomain.7788 > localhost.localdomain.53623: S 945307363:945307363(0) ack 3524904662 win 32768 <mss 16396,sackOK,timestamp 1202389692 1202389692,nop,wscale 7>
+11:45:08.912824 IP localhost.localdomain.53623 > localhost.localdomain.7788: . ack 1 win 257 <nop,nop,timestamp 1202389692 1202389692>
+//win 257 means 257*128=32896, this is similar to 32792 first win size. this win is th current receive window of host
+
+
+11:45:08.912744 IP localhost.localdomain.53623 > localhost.localdomain.7788: P 1:8193(8192) ack 1 win 257 <nop,nop,timestamp 1202389692 1202389692>
+11:45:08.912755 IP localhost.localdomain.7788 > localhost.localdomain.53623: . ack 8193 win 386 <nop,nop,timestamp 1202389692 1202389692>
+//ack number of received sequence number, and current window size, if there are two same ack number message with different win number
+//that's a window size update message(Tcp window update) message,
+11:45:08.912765 IP localhost.localdomain.53623 > localhost.localdomain.7788: P 8193:16385(8192) ack 1 win 257 <nop,nop,timestamp 1202389692 1202389692>
+11:45:08.912771 IP localhost.localdomain.7788 > localhost.localdomain.53623: . ack 16385 win 386 <nop,nop,timestamp 1202389692 1202389692>
+11:45:08.912786 IP localhost.localdomain.53623 > localhost.localdomain.7788: P 16385:24577(8192) ack 1 win 257 <nop,nop,timestamp 1202389693 1202389692>
+11:45:08.912791 IP localhost.localdomain.7788 > localhost.localdomain.53623: . ack 24577 win 363 <nop,nop,timestamp 1202389693 1202389693>
+11:45:08.912800 IP localhost.localdomain.53623 > localhost.localdomain.7788: P 24577:32769(8192) ack 1 win 257 <nop,nop,timestamp 1202389693 1202389693>
+11:45:08.912822 IP localhost.localdomain.53623 > localhost.localdomain.7788: P 32769:49153(16384) ack 1 win 257 <nop,nop,timestamp 1202389693 1202389693>
+//two write() message in one tcp segment since the send window is serverport 7788's receive window when SYN which is 32768, so 16384 is OK here
+11:45:08.912827 IP localhost.localdomain.7788 > localhost.localdomain.53623: . ack 49153 win 264 <nop,nop,timestamp 1202389693 1202389693>
+11:45:08.912836 IP localhost.localdomain.53623 > localhost.localdomain.7788: P 49153:57345(8192) ack 1 win 257 <nop,nop,timestamp 1202389693 1202389693>
+
+==================================
+[admin1@TeamCI-136 sock]$ ./sock -s -i  -v 7788 >/tmp/rere     // -i  "source" data to socket, "sink" data from socket (w/-s)
+//in default, read() 1024 bytes 
+received 1024 bytes
+received 1024 bytes
+received 1024 bytes
+received 1024 bytes
+......
+====================================
+[root@TeamCI-136 sock]# ./sock -v -i -w 8192 127.0.0.1 7788 <file.txt    // -i  "source" data to socket, "sink" data from socket (w/-s)
+// indefault , write() 1024, b ut -w option specify 8192 bytes
+wrote 8192 bytes
+wrote 8192 bytes
+wrote 8192 bytes
+........
+=============================
+From above, we can see tcp packet is very different when in real NIC transmission(in tcpdump) and read, write function not always get teh same boundary but get same order stream.
+
+
+
+* TCP VS. UDP 
+                       TCP                                                                         UDP
+Acronym for     Transmission Control Protocol                                                      User Datagram Protocol or Universal Datagram Protocol
+Connection      TCP is a connection-oriented protocol.                                             UDP is a connectionless protocol.
+Function        This is connection based.some packets may be assembled                             UDP is not connection based Usage, every packet is independent with other
+Ordering        TCP rearranges data packets in the order specified.                                UDP has no inherent order as all packets are independent of each other. 
+Speed of transfer   The speed for TCP is slower than UDP.                                          UDP is faster because error recovery is not attempted. It is a "best effort" protocol.
+Reliability     guarantee data transferred remains intact and in the same order                    There is no guarantee that the messages or packets sent would reach at all.
+Header Size     TCP header size is 20 bytes                                                        UDP Header size is 8 bytes.
+Streaming data  Data is read as a byte stream, no distinguishing indications boundaries.           The receiver socket will yield an entire message as it was originally sent.
+DataFlow Contr  TCP handles reliability and congestion control(negotiation segment size).          UDP does not have an option for flow control
+Error Checking  Erroneous packets are retransmitted from the source to the destination.            error checking but simply discards erroneous packets. 
+Acknowledgement Acknowledgement segments                                                           No Acknowledgment
+Handshake       SYN, SYN-ACK, ACK                                                                  No handshake (connectionless protocol)
+
+** TCP header format
+    0                   1                   2                   3   
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |          Source Port          |       Destination Port        |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                        Sequence Number                        |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                    Acknowledgment Number                      |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |  Data |           |U|A|P|R|S|F|                               |
+   | Offset| Reserved  |R|C|S|S|Y|I|            Window             |
+   |       |           |G|K|H|T|N|N|                               |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |           Checksum            |         Urgent Pointer        |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                    Options                    |    Padding    |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                             data                              |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+                            TCP Header Format
+
+
+
+** UDP header format
+    0                   1                   2                   3   
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |          Source Port          |       Destination Port        |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |        Length                 |checksum                       |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                    Data                                       |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+Length is 16bit, so maximum udp packet is 2**16-1 from source port to end of the data(the entire udp packet size).
+ 
+
+
+
+    *** TCP Three handshakes connection established
+*** tcp connection SHUTDOW(FIN or RST sent)
+if you want to send RST to close the connection, 
+set so_linger to 0.
+##########################
+        struct linger ling;
+        ling.l_onoff = 1;
+        ling.l_linger = 0;
+        Setsockopt(sockfd, SOL_SOCKET, SO_LINGER, &ling, sizeof(ling));
+############################
+then when call close() function, it will send RST, otherwise it will send FIN if no non-empty receive kernel-buffer.
+
+Summary for lazy people ^^: calling close(2) on a socket with a
+> non-empty receive kernel-buffer cause the connection to be ReSeT and
+> the send buffer discarded and not sent.
+
+Yes; this is all as it should be.
+
+> 1) Is this a standard behavior?
+
+Yes.
+
+> Doesn't the RFC state that every pending data is sent when the
+> connection is closed?
+
+The RFCs describe the TCP protocol, not the sockets API.
+
+> 2) Shouldn't that behavior be documented somewhere? I didn't found any
+> information about that anywhere. I looked at the man close(2),
+> shutdown(2), socket(7), tcp(7).
+>
+> >From this I deduce that shutdown must be called everytime we want to
+> close a socket. But this is not taught anywhere. :p
+
+In many cases, shutdown() is not necessary. Normally, one side knows
+whether the other side will send more data. E.g. for (non-pipelined)
+HTTP, the client sends a request, the server sends a response, then
+closes the connection. At that point, the client sees EOF then
+close()s the socket (or it could just close the socket once the amount
+of data specified by the Content-Length header has been received).
+
+With a request-response protocol, either the requestor sends a "quit"
+command resulting in the responder closing the connection, or the
+requestor will just close the connection instead of issuing a request. 
+In the latter case, it will either perform a half-close or just wait
+until any outstanding response has been received and perform a
+full-close.
+
+If you close the receive side of the connection while the other end is
+still sending, the kernel needs to inform the sender that data was
+discarded (analogous to EPIPE for a pipe). It does so by sending a
+RST. A FIN merely indicates that it has ceased sending data; a RST
+asserts that the connection no longer exists.
+
+Once it has sent a RST, it cannot send any additional data. Doing so
+would just result in the receiver discarding the data and sending a
+RST, so there's no point.
+
+If you want the other end to see EOF while your end still receives
+data, use shutdown(fd, SHUT_WR) to perform a half-close. This sends a
+FIN and effectively makes the descriptor read-only.
+
+The classic example of a half-close is for the rsh protocol, where
+each side transmits independently and the format of the data is
+unknown to either the client or the server. If the user types Ctrl-D
+(or whatever the EOF character is), the rsh client receives EOF which
+needs to be passed to the server, which is done using a half-close. 
+The server then closes the the descriptor used to write to the pty
+master, which causes the shell to read EOF from the slave. Once all
+processes writing to the slave have terminated, rshd reads EOF from
+the master, closes the socket, server sends FIN to the client, which
+the rsh client sees as EOF, at which point it terminates.
+
+
+
+
+
+*** TCP four step connection closed
+The four steps for tcp connection closed.
+Why ack and FIN not in one message, for after the first two steps, the connection will be half-closed.
+It means the one who was closed passively may have more data to send to the peer, so it will delay to 
+send FIN M, before that it may send some datat to the peer.
+FIN means no more data to be sent in this side, but it can accept data from the peer.
+       
+  ESTABLISHED                                  ESTABLISHED     
+        |                                            |
+        |     FIN  N                                 |
+        |    -------------------------------->       |                
+   FIN_Wait_1(Active close)		        Close_wait(closed passively)	 
+        |       ack  N+1                             |  
+        |     <-----------------------------         |  
+   FIN_Wait_2                                        |
+        |                                            |
+        |       maybe some data to be sent......     |
+        |     <----------------------------          | 
+        |     maybe some ack,but no data             | 
+        |     -------------------------->	         | 
+        |            FIN M                           |
+        |      <------------------------------       |   
+    	|		                                  LAST_ACK  
+    	|		  ACK M+1                            | 
+    	|	  -------------------------->            |
+	Time_Wait(2MSL)                                CLOSED 
+        |
+        |after time period 2MSL
+       CLOSED
+
+
+a server port 1234, if server actively close the connection,
+----------------------------------------------
+[liguo@localhost sock]$ netstat |grep 1234
+tcp        0      0 localhost.localdomain:32831 localhost.localdomain:1234  ESTABLISHED
+tcp        0      0 localhost.localdomain:1234  localhost.localdomain:32831 ESTABLISHED
+[liguo@localhost sock]$ netstat |grep 1234
+tcp        0      0 localhost.localdomain:1234  localhost.localdomain:32831 TIME_WAIT
+---------------------------------------------
+Actually, localhost:1234 is in TIME_WAIT state, the port 32831 isn't used anymore.
+it means that
+--------------------
+[liguo@localhost sock]$ netstat |grep 1234
+tcp        0      0 localhost.localdomain:32831  localhost.localdomain:1234 CLOSED
+tcp        0      0 localhost.localdomain:1234  localhost.localdomain:32831 TIME_WAIT
+----------------------------
+
+But in some case may like this:
+--------------------
+[liguo@localhost sock]$ netstat |grep 1234
+tcp        0      0 localhost.localdomain:32831  localhost.localdomain:1234 LAST_ACK
+tcp        0      0 localhost.localdomain:1234  localhost.localdomain:32831 TIME_WAIT
+----------------------------
+ack M+1 for FIN sent from 1234 was not acked by 32831, So maybe it lost, so 1234 enter
+into state TIME_WAIT, but 32831 not receive the ack M+1, so it is still in LAST_ACK,
+when time pass, 32831 not receiving the ack M+1, so it assume 1234 not receive te FIN M,
+So it will resent FIN M, if no 2MSL waiting, the server restart with 1234, and another
+client connect it with the same 32831 port, And now, FIN M arrived, this will be misinterpreted.
+
+===========================================
+2MSL Wait State
+The TIME_WAIT state is also called the 2MSL wait state. Every implementation must choose a value for the maximum segment lifetime (MSL). It is the maximum amount of time any
+segment can exist in the network before being discarded. We know this time limit is bounded,
+since TCP segments are transmitted as IP datagrams, and the IP datagram has the TTL field that limits its lifetime.
+RFC 793 [Postel 1981c] specifies the MSL as 2 minutes. Common implementation values, however, are 30 seconds, 1 minute, or 2 minutes.
+real-world limit on the lifetime of the IP datagram is based on the number of hops, not a timer.
+
+1. for resending the final Ack
+Given the MSL value for an implementation, the rule is: when TCP performs an active close,
+and sends the final ACK, that connection must stay in the TIME_WAIT state for twice the
+MSL. This lets TCP resend the final ACK in case this ACK is lost (in which case the other end
+will time out and retransmit its final FIN).
+
+Any delayed segments that arrive for a connection while it is in the 2MSL wait are discareded. 
+Since the connection defined by the socket pair in the 2MSL wait cannot be reused during this time period, when we do establish a valid connection 
+we know that delayed segments from an earlier incarnation of this connection cannot be misinterpreted as being part of the new connection.
+
+====================================
+**** 2MSL Wait(TIME_WAIT) State example
+1. Address already in use when actively end the connection
+1).  a server program restart by itself
+sun % sock -v -s 6666
+connection on 140.255.12.22.6666 from 140.252.13.35.1098
+^?
+sun % sock -v -s 6666
+can't bind local address: Address already in use
+---------------------------------------------------
+if a server started twicely with a very short time gap, 
+we use ctrl + c to end the server means that it will in TIME_WAIT status, so the port is not available yet
+
+   
+2)	a server program closed by the peer passively, then it restart
+sun % sock -v -s 6666
+connection on 140.255.12.22.6666 from 140.252.13.35.1098
+some echo message
+connection closed by peer.
+
+sun % sock -v -s 6666
+this time, it will restart successfully even a short time gap between run times.
+because, server is colosed by peer, so it won't be in TIME_WAIT status.
+
+3). a client run twice in a very short time gap
+./sock -v -s 6666
+./sock 127.0.0.1 6666
+connection on 127.0.0.1.6666 from 127.0.0.1.45198
+some echo message
+
+ctrl+c to end ./sock 127.0.0.1 6666,      //client speicifying the same port to connect a server
+then restart server, and restart client 
+./sock -b45198 127.0.0.1 6666
+bind() error: Address already in use
+
+in this case, the client will be in CLOSE_WAIT for client end the connection firsly, by using ctrl+c.
+So if you start the client using the same port which it used before, there will be error.
+
+
+
+** an example
+DNS could be ride either on TCP or UDP, in default it's on UDP, but when DNS message is too big> 65535
+(since the udp message won't be assembled,very udp packet will be delivered to the up layer ), TCP is used instead.
+
+
+** How large will be a tcp packet?
+*** limitaions on three layers
+1.data link layer: there's on lenght field for the erthenet frame, in the slip
+there's no even slip header for the packet at all, but there's a limit on the packet on the network, MTU, the is the hardware limitation.
+netstat -in
+Iface   MTU
+eth0    1500
+lo      16436
+
+2.internet protocol layer
+ip packet total length: 16bit, 2 bytes.(maximum ip packet length is 65535)
+So even no hardware limitation, the network layer has a limitation that a
+single packet could only be 65535 plus ethernet header length
+
+3. transmission layer
+tcp has no length field for all the tcp length, but tcp will negotiate MSS value when connection established.
+udp has a 16-bit length field for the entire udp packet
+
+*** MSS(maximum segment size)
+MSS the longest packet length for tcp packet
+IN SYN phase, each endpoint will tell the peer its nown packet length.
+MSS is limited to the outlet interface's MTU value and its window buffer size
+
+             SLIP             MTU=1500         |MTU=1500   
+|slip |-----------------{bsdi} ----------|-----|sun|
+      MTU=296        MTU=296                   |
+
+   SYN <mss 1460>
+/---------------------------------------------------
+\
+                                                  \
+---------------------------------------------------
+       SYN<mss 256>                               /   
+
+
+From above, an ip packet really trasmit through network will be less than 65535, but MTU is a hardware limitation which is always less than 65535. Normally 576 bytes for a ip packet.
+when ip layer reassemble the ip fragment packet, the tcp layer get the packet sent from the peer, but not the real send() above tcp  layer with boundary.
+application layer must have length fields to reassemble a real application packet from tcp layer.
+
+*** broadcast ip address
+For broadcasting a packet to an entire IPv4 subnet using the private IP address space 172.16.0.0/12, which has the subnet mask 255.240.0.0, 
+the broadcast address is 172.16.0.0 | 0.15.255.255 = 172.31.255.255.
+the network+host(whole 1) is the broadcast ip
+
+for example
+  IPv4 Address. . . . . . . . . . . : 10.121.122.20 Subnet Mask . . . . . . . . . . . : 255.255.255.128
+
+so the broadcast addr is 10.121.122.127
+when the ip addr is 10.121.122.127, the ethernet addr is ff:ff:ff:ff
+and it will go across all the hosts in the subnetwork,
+ 
+
+
+* SCTP VS. TCP
+TCP will treat the upperlayer data as stream without boundary handling in tcp layer, it will deliver as much as bytes reliably.
+so upper layer protocol need to process the reassebling.
+SCTP will treat the upperlayer as a message when uppperlayer send a message, sctp will fragment the message if it's too large(exceeded the MTU size), 
+but SCTP layer will process the reassembling. For upper layer don't need to do itself.
+SCTP is like a UDP and TCP combination, you will get whant you exactly sent every time reliablely.
+** SCTP conception
+Association: srcip:srcport----dstip:dstport
+Stream:      a sctp Assocation could bear multiple streams identified by StreamId.
+             when asscociation established, two peer will negotiate the in/out bound streams number, INIT will contian in/out bound stream numbers of client,
+             and server will respond in/out bound stream numbers in INIT_ACK(server will get minum it's own out/in bound stream numbers with INIT's parameter). 
+
+             "Invalid Stream Identifier error" will occur if a received data chunk stream id exceed the negotiated inbound stream number;
+
+TSN (Transmission Sequence Number): A TSN (and the associated DATA chunk) that has been sent by the endpoint but for which it has not yet received an acknowledgement.
+                                    this is just for transmission reliablity for sctp layer not related to uppper layer data logics.
+SID(Stream Identification):     stream divided into different groups logically by uppper layer protocol
+SSN(Stream Sequence Nubmer):    stream sequence number is within one SID logically for upper layer data(it will be fragment by sctp due to MTU size)
+
+** SCTP DATA format
+0 1 2 3
+0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+| Type = 0 | Reserved|U|B|E| Length                             |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+| TSN                                                           |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+| Stream Identifier S             | Stream Sequence Number n    |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+| Payload Protocol Identifier                                   |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+\ \
+/ User Data (seq n of Stream S) /
+\ \
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+U bit: 1 bit The (U)nordered bit, if set to ’1’, indicates that this is an
+unordered DATA chunk, and there is no Stream Sequence Number assigned to this DATA chunk. Therefore, the receiver MUST ignore the Stream Sequence Number field.
+After reassembly (if necessary), unordered DATA chunks MUST be dispatched to the upper layer by the receiver without any attempt to reorder.
+If an unordered user message is fragmented, each fragment of the message MUST have its U bit set to ’1’.
+B bit: 1 bit
+The (B)eginning fragment bit, if set, indicates the first fragment of a user message.
+E bit: 1 bit
+The (E)nding fragment bit, if set, indicates the last fragment of a user message.
+TSN: This value represents the TSN for this DATA chunk. The valid range of TSN is from 0 to 4294967295 (2**32 - 1). TSN wraps back to 0 after reaching 4294967295.
+
+** SCTP multihoming feature
+The INIT chunks can contain multiple addresses that can be IPv4 and/or IPv6 in any combination, and INIT_ACK chunks can also contain such address list.
+this list indicate the peer I have two ipaddresses for multi-homing, if the primary path failed to respond, please use these spare ones.
+
+** SCTP association establsihment and shutdown
+    | INIT          |
+    |-------------->|
+    | INIT_ACK      |
+    |<--------------| 
+    | Cookie_echo   |
+    |---------------|
+    | Cookie_ack    |
+    |<--------------|
+    
+    | Shutdown        |
+    |---------------->|
+    | Shutdown_ACK    |
+    |<----------------|
+    | Shutdow_complete|
+    |---------------->|
+    
+** SCTP introduction
+Stream Control Transmission Protocol (SCTP).  SCTP is designed to transport Public Switched Telephone Network (PSTN) signaling messages over IP networks originally.
+
+   SCTP is a reliable transport protocol operating on top of a connectionless packet network such as IP.  It offers the following
+   services to its users:
+
+   --  acknowledged error-free non-duplicated transfer of user data,
+
+   --  data fragmentation to conform to discovered path MTU size,
+
+   --  sequenced delivery of user messages within multiple streams, with an option for order-of-arrival delivery of individual user messages,
+
+   --  optional bundling of multiple user messages into a single SCTP packet, 
+
+   --  network-level fault tolerance through supporting of multi-homing at either or both ends of an association.
+
+   The design of SCTP includes appropriate congestion avoidance behavior and resistance to flooding and masquerade attacks.
+
+** comparison of two protocol
+The limitations that users have wished to bypass include
+   the following:
+
+   -- TCP provides both reliable data transfer and strict order-of- transmission delivery of data.  Some applications need reliable
+      transfer without sequence maintenance, while others would be satisfied with partial ordering of the data.  In both of these
+      cases, the head-of-line blocking offered by TCP causes unnecessary delay.
+
+   -- The stream-oriented nature of TCP is often an inconvenience.  Applications must add their own record marking to deliminate their
+      messages, and must make explicit use of the push facility to ensure that a complete message is transferred in a reasonable time.
+
+   -- The limited scope of TCP sockets complicates the task of providing highly-available data transfer capability using multi-homed hosts.
+
+   -- TCP is relatively vulnerable to denial-of-service attacks, such as SYN attacks.
+
+** SCTP features
+
+*** multiple streams by identifiers in data transfer
+TSN: ..63               ...64
+stream identifier:0         0
+stream sequence:0           1 
+
+*** multiple associations in sctp
+The basic service offered by SCTP is the reliable transfer of user messages between peer SCTP users.  It performs this service within
+   the context of an association between two SCTP endpoints.  
+
+assocaiation is similar to tcp's one connection.
+in TCP, a connection effectively is represented by the pair of source and destination endpoint IP addresses and ports,
+one server, multiple clients, the server ip and port are the same but
+client's different to identify different clients in different sockets.
+connection 1: server.servipaddr.servport -----cli1.ipaddr1.port1
+connection 2: server.servipaddr.servport -----cli12.ipaddr2.port2
+
+
+in SCTP, the associations is represented by the pair of source and dst IP
+and ports also(not multihoming case). one server, multiple clients, the 
+server side has only one socket to deal with all the assciations unless you
+peeloff a specific association id to another socket.
+association 1: server.servipaddr.servport -----cli1.ipaddr1.port1
+association 2: server.servipaddr.servport -----cli12.ipaddr2.port2
+
+ in SCTP, the source and destination can both be multihomed, so they will be represented by the set of source and the set of destination addresses. For one-to-many sockets, the source addresses may be shared by many associations, so I need the destination addresses to identify an association properly. For a single association, these destination addresses all belong to a single endpoint computer.
+
+association 1: server.servipaddrlist[0].servport -----cli1.ipaddr1list[0].port1
+association 1: server.servipaddrlist[1].servport -----cli1.ipaddr1list[0].port1
+association 1: server.servipaddrlist[0].servport -----cli1.ipaddr1list[1].port1
+association 1: server.servipaddrlist[1].servport -----cli1.ipaddr1list[1].port1
+if server has two ipaddr and client has two ip addr for multihoming feature,
+all these four address pair are association 1
+
+association 2: server.servipaddr.servport -----cli12.ipaddr2.port2
+
+
+SCTP is connection-oriented in nature, but the SCTP association is a
+   broader concept than the TCP connection.  SCTP provides the means for
+   each SCTP endpoint (Section 1.3) to provide the other endpoint
+   (during association startup) with a list of transport addresses
+   (i.e., multiple IP addresses in combination with an SCTP port)
+   through which that endpoint can be reached and from which it will
+   originate SCTP packets.  The association spans transfers over all of
+   the possible source/destination combinations that may be generated
+   from each endpoint's lists.
+
+
+      |  SCTP User  |                                    |  SCTP User  |
+      | Application |                                    | Application |
+      |-------------|                                    |-------------|
+      |    SCTP     |                                    |    SCTP     |
+      |  Transport  |                                    |  Transport  |
+      |   Service   |                                    |   Service   |
+      |-------------|                                    |-------------|
+      |             |One or more    ----      One or more|             |
+      | IP Network  |IP address      \/        IP address| IP Network  |
+      |   Service   |appearances     /\       appearances|   Service   |
+      |_____________|               ----                 |_____________|
+
+        SCTP Node A |<-------- Network transport ------->| SCTP Node B
+
+                         Figure 1: An SCTP Association
+
+In a word, sctp assocaciation is a connection from client to server (with dst.ipaddr.port andsrc.ipaddr.port), 
+in multihoming case, the ipaddr in both dst and src could be a list of ip addr, but the same port number in both direction port.
+
+o  Transport address: A transport address is traditionally defined by a network-layer address, a transport-layer protocol, and a transport-layer port number.
+      In the case of SCTP running over IP, a transport address is defined by the combination of an IP address and an SCTP port number (where SCTP is the transport protocol).
+
+o  SCTP endpoint: The logical sender/receiver of SCTP packets.  On a multi-homed host, an SCTP endpoint is represented to its peers as
+      a combination of a set of eligible destination transport addresses to which SCTP packets can be sent and a set of eligible source
+      transport addresses from which SCTP packets can be received.  All transport addresses used by an SCTP endpoint must use the same
+      port number, but can use multiple IP addresses.  A transport address used by an SCTP endpoint must not be used by another SCTP
+      endpoint.  In other words, a transport address is unique to an SCTP endpoint.
+
+** SCTP uplayer programming
+
+linux能够支持sctp协议，但是默认情况下不支持。如果你在编写sctp方面的应用程序时遇到：
+<netinet/sctp.h> no such file or directory。
+在终端输入： 
+sudo apt-get install libsctp-dev lksctp-tools
+测试sctp的代码遇到如下报错：
+netinet/sctp.h no such file or directory
+
+yum -y install lksctp-tools-devel
+
+all the structure defined in /usr/include/netinet/sctp.h
+sctp bind  error
+bind error: permisiion denied.
+disa selinux 
+
+
+How to check the status of SELINUX in linux system
+Use the below given command to check SELINUX
+
+getenforce
+
+or open the file /etc/sysconfig/selinux and find the value of “SELINUX=enforcing”
+In below given /etc/sysconfig/selinux file. The selinux is in enforcing mode.
+
+[root@localhost ~]# cat /etc/sysconfig/selinux
+
+# This file controls the state of SELinux on the system.
+# SELINUX= can take one of these three values:
+# enforcing – SELinux security policy is enforced.
+# permissive – SELinux prints warnings instead of enforcing.
+# disabled – No SELinux policy is loaded.
+SELINUX=enforcing
+# SELINUXTYPE= can take one of these two values:
+# targeted – Targeted processes are protected,
+# mls – Multi Level Security protection.
+SELINUXTYPE=targeted
+
+[root@localhost ~]#
+
+
+To temporary change the SELINUX mode into permissive state in running system without reboot.
+use the command setenforce 0
+
+[root@localhost ~]# getenforce
+Enforcing
+[root@localhost ~]#
+[root@localhost ~]# setenforce 0
+[root@localhost ~]#
+[root@localhost ~]# getenforce
+Permissive
+[root@localhost ~]#
+
+For permanent change in selinux mode edit the file /etc/sysconfig/selinux.
+Change the value of SELINUX=enforcing into permissive or disabled and restart the system
+
+vi /etc/sysconfig/selinux
+
+# This file controls the state of SELinux on the system.
+# SELINUX= can take one of these three values:
+# enforcing – SELinux security policy is enforced.
+# permissive – SELinux prints warnings instead of enforcing.
+# disabled – No SELinux policy is loaded.
+SELINUX=disabled
+# SELINUXTYPE= can take one of these two values:
+# targeted – Targeted processes are protected,
+# mls – Multi Level Security protection.
+SELINUXTYPE=targeted
+
+Save the file and RESTART the system. Without restart of system SELINUX mode will not be changed permanently.
+
+Note: SELINUX has 3 mode
+*** events in sctp
+Events
+The SCTP stack can generate events when “interesting” things happen. By default, all event generation is turned off except for data events. In the last article, I discussed the SCTP call sctp_rcvmsg(). By default, this just returns the data read. But, I also wanted to find out on which stream the data came, and for this I had to turn on the data_io_event so the SCTP stack would fill in the sctp_sndrcvinfo structure, which has the sinfo_stream field. Events are listed in the sctp_event_subscribe structure:
+
+struct sctp_event_subscribe { 
+    uint8_t sctp_data_io_event; 
+    uint8_t sctp_association_event; 
+    uint8_t sctp_address_event; 
+    uint8_t sctp_send_failure_event; 
+    uint8_t sctp_peer_error_event; 
+    uint8_t sctp_shutdown_event; 
+    uint8_t sctp_partial_delivery_event; 
+    uint8_t sctp_adaptation_layer_event; 
+    uint8_t sctp_authentication_event; 
+};
+An application sets fields to one for events it is interested in and zero for the others. It then makes a call to setsockopt() with SCTP_EVENTS. For example:
+
+struct sctp_event_subscribe event ={0};
+memset(&event, 0, sizeof(event)); 
+event.sctp_data_io_event = 1; 
+event.sctp_association_event = 1; 
+setsockopt(fd, IPPROTO_SCTP, SCTP_EVENTS, 
+           &event, sizeof(event));
+
+Events are delivered inline along with “ordinary” data whenever a read (using sctp_recvmsg or similar) is done. If the application turns on events, reads will contain a mixture of events and data. The application then will need to examine each read to see whether it is an event or data to be processed. This is quite straightforward. If the flags field in the sctp_recvmsg() call has the MSG_NOTIFICATION bit set, the read message contains an event; otherwise, it contains data as before. Pseudo-code for this is:
+
+
+nread = sctp_rcvmsg(..., msg, ..., &flags); 
+if (flags & MSG_NOTIFICATION) 
+    handle_event(msg); 
+else 
+    handle_data(msg, nread);
+
+Events can be used to tell the following: if a new association has started or if an old one has terminated; if a peer has changed state by, say, one of the interfaces becoming unavailable or a new interface becoming available; if a send has failed, a remote error has occurred or a remote peer has shut down; if partial delivery has failed; and if authentication information is available.
+
+If an event is received in the event buffer, first its type must be found, and then the buffer can be cast to a suitable type for that event. For example, the code to handle a shutdown event is:
+
+
+void handle_event(void *buf) { 
+    union sctp_notification *notification; 
+    struct sn_header *head; 
+
+    notification = buf; 
+    switch(notification->sn_header.sn_type) { 
+    case SCTP_SHUTDOWN_EVENT: { 
+        struct sctp_shutdown_event *shut; 
+        shut = (struct sctp_shutdown_event *) buf; 
+        printf("Shutdown on assoc id %d\n", 
+                shut->sse_assoc_id); 
+        break; 
+    }
+     case SCTP_ASSOC_CHANGE: {
+        struct sctp_assoc_change *assoc;
+        assoc = (struct sctp_assoc_change *) pRecvBuffer;
+        printf("Init on assoc id %d\n",
+                assoc->sac_assoc_id);
+        break;
+    }
+
+    default: 
+        printf("Unhandled event type %d\n", 
+               notification->sn_header.sn_type);
+    }
+
+Closing an Association
+A socket can support multiple associations. If you close a socket, it closes all of the associations! It is sometimes desirable to close only a single association but not the socket, so that the socket can continue to be used for the other associations.
+
+SCTP can abort an association or close it gracefully. Graceful shutdown will ensure that any queued messages are delivered properly before shutdown, while abort does not do this. Either of these are signaled by setting the sinfo_flags in the sctp_sndrcvinfo structure to the appropriate value. A graceful shutdown is signaled by setting the shutdown flag and writing a message (with no data):
+
+
+sinfo.sinfo_flags = SCTP_EOF; sctp_send(..., &sinfo, ...);
+
+The reader then will be sent an sctp_shutdown_event if it has that event type enabled. The code to handle such an event was shown above. This can be done only on one-to-many sockets though. For one-to-one sockets, you are limited to using close().
+
+
+Getting the Association ID
+Many of the calls that deal with associations take an association ID as a parameter. Whereas in TCP, a connection effectively is represented by the pair of source and destination endpoint IP addresses, in SCTP, the source and destination can both be multihomed, so they will be represented by the set of source and the set of destination addresses. For one-to-many sockets, the source addresses may be shared by many associations, so I need the destination addresses to identify an association properly. For a single association, these destination addresses all belong to a single endpoint computer. The SCTP variation on getsockopt()—that is, sctp_opt_info()—is used to find an association from an address. The reason I cannot simply use getsockopt() is that I need to pass in a socket address, and the return value includes the association value. This in/out semantics is not supported by all implementations of getsockopt(). The code is:
+
+
+sctp_assoc_t get_associd(int sockfd, struct sockaddr *sa, socklen_t salen) { 
+    struct sctp_paddrinfo sp; 
+    int sz; 
+    
+    sz = sizeof(struct sctp_paddrinfo); 
+    bzero(&sp, sz); 
+    memcpy(&sp.spinfo_address, sa, salen); 
+    if (sctp_opt_info(sockfd, 0, SCTP_GET_PEER_ADDR_INFO, &sp, &sz) == -1) 
+        perror("get assoc"); 
+    return (sp.spinfo_assoc_id); 
+}
+
+Note that Unix Network Programming (volume 1, 3rd ed.) by W. Richard Stevens, et al., gives different code: the specification has changed since that book was written, and the above is now the preferred way (and Stevens' code doesn't work under Linux anyway).
+
+Multiple Associations
+A server can handle multiple clients in a number of ways: a TCP server can use a single server socket that listens for clients and deals with them sequentially, or it could fork off each new client connection as a separate process or thread, or it could have many sockets and poll or select between them. A UDP server typically will keep no client state and will treat each message in its entirety as a separate entity. SCTP offers another variation, roughly halfway between TCP and UDP.
+
+An SCTP socket can handle multiple long-lived associations to many endpoints simultaneously. It supports the “connection-oriented” semantics of TCP by maintaining an association ID for each association. On the other hand, it is like UDP in that each read usually returns a complete message from a client. SCTP applications use the TCP model by using the one-to-one sockets that I have discussed in the previous two articles. And, it uses a one-to-many model, which is more like UDP by using a one-to-many socket. When you create a socket, you specify whether it is one-to-one or one-to-many. In the first article in this series, I created a one-to-one socket by the call:
+
+sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_SCTP)
+To create a one-to-many socket, I simply change the second parameter:
+
+sockfd = socket(AF_INET, SOCK_SEQPACKET, IPPROTO_SCTP)
+A TCP server handles multiple connections simultaneously by essentially using concurrent reads. This is done by using multiple processes, threads, or by poll/select among many sockets. A UDP server typically uses a single read loop, handling each message as it arrives. An SCTP one-to-many server looks like a UDP server: it will bind a socket and listen. Then, instead of blocking on accept(), which would return a new one-to-one socket, it blocks on sctp_rcvmsg(), which returns a message from either a new or existing association. Pseudo-code for such a server is:
+
+
+sockfd = socket(...); 
+bind(sockfd, ...); 
+listen(sockfd, ...); 
+while (true) { 
+    nread = sctp_rcvmsg(sockfd, ..., buf, ..., &info); 
+    assoc_id = sinfo.sinfo_assoc_id; 
+    stream = sinfo.sinfo_stream; 
+    handle_message(assoc_id, stream, buf, nread); 
+}
+
+A client also can use the one-to-many socket model. After binding to a port (probably an ephemeral one), it can use the single socket to connect to many other endpoints and use this single socket to send messages to any of them. It even can do away with an explicit connect operation and just start sending to new endpoints (an implicit connection is done if no existing association exists).
+
+Peeled-Off Sockets
+One-to-one sockets follow the TCP model; one-to-many sockets follow the UDP model. Is it possible to have both at once? Yes, it is, to some extent. For example, you may have a server that you can talk to in two modes: ordinary user and superuser. Messages from ordinary users may be handled in UDP style, reading and just responding, while superuser connections may need to be treated differently. SCTP allows a connection on a one-to-many socket to be “peeled off” and become a one-to-one socket. This one-to-one socket may then be treated in TCP-style, while all other associations remain on the one-to-many socket.
+
+** Unordered Messages
+SCTP normally delivers messages within a stream in the order in which they were written. If you don't need this, you can turn off the ordering feature. This can make delivery of messages faster, as they don't have to be reassembled into the correct order.
+
+** multihoming feature
+Usually when no data transfered in a period of time, then HEARTBEAT
+will be sent to other ipaddress except the one last used to transfer data.
+And then a data should be sent, but the primary/last used path is unavailable,
+(No SACK data is received), then it will send the second path which is available in the HEATBEAT testing(have received heartbeat-ack)
+
+http://www.linuxjournal.com/article/9784 multiple asscociations with SCTP
+
+

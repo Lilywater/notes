@@ -1,0 +1,167 @@
+text to spech
+
+项目主页:
+
+http://espeak.sourceforge.net/
+下载
+
+    点击下载页或者此处
+使用方法简介
+
+1,选择语言
+
+    # espeak –voice
+
+2,在命令行下阅读文本 【默认方法】
+
+    # festival 声音 选择espeak –stdout ‘words to speak’ | aplay
+
+3，阅读指定文本
+
+    # espeak –stdout -t mydocument.txt | aplay
+
+    注意，其中的mydocument.txt替换为你指定文本
+4，导出音频文件
+
+    # espeak -t mydocument.txt -w myaudio.wav
+
+原创：使用发声引擎(TTS)festival和espeak感受
+
+一 04
+
+adminTech/技术-Archlinux, Tech/技术-Ubuntu No Comments
+
+闲来无事，在Archlinx下装了stardict发现有个喇叭图标可以用来朗读单词，但是点击无声，原来stardict使用festival --tts朗读单词，于是安装了festival，stardict终于可以发生了，然而festival貌似只有男声，而且不能朗读中文。 festival朗读文件使用命令：
+
+（附Archlinux下安装使用pacman -S festival espeak）
+
+festival --tts 文件名
+
+在网上搜索了一下发现espeak可以朗读中文，安装了espeak，espeak使用方法：
+
+朗读句子：
+
+espeak -vzh “hello world”
+espeak -vzh “你好”
+
+其中-vzh是汉语支持
+
+朗读文件：
+
+espeak -vzh+m2 -s 100 -f 文件名
+
+其中+m2是使用第二种男声发音，类似的+f2是使用第二种女声发音，-s是语速
+
+festival发生中规中距，个人感觉比espeak要流畅，不过espeak可以支持中文，但是听起来怪怪的。
+
+
+也许已经有一部分人早就知道 Festival 这个语音合成软件，也就是所谓的 TTS (textto speech)。不过网上相关的安装资料大同小异，基本上是在 Gentoo 上安装的心得。我发现 Ubuntu 只有Festival，而没有相关的 speechd 软件。我经过一晚上的探索，终于可以把这个 Festival玩转起来，而且有了一些比较好的效果，下面共享自己的经验出来。
+
+    * 安装基本上 Ubuntu 的库里就有 Festival 软件。
+      $sudo apt-get install festival
+    * 使用Festival 的基本用法：
+          o 交互模式：直接输入 festival 进入它的命令行界面。
+
+            $festival
+            festival 〉 (SayText ” hello , festival is coming “)
+            festival 〉 (tts myfile)
+
+            第二行是读取 myfile 文件里的内容。
+          o 命令行模式：
+            $festival –tts myfile直接读取 myfile 里的内容。
+            $ echo “hello , festival is coming ” | festival –tts
+            读取字符串。
+    * 配置Festival 默认用的是 oss，在一些系统会独占音频。这里我们将配置成使用 alsa 发音。
+      新建文件 ~/.festivalrc ， 输入以下内容:
+
+      (Parameter.set ‘Audio_Command “aplay -q -c 1 -t raw -f s16 -r $SR $FILE”)
+      (Parameter.set ‘Audio_Method ‘Audio_Command)
+
+      如果想提高音量，可添加：
+
+      (set! default_after_synth_hooks
+      (list (lambda (utt) (utt.wave.rescale utt 1.6 t))))
+
+      至此 festival 应该比较好的工作了。在集成声卡中会出现音速过快的问题。LinuxSir 上有一篇关于 Festival 的帖子，其中 wguzgg 网友曾经把网上的方法贴了出来。
+      我找到了如何将语速恢复正常的方法，原文在这里。
+      主要是集成在主板上的声卡会出现语速过快的问题，解决方式是：
+      在 /usr/lib/festival/ 目录下创建一个文件 siteinit.scm，内容如下：
+
+      (Parameter.set ‘Audio_Method ‘Audio_Command)
+      (Parameter.set ‘Audio_Command “sox -t raw -sw -r $SR $FILE -c2 -t ossdsp /dev/dsp”)
+
+      这个参数写在 ~/.festivalrc 上也是有效的。不过就和前面我设置用 alsa 发音的设置冲突了。那个 alsa 的设置好像也能把语速减慢一点吧。我这里提供方法。你自己看着选择了。
+    * 安装新语音这部分才是我写此文章的重要目的。因为在 Gentoo 的帖子，安装一个新的女声，只需要 emerge mbrola。而在 Ubuntu的库中并没有收录此包。（也许是我不知道，谁知道告诉我）另一个原因是，默认的美国男声似乎有些含糊不清。所以我找了 mbrola的女声来安装（注意，不得用于商业用途，他说的）。
+      手动安装 festival mbrola 的信息，原网页。
+          o 安装 festival voice wrapper (这个咋翻译偶拿不准）下载 festvox_us1.tar.gz，把它解压到 festival 的安装目录下，Ubuntu 下为 /usr/share/festival。
+          o 获取 MBROLA 声音文件和它的执行文件跳到 http://tcts.fpms.ac.be/synthesis/mbrola.html ，点击 download，下载 MBROLA binary 和你需要的声音文件。这里选择美国英语女声（for us1）。
+            安装 MBROLA binary，这里你应该下载到一个名为 mbr301h.zip 的文件。解压后把其中名为 mbrola-linux-i386 的文件改名为 mbrola，再复制到 /usr/local/bin 目录中。
+            安装声音文件，这里你下载到的声音文件的文件名应该类似 us1-980512.zip，把它解压到
+            [festival_install_dir]/festival/lib/voices/english/us1_mbrola
+            [festival_install_dir]为 festival 的安装目录。在 Ubuntu 下应为 /usr/share/festival。
+    * 测试新的声音在执行完上面步骤后新的美国英语女声应该安装完毕。进入 festival 命令行测试一下：
+
+      festival) (voice_us1_mbrola)
+      festival) (SayText ” hello , american english female voice is coming”)
+
+      在这里你应该听到优美的美国英语女声了吧。
+    * 更换默认声音如果想把上面的女声变成默认的声音，请在 ~/.festivalrc 文件中添加：
+
+      (set! voice_default ‘voice_us1_mbrola)
+
+      到这里比较完美了吧。
+    * 其它玩法当然你会因为一时好奇而装它。不过过一会之后就会想它会有什么用呢？我这里提供自己的一些玩法。
+          o 集成词典发音在我之前的 vim 技巧中有提到过 sdcv这个词典翻译软件。它是星际译王的命令行版本。自从有了它之后我就再也没有打开过星际译王了。因为有需要就直接 sdcv “word”就行了。当然默认它是没有将单词的读音读出来的。星际译王也有个 100 多 M的语音库，但那个库是一个单词一个文件。只能读库里有语音文件的单词。所以我们可以写个脚本，让 sdcv 和 festival绑定，这样学习英语来不是更形象嘛。
+
+            $cat dict
+            #!/bin/sh
+            echo “$1 ” |festival –tts >/dev/null 2>&1 &
+            sdcv -n $1
+
+            使用 dict 代替 sdcv，查询的单词无论怎样都会有读音。爽吧！
+          o 读中文你在开玩笑吧。是的，基本上是个玩笑。中文语音合成国内 863 好象有项目。不过似乎没有给公共平台提供什么软件接口。这里你可以让 festival 读中文拼音，有外国人读中文的味道。（linuxsir上的网友发现的）
+
+            $echo “ni hao, huan yin lai dao linux” |festival –tts
+
+
+
+
+利用xclip访问X剪切板
+
+　　想必您经常使用复制粘贴功能吧，如果你在桌面环境下工作的话。那么您对Ctrl + C与Ctrl + V一定很熟悉了，您可能还经常使用中指按下鼠标的中键来快捷的粘贴。在X中，此两种粘贴方式是有区别的。Ctrl + V之前要有选中和相应的Ctrl + C，而中键之前只需要选中即可，前者使用的是剪切板（Clipboard），后者使用的是选中（Primary Selection）。关于两者细微的区别见这里。
+　　下面要介绍的是一个能够在命令行访问剪切板（或者Selection，下面以“剪切板”概而论之）的工具。你可能知道，所谓剪切板以及复制粘贴这些功能都是X提供的，而不是Linux内核本身。因此，在命令终端访问剪切板就显得不那么简单，不那么显而易见了。
+　　而xclip这个程序提供了这样的功能。它既能够从标准输入或者文件中读取内容放入剪切板，也能够将剪切板的内容输出到标准输出。例如下面命令将dutor放入剪切板，
+
+
+
+http://www.dutor.net/index.php/2010/10/toolkits-xclip-x-clipboard/	
+
+$ echo "dutor" | xclip
+
+　　此时你就可以使用鼠标中键将dutor粘贴到需要的地方了。但不能使用Ctrl + V，原因见上面的链接。为了能够使用Ctrl + V，应该为xclip的selection选项指定参数为clipboard（默认为primary），
+
+1
+
+	
+
+$ echo "dutor" | xclip -selection clipboard
+
+　　鉴于本人经常遇到一些不认识的单词，想要积累但记性又差，于是就想把这些偶遇的单词保存下来，待到积累到一定量后集中记忆和复记（好记性还不如烂笔头呢！）。于是，有了下面这个极为简单的脚本，
+
+1
+2
+3
+4
+
+	
+
+#! /bin/bash
+content=`xclip -o`
+echo $content >> ～/.wordump.txt
+exit 0
+
+　　利用上一篇介绍的xbindkeys，我就可以很方便地倾倒我的生词啦！
+
+* alias command to read selected contents
+alias re='xclip -o |festival --tts'
+

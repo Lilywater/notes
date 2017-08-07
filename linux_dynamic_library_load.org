@@ -1,0 +1,823 @@
+*  staic and dynamic library 
+There are two kinds of libraries to use when linking, static and dynamic
+** 生成并使用静态库
+*** 先编译出.o 文件。
+程序1: hello.h
+#ifndef HELLO_H
+#define HELLO_H
+
+void hello(const char *name);
+
+#endif //HELLO_H
+程序2: hello.c
+#include
+
+void hello(const char *name)
+{
+printf("Hello %s!\n", name);
+}
+程序3: main.c
+#include "hello.h"
+int main()
+{
+int i=0;
+scanf("%d", &i);
+hello("everyone");
+return 0;
+}
+第2步：将hello.c编译成.o文件；
+无论静态库，还是动态库，都是由.o文件创建的。因此，我们必须将源程序hello.c通过gcc先编译成.o文件。 
+在系统提示符下键入以下命令得到hello.o文件。 
+# gcc -c hello.c 
+# ls 
+hello.c hello.h hello.o main.c 
+ 
+*** 创建静态库 
+第3步：由.o文件创建静态库；
+# ar cr libmyhello.a hello.o 
+# ls 
+hello.c hello.h hello.o libmyhello.a main.c 
+# 
+ 
+*** 在程序中使用静态库；
+# gcc -o hello main.c -L. -l myhello 
+# ./hello 
+Hello everyone! 
+# rm libmyhello.a 
+rm: remove regular file `libmyhello.a'? y 
+# ./hello 
+Hello everyone! 
+# 
+程序照常运行，静态库中的公用函数已经连接到目标文件中了。
+
+*** 编译时动态库搜寻路径
+gcc -L <path to look for lib>
+
+** 创建动态库
+*** 生成.o
+# gcc -c hello.c 
+# ls 
+hello.c hello.h hello.o main.c 
+
+*** 用gcc来创建动态库
+**** -shared选项
+# gcc -shared -fPCI -o libmyhello.so hello.o 
+# ls 
+hello.c hello.h hello.o libmyhello.so main.c 
+#
+
+**** -soname 
+***** generation of dynamic library with soname option
+$ gcc -shared -Wl,-soname,libhello.so.1 -o libhello.so.1.0 hello.o 
+传gcc -shared 参数使其生成是动态库而不是普通执行程序。 -Wl 表示后面的参数也就是-soname,
+
+[guolili@cougar lib]$ readelf -d libmyhello.so.1.0|grep -i soname
+ 0x0000000e (SONAME)                     Library soname: [libmyhello.so.1.0]
+# here we can see soname is using. but no reslut if this library generated without soname option.
+
+$ ln -s libmyhello.so.1.0 libmyhello.so
+
+***** generation of executable file 
+when linking with the dynamic library, the executable file 
+$ gcc -o m.o -c m.c  // m.c is the main function and invoked functions defined in libhello.so.1 
+$ gcc -o m m.o -L. -lhe
+$ readelf -d m |grep he
+ 0x00000001 (NEEDED)                     Shared library: [libmyhello.so.1.0]
+
+连结中的二进制文件内，而不是它正在运行的实际文件名，在程序执行期间，程序会查找拥有 soname名字的文件，而不是库的文件名，换句话说，soname是库的区分标志。 这样做的目的主要是允许系统中多
+个版本的库文件共存，习惯上在命名库文件的时候通常与soname相同。libxxxx.so.major.minor 其中，xxxx是库的名字，major是主版本号，minor 是次版本号.
+add a soft link file named as the soname when linking into the executable file to a real library, then when run the elf file, it will search the library with exact soname library
+file. 
+
+**** -l option to set the library name 
+gcc/ld  main.o -l:libmyhello.so.2.1.2 -o app
+-l namespec
+--library=namespec
+Add the archive or object file specified by namespec to the list of files to link. This option may be used any number of times. If namespec is of the form :filename, ld will search the library path for a file called filename, otherwise it will search the library path for a file called libnamespec.a.
+
+
+
+
+
+
+** 让执行程序运行时找到动态库
+*** use the library directly without -l option
+# gcc -o ady ady.c libmy.so 
+or
+# gcc -o ady ady.c /lib/libmy.so 
+
+
+***  copy  the dynamic library to the default directory /usr/lib
+# gcc -o hello main.c -L. -l myhello 
+# ./hello 
+./hello: error while loading shared libraries: libmyhello.so: cannot open shared object
+file: No such file or directory 
+# 
+找不到动态库文件libmyhello.so。程序在运行时，会在/usr/lib和/lib等目录中查找需要的动态库文件。若找到，则载入动态库，
+否则将提示类似上述错误而终止程序运行。我们将文件libmyhello.so复制到目录/usr/lib中，再试试。 
+# mv libmyhello.so /usr/lib 
+# ./hello 
+
+ Making the library available at runtime
+
+$ ./test
+./test: error while loading shared libraries: libfoo.so: cannot open shared object file: No such file or directory
+Oh no! The loader can’t find the shared library.3 We didn’t install it in a standard location, so we need to give the loader a little help. We have a couple of options: we can use the environment variable LD_LIBRARY_PATH for this, or rpath. Let’s take a look first at LD_LIBRARY_PATH:
+
+*** Using LD_LIBRARY_PATH
+
+$ echo $LD_LIBRARY_PATH
+There’s nothing in there. Let’s fix that by prepending our working directory to the existing LD_LIBRARY_PATH:
+
+$ LD_LIBRARY_PATH=/home/username/foo:$LD_LIBRARY_PATH
+$ ./test
+./test: error while loading shared libraries: libfoo.so: cannot open shared object file: No such file or directory
+What happened? Our directory is in LD_LIBRARY_PATH, but we didn’t export it. In Linux, if you don’t export the changes to an environment variable, they won’t be inherited by the child processes. The loader and our test program didn’t inherit the changes we made. Thankfully, the fix is easy:
+
+$ export LD_LIBRARY_PATH=/home/username/foo:$LD_LIBRARY_PATH
+$ ./test
+This is a shared library test...
+Hello, I'm a shared library
+Good, it worked! LD_LIBRARY_PATH is great for quick tests and for systems on which you don’t have admin privileges. As a downside, however, exporting the LD_LIBRARY_PATH variable means it may cause problems with other programs you run that also rely on LD_LIBRARY_PATH if you don’t reset it to its previous state when you’re done.
+
+*** Using rpath
+
+Now let’s try rpath (first we’ll clear LD_LIBRARY_PATH to ensure it’s rpath that’s finding our library). Rpath, or the run path, is a way of embedding the location of shared libraries in the executable itself, instead of relying on default locations or environment variables. We do this during the linking stage. Notice the lengthy “-Wl,-rpath=/home/username/foo” option. The -Wl portion sends comma-separated options to the linker, so we tell it to send the -rpath option to the linker with our working directory.
+
+$ unset LD_LIBRARY_PATH
+$ gcc -L/home/username/foo -Wl,-rpath=/home/username/foo -Wall -o test main.c -lfoo
+$ ./test
+This is a shared library test...
+Hello, I'm a shared library
+Excellent, it worked. The rpath method is great because each program gets to list its shared library locations independently, so there are no issues with different programs looking in the wrong paths like there were for LD_LIBRARY_PATH.
+
+rpath vs. LD_LIBRARY_PATH
+
+There are a few downsides to rpath, however. First, it requires that shared libraries be installed in a fixed location so that all users of your program will have access to those libraries in those locations. That means less flexibility in system configuration. Second, if that library refers to a NFS mount or other network drive, you may experience undesirable delays–or worse–on program startup.
+
+Using ldconfig to modify ld.so
+
+What if we want to install our library so everybody on the system can use it? For that, you will need admin privileges. You will need this for two reasons: first, to put the library in a standard location, probably /usr/lib or /usr/local/lib, which normal users don’t have write access to. Second, you will need to modify 
+the ld.so config file and cache. As root, do the following:
+
+$ cp /home/username/foo/libfoo.so /usr/lib
+$ chmod 0755 /usr/lib/libfoo.so
+Now the file is in a standard location, with correct permissions, readable by everybody. We need to tell the loader it’s available for use, so let’s update the cache using "ldconfig":
+
+
+*** default using ldconfig(the cache generated by ldconfig, not by LD_LIBRARY_PATH,)
+ldconfig will generate a cache to describe which library used in which path(both in link stage and load stage)
+
+$ ldconfig
+That should create a link to our shared library and update the cache so it’s available for immediate use. Let’s double check:
+$ cp libfoo.so /usr/lib
+###cp libary files to /usr/lib, the default dir which gcc/ld linking and ldconfig search for libaries
+$ ldconfig -p | grep foo
+libfoo.so (libc6) => /usr/lib/libfoo.so
+## it get libfoo.so library located in /usr/lib/libfoo.so
+
+Now our library is installed. Before we test it, we have to clean up a few things:
+Clear our LD_LIBRARY_PATH once more, just in case:
+$ unset LD_LIBRARY_PATH
+Re-link our executable. Notice we don’t need the -L option since our library is stored in a default location and we aren’t using the rpath option:
+
+$ gcc -Wall -o test main.c -lfoo
+##why compile it again, for after that test will remember which library it will use
+##and gcc will look for the library default in /usr/lib or /lib 
+Let’s make sure we’re using the /usr/lib instance of our library using ldd:
+
+$ ldd test | grep foo
+libfoo.so => /usr/lib/libfoo.so (0x00a42000)
+
+Good, now let’s run it:
+
+$ ./test
+This is a shared library test...
+Hello, I'm a shared library
+That about wraps it up. We’ve covered how to build a shared library, how to link with it, and how to resolve the most common loader issues with shared libraries–as well as the positives and negatives of different approaches.
+
+
+another methould is to 
+在LD_LIBRARY_PATH环境变量中加上库所在路径。 
+ 修改/etc/ld.so.conf文件，把库所在的路径加到文件末尾，并执行ldconfig刷新目
+
+*** ldconfig usage examples
+动态链接库为系统所共享,还需运行动态链接库的管理命令--ldconfig.此执行程序存放在/sbin目录下.
+ldconfig命令的用途,主要是在默认搜寻目录(/lib和/usr/lib)以及动态库配置文件/etc/ld.so.conf内所列的目录下,搜索出可共享的动态链接库(格式如前介绍,lib*.so*),进而创建出动态装入程序(ld.so)所需的连接和缓存文件.缓存文件默认为 /etc/ld.so.cache,此文件保存已排好序的动态链接库名字列表.
+ldconfig通常在系统启动时运行,而当用户安装了一个新的动态链接库时,就需要手工运行这个命令.
+
+ldconfig [-v|--verbose] [-n] [-N] [-X] [-f CONF] [-C CACHE] [-r ROOT] [-l] [-p|--print-cache] [-c FORMAT] [--format=FORMAT] [-V] [-?|--help|--usage] path...
+
+ldconfig可用的选项说明如下:
+(1) -v或--verbose : 用此选项时,ldconfig将显示正在扫描的目录及搜索到的动态链接库,还有它所创建的连接的名字.
+(2) -n : 用此选项时,ldconfig仅扫描命令行指定的目录,不扫描默认目录(/lib,/usr/lib),也不扫描配置文件/etc/ld.so.conf所列的目录.
+(3) -N : 此选项指示ldconfig不重建缓存文件(/etc/ld.so.cache).若未用-X选项,ldconfig照常更新文件的连接.
+(4) -X : 此选项指示ldconfig不更新文件的连接.若未用-N选项,则缓存文件正常更新.
+(5) -f CONF : 此选项指定动态链接库的配置文件为CONF,系统默认为/etc/ld.so.conf.
+(6) -C CACHE : 此选项指定生成的缓存文件为CACHE,系统默认的是/etc/ld.so.cache,此文件存放已排好序的可共享的动态链接库的列表.
+(7) -r ROOT : 此选项改变应用程序的根目录为ROOT(是调用chroot函数实现的).选择此项时,系统默认的配置文件/etc/ld.so.conf,实际对应的为 ROOT/etc/ld.so.conf.如用-r /usr/zzz时,打开配置文件/etc/ld.so.conf时,实际打开的是/usr/zzz/etc/ld.so.conf文件.用此选项,可以 大大增加动态链接库管理的灵活性.
+( -l : 通常情况下,ldconfig搜索动态链接库时将自动建立动态链接库的连接.选择此项时,将进入专家模式,需要手工设置连接.一般用户不用此项.
+(9) -p或--print-cache : 此选项指示ldconfig打印出当前缓存文件所保存的所有共享库的名字.
+(10) -c FORMAT 或 --format=FORMAT : 此选项用于指定缓存文件所使用的格式,共有三种ld(老格式),new(新格式)和compat(兼容格式,此为默认格式).
+(11) -V : 此选项打印出ldconfig的版本信息,而后退出.
+(12) -? 或 --help 或 --usage : 这三个选项作用相同,都是让ldconfig打印出其帮助信息,而后退出.
+
+
+# ldconfig -p 
+793 libs found in cache `/etc/ld.so.cache'''' 
+libzvt.so.2 (libc6) => /usr/lib/libzvt.so.2 
+libzvt.so (libc6) => /usr/lib/libzvt.so 
+libz.so.1.1.3 (libc6) => /usr/lib/libz.so.1.1.3 
+libz.so.1 (libc6) => /lib/libz.so.1 
+注: 有时候用户想知道系统中有哪些动态链接库,或者想知道系统中有没有某个动态链接库,这时,可用-p选项让ldconfig输出缓存文件中的动态链接库列 表,从而查询得到.例子中,ldconfig命令的输出结果第1行表明在缓存文件/etc/ld.so.cache中找到793个共享库,第2行开始便是 一系列共享库的名字及其全名(绝对路径).因为实际输出结果太多,为节省篇幅,以......表示省略的部分.
+
+# ldconfig -v 
+/lib: 
+liby.so.1 -> liby.so.1 
+libnss_wins.so -> libnss_wins.so 
+...... 
+#
+注: ldconfig命令在运行正常的情况下,默认不输出什么东西.本例中用了-v选项,以使ldconfig在运行时输出正在扫描的目录及搜索到的共享库, 用户可以清楚地看到运行的结果.执行结束后,ldconfig将刷新缓存文件/etc/ld.so.cache.
+
+
+# ldconfig /usr/zhsoft/lib 
+#
+注: 当用户在某个目录下面创建或拷贝了一个动态链接库,若想使其被系统共享,可以执行一下"ldconfig 目录名"这个命令.此命令的功能在于让ldconfig将指定目录下的动态链接库被系统共享起来,意即:在缓存文件/etc/ld.so.cache中追 加进指定目录下的共享库.本例让系统共享了/usr/zhsoft/lib目录下的动态链接库.需要说明的是,如果此目录不在/lib,/usr/lib 及/etc/ld.so.conf文件所列的目录里面,则再度运行ldconfig时,此目录下的动态链接库可能不被系统共享了.
+
+**** 动态链接库如何共享 
+
+了解了以上知识,我们可以采用以下三种方法来共享动态链接库注:均须在超级用户状态下操作,以我的动态链接库libmy.so共享过程为例)
+(1)拷贝动态链接库到系统共享目录下,或在系统共享目录下为该动态链接库建立个连接(硬连接或符号连接均可,常用符号连接).这里说的系统共享目录,指 的是LINUX动态链接库存放的目录,它包含/lib,/usr/lib以及/etc/ld.so.conf文件内所列的一系列目录.
+# cp libmy.so /lib 
+# ldconfig 
+#
+
+或:
+# ln -s `pwd`/libmy.so /lib 
+# ldconfig 
+#
+
+
+(2)将动态链接库所在目录名追加到动态链接库配置文件/etc/ld.so.conf中.
+# pwd >> /etc/ld.so.conf 
+# ldconfig 
+#
+
+(3)利用动态链接库管理命令ldconfig,强制其搜索指定目录,并更新缓存文件,便于动态装入.
+# ldconfig `pwd` 
+#
+需要说明的是,这种操作方法虽然有效,但效果是暂时的,供程序测试还可以,一旦再度运行ldconfig,则缓存文件内容可能改变,所需的动态链接库可能 不被系统共享了.与之相比较,前两种方法是可靠的方法,值得业已定型的动态链接库共享时采用.前两种方法还有一个特点,即最后一条命令都是 ldconfig,也即均需要更新一下缓存文件,以确保动态链接库的共享生效.
+
+
+
+** which libary gcc will use when there are same name .a and .so library
+*** only using -l<libname> in default
+当静态库和动态库同名时， gcc命令将优先使用动态库。
+/*testlib.c*/ 
+#include 
+#include 
+int main() 
+{ 
+   sayhello(); 
+      return 0; 
+} 
+使用如下命令进行编译 $gcc -c testlib.c -o testlib.o 
+用如下命令连接： $gcc testlib.o -lhello -o testlib 
+连接时要注意，假设libhello.o 和libhello.a都在缺省的库搜索路径下/usr/lib下，如果在其它位置要 加上-L参数 与与静态库连接麻烦一些，主要是参数问题。还是上面的例子： 
+
+*** using -Wl,-Bstatic option to specificlly link to the static library
+$gcc testlib.o -o testlib -WI,-Bstatic -lhello 
+注：这个特别的"-WI，-Bstatic"参数，实际上是传给了连接器ld。指示它与静态库连接，如果系统中只 有静态库当然就不需要这个参数了。如果要和多个库相连接，
+
+
+*** using -Wl, -Bdynamic option to specifically link to the dynamic library
+而每个库的连接方式不一样，比如上面的程序既要和libhello进行静态连接，又要和libbye进行动态连接，其命令应为： 
+$gcc testlib.o -o testlib -WI,-Bstatic -lhello -WI,-Bdynamic -lbye 
+
+
+** 查看库中的符号
+有时候可能需要查看一个库中到底有哪些函数，nm命令可以打印出库中的涉及到的所有符号。库既可以是静态的也可以是动态的。nm列出的符号有很多
+常见的有三种： 
+一种是在库中被调用，但并没有在库中定义(表明需要其他库支持)，用U表示； 
+一种是库中定义的函数，用T表示，这是最常见的； 
+另外一种是所谓的“弱 态”符号，它们虽然在库中被定义，但是可能被其他库中的同名符号覆盖，用W示。 
+例如，假设开发者希望知道上文提到的hello库中是否定义了 printf(): 
+$nm libhello.so |grep printf U 
+其中printf U表示符号printf被引用，但是并没有在函数内定义，由此可以推断，要正常使用hello库，必须有其它库支持
+，再使用ldd命令查看hello
+依赖于哪些库： 
+$ldd hello 
+libc.so.6=>/lib/libc.so.6(0x400la000) /lib/ld-linux.so.2=>/lib/ld-linux.so.2
+(0x40000000) 
+从上面的结果可以继续查看printf最终在哪里被定义，有兴趣可以go on 
+
+*** 如何知道程序链接的库是静态的还是动态的
+lily@willow:~/libtest$ nm whell_so |grep hello
+         U hello
+## whell_so 是动态链接含hello函数的库， whell则是静态链接
+ly@willow:~/libtest$ nm whell |grep hello
+0804842c T hello
+
+对于定义的函数，whell中T表示
+whell_so U表示未定以，在动态链接库里定义的
+
+
+################ldd 和nm对strip了的库文件没用
+
+* How to know which dynamic library is needed for a program running
+** ldd是静态的对可执行程序执行列出动态链接库
+ldd列出不了被嵌套调用的so文件,比如ProgA 调用 了libaryA， 但是如果libraryA 又调用了libraryAA， 则ldd不会显示出来
+[admin1@TeamCI-136 soname]$ ldd m
+        linux-gate.so.1 =>  (0x00a70000)
+        libhe.so.2.0 => ./libhe.so.2.0 (0x00695000)
+        libc.so.6 => /lib/libc.so.6 (0x008b7000)
+        /lib/ld-linux.so.2 (0x00898000)
+
+
+** readelf -d <elf_file> |grep lib
+$ readelf -d m |grep he
+ 0x00000001 (NEEDED)                     Shared library: [libmyhello.so.1.0]
+
+
+** pmap是动态的对可执行程序的pid进行操作（pmap list all the shared libraries needed recursively while ldd only list the uppper level libraries）
+*** pmap will show all the recursively invoking library
+PRogA running时，调用pmap
+ly@willow:~/UI$ pmap `pidof whell_so`
+7576:   ./whell_so
+001c2000      4K r-x--  /home/lily/libtest/libmyhello.so
+001c3000      4K r----  /home/lily/libtest/libmyhello.so
+001c4000      4K rw---  /home/lily/libtest/libmyhello.so
+00454000      4K r-x--    [ anon ]
+007fe000    112K r-x--  /lib/i386-linux-gnu/ld-2.13.so
+0081a000      4K r----  /lib/i386-linux-gnu/ld-2.13.so
+0081b000      4K rw---  /lib/i386-linux-gnu/ld-2.13.so
+00a2b000   1384K r-x--  /lib/i386-linux-gnu/libc-2.13.so
+00b85000      4K -----  /lib/i386-linux-gnu/libc-2.13.so
+00b86000      8K r----  /lib/i386-linux-gnu/libc-2.13.so
+00b88000      4K rw---  /lib/i386-linux-gnu/libc-2.13.so
+00b89000     12K rw---    [ anon ]
+08048000      4K r-x--  /home/lily/libtest/whell_so
+08049000      4K r----  /home/lily/libtest/whell_so
+0804a000      4K rw---  /home/lily/libtest/whell_so
+b78bb000      8K rw---    [ anon ]
+b78cd000     12K rw---    [ anon ]
+bfc29000    132K rw---    [ stack ]
+ total     1712K
+-------------------------
+这里whell_so 是动态链接生成的可执行程序，用pmap可以看到
+001c2000      4K r-x--  /home/lily/libtest/libmyhello.so
+用到了动态态链接库libmyhello.so
+
+*** static linking library couldn't be listed in pmap list
+say elf file whell is  static linking libmyhello.a
+
+lily@willow:~/libtest$ pmap `pidof whell `
+7490:   ./whell
+00110000   1384K r-x--  /lib/i386-linux-gnu/libc-2.13.so
+0026a000      4K -----  /lib/i386-linux-gnu/libc-2.13.so
+0026b000      8K r----  /lib/i386-linux-gnu/libc-2.13.so
+0026d000      4K rw---  /lib/i386-linux-gnu/libc-2.13.so
+0026e000     12K rw---    [ anon ]
+00487000      4K r-x--    [ anon ]
+00af9000    112K r-x--  /lib/i386-linux-gnu/ld-2.13.so
+00b15000      4K r----  /lib/i386-linux-gnu/ld-2.13.so
+00b16000      4K rw---  /lib/i386-linux-gnu/ld-2.13.so
+08048000      4K r-x--  /home/lily/libtest/whell
+08049000      4K r----  /home/lily/libtest/whell
+0804a000      4K rw---  /home/lily/libtest/whell
+b76f5000      4K rw---    [ anon ]
+b7706000     12K rw---    [ anon ]
+bfc08000    132K rw---    [ stack ]
+ total     1696K
+ lily@willow:~/libtest$
+-------------------------------------------------
+这里不会显示静态链接库libmyhello.a，因为这个库已经在应用程序里了，不需要再在内存里load了。
+
+** lsof (list open file descriptor including shared library file sockets and so on)
+[admin1@TeamCI-136 MME_SGSN_tester]$ /usr/sbin/lsof| pmap `/sbin/pidof lsof`
+28880:   /usr/sbin/lsof
+00397000      4K r-x--    [ anon ]
+00898000    108K r-x--  /lib/ld-2.5.so
+008b3000      4K r----  /lib/ld-2.5.so
+008b4000      4K rw---  /lib/ld-2.5.so
+008b7000   1360K r-x--  /lib/libc-2.5.so
+00a0b000      4K -----  /lib/libc-2.5.so
+00a0c000      8K r----  /lib/libc-2.5.so
+00a0e000      4K rw---  /lib/libc-2.5.so
+00a0f000     12K rw---    [ anon ]
+00a14000     12K r-x--  /lib/libdl-2.5.so
+00a17000      4K r----  /lib/libdl-2.5.so
+00a18000      4K rw---  /lib/libdl-2.5.so
+00cf4000    236K r-x--  /lib/libsepol.so.1
+00d2f000      4K rw---  /lib/libsepol.so.1
+00d30000     40K rw---    [ anon ]
+00d3c000     88K r-x--  /lib/libselinux.so.1
+00d52000      8K rw---  /lib/libselinux.so.1
+08048000    120K r-x--  /usr/sbin/lsof
+08066000      4K rw---  /usr/sbin/lsof
+08c51000    396K rw---    [ anon ]
+b7d8b000   2048K r----  /usr/lib/locale/locale-archive
+b7f8b000      8K rw---    [ anon ]
+b7f9f000      4K rw---    [ anon ]
+bfc9c000     84K rw---    [ stack ]
+ total     4568K
+[admin1@TeamCI-136 MME_SGSN_tester]$ ldd /usr/sbin/lsof
+        linux-gate.so.1 =>  (0x00a8f000)
+        libselinux.so.1 => /lib/libselinux.so.1 (0x00d3c000)
+        libc.so.6 => /lib/libc.so.6 (0x008b7000)
+        libdl.so.2 => /lib/libdl.so.2 (0x00a14000)
+        libsepol.so.1 => /lib/libsepol.so.1 (0x00cf4000)
+        /lib/ld-linux.so.2 (0x00898000)
+[admin1@TeamCI-136 MME_SGSN_tester]$ /usr/sbin/lsof| grep "^lsof"
+lsof      29152    admin1  cwd       DIR      104,3     4096   43616483 /home/admin1/TestToolInstallations/ttcn3/glili/MME_SGSN_tester
+lsof      29152    admin1  rtd       DIR      104,3     4096          2 /
+lsof      29152    admin1  txt       REG      104,3   129820   23175345 /usr/sbin/lsof
+lsof      29152    admin1  mem       REG      104,3   130860   15696373 /lib/ld-2.5.so
+lsof      29152    admin1  mem       REG      104,3  1697920   15696374 /lib/libc-2.5.so
+lsof      29152    admin1  mem       REG      104,3    20668   15696425 /lib/libdl-2.5.so
+lsof      29152    admin1  mem       REG      104,3   245376   48927360 /lib/libsepol.so.1
+lsof      29152    admin1  mem       REG      104,3    93508   48927361 /lib/libselinux.so.1
+lsof      29152    admin1  mem       REG      104,3 56427040   23182775 /usr/lib/locale/locale-archive
+lsof      29152    admin1  mem       REG      104,3    25462   23267767 /usr/lib/gconv/gconv-modules.cache
+lsof      29152    admin1    0u      CHR      136,1      0t0          3 /dev/pts/1
+lsof      29152    admin1    1w     FIFO        0,6      0t0   96072747 pipe
+lsof      29152    admin1    2u      CHR      136,1      0t0          3 /dev/pts/1
+lsof      29152    admin1    3r      DIR        0,3        0          1 /proc
+lsof      29152    admin1    4r      DIR        0,3        0 191lsof      29152    admin1    5w     FIFO        0,6      0t0   96072755 pipe
+lsof      29152    admin1    6r     FIFO        0,6      0t0   96072756 pipe
+lsof      29154    admin1  cwd       DIR      104,3     4096   43616483 /home/admin1/TestToolInstallations/ttcn3/glili/MME_SGSN_tester
+lsof      29154    admin1  rtd       DIR      104,3     4096          2 /
+lsof      29154    admin1  txt       REG      104,3   129820   23175345 /usr/sbin/lsof
+lsof      29154    admin1  mem       REG      104,3   130860   15696373 /lib/ld-2.5.so
+lsof      29154    admin1  mem       REG      104,3  1697920   15696374 /lib/libc-2.5.so
+lsof      29154    admin1  mem       REG      104,3    20668   15696425 /lib/libdl-2.5.so
+lsof      29154    admin1  mem       REG      104,3   245376   48927360 /lib/libsepol.so.1
+lsof      29154    admin1  mem       REG      104,3    93508   48927361 /lib/libselinux.so.1
+lsof      29154    admin1  mem       REG      104,3 56427040   23182775 /usr/lib/locale/locale-archive
+lsof      29154    admin1    4r     FIFO        0,6      0t0   96072755 pipe
+lsof      29154    admin1    7w     FIFO        0,6      0t0   96072756 pipe
+
+
+* dynamic librarys detail
+** versions of dynamic libraries
+*** use vesrions name for dynamic lib
+
+$ gcc -shared -Wl,-soname,libhello.so.2 -o libhello.so.2.1.2 hello.c 
+or   $ ld  -shared -o libmyhello.so.2.1.2 -soname libmyhello.so.2 hello.o
+[guolili@cougar lib]$ readelf -d libmyhello.so.2.1.2|grep -i soname
+ 0x0000000e (SONAME)                     Library soname: [libmyhello.so.2]
+# here we can see soname is using. but no reslut if this library generated without soname option.
+
+[guolili@cougar lib]$ sudo cp libmyhello.so.2.1.2 /usr/lib/
+[guolili@cougar lib]$ ls -l /usr/lib/libmyhello.so*
+-rwxr-xr-x  1 root root 2032 Jul 30 17:26 /usr/lib/libmyhello.so.2.1.2
+[guolili@cougar lib]$ sudo ldconfig
+[guolili@cougar lib]$ ls -l /usr/lib/libmyhello.so*  
+#ldconfig add a new libmyhello.so.2 file to link to real one
+lrwxrwxrwx  1 root root   19 Jul 30 17:26 /usr/lib/libmyhello.so.2 -> libmyhello.so.2.1.2
+-rwxr-xr-x  1 root root 2032 Jul 30 17:26 /usr/lib/libmyhello.so.2.1.2
+
+[guolili@cougar lib]$ ldconfig -p |grep hello
+        libmyhello.so.2 (ELF) => /usr/lib/libmyhello.so.2
+#print caches
+
+[guolili@cougar lib]$ gcc -o app main.c  -lmyhello
+/usr/bin/ld: cannot find -lmyhello
+collect2: ld returned 1 exit status
+# no libmyhello.so file in /usr/lib, create a soft link of so.2
+guolili@cougar lib]$ sudo ln -s /usr/lib/libmyhello.so.2 /usr/lib/libmyhello.so
+[guolili@cougar lib]$ ls -l /usr/lib/libmyhello.so*
+lrwxrwxrwx  1 root root   24 Jul 30 17:32 /usr/lib/libmyhello.so -> /usr/lib/libmyhello.so.2 // we create soft link by ln -s
+lrwxrwxrwx  1 root root   19 Jul 30 17:26 /usr/lib/libmyhello.so.2 -> libmyhello.so.2.1.2// ldconfig create a link 
+-rwxr-xr-x  1 root root 2032 Jul 30 17:26 /usr/lib/libmyhello.so.2.1.2
+# use libmyhello.so, but actually is libmyhello.so.2.1.2
+[guolili@cougar lib]$ gcc -o app app.c  -lmyhello
+
+#both readelf -d and ldd could read a elf file use which dynamical library
+[guolili@cougar lib]$ readelf -d app |grep hello
+ 0x00000001 (NEEDED)                     Shared library: [libmyhello.so.2]
+[guolili@cougar lib]$ ldd app 
+     linux-gate.so.1 =>  (0xb78fd000)
+        libmyhello.so.2 => /usr/lib/libmyhello.so.2 (0xb78e1000)
+# if no soname library linked  -lmyhello ld generated app
+# libmyhello.so => /usr/lib/libmyhello.so (0xb78e1000)
+        libc.so.6 => /lib/tls/libc.so.6 (0x002b2000)
+        /lib/ld-linux.so.2 (0x00299000)
+
+
+./app run successfully
+*-----------------------------------*
+
+
+
+*** use LD_LIBRARY_PATH to cheat some app
+if an app use so.3 version's libary, but we only has so.4 version libary
+$ ./test
+./test: error while loading shared libraries: libfoo.so.3: cannot open shared object file: No such file or directory
+Oh no! The loader can’t find the shared librar
+$ln -s libfoo.so.3 /usr/libfoo.so.4 
+##create a cheating lib of 3
+$export LD_LIBRARY_PATH = /mypath_of_cheat_lib
+$./test
+will run OK
+
+#ldconfig can't be cheated for it will look for soname in library, and create a link using that soname. so if we have
+#soname like libfoo.so.4.1, ldconfig will create a libfoo.so.4 to link to it.
+#when we run test, it use libfoo.so.3, so it failed
+
+
+*** soname usage
+soname is used to indicate what binary api compatibility your library support.
+
+Let's assume you have a library with libnuke.so.1.2 name and you develop a new libnuke library :
+
+if your new library is a fix from previous without api change, you should just keep same soname, increase the version of filename. ie file will be libnuke.so.1.2.1 but soname will still be libnuke.so.1.2.
+
+if you have a new library that only added new function but didn't break functionality and is still compatible with previous you would like to use same soname than previous plus a new suffix like .1. ie file and soname will be libnuke.so.1.2.1. Any program linked with libnuke.1.2 will still work with that one. New programs linked with libnuke.1.2.1 will only work with that one ( until new subversion come like libnuke.1.2.1.1 ).
+
+if your new library is not compatible with any libnuke : libnuke.so.2
+
+if your new library is compatible with bare old version : libnuke.so.1.3 [ ie still compatible with libnuke.so.1 ]
+
+I think that not providing a soname is a bad practice since renaming of file will change its behavior.
+
+
+
+
+** 动态库的动态加载，用ldopen函数
+注:本例用-v选项以显示尽可能多的信息,所以例中除列出ady所需要的动态链接库外,还列出了程序所需动态链接库版本方面的信息.
+__________________________________
+问题，如果有重名的动态链接库会怎么样
+man ld.so
+
+ld.so loads the shared libraries needed by a program, prepares the pro‐
+       gram to run, and then runs it.  Unless  explicitly  specified  via  the
+       -static  option to ld during compilation, all Linux programs are incom‐
+       plete and require further linking at run time.
+       The necessary shared libraries needed by the program are  searched  for
+       in the following order
+       o      Using      the      environment     variable     LD_LIBRARY_PATH
+              (LD_AOUT_LIBRARY_PATH for a.out programs).  Except if  the  exe‐
+              cutable is a setuid/setgid binary, in which case it is ignored.
+       o      From  the  cache file /etc/ld.so.cache which contains a compiled
+              list of candidate libraries previously found  in  the  augmented
+              library path.
+       o      In the default path /lib, and then /usr/lib.
+
+
+比如编译时用的一个库abc，它的路径是在/usr/lib/libabc.so下面。 gcc -labc test.c -o test
+而运行时候zxx@gll-bac:~/ldtest$ !echo
+echo $LD_LIBRARY_PATH
+/home/zxx/ldtest/mylib/
+在此目录下也右libabc.so的库
+那么运行时调用的就是/home/zxx/ldtest/mylib/这个目录下的库了。
+若果这两个库不一样，这样就很可能跟编程者的初衷相违背。
+
+*** using dlopen to open the specific library
+-----------
+#include <stdio.h>
+#include <dlfcn.h>
+#include <string.h>
+
+#define MAX_STRING      80
+
+
+void invoke_method( char *lib, char *method, float argument )
+{
+  void *dl_handle;
+  float (*func)(float);
+  char *error;
+
+  /* Open the shared object */
+  dl_handle = dlopen( lib, RTLD_LAZY );
+  if (!dl_handle) {
+    printf( "!!! %s\n", dlerror() );
+    return;
+  }
+
+  /* Resolve the symbol (method) from the object */
+  func = dlsym( dl_handle, method );
+  error = dlerror();
+  if (error != NULL) {
+    printf( "!!! %s\n", error );
+    return;
+  }
+
+  /* Call the resolved method and print the result */
+  printf("  %f\n", (*func)(argument) );
+
+  /* Close the object */
+  dlclose( dl_handle );
+
+  return;
+}
+
+
+int main( int argc, char *argv[] )
+{
+  char line[MAX_STRING+1];
+  char lib[MAX_STRING+1];
+  char method[MAX_STRING+1];
+  float argument;
+
+  while (1) {
+
+    printf("> ");
+
+    line[0]=0;
+    fgets( line, MAX_STRING, stdin);
+
+    if (!strncmp(line, "bye", 3)) break;
+
+    sscanf( line, "%s %s %f", lib, method, &argument);
+
+    invoke_method( lib, method, argument );
+
+  }
+
+}
+---------------
+zxx@gll-bac:~/ldtest$ /lib/ld-linux.so.2 ./dl
+> libm.so expf 0.0
+  1.000000
+> bye
+
+zxx@gll-bac:~/ldtest$ ./dl 
+> libm.so cosf 0.0
+  1.000000
+
+zxx@gll-bac:~/ldtest$ readelf -r dl
+
+Relocation section '.rel.dyn' at offset 0x520 contains 2 entries:
+ Offset     Info    Type            Sym.Value  Sym. Name
+08049a3c  00001806 R_386_GLOB_DAT    00000000   __gmon_start__
+08049a78  00001405 R_386_COPY        08049a78   stdin
+
+Relocation section '.rel.plt' at offset 0x530 contains 8 entries:
+ Offset     Info    Type            Sym.Value  Sym. Name
+08049a4c  00000207 R_386_JUMP_SLOT   00000000   dlsym
+08049a50  00000607 R_386_JUMP_SLOT   00000000   fgets
+08049a54  00000b07 R_386_JUMP_SLOT   00000000   dlerror
+08049a58  00000c07 R_386_JUMP_SLOT   00000000   __libc_start_main
+08049a5c  00000e07 R_386_JUMP_SLOT   00000000   printf
+08049a60  00001007 R_386_JUMP_SLOT   00000000   dlclose
+08049a64  00001107 R_386_JUMP_SLOT   00000000   sscanf
+08049a68  00001907 R_386_JUMP_SLOT   00000000   dlopen
+
+zxx@gll-bac:~/ldtest$ objdump -f dl
+
+dl:     file format elf32-i386
+architecture: i386, flags 0x00000112:
+EXEC_P, HAS_SYMS, D_PAGED
+start address 0x080487b0
+
+man dlopen
+--------------------------------------------------------------
+If this program were in a file named "foo.c", you would build the  program
+       with the following command:
+
+           gcc -rdynamic -o foo foo.c -ldl
+
+       Libraries  exporting  _init() and _fini() will want to be compiled as fol‐
+       lows, using bar.c as the example name:
+
+           gcc -shared -nostartfiles -o bar bar.c
+--------------------------------------------------------------------------
+当M使用ACE_DLL 的open函数动态加载库的时候， 对符号的resolve有三种常用方式：RTLD_LAZY、RTLD_NOW、RTLD_GLOBAL
+    1、RTLD_LAZY 延迟resolve（使用时resolve）
+    2、RTLD_NOW立即resolve
+    3、RTLD_GLOBAL先加载的库中的符号对后加载的库是可见的。
+
+默认使用RTLD_LAZY方式，如果按照先A后B的顺序对动态库进行加载，程序使用A库中的class_或function_符号时，程序运行正常；如果程序使用B库中的符号class_或function_，符号resolve出错，使用了A库中的同名符号，最后CoreDump；如果单独加载库A或B，程序运行正常。
+
+
+** lookup symbol in the library
+
+有时候可能需要查看一个库中到底有哪些函数，nm命令可以打印出库中的涉及到的所有符号。库既可以是
+
+静态的也可以是动态的。nm列出的符号有很多，常见的有三种： 
+一种是在库中被调用，但并没有在库中定义(表明需要其他库支持)，用U表示； 
+一种是库中定义的函数，用T表示，这是最常见的； 
+另外一种是所谓的“弱 态”符号，它们虽然在库中被定义，但是可能被其他库中的同名符号覆盖，用W表
+
+ 
+例如，假设开发者希望知道上文提到的hello库中是否定义了 printf(): 
+$nm libhello.so |grep printf U 
+其中printf U表示符号printf被引用，但是并没有在函数内定义，由此可以推断，要正常使用hello库，
+
+必须有其它库支持，再使用ldd命令查看hello依赖于哪些库： 
+$ldd hello libc.so.6=>/lib/libc.so.6(0x400la000) /lib/ld-linux.so.2=>/lib/ld-linux.so.2
+
+(0x40000000) 
+从上面的结果可以继续查看printf最终在哪里被定义，有兴趣可以go on 
+
+ there's some *.o file calling this functionname
+-----------------
+T functionname
+-----------------
+
+
+* multiple shared libraries' linking order and loading order
+file he.c
+==========
+#include <stdio.h>
+void foo()
+{
+  printf("this is a he foo function \n");
+}
+=============
+gcc  he.c -shared  -o libhe.so
+
+
+file hw.c
+=================
+#include <stdio.h>
+void foo()
+{
+  printf("this is a hw foo function \n");
+}
+==========
+gcc  hw.c -shared  -o libhw.so
+
+file m.c:
+=====================
+#include <stdio.h>
+extern void foo();
+int main()
+{
+  int a;
+  scanf("this is %d",&a);
+  foo();
+}
+========================
+gcc m.c -L. -lhw -lhe  -o m2
+
+./m2
+this is a hw foo function.
+
+since library he will be load in the high address, and hw will be in lower address. when foo is invoked, it will jump to the higher address one, that's hw's version
+
+
+** linking order
+if there are two same function in the different so library, and one prg linked to both of them, then what?
+[admin1@TeamCI-136 test_src]$ readelf -d m2
+
+Dynamic section at offset 0x644 contains 22 entries:
+  Tag        Type                         Name/Value
+ 0x00000001 (NEEDED)                     Shared library: [libhw.so]
+ 0x00000001 (NEEDED)                     Shared library: [libhe.so]
+ 0x00000001 (NEEDED)                     Shared library: [libc.so.6]
+ 0x0000000c (INIT)                       0x8048360
+ 0x0000000d (FINI)                       0x8048588
+ 0x00000005 (STRTAB)                     0x8048264
+----------------------------------------------------------------------
+
+** loading order when executing
+23809:   ./m2
+006b0000      4K r-x--  /home/admin1/TestToolInstallations/ttcn3/glili/test_src/libhe.so
+006b1000      4K rw---  /home/admin1/TestToolInstallations/ttcn3/glili/test_src/libhe.so
+00898000    108K r-x--  /lib/ld-2.5.so
+008b3000      4K r----  /lib/ld-2.5.so
+008b4000      4K rw---  /lib/ld-2.5.so
+008b7000   1360K r-x--  /lib/libc-2.5.so
+00a0b000      4K -----  /lib/libc-2.5.so
+00a0c000      8K r----  /lib/libc-2.5.so
+00a0e000      4K rw---  /lib/libc-2.5.so
+00a0f000     12K rw---    [ anon ]
+00ae4000      4K r-x--  /home/admin1/TestToolInstallations/ttcn3/glili/test_src/libhw.so
+00ae5000      4K rw---  /home/admin1/TestToolInstallations/ttcn3/glili/test_src/libhw.so
+00dcf000      4K r-x--    [ anon ]
+08048000      4K r-x--  /home/admin1/TestToolInstallations/ttcn3/glili/test_src/m2
+08049000      4K rw---  /home/admin1/TestToolInstallations/ttcn3/glili/test_src/m2
+b7f2a000      4K rw---    [ anon ]
+b7f3d000      8K rw---    [ anon ]
+bff80000     84K rw---    [ stack ]
+==================================================================
+
+how to pinpoint this issue: list all sysmbols defined in the libraries which have been linked, and search if there are identical two of them.
+
+** Is there a way to make a library always prefer its own library implementation instead of any other library?
+*** link option -Wl,-Bsymbolic to specify in which library to resolve this symbol
+There are several ways to solve this:
+    Pass -Bsymbolic or -Bsymbolic-functions to the linker. This has a global effect: every reference to a global symbol (of function type for -Bsymbolic-functions) that can be 
+   resolved to a symbol in the library is resolved to that symbol. With this you lose the ability to interpose internal library calls to those symbols using LD_PRELOAD.
+    The symbols are still exported, so they can be referenced from outside the library.
+
+*** local: option
+    Use a version script to mark symbols as local to the library, e.g. use something like: {local: bar;}; and pass --version-script=versionfile to the linker.
+    The symbols are not exported.  Mark symbols with an approppiate visibility (GCC info page for visibility), which will be either hidden, internal, or protected. protected 
+    visibility symbols are exported as .protected, hidden symbols are not exported, and internal symbols are not exported and you compromise not to call them from outside the library, 
+    even indirectly through function pointers.
+
+*** wrapper 
+    You can check which symbols are exported with objdump -T.
+    You will have to create two 'wrapper' shared libs, one for each of your existing libs. Each one should be built with a --dynamic-list that lists only a
+    few non-conflicting symbols that define an API. You will also need -Bsymbolic to avoid any global combination.
+
+*** dlopen
+It might be less stressful to access the resulting libs via dlopen with suitable options, as well.
+  	 
+ 	
+
+
+

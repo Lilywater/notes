@@ -1,0 +1,833 @@
+
+
+* c program layout when executing in memory
+high address     ------------------
+                | command-line arguments   |
+                | and enviroment variables |
+                ------------------------------
+                |  stack                   | 
+                - -  -  -   -   -
+                |       |
+                | \/    |
+                |       |
+                |       |
+                | _/\ _ |
+                | heap  |
+               ___________
+                | bss(uninitialized data) |to zero by exec 
+                --------------------------
+                | initialized data |  read from prog file
+             {  | text             | by exec
+low address     --------------------- 
+
+* Linux Process Kinds (linux 下各种进程）
+
+Just to clarify terminology what is what(quoted from Wikipedia).
+
+Process
+In computing, a process is an instance of a computer program that is being executed. It contains the program code and its
+ current activity. Depending on the operating system (OS), a process may be made up of multiple threads of execution that execute instructions concurrently.
+** Parent Process
+In the operating system Unix, every process except process 0 (the swapper) is created when another process executes the fork() system call. The process that invoked fork is the parent process and the newly-created process is the child process. Every process (except process 0) has one parent process, but can have many child processes.
+The operating system kernel identifies each process by its process identifier. Process 0 is a special process that is created when the system boots; after forking a child process (process 1), process 0 becomes the swapper process (sometimes also known as the "idle task"). Process 1, known as init, is the ancestor of every other process in the system.
+
+** Child Process
+A child process in computing is a process created by another process (the parent process).
+A child process inherits most of its attributes, such as open files, from its parent. In UNIX, a child process is in fact created (using fork) as a copy of the parent. The child process can then overlay itself with a different program (using exec) as required.
+Each process may create many child processes but will have at most one parent process; if a process does not have a parent this usually indicates that it was created directly by the kernel. In some systems, including UNIX based systems such as Linux, the very first process (called init) is started by the kernel at booting time and never terminates (see Linux startup process); other parentless processes may be launched to carry out various daemon tasks in userspace. Another way for a process to end up without a parent is if its parent dies, leaving an orphan process; but in this case it will shortly be adopted by init.
+System call fork() is used to create processes. The purpose of fork() is to create a new process, which becomes the child process of the caller.
+
+** Orphan Process
+An orphan process is a computer process whose parent process has finished or terminated, though it remains running itself.
+In a Unix-like operating system any orphaned process will be immediately adopted by the special init system process. This operation is called re-parenting and occurs automatically. Even though technically the process has the init process as its parent, it is still called an orphan process since the process that originally created it no longer exists.
+A process can be orphaned unintentionally, such as when the parent process terminates or crashes. The process group mechanism in most Unix-like operation systems can be used to help protect against accidental orphaning, where in coordination with the user's shell will try to terminate all the child processes with the SIGHUP process signal, rather than letting them continue to run as orphans.
+A process may also be intentionally orphaned so that it becomes detached from the user's session and left running in the background; usually to allow a long-running job to complete without further user attention, or to start an indefinitely running service. Under Unix, the latter kinds of processes are typically called daemon processes. The Unix nohup command is one means to accomplish this.
+
+** Daemon Process
+In Unix and other multitasking computer operating systems, a daemon is a computer program that runs as a background process, rather than being under the direct control of an interactive user. Typically daemon names end with the letter d: for example, syslogd is the daemon that implements the system logging facility and sshd is a daemon that services incoming SSH connections.
+In a Unix environment, the parent process of a daemon is often, but not always, the init process. A daemon is usually created by a process forking a child process and then immediately exiting, thus causing init to adopt the child process. In addition, a daemon or the operating system typically must perform other operations, such as dissociating the process from any controlling terminal (tty). Such procedures are often implemented in various convenience routines such as daemon(3) in Unix.
+Daemon process is a process orphaned intentionally.
+
+** Zombie Process
+On Unix and Unix-like computer operating systems, a zombie process or defunct process is a process that has completed execution but still has an entry in the process table. This entry is still needed to allow the parent process to read its child's exit status. The term zombie process derives from the common definition of zombie — an undead person. In the term's metaphor, the child process has "died" but has not yet been "reaped". Also, unlike normal processes, the kill command has no effect on a zombie process.
+When a process ends, all of the memory and resources associated with it are deallocated so they can be used by other processes. However, the process's entry in the process table remains. The parent can read the child's exit status by executing the wait system call, whereupon the zombie is removed. The wait call may be executed in sequential code, but it is commonly executed in a handler for the SIGCHLD signal, which the parent receives whenever a child has died.
+After the zombie is removed, its process identifier (PID) and entry in the process table can then be reused. However, if a parent fails to call wait, the zombie will be left in the process table. In some situations this may be desirable, for example if the parent creates another child process it ensures that it will not be allocated the same PID. On modern UNIX-like systems (that comply with SUSv3 specification in this respect), the following special case applies: if the parent explicitly ignores SIGCHLD by setting its handler to SIG_IGN (rather than simply ignoring the signal by default) or has the SA_NOCLDWAIT flag set, all child exit status information will be discarded and no zombie processes will be left
+A zombie process is not the same as an orphan process. An orphan process is a process that is still executing, but whose parent has died. They do not become zombie processes; instead, they are adopted by init (process ID 1), which waits on its children.
+** 僵尸进程
+In UNIX System terminology, a process that has terminated,but whose parent has not yet waited for it,
+ is called a zombie. 在UNIX 系统中,一个进程结束了,但是他的父进程没有等待(调用wait / waitpid)他, 那么他将变成一
+个僵尸进程. 但是如果该进程的父进程已经先结束了,那么该进程就不会变成僵尸进程, 因为每个进程结束的时候,系统都
+会扫描当前系统中所运行的所有进程, 看有没有哪个进程是刚刚结束的这个进程的子进程,如果是的话,就由Init 来接管他,成为他的父进程……
+一个已经终止,但是其父进程尚未对其进行善后处理（获取终止子进程的有关信息、释放它仍占用的资源）的进程被称为僵死进程
+(Zombie Process)。
+在Unix下的一些进程的运作方式。当一个进程死亡时,它并不是完全的消失了。进程终止,它不再运行,但是还有一些残留的小东西等待父进程收回。
+这些残留的东西包括子进程的返回值和其他的一些东西。当父进程 fork() 一个子进程后,它必须用 wait() 或者 waitpid() 等待子进程退出
+。正是这个 wait() 动作来让子进程的残留物消失。 
+
+ 
+time    child pro         parent pro
+ |        end             not end 
+ |        if parenet not handle SIGCHILD or wait/waitpid, then child pro will be a Zombie process                  
+ |                          end
+ \/ 
+
+time    child pro         parent pro
+ |       not end              end         
+ |       init will adopt child pro if parent end before child pro, damon process                   
+ |        end                  
+ \/       init will wait any of its child, so child pro be adopted by init won't come to zombie
+
+
+
+
+** linx下启动子进程函数 fork and vfork
+*** fork
+fork will create a new child process and the process space is as the same as the parent process,
+like data space, stack, heap, only sharing text space.
+so child process will inherit the file descriptor opend by parent process
+#include "apue.h"
+int glob = 6; /* external variable in initialized data */
+char buf[] = "a write to stdout\n";
+int
+main(void)
+{
+int var; /* automatic variable on the stack */
+pid_t pid;
+var = 88;
+if (write(STDOUT_FILENO, buf, sizeof(buf)-1) != sizeof(buf)-1)
+# stdout buffer will be flushed by \n 
+err_sys("write error");
+printf("before fork\n"); /* we don't flush stdout */
+# if out is a file, it won't be flushed by \n, when exit, it will be copied to the buffer in child process
+if ((pid = fork()) < 0) {
+err_sys("fork error");
+} else if (pid == 0) { /* child */
+glob++; /* modify variables */
+var++;
+} else {
+sleep(2); /* parent */
+}
+printf("pid = %d, glob = %d, var = %d\n", getpid(), glob, var);
+##########################
+If we execute this program, we get
+$ ./a.out
+a write to stdout
+before fork
+pid = 430, glob = 7, var = 89 child's variables were changed
+pid = 429, glob = 6, var = 88 parent's copy was not changed
+$ ./a.out > temp.out
+$ cat temp.out
+a write to stdout
+before fork
+pid = 432, glob = 7, var = 89
+before fork 
+#why twice, for stdout and file are different, child process has this "before fork" in the buffer
+#when child exit, it will flush the buffer.
+pid = 431, glob = 6, var = 88
+-------------------------------------------------
+**** fork 后文件描述符的情况
+1. 父进程等待子进程完成，父进程对文件描述符不做任何处理，等子进程进行更新。
+2.父，子进程各自执行不同的程序段，fork之后，父子进程各自关闭它们不需要使用的文件描述符。
+
+**** fork two kinds of usage
+1, parent wish child has the same data with it, eg,parent wait for client request, when request arrive, fork a new 
+process to deal with this request. multiple server
+2, child process will execute another prg(exec), like shell..
+
+*** fork example 
+--> 1 #include "stdio.h" 2 #include "sys/types.h" 3 #include "unistd.h" 
+  int main()  { 
+     pid_t pid1;      pid_t pid2;   
+     pid1 = fork();     pid2 = fork();
+     printf("pid1:%d, pid2:%d\n", pid1, pid2);
+ }
+     要求如下：
+
+      已知从这个程序执行到这个程序的所有进程结束这个时间段内，没有其它新进程执行。
+
+      1、请说出执行这个程序后，将一共运行几个进程。
+
+      2、如果其中一个进程的输出结果是“pid1:1001, pid2:1002”，写出其他进程的输出结果（不考虑进程执行顺序）。
+
+      明显这道题的目的是考察linux下fork的执行机制。下面我们通过分析这个题目，谈谈linux下fork的运行机制。
+
+预备知识
+
+      这里先列出一些必要的预备知识，对linux下进程机制比较熟悉的朋友可以略过。
+
+      1、进程可以看做程序的一次执行过程。在linux下，每个进程有唯一的PID标识进程。PID是一个从1到32768的正整数，其中1一般是特殊进程init，其它进程从2开始依次编号。当用完32768后，从2重新开始。
+
+      2、linux中有一个叫进程表的结构用来存储当前正在运行的进程。可以使用“ps aux”命令查看所有正在运行的进程。
+
+      3、进程在linux中呈树状结构，init为根节点，其它进程均有父进程，某进程的父进程就是启动这个进程的进程，这个进程叫做父进程的子进程。
+
+      4、fork的作用是复制一个与当前进程一样的进程。新进程的所有数据（变量、环境变量、程序计数器等）数值都和原进程一致，但是是一个全新的进程，并作为原进程的子进程。
+
+解题的关键
+
+      有了上面的预备知识，我们再来看看解题的关键。我认为，解题的关键就是要认识到fork将程序切成两段。看下图：
+
+
+
+      上图表示一个含有fork的程序，而fork语句可以看成将程序切为A、B两个部分。然后整个程序会如下运行：
+
+      step1、设由shell直接执行程序，生成了进程P。P执行完Part. A的所有代码。
+
+      step2、当执行到pid = fork();时，P启动一个进程Q，Q是P的子进程，和P是同一个程序的进程。Q继承P的所有变量、环境变量、程序计数器的当前值。
+
+      step3、在P进程中，fork()将Q的PID返回给变量pid，并继续执行Part. B的代码。
+
+      step4、在进程Q中，将0赋给pid，并继续执行Part. B的代码。
+
+      这里有三个点非常关键:
+
+      1、P执行了所有程序，而Q只执行了Part. B，即fork()后面的程序。（这是因为Q继承了P的PC-程序计数器）
+
+      2、Q继承了fork()语句执行时当前的环境，而不是程序的初始环境。
+
+      3、P中fork()语句启动子进程Q，并将Q的PID返回，而Q中的fork()语句不启动新进程，仅将0返回。
+
+解题
+
+      下面利用上文阐述的知识进行解题。这里我把两个问题放在一起进行分析。
+
+      1、从shell中执行此程序，启动了一个进程，我们设这个进程为P0，设其PID为XXX（解题过程不需知道其PID）。
+
+      2、当执行到pid1 = fork();时，P0启动一个子进程P1，由题目知P1的PID为1001。我们暂且不管P1。
+
+      3、P0中的fork返回1001给pid1，继续执行到pid2 = fork();，此时启动另一个新进程，设为P2，由题目知P2的PID为1002。同样暂且不管P2。
+
+      4、P0中的第二个fork返回1002给pid2，继续执行完后续程序，结束。所以，P0的结果为“pid1:1001, pid2:1002”。
+
+      5、再看P2，P2生成时，P0中pid1=1001，所以P2中pid1继承P0的1001，而作为子进程pid2=0。P2从第二个fork后开始执行，结束后输出“pid1:1001, pid2:0”。
+
+      6、接着看P1，P1中第一条fork返回0给pid1，然后接着执行后面的语句。而后面接着的语句是pid2 = fork();执行到这里，P1又产生了一个新进程，设为P3。先不管P3。
+
+      7、P1中第二条fork将P3的PID返回给pid2，由预备知识知P3的PID为1003，所以P1的pid2=1003。P1继续执行后续程序，结束，输出“pid1:0, pid2:1003”。
+
+      8、P3作为P1的子进程，继承P1中pid1=0，并且第二条fork将0返回给pid2，所以P3最后输出“pid1:0, pid2:0”。
+
+      9、至此，整个执行过程完毕。
+
+      所得答案：
+
+      1、一共执行了四个进程。（P0, P1, P2, P3）
+
+      2、另外几个进程的输出分别为：
+
+      pid1:1001, pid2:0
+
+      pid1:0, pid2:1003
+
+      pid1:0, pid2:0
+
+***  vfork
+vfork 和 fork的不同在于vfork出的子进程在exit和调用exec之前不是复制一套父进程的环境，而是共享父进程的进程空间。
+
+The intent of vfork was to eliminate the overhead of copying the whole process image if you only want to do an exec* in the child. Because exec* replaces the whole image of the child process, there is no point in copying the image of the parent.
+
+Normally, a fork will produce a child who just copies its parent's space. But many times, the child will share little memory with parent, so to copy the whole space everytime forking is a waste. To solve the problem, people think out Copy-On-Write(COW), which only copies the space that's written and when it's written. But this still helps little when the Child excutes "exec", "exit" who gets rid of the original space completely. So people invent vfork, the process of vfork is: the child and parent uses same space after vfork, and parent suspends waiting a signal from child(it's implemented in Linux as a semphore "struct semaphore *vfork_sem"); then the child will excute exec or exit to release its space shared with parent, at this time kernel will wakeup parent by up()(in Linux, which is implemented in kernel/fork.c: mm_release()). This can be observed in linux/fs/exec.c, which calls mm_release to release mm structure. Remember, in vfork, no COW is needed.
+So for your question, when it's fork, child and parent use different space, and have different values; but when it's vfork, the child will assign flag to 1, which modifys parent's space, because no COW. Then you got what you saw.
+-------------
+#include
+#include
+
+main()
+{
+int flag = 0;
+int chld;
+if (!(chld = fork()))
+{
+flag = 1;
+exit();
+}
+wait(chld);
+printf("flag = %d\n", flag);
+return 0;
+}
+----------------------------------
+输出：flag = 0
+把fork改成vfork后，输出为：flag = 1
+用vfork后，子进程与父进程共享进程space，所以会改变。
+
+
+** fork后父子进程的同步问题
+用wait（）在父进程中，会等待子进程结束后，父进程才继续执行 
+wait will block parent process, so that parent process won't end until child process ends.
+wait() 只要有一个子进程退出就会返回，
+waitpid 可以等待某个pid的子进程，还可以不阻塞的选项。
+
+** posix 创建线程函数
+  pthread_create
+
+**  linux下的守护进程，不需要终端输入输出（daemon）一般做服务器程序使用
+** Daemon程序编写规则
+
+编写Daemon程序有一些基本的规则，以避免不必要的麻烦。
+
+1、首先是程序运行后调用fork，并让父进程退出。子进程获得一个新的进程ID，但继承了父进程的进程组ID。
+
+2、调用setsid创建一个新的session，使自己成为新session和新进程组的leader，并使进程没有控制终端(tty)。
+
+3、改变当前工作目录至根目录，以免影响可加载文件系统。或者也可以改变到某些特定的目录。
+
+4、设置文件创建mask为0，避免创建文件时权限的影响。
+
+5、关闭不需要的打开文件描述符。因为Daemon程序在后台执行，不需要于终端交互，通常就关闭STDIN、STDOUT和STDERR。其它根据实际情况处理。
+
+另一个问题是Daemon程序不能和终端交互，也就无法使用printf方法输出信息了。我们可以使用syslog机制来实现信息的输出，方便程序的调试。在使用syslog前需要首先启动syslogd程序，关于syslogd程序的使用请参考它的man page，或相关文档，我们就不在这里讨论了。
+
+** 一个Daemon程序的例子 编译运行环境为Redhat Linux 8.0。
+
+我们新建一个daemontest.c程序，文件内容如下：
+
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <syslog.h>
+#include <signal.h>
+
+int daemon_init(void) 
+{ pid_t pid; 
+if((pid = fork()) < 0) return(-1); 
+else if(pid != 0) exit(0); /* parent exit */ 
+/* child continues */ 
+setsid(); /* become session leader */ 
+chdir("/"); /* change working directory */ 
+umask(0); /* clear file mode creation mask */ 
+close(0); /* close stdin */ 
+close(1); /* close stdout */ 
+close(2); /* close stderr */ 
+return(0); } 
+void sig_term(int signo) 
+{ if(signo == SIGTERM) 
+/* catched signal sent by kill(1) command */ 
+{ syslog(LOG_INFO, "program terminated."); 
+closelog(); exit(0); } 
+} 
+int main(void) 
+{ if(daemon_init() == -1) 
+{ printf("can't fork self\n"); exit(0); } 
+openlog("daemontest", LOG_PID, LOG_USER); 
+syslog(LOG_INFO, "program started."); 
+signal(SIGTERM, sig_term); /* arrange to catch the signal */ 
+while(1) { sleep(1); /* put your main program here */ } 
+return(0); }
+
+使用如下命令编译该程序： gcc -Wall -o daemontest daemontest.c编译完成后生成名为daemontest的程序，执行./daemontest来测试程序的运行。
+
+使用ps axj命令可以显示系统中已运行的daemon程序的信息，包括进程ID、session ID、控制终端等内容。
+
+部分显示内容：
+
+PPID PID PGID SID TTY TPGID STAT UID TIME COMMAND 
+
+
+* file type and bits
+** unix file type
+file type
+----------
+regular file
+directory
+symbolic link
+character special
+block special
+socket
+FIFO
+--------------------
+
+** access rights of  regular file and directory
+type| owner | group |other|sticky bit
+---------------------------
+d/- |  wrx/s |wrx/s    |wrx  |t
+#for directory w means can create/remove the files in this directories, not mean modify the file content, that's file's w bit mean.
+#for directory r means can ls the files in this directory, not meaning cat file contents, that's file's r bit mean
+#x means if file is executable. s means setuid has been set
+
+*** 查看文件的set user/group 标志位
+ls -l  /usr/bin/passwd
+-rwsr-xr-x 1 root root 37132 2011-02-21 08:16 /usr/bin/passwd
+这里s标志在user段，表示setuid（root） 
+##when execute this file, the access right is as file owner, here root is the owner, means the normal user execute this
+## file, it has the root permission to write file /etc/passwd.
+
+**** Run scripts as another user  setuid( run scripts as root without type passwd interactively)
+       setuid()  sets  the  effective  user ID of the calling process.  
+ 运行时用使用owner的身份，/usr/bin/passwd command 修改/etc/passwd 文件
+每个人都可以运行passwd修改密码，但是passwd需要修改/etc/passwd文件，但这个文件不能给所有用
+户开放写权限。如果把passwd命令设成suid，这样不论谁运行passwd都和root一样有写权限了。
+
+rwxr-sr-x 表示setgid
+## this mean execute his file, the access right is the file group onwer 
+
+**** access function could test if you really have the rights
+acess() will ignore the setuid bit to tell if you have the rights
+but open() function will using the setuid to use the user onwer access rights
+
+*** sticky bit of directory
+rwxr-xr-t  the last extra bit mean sticky标志 
+sticky标志目录后，该目录的子目录只能被属主删除，不设置的话对目录有写权限的用户，可以删除
+该目录下的任意文件和目录。/tmp就是一个很好的例子
+ls -dl /tmp
+drwxrwxrwt 26 root root 131072 2012-02-10 17:29 /tmp
+## tmp 目录对所有用户可写，但只有该文件user可以删除该
+rwxr-xr-t  the last extra bit mean sticky标志 
+sticky标志目录后，该目录的子目录只能被属主删除，不设置的话对目录有写权限的用户，可以删除
+该目录下的任意文件和目录。/tmp就是一个很好的例子
+
+
+*** 用命令方式修改
+chown root scri.sh
+chmod 4755 scri.sh
+这里四位的chmod值第一位是setuid的值
+4000 sets user ID on execution（owner id）
+2000 sets group ID on execution 
+1000 sets the link permission to directories or sets the save-text attribute for files
+u+s
+g+s
++t
+man chmod
+
+** files being created access rights.
+umask
+002
+umask -S
+u=rwx,g=rxw,o=rx
+when you create a file, the access rights will like that.                                                                
+
+* file size
+** a file with a hole in it
+##############################
+#include "apue.h"
+#include <fcntl.h>
+char buf1[] = "abcdefghij";
+char buf2[] = "ABCDEFGHIJ";
+int
+main(void)
+{
+int fd;
+if ((fd = creat("file.hole", FILE_MODE)) < 0)
+err_sys("creat error");
+if (write(fd, buf1, 10) != 10)
+err_sys("buf1 write error");
+/* offset now = 10 */
+if (lseek(fd, 16384, SEEK_SET) == -1)
+err_sys("lseek error");
+/* offset now = 16384 */
+if (write(fd, buf2, 10) != 10)
+err_sys("buf2 write error");
+/* offset now = 16394 */
+exit(0);
+} 
+####################################
+
+The program shown in Figure 3.2 creates a file with a hole in it.
+Running this program gives us
+$ ./a.out
+$ ls -l file.hole check its size
+-rw-r--r-- 1 sar 16394 Nov 25 01:01 file.hole
+$ od -c file.hole let's look at the actual contents
+0000000 a b c d e f g h i j \0 \0 \0 \0 \0 \0
+0000020 \0 \0 \0 \0 \0 \0 \0 \0 \0 \0 \0 \0 \0 \0 \0 \0
+*
+0040000 A B C D E F G H I J
+### 40000 is hex of 16384(bytes)
+0040012
+
+
+To prove that there is really a hole in the file, let's compare the file we've just created with a file of the same
+size, but without holes:
+$ ls -ls file.hole file.nohole compare sizes
+8 -rw-r--r-- 1 sar 16394 Nov 25 01:01 file.hole
+20 -rw-r--r-- 1 sar 16394 Nov 25 01:03 file.nohole
+Although both files are the same size, the file without holes consumes 20 disk blocks, whereas the file with
+holes consumes only 8 blocks.
+ls -s means real block size
+### du means disk use not like ls list the size of file in file system
+du -s file.hole
+the same as du -s file.nohole
+20 bytes
+
+### wc -c file.hole
+16394 file.hole
+
+##if  use cat 
+##cat file.hole >file.hole.copy
+du -s file.hole*
+20    file.hole
+16394 file.hole.copy
+
+* session, process group, controlling terminal
+** process group
+ setpgid function will join or create a process group
+ proc1 |proc2 &           #one process group
+ proc3 |proc4 | proc5     #another process group
+_ ________________________________________________
+|              |             |                    |
+| pg1:         | pg2         | pg3                |
+| shell        | proc1 proc2 | proc3, proc4,proc5 |
+|bg pg         |bkground  pg |foregroud pg        |
+---------------------------------------------------
+            /\                     /\
+            |hang up               |all the input output and signal 
+            |sig to shell          |to  fg pg
+               controlling termina l 
+
+
+
+
+* close a tcp/ip connection
+function call:
+close(socket_fd)
+shutdown(socket_fd)
+
+if a program which has a socket fd opend, in server it's the return value of "accept", in client it's the connect(socket_fd,...)
+if the program terminated without calling close or shutdown, the system will help to do that.
+
+when grab a tcp packet named FIN, it's no necessarily that the program call close or shutdown, in fact, even if the program run into segmentation fault, the system will help to close the connection.
+
+
+tcpdump -port <portnum> -i lo
+strace will trace a exefile's all system call and signals.
+
+
+
+
+* linux 系统工程师面试题
+
+http://www.itwis.com/html/os/linux/20090912/6201.html
+
+linux系统工程师面试题:
+1.查看Linux系统当前单个共享内存段的最大值（命令）
+The ipcs command can be used to obtain the status of all System V IPC objects
+ipcs -m 
+ipcs -a 
+2.用什么命令查询指定IP地址的服务器端口
+题意应该是 nmap 和nbtscan 命令来扫吧。
+3.crontab中用什么命令定义某个程序执行的优先级别
+nice/renice：进程执行优先级
+概念：
+进程优先级：系统按进程优先级的不同分配CPU时间，优先级高的进程会得到更多的CPU使用时间，以提高速度，缩短总的执行时间。
+进程优先级范围：-20至19
+最高等级：-20
+最低等级：19
+系统管理员有权将进程优先级设置为-1至-20，而普通用户只能设置0至19。
+进程运行的默认等级为0。
+用nice执行的进程其默认等级为10（即nice <程序名>，不指定等级时）。
+格式：
+nice <程序名>
+nice -<等级> <程序名>
+如：(命令后加&表示以后台运行)
+vi & 优先等级0，默认等级。
+nice vi & 优先等级10，使用nice执行程序时的默认等级。
+nice -50 vi & 优先等级19，-号表示选项，等级50超过最低等级19，因此系统以等级19执行。
+nice -18 vi & 优先等级18。
+nice --50 vi & 优先等级-20，选项值为-50，超过最高等级-20，因此系统以等级-20执行。
+nice --18 vi & 优先等级-18。
+通过ps -l可查看以上命令的执行情况（注意查看各vi进程NI值的不同）。
+重新调整正在执行的进程的优先级： 
+调整指定PID进程的等级
+renice <等级> <PID>
+注意：<等级>是参数，不是选项，没有前缀-号。 
+调整指定用户的所有进程的等级
+renice <等级> <用户名1> <用户名2> ... 
+调整指定组的所有用户的所有进程的等级
+renice <等级> -g <组名1> 
+
+4.如何让history命令显示具体时间
+HISTTIMEFORMAT="%Y-%m-%d %H:%M:%S "
+expect HISTTIMEFORMAT
+重新开机后会还原，可以写／etc／profile
+5.查看Linux系统当前指定用户的邮件队列
+mailq 命令
+打印两种类型的列表：
+mailq 命令列出如下所示的邮件队列：
+Mail Queue(1 request)
+---QID---- --Size-- -----Q-Time----- ------Sender/Recipient-----
+AA02508 3 Thu Dec 17 10:01 root
+(User unknown)
+bad_user
+mailq -v 命令列出如下所示的邮件队列：
+Mail Queue (1 request) 
+---QID---- --Size-- -Priority- ---Q-Time--- --Sender/Recipient--
+AA02508 3 1005 Dec 17 10:01 root
+(User unknown)
+bad_user
+6.查看Linux系统当前加载的库文件
+lsof/pmap 
+ldd is for static query
+7.Ext3文件系统如何恢复RM命令删除文件
+(1).Ext3文件系统结构的简单介绍
+在Linux所用的Ext3文件系统中，文件是以块为单位存储的，默认情况下每个块的大小是1K，不同的块以块号区分。每个文件还有一个节点，节点中包含有文件所有者，读写权限，文件类型等信息。对于一个小于12个块的文件，在节点中直接存储文件数据块的块号。如果文件大于12个块，那么节点在12个块号之后存储一个间接块的块号，在这个间接块号所对应的块中，存储有256个文件数据块的块号（Ext2fs中每个块号占用4字节，这样一个块中所能存储的块号就是1024/4=256）。如果有更大的文件，那么还会在节点中出现二级间接块和三级间接块。 
+(2).恢复被误删文件的方法 
+大多数Linux发行版都提供一个debugfs工具，可以用来对Ext3文件系统进行编辑操作。不过在使用这个工具之前，还有一些工作要做。 
+
+首先以只读方式重新挂载被误删的文件所在分区。使用如下命令：（假设文件在/usr分区） 
+mount -r -n -o remount /usr 
+-r表示只读方式挂载；-n表示不写入/etc/mtab，如果是恢复/etc上的文件，就加上这个参数。如果系统说xxx partion busy，可以用fuser命令查看一下是哪些进程使用这个分区上的文件：
+fuser -v -m /usr 
+如果没有什么重要的进程，用以下命令停掉它们： 
+fuser -k -v -m /usr 
+然后就可以重新挂载这些文件系统了。
+如果是把所有的文件统一安装在一个大的/分区当中，可以在boot提示符下用linux single进入单用户模式，尽量减少系统进程向硬盘写入数据的机会，要不干脆把硬盘挂在别的机器上。另外，恢复出来的数据不要写到/上面，避免破坏那些有用的数据。如果机器上有dos/windows，可以写到这些分区上面：
+mount -r -n /dev/hda1 /mnt/had 
+然后就可以执行debugfs：(假设Linux在 /dev/hda5)
+#debugfs /dev/hda5 
+就会出现debugfs提示符debugfs：
+使用lsdel命令可以列出很多被删除的文件的信息：
+debugfs：lsdel 
+debugfs: 2692 deleted inodes found. 
+Inode Owner Mode Size Blocks Time deleted 
+164821 0 100600 8192 1/ 1 Sun May 13 19:22:46 2001 
+………………………………………………………………………………… 
+36137 0 100644 4 1/ 1 Tue Apr 24 10:11:15 2001 
+196829 0 100644 149500 38/ 38 Mon May 27 13:52:04 2001 
+debugfs: 
+列出的文件有很多（这里找到2692个），第一字段是文件节点号，第二字段是文件所有者，第三字段是读写权限，接下来是文件大小，占用块数，删除时间。然后就可以根据文件大小和删除日期判断那些是我们需要的。比如我们要恢复节点是196829的文件：
+可以先看看文件数据状态：
+debugfs：stat 
+Inode: 196829 Type: regular Mode: 0644 Flags: 0x0 Version: 1 
+User: 0 Group: 0 Size: 149500 
+File ACL: 0 Directory ACL: 0 
+Links: 0 Blockcount: 38 
+Fragment: Address: 0 Number: 0 Size: 0 
+ctime: 0x31a9a574 -- Mon May 27 13:52:04 2001 
+atime: 0x31a21dd1 -- Tue May 21 20:47:29 2001 
+mtime: 0x313bf4d7 -- Tue Mar 5 08:01:27 2001 
+dtime: 0x31a9a574 -- Mon May 27 13:52:04 2001 
+BLOCKS: 
+594810 594811 594814 594815 594816 594817 …………………………………. 
+TOTAL: 38 
+然后就可以用dump指令恢复文件：
+debugfs：dump /mnt/hda/01.sav 
+这样就把文件恢复出来了。退出debugfs：
+debugfs：quit 
+另一种方法是手工编辑inode： 
+debugfs：mi 
+Mode [0100644] 
+User ID [0] 
+Group ID [0] 
+Size [149500] 
+Creation time [0x31a9a574] 
+Modification time [0x31a9a574] 
+Access time [0x31a21dd1] 
+Deletion time [0x31a9a574] 0 
+Link count [0] 1 
+Block count [38] 
+File flags [0x0] 
+Reserved1 [0] 
+File acl [0] 
+Directory acl [0] 
+Fragment address [0] 
+Fragment number [0] 
+Fragment size [0] 
+Direct Block #0 [594810] 
+……………………………. 
+Triple Indirect Block [0] 
+使用mi指令后每次显示一行信息以供编辑，其它行可以直接按回车表示确认，把deletion time改成0（未删除），Link count改成1。改好后退出debugfs：
+debugfs：quit 
+然后用fsck检查/dev/hda5 
+fsck /dev/hda5 
+程序会说找到丢失的数据块，放在lost+found里面。
+8.查看当前系统某一硬件的驱动版本。比如网卡
+dmidecode
+9.DNS服务器有哪三种类型
+主 从 缓存
+10.apache目录访问身份验证的实施步骤（用htpasswd设置）
+htpasswd -c /目录 user
+alias /目录
+11.使用tcpdump监听主机IP为192.168.1.1，tcp端口为80的数据，写出相应命令
+tcpdump tcp port 80 host 192.168.1.1 
+12.简述IDS作用和实现原理
+入侵检测，设备放在intelnet进来的第一台路由后面。对进入路由的所有的包进行检测，如果有异常就报警。
+13.用sed修改test.txt的23行test为tset；
+sed ‘23s/test/tset/g ’ test.txt 
+
+* got question from real in
+** what 's the difference between c++ and c what is the advantace and disav
+** when cup 100% loaded, how you can get which part in prog take more time
+** so libary similar but with different version name
+** get data from src to dst without copy, using pointer. who receive it will free the memroy which been allocated in sender, 零拷贝
+** when your source code not match the gdb debbuging image, using -O option
+** two same function in the load library, how you are going to find out
+nm the lib*.so to grep the function name
+*** solution of this
+**** objcopy --redefine-sym old=new file
+rename the sym name in one library to avoid the conflict
+
+**** using statially linkage library
+
+**** using dlopen/dlsym function
+
+
+Assuming that you use linux you first need to add
+
+#include <dlfcn.h>
+
+Declare function pointer variable in proper context, for example,
+
+int (*alternative_server_init)(int, char **, char **);
+
+Like Ferruccio stated in http://stackoverflow.com/a/678453/1635364 , load explicitly the library you want to use by executing (pick your favourite flags)
+
+void* dlhandle;
+void* sym;
+
+dlhandle = dlopen("/home/jdoe/src/libwhatnot.so.10", RTLD_NOW|RTLD_LOCAL);
+
+Read the address of the function you want to call later
+
+sym = dlsym(dlhandle, "conflicting_server_init");
+
+assign and cast as follows
+
+alternative_server_init = (int (*)(int, char**, char**))sym;
+
+Call in a similar way than the original. Finally, unload by executing dlclose(dlhandle);
+
+
+* inter Process/Thread communication
+** PIPE or FIFO(named pipe)
+** message queue
+** shared memory for different process
+** RPC(remote procedure call) two entity connected with network
+
+* thread-safe programming
+
+** rentry function
+reentry function means multithread safe function:
+if one function is interrupted by another multithred which executed the same function, there wouldn't be any error.
+Generally, if this function not using global variable or static local variable, it is not a problem. It means it will only limited on the stack memory space.
+For stack memory space is different but for the heap/global memory space, threads share them. So will make confusion.
+So if manipulate global variable in function and make sure this function be reentriable, then add some synchronization on it, mutex, condition variables,
+and seamphore.
+
+*** mutex and semphore
+semphore will be created with a initialized value, then sem_post will increase
+the value while sem_wait if value is greater than zero, then will decrease value
+and return function.
+
+*** productor and consumer problem
+assume there's a limited buffer, producer will write to those buffer while 
+consumer will read from the buffer.
+producer will wait for at least one empty slot(in case of buffer is full) to write while consumer will
+wait for at least one slot to consumer(in case of buffer is empty)
+all consumers and producers need to wait to write or read buffer to guranteen only one
+thread is operate the buffer.
+
+
+produce()
+{
+  for (int i=0; i<nitems; i++)
+  {
+     sem_wait(shared.nempty); // wait space to produce,nempty is initilized to NBUFF
+     sem_wait(shared.mutex);  //this is for mutex
+     shared.buff[i%NBUFF]=i;
+     sem_post(shared.mutex);  //this is for mutex
+     sem_post(shared.nstored);// increase the stored one.
+  }
+}
+
+consumer()
+{
+  for (int i=0; i<nitems; i++)
+  {
+     sem_wait(shared.nstored); // wait there's something to read, nstored is initialized to 0
+     sem_wait(shared.mutex);  //this is for mutex
+     shared.buff[i%NBUFF]=i;
+     sem_post(shared.mutex);  //this is for mutex
+     sem_post(shared.nempty);// increase the consumed one.
+  }
+}
+
+*** dead lock
+if thread A occupy resource 1, and wait for ressource 2 while thread B occupy resource 2 and wait for resource 1, then its a dead lock.
+So in above all mutex should in the inner while seamphore should outside to avoid deadlock.
+
+** Mutex-lock
+In computer science, a readers-writer (RW) or shared-exclusive lock (also known as a multiple readers/single-writer lock[1] or multi-reader lock[2]) is a synchronization primitive that solves one of the readers-writers problems. A RW lock allows concurrent access for read-only operations, while write operations require exclusive access. This means that multiple threads can read the data in parallel but an exclusive lock is needed for writing or modifying data. When a writer is writing the data, readers will be blocked until the writer is finished writing. A common use might be to control access to a data structure in memory that can't be updated atomically and isn't valid (and shouldn't be read by another thread) until the update is complete.
+
+Readers–writer locks are usually constructed on top of mutexes and condition variables, or on top of semaphores.
+
+The read-copy-update (RCU) algorithm is one solution to the readers-writers problem. RCU is wait-free for readers. The Linux-Kernel implements a special solution for few writers called seqlock.
+
+
+    Read-preferring RW locks allow for maximum concurrency, but can lead to write-starvation if contention is high. This is because writer threads will not be able to acquire the lock as long as at least one reading thread holds it. Since multiple reader threads may hold the lock at once, this means that a writer thread may continue waiting for the lock while new reader threads are able to acquire the lock, even to the point where the writer may still be waiting after all of the readers which were holding the lock when it first attempted to acquire it have released the lock.
+
+        Write-preferring RW locks avoid the problem of writer starvation by preventing any new readers from acquiring the lock if there is a writer queued and waiting for the lock. The writer will then acquire the lock as soon as all readers which were already holding the lock have completed.[3] The downside is that write-preferring locks allows for less concurrency in the presence of writer threads, compared to read-preferring RW locks. Also the lock is less performant because each operation, taking or releasing the lock for either read or write, is more complex, internally requiring taking and releasing two mutexes instead of one.[3][4] This variation is sometimes also known as "write-biased" readers-writer lock.[5][6]
+
+	    Unspecified priority RW locks does not provide any guarantees with regards r
+
+
+Initialize a Read-Write Lock
+pthread_rwlock_init(3THR)
+
+
+* read write block/non-block
+in default read is a blocking access
+int flags = fcntl(fd, F_GETFL, 0);
+fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+
+The code snippet above will configure such a descriptor for non-blocking access. If data is not available when you call read, then the system call will fail with a return value of -1 and errno is set to EAGAIN. See the fnctl man pages for more information.
+
+Alternatively, you can use select with a configurable timeout to check and/or wait a specified time interval for more data. This metho
+
+** socket block/non-block
+ Blocking vs. non-blocking sockets
+
+So far in this chapter, you've seen that select() can be used to detect when data is available to read from a socket. However, there are times when its useful to be able to call send(), recv(), connect(), accept(), etc without having to wait for the result.
+
+For example, let's say that you're writing a web browser. You try to connect to a web server, but the server isn't responding. When a user presses (or clicks) a stop button, you want the connect() API to stop trying to connect.
+
+With what you've learned so far, that can't be done. When you issue a call to connect(), your program doesn't regain control until either the connection is made, or an error occurs.
+
+The solution to this problem is called "non-blocking sockets".
+
+By default, TCP sockets are in "blocking" mode. For example, when you call recv() to read from a stream, control isn't returned to your program until at least one byte of data is read from the remote site. This process of waiting for data to appear is referred to as "blocking". The same is true for the write() API, the connect() API, etc. When you run them, the connection "blocks" until the operation is complete.
+
+Its possible to set a descriptor so that it is placed in "non-blocking" mode. When placed in non-blocking mode, you never wait for an operation to complete. This is an invaluable tool if you need to switch between many different connected sockets, and want to ensure that none of them cause the program to "lock up."
+
+If you call "recv()" in non-blocking mode, it will return any data that the system has in it's read buffer for that socket. But, it won't wait for that data. If the read buffer is empty, the system will return from recv() immediately saying ``"Operation Would Block!"''.
+
+The same is true of the send() API. When you call send(), it puts the data into a buffer, and as it's read by the remote site, it's removed from the buffer. If the buffer ever gets "full", the system will return the error 'Operation Would Block" the next time you try to write to it.
+
+Non-blocking sockets have a similar effect on the accept() API. When you call accept(), and there isn't already a client connecting to you, it will return 'Operation Would Block', to tell you that it can't complete the accept() without waiting...
+
+The connect() API is a little different. If you try to call connect() in non-blocking mode, and the API can't connect instantly, it will return the error code for 'Operation In Progress'. When you call connect() again, later, it may tell you 'Operation Already In Progress' to let you know that it's still trying to connect, or it may give you a successful return code, telling you that the connect has been made.
+
+Going back to the "web browser" example, if you put the socket that was connecting to the web server into non-blocking mode, you could then call connect(), print a message saying "connecting to host www.floofy.com..." then maybe do something else, and them come back to connect() again. If connect() works the second time, you might print "Host contacted, waiting for reply..." and then start calling send() and recv(). If the connect() is still pending, you might check to see if the user has pressed a "abort" button, and if so, call close() to stop trying to connect.
+
+Non-blocking sockets can also be used in conjunction with the select() API. In fact, if you reach a point where you actually WANT to wait for data on a socket that was previously marked as "non-blocking", you could simulate a blocking recv() just by calling select() first, followed by recv().
+
+The "non-blocking" mode is set by changing one of the socket's "flags". The flags are a series of bits, each one representing a different capability of the socket. So, to turn on non-blocking mode requires three steps:
+
+    Call the fcntl() API to retrieve the socket descriptor's current flag settings into a local variable.
+
+    In our local variable, set the O_NONBLOCK (non-blocking) flag on. (being careful, of course, not to tamper with the other flags)
+
+    Call the fcntl() API to set the flags for the descriptor to the value in our local variable.
+
+
+
+* stream buffering mode
+Stream buffering
+
+When you write characters to a stream, they are not usually stored in the file on a character-by-character basis as soon as they are written to the stream, but instead are accumulated in a buffer first, then written to the file in a block when certain conditions are met. (A buffer is an area of the computer's memory that acts as a temporary holding area for input or output.) Similarly, when you are reading characters from a stream, they are often buffered, or stored in a buffer first.
+
+It's important to understand how buffering works, or you may find your programs behaving in an unexpected way, reading and writing characters when you do not expect them to. (You can bypass stream buffering entirely, however, by using low-level rather than high-level file routines. See Low-level file routines, for more information.)
+
+There are three main kinds of buffering you should know about:
+
+    No buffering: When you write characters to an unbuffered stream, the operating system writes them to the file as soon as possible.
+    Line buffering: When you write characters to a line-buffered stream, the operating system writes them to the file when it encounters a newline character.
+    Full buffering: When you write characters to a fully-buffered stream, the operating system writes them to the file in blocks of arbitrary size. 
+
+Most streams are fully buffered when you open them, and this is usually the best solution. However, streams connected to interactive devices such as terminals are line-buffered when you open them; yes, this means that stdin and stdout are line-buffered.
+
+Having stdin and stdout be line-buffered is convenient, because most meaningful chunks of data you write to them are terminated with a newline character. In order to ensure that the data you read from or write to a fully-buffered stream shows up right away, use the fflush function. In the jargon, this is called flushing the stream. Flushing moves the characters from the buffer to the file, if they haven't already been moved. After the move, other functions can then work on the characters.1
+
+To use fflush, simply pass the function the stream you want to flush. The fflush function returns 0 if successful, or the value EOF (which is a macro defined in the GNU C Library) if there was a write error.
+
+Note that using fflush is not always necessary; output is flushed automatically when you try to write and the output buffer is already full, when the stream is closed, when the program exits, when an input operation on a stream actually reads data from the file, and of course, when a newline is written to a line-buffered stream. (See fputs, for a code example that uses fflush.)  

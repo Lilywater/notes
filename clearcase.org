@@ -1,0 +1,215 @@
+check code procedure:
+1.  Go to the directory you’re working on, e.g. ot_driver/common/gn2412
+2.  (optional) Run ‘make <target>’, the <target> depends on the content of Makefile, it may be mvl_lc, sim_lc or wra9_lc
+3.  cd /vobs/pss/node
+4.  buildall.sh <target>
+5.  If no errors, you can go ahead to check in the source code with MR number.
+6.  Change MR status to ‘Resolved’
+
+
+
+
+
+cleartool command line
+================================
+1.最基本的操作
+cleartool co -nc xxx.cpp
+cleartool ci -nc xxx.cpp
+2.查看自己总共co了多少文件
+cleartool lscheckout -cview -me -avobs
+cleartool man xxx
+cleartool help xxx
+4.新增目录和文件
+cleartool mkdir -c comment new_dir
+cleartool mkelem -c comment new_file.cpp
+5.放弃co某个文件
+cleartool unco -keep file.cpp //保留当前所改动的文件
+cleartool unco -rm file.cpp
+6.主线、分支文件合并
+//查找需要合并的文件
+cleartool findmerge . -fversion /main/xxxx_path -print
+//比较文件不同
+cleartool diff file.cpp file.cpp@@/main/xxxx_path/LATEST
+//查看最新版本
+cleartool lsvtree file.cpp
+//合并
+cleartool merge -to file.cpp file.cpp@@/main/xxxx_path/LATEST file.cpp@@/main/LATEST
+7.标签相关
+==========================
+-> make -f newtools.mk hdwdbg
+
+
+ppc_405-g++ -o hdwdbg.o -c -mcpu=405 -mlongcall -O0 -g -I. -I/vobs/gpl_mvl/redhat/montavista/pro/devkit/ppc/405/target/usr/include -I/vobs/lc/fa_lxhrp_generic/public/hdr/driver -I/vobs/lc/fa_lxhrp_generic/public/hdr -I/vobs/lc/infra_lx/public/hdr -I/vobs/gpl_mvl/redhat/montavista/ -I/vobs/pss/node/include -I/vobs/lc/fa_lxhrp_ot/internal/pkg/ot_driver/common -I/vobs/lc/fa_lxhrp_ot/internal/pkg/ot_driver -I/vobs/lc/fa_lxhrp_ocs/internal/pkg/ul_driver/common -DNEWTOOLSMK hdwdbg.C
+ppc_405-g++ -o hdwdbg hdwdbg.o /vobs/lc/fa_lxhrp_generic/internal/pkg/driver/Chdwdbg.o /vobs/lc/fa_lxhrp_generic/internal/pkg/driver/hdwdbgCommon.o /vobs/lc/fa_lxhrp_generic/internal/pkg/driver/oldParser.o /vobs/lc/fa_lxhrp_generic/internal/pkg/driver/oldParserUtil.o -L/vobs/lc/fa_lxhrp_generic/internal/lib/ppc_405/mvl_lc -L/vobs/lc/infra_lx/internal/lib/ppc_405/mvl_lc -ldriver -lutil -lvm -lrt -lpthread
+cp -p hdwdbg
+
+
+please create a view on linuxBox of 135.112.153.61 with my account: 
+userid :zhiqianh,  password:accs#2345,
+
+-----------
+detached]
+root@8EC2-81-1-ACT:~# iptables -F
+root@8EC2-81-1-ACT:~# ps aux |grep ftp
+root     15319  0.0  0.0   2108   860 ?        Ss   11:11   0:00 ftpd
+root     15404  0.0  0.0   1536   492 pts/6    S+   11:12   0:00 grep ftp
+root@8EC2-81-1-ACT:~#
+----------------
+xfp_led_flash
+0x28
+md.l 0x610000a0
+mw.l 0x610000a0 0x3f
+sfp_led_flash
+0x29
+md.l 0x610000a4 00000000
+mw.l 0x610000a4  0xffff
+
+xfp-led-control
+0x31
+md.l 0x610000c4  :00003fff
+mw.l 0x610000c4  0
+
+0x35
+sfp_led_ctrl_local
+             d4 :ffffffff
+             d4 0
+
+
+
+==============
+please create a view on linuxBox of 135.112.153.61 with my account: 
+userid :zhiqianh,  password:accs#2345,
+the script for creating view for R9.1 simply as: makeview –p dwdm_1830 –b grepebar-161207 zhiqianh-xxx,
+updateview
+detail guide can be found in attachment for usage about clearcase.
+telentepassword: ALu12#
+The R9.1 MR is PSSSW-48374 ,and Once you are ready for merging these codes, I would set the MR status synchronously.
+/vobs/pss/node
+./buildall.sh mvl_lc
+
+make build:
+cd /vobs/pss/tools/imtool/sub
+./1830-imgen ot.11qpa4b 1 1 1
+
+cd /   && /usr/local/bin/startGeneric
+xfp_led_ctrl_local
+led off
+
+
+makeview -p dwdm_1830 -b grapebar-161207 zhiqianh-123
+makeview -p dwdm_1830 -b grapeape-161209  zhiqianh-work
+
+siew 
+cd /vobs/lc fa_lxhrp_ot/internal/pkg/ot_driver/ot_11dpm8/FpsApi.cc /main/main-dwdm_1830/less_than-dwdm_1830-grapebar/4
+cleartool lshistory <filename>
+cleartool diff 
+    cleartool diff  -serial_format  FpsApi.cc FpsApi.cc@@/main/main-dwdm_1830/less_than-dwdm_1830-grapebar/4 
+    -> cleartool get -to FpsApi.cc.tmp4 FpsApi.cc@@/main/main-dwdm_1830/less_than-dwdm_1830-grapebar/4
+lsproducts dwdm_1830
+cleartool ls
+
+-> cleartool lsview -long zhiqianh-123
+Tag: zhiqian-122h
+  Global path: /net/pss61-lx.mh.lucent.com/export/viewstore/zhiqianh-123.vws
+    Server host: pss61-lx.mh.lucent.com
+      Region: mux_linux
+        Active: YES
+          View tag uuid:d384771b.bde111e6.8120.00:0c:29:e4:99:8a
+          View on host: pss61-lx.mh.lucent.com
+          View server access path: /export/viewstore/zhiqianh-123.vws
+          View uuid: d384771b.bde111e6.8120.00:0c:29:e4:99:8a
+          View owner: MetroEON/zhiqianh
+
+          pss61-lx!!zhiqianh:Linux2.6.18-348.el5PAE/home/zhiqianh(z
+--------------------------------
+lsatr
+grapeape()  grapebar(9.07)
+lsproducts 
+/view/view-tag-name/vobs/
+
+
+cleartool desc filename
+MR:
+cleartool find . -ver 'MR == "PSSSW-48939"' -print
+
+
+    To print all versions selected by your view that have a LABEL applied:
+
+    cleartool find . -cview -version "lbtype(LABEL)" -print
+
+    Following the same idea:
+
+    To print all versions selected by your view that are in a given branch:
+
+    cleartool find . -cview -version "brtype(BRNAME)" -print
+                                       attype(MR)
+find ./ -type f |xargs cleartool desc -aattr MR |grep -B 3 48284
+//get the MR
+cleartool find . -version 'attype(an_attribute_name)'  -exec 'cleartool descr -fmt "%Sn" "$CLEARCASE_XPN" '
+
+
+ cleartool find . -version 'created_since(04-December-2016)' -print |xargs cleartool desc -aattr MR |grep -B 2 48284
+
+ct ls  <filename> //the file in the baseline
+ct lshistory   <filename> // the file's all history
+ct co -unre <filename>  //chekcout . enter Mr number
+siew
+//build the view
+/vobs/pss/node
+./buildall -J 2 mvl_lc ot
+./buildall -J 2 sim_lc ot
+
+//vget the files fixed for MR
+vget -fa -m PSSSW-48374
+
+viewinfo
+-o : to check the files you checkout
+-e : to check the files you vget
+viewinfo -g <viewtag>  //this will list all the view tag's info
+General attributes of view 'zhiqianh-123' (-g) ...
+View:zhiqianh-123 Product:dwdm_1830 Build:grapebar-161213 VOBs:/vobs/pss,/vobs/lc
+
+
+
+
+How to get a version not on current view (command in manage)?
+>ct lsvtree file 
+>vget file@@/main/main-dwdm_1830/30
+For view without  ‘-s’, just move VIEW label
+For view with ‘-s’, merge maybe prompt to your solution branch
+
+
+set paste
+
+
+
+1.  Run below command to build all the package for mvl_lc after you select a ClearCase view.
+cd /vobs/pss/node
+./buildall.sh –J 6 mvl_lc
+2.  setup the environment variables
+. ~tps/bin/mvl_env
+3.  change newtools.mk to remove the unnecessary targets
+cd /vobs/lc/fa_lxhrp_generic/tools
+muckup newtools.mk
+
+
+
+Remove view:  removeview 
+
+undo all checkout
+using: ct unco {filename} (remove file one by one)
+
+
+lsco  : list  checkout files
+ct lsco -cview -me -avobs  // list muckup files and the version which it muckuped from
+ct diff -pre -diff //only for checkout files not muckup files
+ct lshistory       // for muckup files, check history, get the version and diff the version
+
+
+addfile -p -n <file>
+ct ci -nc <file>
+ct ls  
+get the new added files in clearcase
+ct ls |grep -v "^\." |grep -v Rule
+addfile -p
+

@@ -1,0 +1,1807 @@
+* vi HELP
+** make cumstom
+:set makeprg=xxx to change the command that is executed.
+vim命令非常繁多复杂，如果不知道可以查阅:help
+如果是某个命令不清除可佣 :help substitute      :help switchbuf
+如果是命令简写，可佣 :help :s        :help :substitute，
+ 如果是选项就不要冒号，比如:help switchbuf
+
+** vi的配置文件～/.vimrc
+ set paste
+ set nocompatible            " 关闭 vi 兼容模式
+  set number                  " 显示行号
+  noremap <C-B> :tabprev<CR>
+  noremap <C-C> "*y
+  "noremap <C-Insert> "+y
+  " CTRL-V and SHIFT-Insert are Paste  
+  "noremap <C-V>        "+gP
+   map <S-Insert>        "+gP 
+  set fileencodings=utf-8   " 防止中文乱码
+  set mouse=a  "在所有模式下用鼠标
+  noremap <F4> <ESC> :execute ":lvimgrep  " .expand("<cword>"). "  *.{c,cpp,h,hpp}"<CR><ESC>:lw<CR>
+  noremap <C-N> :tabnext<CR>
+** 环境变量的查看和配置
+：set 查看vi设置 
+:source ~/.vimrc.bak  动态加载vim配置文件
+** 开关选项的选择
+set paste 
+set nopaste
+set pastetoggle 
+
+** 值的设置和查询
+set mouse    
+########查看mouse的配置 
+set mouse=a
+##设置mouse为a
+echo $VIMRUNTIME
+##查看变量的值
+set fileencodings
+## 查看 fileencodings的值
+** cword的用法
+：echo expand("<cword>")
+
+** map的用法
+*** map ：命令
+noremap <C-B> :tabprev<CR>
+<CR>
+#回车键 
+*** map 键盘命令   
+noremap <C-C> "*y
+##无回车键
+*** map  cword
+:execute ":lvimgrep  " .expand("<cword>"). "  *.{c,cpp,h,hpp}"
+##这里第一个爽引号是:lvmigrep [space]
+##第二个是  " .expand("<cword>"). "
+##第三个是  *.{c,cpp,h,hpp}
+nmap <F4> :execute ":lvimgrep  " .expand("<cword>"). "  *.{c,cpp,h,hpp}
+# map F4 键，在所有c,cpp.h,hpp
+noremap <F4> <ESC> :execute ":lvimgrep  " .expand("<cword>"). "  *.{c,cpp,h,hpp}"<CR><ESC>:lw<CR>
+##多条命令执行用<ESC>连接
+
+** quickfix window 用法
+** 编译文件所用的quickfix
+*** makeprg
+:set makeprg=gcc\ -Wall\ -o\ hello\ hello.c 
+:make
+##这时make就是用的gcc这条命令
+
+*** 编译工程/文件快捷键
+noremap B :make<CR><ESC>:copen<CR>
+noremap C :cclose<CR>
+shift + B 键可以make文件，并打开copenwindow
+shift+C 则关闭window
+
+*** errorformat
+ :set errorformat=%f:%l:%c:\ %m
+ ###  mainwindow.cpp:66:1: warning: unused parameter ‘wd’  
+格式匹配：文件名：行号：列号
+
+** 把文件列表用quickfix window打开
+:cexpr system('gcc -g -o cli cli.c')
+the error list will be opened in the quickfix window
+:cb[uffer]
+read the buffer to the quickfix window
+
+
+** open multiple files in vim 
+比如用find命令找出一连串的文件列表，
+/dir/file1
+/dir2/fiel2
+...
+
+1.用标签打开
+vim -p `cat filelist`  
+
+2. 把查找文件列表用vi打开  
+find .... |vim -
+
+3. .vimrc加入函数
+function Openall()
+  edit <cfile>
+ bfirst
+endfunction
+
+then highlight the entire file list
+(1G, Shift-V,G) 
+:'<,'>call Openall()
+will open all the files
+
+4. cat filelist | xargs   vim
+
+5. using buffer add to add all the files
+in bash $ vim -S < (sed "s/^/badd /" filelist)
+
+6. using quickfix mode
+:set errorformat=%f:%l:%c:\ %m
+###  mainwindow.cpp:66:1: warning: unused parameter ‘wd’
+7. using next or args
+:edit *.log
+there will be error to complain too much files
+using :next files
+:args files instead
+will work fine
+
+8. combine shell command and vim command 
+ :e `find . -name ver\\*.c -print`
+you can have the backticks expanded as a Vim expression, instead of an
+external command, by using the syntax `={expr}` e.g.: >
+        :e `=tempname()`
+
+:e `ls -t \| head -1`
+:n `ls -t \| head -3`
+ 
+
+** 搜索
+-------
+** 字符串查找
+** vimgrep 
+vimgrep {pattern} {file}  
+:vimgrep /an error/  *.{c,h}      :在当前目录下查找.c，.h文件里的error
+:vimgrep /myfunc/   **/*.c        ：递归查找 当前目录下所有c文件 
+#####注意区别
+:vimgrep /pattern/ **/*.c **/*.h  :递归查找 当前目录下所有的c和h文件
+:vimgrep /pattern/ **/*.{c,h}   :不查找当前目录下的c和h文件
+#####don't know why:
+:vimgrep /string/ /tmp/test/**   ：recursive all direcoty
+:vimgrep /string/ /tmp/test/*   ：not recursive, just the one direcotry
+：vimgrep /\<string\>/ /tmp/test/*.txt         precisely search
+:vimgrep /love\c/ %    grep in the current fil
+
+## 递归与否就是几个星号，一个就是不递归，两个**是递归
+
+** quickfix window and locationlist window
+:lv[imgrep] smilar to :vimgrep just the results saved in the location list
+use :lopen to open the location list window
+:copen to open the quickfix window 
+每次结果都保存在不同的列表中，若要保存在同一个列表
+ :vimgrepadd /test/ /tmp/test/*  
+多个结果列表中的切换，:colder, :cnewr [count]
+:lolder [count]       :lnewer [count] 
+ 
+** quickfix  window 文件列表打开方式 
+switchbuf    window open for quickfix 列表entry的方式  
+   //在quickfixwindows里 enter，可以在新tab中打开buffer
+:set switchbuf+=usetab,newtab
+
+** 查找替换 字符串
+1.当前文件替换  
+(1) replace
+:substitute     :s/pattern/bereplacedchar/g  表示当前行，g表示当前行的全局
+:%s/pattern/bereaplacedchar/       所有行，全局
+(2) 按用户选择，一个一个询问：
+:%s/love/Love/gc
+这里，c表示confirm，然后每到一个单词前，它会问你要怎样，y为替换，n为跳过，q为退出
+(3) 替换某区域内的单词：
+:8,16s/love/Love/g   表示替换8到16行的，怎么看出行数呢，把 set number 设上贝
+:'a,'bs/love/Love/g   表示替换a到b行的，这个a和b是用mark做的标记，即把光标停留
+在你要的两行上按 :make a 和 :make b艾，要再懒点，用区域选择吧，先选好，它会自动出现 :'<,'> 
+然后不要改这个，这个表示范围，在后面写上s/love/Love/g 就好！
+
+2.当前文件查找
+#love  
+ 查找忽略大小写：
+/love\c
+/word             — 在文件中查找word。
+/\<word\>—在文件中精确查找word，另在光标所在词处shift+*也可以达到同样的效果。
+/\<word          —在文件中查找以word开头的串。
+/word\>          —在文件中查找以word结尾的串。
+:s/aa/bb/g                            将光标所在行出现的所有包含 aa 的字符串中的 aa 替换为 bb
+:s/\<aa\>/bb/g                      将光标所在行出现的所有aa串替换为 bb, 仅替换aa这个单词，aab不替
+
+3. grep和vim
+grep能找到特定的字符，这样就需要编辑，尤其是找到很多文件都需要打开的情况，这是在ｖｉｍ的命令里　
+:grep /test/ /tmp/test/*
+:cn   :cp　　对于多个搜索结果的切换
+结果还是会保存在ｑｕｉｃｋｆｉｘｗｉｎｄｏｗ。
+:copen　打开，可以逐个进入，这个ｖｉｍｇｒｅｐ可以实现，但是重要的是比如一些特定的文件，
+find /tmp/test -type f -name Android.mk >/tmp/test/flist 
+:grep test `cat /tmp/test/flist` 这里同样可以在ｖｉｍ的你表里看都匹配的文件
+
+
+** 寄存器问题
+vi有多个registers
+:help registers
+#可以产看寄存器的详细信息
+选寄存器用"
++和*是系统级的寄存器，就是可以在vi和其他程序比如emacs之间通用的。 
+
+在linux下： 系统剪切板的命令   "+y
+##表示把内容粘贴到+寄存器里
+shift insert   粘贴系统剪切板内的内容   "+p
+要在vi中将vi的内容复制到系统剪切板可佣 set mouse=v设置
+右键就可以复制了。
+
+"在Visual模式中使用Ctrl+c复制内容到全局剪贴板
+vnoremap <C-c> "+y
+"在Visual模式中使用Ctrl+x剪切内容到全局剪贴板
+vnoremap <C-x> "+x
+   
+** window，tab和buffer
+vi中的buffer是document形式， 而window和tab是canvas形式
+
+*** tab和window
+**** tab是标签式的叠加显示
+:tabnew
+##在新标签中新建文件
+:tabe[dit]                            ：e
+##在新标签中打开文件                      ##在此窗口内打开文件
+:tabn－切换到下一个 tab 页
+:tabp－切换到上一个 tab 页
+：help tabnew   
+##查看更多信息
+
+*** window 是平面的，可以分割成几个区域
+：vsplit
+:split 
+:only     close all the window except the current one 
+ZZ        关闭当前窗口
+Ctrl+W w  切换各个窗口
+:edit 打开文件
+*** multi doc switch
+:ls  :files
+num1  *.c
+mum2 *.h
+##显示有多少个buffer（doc）
+:buffer number
+ls! 查看buffer
+bd  num1 删除buffer
+这些操作都是在同一个window或tab上进行
+
+
+** MISC 
+*** vi里 的工作目录                            file replace with - in shell 里的
+:pwd                                            :!pwd
+:cd {direcotry}                           :!cd
+:set path   
+:set path+=~/test     设置查找路径
+
+*** gvim 乱码问题
+set encoding=utf-8
+set langmenu=zh_CN.UTF-8
+language message zh_CN.UTF-8
+
+*** 保存session设置 
+:mksession {filename}
+vim -S {filename}
+
+*** commandline paste
+q:
+the command line window appeared, use "+p to copy sth in the command line
+
+*** 列块 模式 的编辑
+Ctrl+v
+enter visual mode
+select some block, insert multi char in the block use  Ichar<Esc>
+Esc很重要，按 了才会出现多个插入的情况
+列操作
+在Normal模式下ctrl+v，就进入列操作模式，此时可以用方向键选取操作范围，可以对多个列进行处理，比如删除，复制等。I（大写i）进入插入模式，插入完后返回Normal模式，就会产生多行效果。
+
+文本替换
+## 使用拼写检查功能   
+  * :set spell－开启拼写检查功能
+    * :set nospell－关闭拼写检查功能
+    * ]s－移到下一个拼写错误的单词
+    * [s－作用与上一命令类似，但它是从相反方向进行搜索
+    * z=－显示一个有关拼写错误单词的列表，可从中选择
+    * zg－告诉拼写检查器该单词是拼写正确的
+    * zw－与上一命令相反，告诉拼写检查器该单词是拼写错误的
+   
+# 使用括弧高亮显示功能   
+此特性在编码时非常具有帮助。对于如“{”、“}”之类的配对括弧，Vim 7 将高亮显示它们。如果不喜欢，可以使用“:NoMatchParen”命令禁用该功能。
+   
+# 使用自动补完功能   
+这是一个非常酷的特性。当你在写代码的时候，可以使用该功能帮助你自动完成标记、关键字等等。此功能支持 C、(X)HTML（包含
+CSS）、JavaScript、PHP、Python、Ruby、SQL、XML 等语言。在插入模式中，连续按“[Ctrl+x]
+[Ctrl+o]”组合键可以打开该功能。你可以从弹出的列表框中进行选择。
+   
+## 和shell切换
+suspend and resume vim in file replace with - in shell terminal:
+CTRL-Z      in vim window 
+$fg             in file replace with - in shell command
+:!ls  进入shell显示当前目录文件
+
+
+
+
+
+
+** vi的自动补全功能
+*** 1. Word / Pattern Completion in Vi / Vim Using Ctrl-x Ctrl-n
+You can use one of the following Vim shortcut keys to choose the existing words on the file.
+§ CTRL-x CTRL-n : Word completion – forward
+§ CTRL-x CTRL-p : Word completion – backward
+Fig: Keyword completion in Vi / Vim using Ctrl-x Ctrl-n
+Typical usage for programmers and administrators:
+§ Complete an existing word in the file, without retyping it.
+§ Complete a variable name or a function name on your program or shell-scripts.
+
+
+*** 2. Line Completion in Vim using Ctrl-x Ctrl-l
+
+If you want to insert an existing line, type the first few words/characters of the line, and then press the Vim shortcut keys “Ctrl+x Ctrl+l”, which will display all the lines matching that patten. Note: The second control character is a lowercase L.
+Fig: Vim Whole line completion using Ctrl-x Ctrl-l
+
+Typical usage for a programmers and administrators:
+§ Repeat an existing line quickly in your file.
+§ Automatically fill first line of the function definition, when the function is already declared elsewhere in the same file.
+
+*** 3. File Name Completion Using Ctrl-x Ctrl-f
+Insert the name of the file that resides anywhere on the Linux system using the short cut key “Ctrl+x Ctrl+f”.
+Typical usage: When you give the path of the file name as are reference inside a document.
+
+
+*** 4.Thesaurus Word Completion
+Using this feature you can choose alternate words with the same meaning for the word that you’ve just typed. Our previous article explains about the thesaurus features for your Vim editor.
+
+
+*** 5.Dictionary Word Completion Using Ctrl-x Ctrl-k
+Enable the dictionary in Vim by adding the following line to~/.vimrc.
+set dictionary+=/usr/share/dict/words
+This is a great feature when you stumble for the correct spelling for a word that you are typing. After typing the first few characters, Press the Vim short cut key Ctrl-x Ctrl-k to display the matching dictionary words.
+Fig: Vim Dictionary word completion using Ctrl-x Ctrl-k
+Final Note:
+§ Verify whether autocmd is enabled in Vi / Vim – Execute :version from vi / vim. If autocommand feature is enabled, it will display +autocmd.
+§ Insert Mode Completion help – Execute:help ins-completion from vi / vim, to get quick help on insert mode completion features.
+
+
+** vi常用命令
+** 移动到指定行或指定文件位置
+gg                           — 把光标移动到文件开头
+numG/:num                    — 把光标移动到文件的某行
+[0]G                         — 把光标移动到文件结尾
+''（两个单引号）               －回到光标跳转前的位置
+$                           －当前行的末尾
+0/^                         －当前行的开头
+f/F + 字母                   －向前/后移动到第一个字母处
+%                           －移动到与之匹配的括号上去（），{}，[]，<>等，后面会看到，"%"很有用。
+CTRL＋G                     －得到当前光标在文件中的位置
+CTRL+o                      -多个文件之间的跳转
+
+
+复制文本段
+
+yy               — 复制光标所在行
+nyy             — 复制从光标所在行向下n行的内容
+yw              — 复制光标所在的一个单词
+y^               — 复制从行首到当前位置的内容
+y$              — 复制到行尾为止的全部内容
+yf/F + 字母        —向前/后复制到第一个“字母”处
+y%             — 复制到匹配括号为止的全部内容
+yG             — 复制由当前光标位置开始到文件结尾为止的全部内容（[0]G代表结尾）
+y num G－ 复制当前行到指定行的内容
+ygg            — 复制由当前光标位置开始到文件开头为止的全部内容。
+
+删除文本段
+
+x                  — 删除光标所在的一个字符
+dd               — 删除光标当前行
+ndd             — 删除从光标所在行向下n行的内容
+dw               — 删除光标所在的一个单词
+d^                — 删除从行首到当前位置的内容
+d$               — 删除到行尾为止的全部内容
+df/F + 字母        —从光标所在向 前/后 删除到第一个“字母”处
+d%              — 删除到匹配括号为止的全部内容
+dG               — 删除由当前光标位置开始到文件结尾为止的全部内容（[0]G代表结尾）
+d num G－ 删除当前行到指定行的内容
+dgg              — 删除由当前光标位置开始到文件开头为止的全部内容。
+
+
+更改操作符，c，其工作方式几乎与 d（删除）操作符完全一样。唯一的区别在于，c 将您置于插入模式下。下面给出了一些使用更改操作符的示例：
+
+cw — 更改当前单词
+cc — 更改整行
+c$ — 更改到行尾为止的全部内容。
+
+
+
+
+** To mark a positon in files where cursor resides
+:help mark
+m{a-zA-Z}    //add a label
+'<markname>  //jump to a mark <markname> at the beginning of the line
+`<markname>  // jump to a mark <markname> at the cursor position of the line when mark added
+`. moves the cursor to the line and column where the last edit was made.
+'. moves the cursor to the line where the last edit was made
+exchange two lines    ddp
+merge two lines into one line J
+---------------------------------------
+# 文件浏览
+:Ex                             : 开启目录浏览器，注意首字母E是大写的
+:Sex                            : 在一个分割的窗口中开启目录浏览器
+:ls                             : 显示当前buffer的情况
+:cd ..                          : 进入父目录
+:args                           : 显示目前打开的文件
+:lcd %:p:h                      : 更改到当前文件所在的目录
+# 译释：lcd是紧紧改变当前窗口的工作路径，% 是代表当前文件的文件名,
+# 加上 :p扩展成全名（就是带了路径），加上 :h析取出路径
+:autocmd BufEnter * lcd %:p:h   : 自动更改到当前文件所在的目录
+# 译释：autocmd指定一个自动命令，BufEnter指定一个事件，* 指定事件的对象，
+# lcd %:p:h 指定一个动作
+# 缓冲区(buffer)浏览器 (第三方的一个最流行的脚本)
+# 需要下载 bufexplorer.vim ，http://www.vim.org/script.php?script_id=42 上就有
+\be                             : 在缓冲区浏览器中打开缓冲区列表
+\bs                             : 以分割窗口的形式打开缓冲区浏览器
+----------------------------------------
+
+ivi和系统剪切板
+2011-04-07 21:31
+只有安装了gvim后才支持用+寄存器访问系统剪切板，基本的vim是不支持的+号寄存器的。可用vi --version来查看vi所支持的特性。
+
+基本的vim下：
+
+从系统剪切板到vi：输入模式下，shift+insert
+
+从vi到系统剪切板：用鼠标，如果可以的话~~囧
+
+安装gvim后就可以使用+号寄存器了，即从vi复制到+寄存器的内容可以从系统剪切板访问，同样在vi中通过+寄存器可以访问系统剪切板。
+
+注意gvim其实是个虚拟的概念，具体可以是vim-gtk或vim-gnome。
+
+复制到+寄存器："+y
+
+从+寄存器粘贴："+p
+
+
+
+vim interact with the shell
+:!<shellcomand> 
+#execute a shell command in vim
+:r !<shellcomand>
+:%!<shellcommand>
+##these two commands  will read the output of shell to vim's current buffer
+:shell
+## this will invoke shell and when input exit, vim will repop
+
+/home/liguo/ttcn/MME_SGSN_tester/ttcn3libs/ttcn
+##############
+jumplist
+ju[mps]  will record all the cursor positions
+  With the CTRL-O and CTRL-I command you
+can go to cursor positions before older jumps, and back again.
+
+mark
+using '" to back to the place last edited
+  
+
+filter
+!<motion> command
+会把由”动作”选中的文本作为”命令”的输入，并用”命令”的输出替换选中的文本。
+举个例子，sort命令会对一个文件的内容排序。如果想对当前正在编辑文件的前10行排序，可以这样:
+先把光标移动到第一行，然后
+!10G sort -r
+
+===========================================
+to ignore bracket in C/C++ comment for match in vim
+using matchit.vim
+if ttcn file using :set filetype=c
+
+vimdiff open two files to compare
+fold/unfold same text command
+zo and zc to respectively open and close a section zM and zR to respectively expand and fold all the sections
+
+
+#############################
+vimdiff
+#######################
+set diffopt+=iwhite
+vimdiff -c 'set diffopt+=iwhite' ...
+
+o1. vimdiff filel filer
+o2. vim FILE_LEFT
+    :vertical diffsplit FILE_RIGHT
+:set noscrollbind
+
+o3. the next difference
+]c
+
+o4, the previous difference
+[c
+ 
+o5, copy the line in  other buffer to this current line
+ do
+###diff get/obtain
+o6, copy the line in this buffer to the other buffer
+dp
+####diff put
+比较和合并文件的时候经常需要结合上下文来确定最终要采取的操作。Vimdiff 缺省是会把不同之处上下各 6 行的文本都显示出来以供参考。其他的相同的文本行被自动折叠。如果希望修改缺省的上下文行数，可以这样设置：
+:set diffopt=context:3
+ 
+可以用简单的折叠命令来临时展开被折叠的相同的文本行：
+zo （folding open，之所以用z这个字母，是因为它看上去比较像折叠着的纸）
+zc （folding close）
+ 
+
+tip0:
+x11 clipboard/selection mechanism
+in vim "* , "+ will get vim through x11's clipboard, that means it could be paste
+anywhere else  than vim, for example terminal comand line 
+middle key in mouse will paste in vim, or using shift+insert, or "*p
+using middle key in the mouse to paste anywhere, 
+selecting the text using the mouse, could put the contents to the x11 clipboard also,
+this is OK in vim also
+
+tip1:
+ register of 0 will store something for the sencond most recent yanking
+ 1 will the the second most recent deleting, sometimes, the delete will override the content
+ of yanking,
+so we can use "Np to paste the content by yanking, N is 0,1,2..., 
+
+tip2:
+case switching gu (the selected to lowercase)
+gU(the selected to upppercase)
+
+tip3:
+about undo and redo
+:u
+####undo 
+CTRL+R
+#######redo
+if there are many times change by commands, you don't want to repate :u
+can use g-,  g+ for reverse undo
+ to the originial state , can use
+earlier {N}s/m/h
+latere  {N}s/m/h
+U			Undo all latest changes on one line.  {Vi: while not
+Undo up to a file write
+:earlier {count}	Go to older text state {count} times.
+:earlier {N}s		Go to older text state about {N} seconds before.
+:earlier {N}m		Go to older text state about {N} minutes before.
+:earlier {N}h		Go to older text state about {N} hours before.
+:earlier {N}d		Go to older text state about {N} days before.
+:earlier {N}f		Go to older text state {N} file writes before.
+			When changes were made since the laste write
+			":earlier 1f" will revert the text to the state when
+			it was written.  Otherwise it will go to the write
+			before that.
+	
+
+
+
+Sometimes you make several changes, and then discover you want to go back to
+when you have last written the file.  You can do that with this command: >
+
+	:earlier 1f
+
+The "f" stands for "file" here.
+
+
+tip4:
+yw dw 
+will opreate frome the cursor to the end of the word,
+yiw, diw
+will operate the whole world which cursor is position
+
+
+** tag usage
+** create tags for filenmae
+tag can be used to genertae a tag file which includeds the base name of the source file
+ctags -R --extar=f
+tags
+------------------
+test.c  ./test.c        1;"     F
+tsdfd.ttcn      ./tsdfd.ttcn    1;"     F
+-------------------------
+but in case of ttcn file, it won't generate the source file, 
+using 
+find . -type f -printf "%f\t%p\t1;\"\tF\n"
+will generate the right format of tags
+
+** shell to generaate tags file
+  (echo "!_TAG_FILE_SORTED        2       /2=foldcase/";
+         (find . -type f -printf "%f\t%p\t1;"\"tF\n" | \
+         sort -f)) > ./filenametags
+
+Typically you would want to exclude generated files such as .class and
+.o. You can do this easily by specifying additional expressions to
+the find command (see manpage for find command). E.g., replace the find
+command above with: >
+
+        find . -not -iname "*.class" -type f -printf "%f\t%p\t1;"\tF"\n" \
+
+< or, with something more useful: >
+
+        find . \( -name .svn -o -wholename ./classes \) -prune -o -not -iregex '.*\.\(jar\|gif\|jpg\|class\|exe\|dll\|pdd\|sw[op]\|xls\|doc\|pdf\|zip\|tar\|ico\|ear\|war\|dat\).*' -type f -printf "%f\t%p\t1;\"tF\n" \
+here, -name will prune the dir or files named
+
+
+** tag file setting
+set tags=tags;/
+this will resolve the file auto changing directory problem, ; means upward search file named "tags" to the root directory recursively 
+
+
+** tag <name>
+ *tag-regexp*
+The ":tag" and "tselect" commands accept a regular expression argument.  See
+|pattern| for the special characters that can be used.
+When the argument starts with '/', it is used as a pattern.  If the argument
+does not start with '/', it is taken literally, as a full tag name.
+Examples: >
+    :tag main
+<       jumps to the tag "main" that has the highest priority. >
+    :tag /^get
+<       jumps to the tag that starts with "get" and has the highest priority. >
+    :tag /norm
+:tag tsdfd.ttcn
+the file will be opened
+
+:tag /.*startStack
+---------------------------------
+ # pri kind tag               file
+  1 F C f    f_startStack      /home/guolili/ttcn/MME_SGSN_tester/ttcn/base/system/StackConfig.ttcn
+               823
+  2 F   f    IU_IF_startStack  /home/guolili/ttcn/TBPT/testers/NET/MME_SGSN/src/MainCodecT3.c
+               IU_IF_startStack(unsigned long  c,
+  3 F   f    MAP_IF_startStack /home/guolili/ttcn/TBPT/testers/NET/MME_SGSN/src/MainCodecT3.c
+               MAP_IF_startStack (unsigned long  c,
+  4 F   f    StackConfig_startStack /home/guolili/ttcn/MME_SGSN_tester/src/MainCodecT3.c
+               StackConfig_startStack (unsigned long  c,
+Choice number (<Enter> cancels):
+--------------------------------
+
+:ts <filname>
+:ts /pab
+to list the all the match files
+  # pri kind tag               file
+  1 F C F    paberg.ttcn       /home/liguo/ttcn/MME_SGSN_tes...testcases/workdir/paberg.ttcn
+               1
+  2 F   F    NS_66_10_Ue_RadioCapability_Update.ttcn /home/liguo/ttcn/M...bility_Update.ttcn
+               1
+  3 F   F    NS_66_9_UE_Radio_Capability.ttcn /home/liguo/ttcn/MME_S..._Radio_Capability.ttcn               1
+Choice number (<Enter> cancels):
+
+** the path of vim
+:set path=/usr/**
+two stars mean recusivly of /usr dir, so gf will go to the files which in /usr/.. recursively 
+it's specially useful in the log files which contain the file name but without the path.
+
+
+** debug the vim script
+** to get a variable value
+:echo g:LookupFile_TagExpr
+** to get a function value
+:echo bufname("%")
+** help manual
+in the file eval.txt
+or :help bufname
+would open eval.txt also
+To get the line under the cursor: >
+:echo  getline(".")
+:cexpr system('gcc -g -o cli cli.c')
+the error list will be opened in the quickfix window
+:cb[uffer]
+read the buffer to the quickfix window
+
+
+** file searching:
+1) Downward search:
+ xx/xx/**
+meas xx/xx/ directory recursively
+2) Upward search:
+   Here you can give a directory and then search the directory tree upward for
+   a file.  You could give stop-directories to limit the upward search.  The
+   stop-directories are appended to the path (for the 'path' option) or to
+   the filename (for the 'tags' option) with a ';'.  If you want several
+   stop-directories separate them with ';'.  If you want no stop-directory
+   ("search upward till the root directory) just use ';'. >
+        /usr/include/sys;/usr
+
+
+** variables between set and get
+let &path = g:SearchPath . &path
+set path+=g:SearchPath
+these two clauses are different because the variable can't be treated as a variable
+in the set clause, but it will be in the let clause
+
+
+“$”——访问环境变量；
+“&”——访问 Vim 选项；
+“@”——访问寄存器。
+例如
+:echo $VIM
+/usr/share/vim
+:echo $VIMRUNTIME
+usr/share/vim/vim73
+
+:echo &sessionoptions
+blank,buffers,folds,help,options,tabpages,winsize,sesdir
+或者
+:echo sessionoptions
+sessionoptions=blank,buffers,folds,help,options,tabpages,winsize,sesdir
+:echo g:SearchPath
+  
+** reload a buffer in vim
+using 
+:e
+it will reload the current buffer from the disk
+:view 
+means open files in buffer readonly,and e means read and write
+
+
+** write a file in vim using root previldge
+:w !sudo tee % 
+:w !grep aa
+
+
+I* how to display the text exceed the column
+            *'wrap'* *'nowrap'*
+'wrap'                  boolean (default on)
+
+
+load the .vimrc and the .vim direcotry from the specific directory
+not the $HOME directory
+[root@localhost initrd]# export VIMRUNTIME=/home/guolili/.vimrc
+[root@localhost initrd]# export VIMINIT="source /home/guolili/.vimrc"
+[root@localhost initrd]# echo $VIMINIT
+
+by this user root has the root previlidge, and user guolili's vim settings
+
+** a text mode ssh/telnet to a server
+secure crt
+options->Session Options->Terminal->emulation
+----------------------------------
+Terminal: Xterm       ANSI Color
+                      use color sheme
+---------------------------------
+
+Appearance 
+Current color scheme 
+
+Character encoding UTF-8
+
+-----------------------------------------------------
+
+vim  edit binary file:
+1. vim -b <binaryfilename>
+:set display=uhex
+ga get the char value of current cursor
+g CTRL-G  
+Col 9-16 of 9-16; Line 277 of 330; Word 1806 of 2058; Byte 10580 of 12206 
+go2345 will go to 2345 bytes.
+
+refresh current buff in vim 
+:e!
+:e
+refresh all buff in vim 
+bufdo e!
+ 
+
+**about spell and word completion
+*** sepll check
+:set spell   :set nospell
+make cursor to the misspelling words, z=  will display many options for words
+To move to a misspelled word, use ]s and [s. The ]s command will move the cursor to the next misspelled word, the [s command will move the cursor back through the buffer to previous misspelled words.
+
+*** autocomplete in a text for word
+:set complete+=kspell
+CTRL+N or CTRL-P in insert-mode will autocomplete the word for you
+
+
+** autocomplete words in the c code
+vim t.c
+----
+void A_Very_LONG_NAME()
+{}
+
+main()
+{
+//calling the function A_...
+A_Very      //using CTRL-p or ctrl-n to display the options to complete
+}
+-----
+
+** autocomplete words in a email
+vim text
+set dictionary+=/usr/share/dict/words  set dictionary-=
+type something in a insert mode
+sp
+CTRL-X CTRL-K
+select the words using CTRL-P or CTRL-N 
+ 
+** autocomplete filename in c code
+#include "f CTRL-X CTRL-F"
+fool.h will be completed
+
+
+
+* Vim+cscope+ctags+tags阅读源代码
+
+1、安装ctags
+ctags用于查找符号的定义,vim默认就是支持ctags产生的tag数据库的。ubuntu自带了轻量型的vim，exuberant-ctags是ctags的最新版本，源里有exuberant-ctags，运行以下安装：
+sudo apt-get install exuberant-ctags
+输入：ctags --version
+Exuberant Ctags 5.7, Copyright (C) 1996-2007 Darren Hiebert
+Compiled: Mar 12 2008, 08:23:02
+Addresses: <dhiebert@users.sourceforge.net>, http://ctags.sourceforge.net
+Optional compiled features: +wildcards, +regex
+显示以上信息，安装成功
+建立数据库命令：ctags -R
+在vim编辑器中浏览：
+    :ta x 跳转到符号x的定义处，如果有多个符号，直接跳转到第一处
+    :ts x 列出符号x的定义
+    :tj x 可以看做上面两个命令的合并，如果只找到一个符号定义，那么直接跳转到符号定义处，如果有多个，则让用户自行选择。
+    Ctrl+] 跳转到当前光标下符号的定义处，和ta类似。
+    Ctrl+t 跳转到上一个符号定义处，和上面的配合基本上就能自由跳转了。
+    另外两个:tn, :tp是在符号的多个定义之间跳转
+
+ctags支持自定义的扩展名的c语言文件
+比如有头文件后缀名为.x
+可以用ctags --langmap=c:.c.x.h* -R
+查看c语言支持的文件后缀名
+lily@willow:~/qt-exa$ ctags --list-maps|grep x
+Ant      *.build.xml
+Asm      *.asm *.ASM *.s *.S *.A51 *.29[kK] *.[68][68][kKsSxX] *.[xX][68][68]
+C++      *.c++ *.cc *.cp *.cpp *.cxx *.h *.h++ *.hh *.hp *.hpp *.hxx *.C *.H
+Flex     *.as *.mxml
+Perl     *.pl *.pm *.plx *.perl
+Python   *.py *.pyx *.pxd *.pxi *.scons
+REXX     *.cmd *.rexx *.rx
+Tex      *.tex
+
+ctags option
+---------
+langmap=map[,map[...]] ：控制文件名如何映射到语言种类。逗号分隔的map项由语言名称(可以是ctags内置语言或用户自定义语言)，冒号(':')，文件扩展名列表和/或文件名匹配模式构成。文件扩展名由'.'前缀开始的字符串标识(如".c")。文件匹配模式由包含在一对圆括号的模式标识(如([Mm]akefile)。如果系统上的C语言运行库正确支持，则Unix系统之上可以在匹配模式中使用shell中的通配符(确定将maps参数包含在引号之内)。使用选项--version可以检查当前ctags版本是否支持shell通配符：如果支持，"+wildcards"字符串会出现在ctags版本信息中。
+如果map参数中的首字符为'+'，则参数指定的扩展名和文件名匹配模式将会追加至语言当前映射中；否则，参数指定文件类型将会替代语言当前映射。如，指定仅".c"和".x"文件作为c语言文件进行处理，可以使用"--langmap=c:.c.x"；如果还需要将".j"文件作为java语言文件之一，使用"--langmap=c:.c.x,java:+j"；要将makefiles(如文件名为"Makefile"或"makefile",或以".mak"为扩展名的文件)映射为make"语言"文件，使用"--langmap=make:([Mm]akefile).mak"。如果要映射无扩展名的文件，可以使用一个'.'表示,其后不能有任何'.'以外的字符(如".","..x", ".x.")。如果要清除某种语言的所有文件映射关系(禁止为此语言自动生成标签)，可以指定一个空的map列表(如"--langmap=fortran:")。如果要恢复某种语言的缺省文件映射，将map参数置为"default"即可。如果要恢复所有语言的缺省文件映射，使用"--langmap=default"。注意：ctags在推断一个文件所属语言时，会优先检查文件扩展名，其次才为文件名匹配模式
+--------------------------------
+2、安装taglist
+taglist配合ctags使用，本身是vim的插件，在vim官网有下载，最新是taglist_45.zip
+下载地址：http://www.vim.org/scripts/script.php?script_id=273
+下载后解压，检查是否有~/.vim目录，如果没有就建立一个：mkdir ~/.vim
+把taglist_45.zip解压出来的2个文件doc和plugin拷贝到~/.vim目录下
+配置.vimrc文件
+输入：vim ~/.vimrc，打开vimrc文件，添加以下的代码(用于指定快捷键F8)：
+nnoremap <silent> <F8> :TlistToggle<CR>
+这样默认tag窗口是在左边，如果想显示在右边可以加入以下：
+let Tlist_Use_Right_Window=1
+
+3、安装cscope
+cscope用于快速查看函数、变量、宏等的定义和调用。ubuntu的源中有cscope，运行以下安装：
+sudo apt-get install cscope
+接着下载cscope_map.vim文件：
+wget http://cscope.sourceforge.net/cscope_maps.vim
+，把内容添加到.vimrc文件中或者将cscope_map.vim文件放在~/.vim/plugin目录中
+建立数据库的命令：cscope
+
+
+
+
+#!/bin/sh
+find . -name "*.h" -o -name "*.c" -o -name "*.cc" > cscope.files
+cscope -bkq -i cscope.files
+
+ctags -R
+
+cscope -Rbq 
+
+在VIM中使用tags查找符号：
+在vim命令行下执行：
+:tag xxx
+
+即可找到你想找的函数或是数据结构或是函数xxx
+关于tags的其它用法可以在vim中执行”:help tags”命令进行查询。
+六，其它命令介绍：
+ctrl+］：在函数调用的地方跳转到函数定义的地方
+ctrl+t  / ctrl + o：返回上一个查找的地方
+
+cscope 用法 
+在vim命令行下执行：
+:cs f g do_fork
+:cs find g do_fork
+:cs help
+:cs add cscope.out
+
+七，特别注意：
+所生成的cscope.out和tags文件要在打开VIM所在的文件夹，否则VIM无法找到相关符号信息。
+
+.vimrc
+"开关tag窗口
+nnoremap <silent> <F8> :TlistToggle<CR>
+
+"使用右侧tag窗口
+"let Tlist_Use_Right_Window=1
+
+"一般设置.
+"set nocompatible "VIM而不是VI
+set history=50 "历史记录50条
+set fenc=utf-8 "设置默认语言为8位unicode
+"man Q gq "屏蔽Q, 以免进入Ex模式
+filetype on "打开文件类型检测
+
+"
+""颜色设置.
+colorscheme delek "主题
+"colorscheme evening "主题
+syntax on "语法高亮
+"set hls " 查找文本高亮
+
+"界面设置.
+set ruler "显示当前位置
+set number "显示行号
+""set nonumber "不显示行号
+
+"格式设置.
+set autoindent "自动缩进
+set smartindent "智能缩进
+set cindent "C缩进
+set tabstop=4 "硬TAB
+set softtabstop=4 "软TAB
+set shiftwidth=4 "缩进空格数
+set expandtab "空格替换TAB
+"set smarttab "智能TAB
+"
+set showmatch "显示匹配
+"set matchtime=5 "1/10秒延迟
+"set hlsearch "高亮搜索
+"set incsearch "搜索中匹配
+set tags=tags; "ctags
+set autochdir "ctags
+
+
+* vim 备份文件
+
+Vim备份文件(转)2008-11-24 14:04vim备份文件 (2008-10-18 22:28:07)
+原文地址：http://blog.sina.com.cn/s/blog_467eb8ca0100b58c.html
+标签：杂谈   
+Vim
+一般来说VIM不会备份文件，你可以执行
+
+cp /usr/share/vim/vim64/vimrc_example.vim ~/.vimrc
+
+
+将vimrc_example.vim拷贝到当前用户的主目录并改名为.vimrc，该文件里面如下代码就打开了VIM的备份功能：
+
+if has("vms")
+set nobackup " do not keep a backup file, use versions instead
+else
+set backup " keep a backup file
+endif
+
+
+如果是拥有vms就不产生备份文件，因为vms会自动备份文件，如果没有vms就在每次修改文件时自动产生备份文件.
+也可以在打开文件的时候在VIM执行如下命令找开自动备份文件功能：
+
+: set backup
+
+
+
+但是Vim自动备份文件功能总是在原文件的后面加上一个~来表示是一个备份文件，例如如果文件名是file.txt，则
+备份文件的文件名就是file.txt~ 。我不是很喜欢这种风格，可以在VIM中输入如下命令进行修改：
+
+: set backupext=.bak
+
+
+这样会在备份文件时使用file.txt.bak，而不是file.txt~。另外还更改“backupdir”选项来指定备份的目录，一般Vim默认的是与原始文件一致的目录路径。
+
+: set backupdir=~/vimbackupfile
+
+
+
+可以将上述命令加入主目录下.vimrc文件里面，就不用每次都要输入一次。
+
+上述的设置成功后，在每次修改并保存一个文件时都保留一个修改前的文件版本，避免因为无意的改动而丢失重要的数据。
+
+另外还可以设置在修改原始文件时保留一个原始文件的备份，因为上述的备份文件会在存盘的时候被覆盖。这样它只能保留前一个版本，而不是最早的文件。通过设 置"patchmode"选项可以让Vim保存一个原始的文件，在定义这个选项必须注意与备份文件的扩展名不同，比如我喜欢在原文件后面加上.orig表 示这是一个原始文件的备份，同样在Vim执行或在.vimrc加入如下命令：
+
+: set patchmode=.orig
+
+
+这样在第一次修改文件时Vim都将生成一个如file.txt.orig原始备份文件。
+vim 在 linux的全局配置文件是/etc/vimrc 修改这个文件也是可以的。 
+
+
+
+
+在此描述您的新便笺。
+
+
+
+* vi 中split window and tabs学习笔记
+
+** open file in another window
+While running vim:
+
+    :sp filename for a horizontal split
+    :vsp filename or :vs filename for a vertical split
+
+
+
+vim命令非常繁多复杂，如果不知道可以查阅:help
+如果是某个命令不清除可佣 :help substitute      :help switchbuf
+如果是命令简写，可佣 :help :s        :help :substitute， 如果是选项就不要冒号，比如switchbuf
+
+
+vi中window，buffer，tabpage区别；一个tabpage可以包含多个window，一个window里可包含多个buffer
+window，          buffer，                       tabpage的概念：
+:new                   :e main.c                    :tabnew [filename]                      打开
+:close                 :df                                :tabclose                                         关闭
+Ctrl+W w	  Ctrl+^				Ctrl+shift+pagup			 切换  一般也可佣鼠标
+===========================================================
+                     
+        Horizon                                                                                           Verticall
+:split   水平打开窗口，内容和当前窗口一样                                                       :vsplit                               :tabnew [filename]
+:split [filename]    open a win with content of file filename                     :vsplit [filename]           :tabedit [filename]
+:new   open a empty new file horizontally                                                :vertical new
+------------------------------------------------------------
+:only     close all the window except the current one 
+ZZ        关闭当前窗口
+Ctrl+W w  切换各个窗口
+
+打开的vim
+:edit main.c
+:vertical diffsplit main.c~
+file replace with - in shell 下: 
+vimdiff main.c main.c~
+
+q:   得到vi的命令行窗口
+suspend and resume vim in file replace with - in shell terminal:
+CTRL-Z      in vim window 
+$fg             in file replace with - in shell command
+在vim里运行shell命令
+:!{program}       execute {program}
+:r !{program}      execute {program} and read its output in vim content
+:w !{program}    execute {program} and send the text in vim to its input                       ##eg. :w !grep "char"                 it will search the content of vim 
+
+"Paste toggle - when pasting something in, don't indent.
+
+vimgrep {pattern} {file}  
+[:vimgrep /an error/  *.c            :vimgrep /\<Filename\>/   *.h include /*
+:vimgrep /myfunc/   **/*.c        ????递归 碼 ? 当前所有文件 
+:vimgrep /string/ /tmp/test/**   recursive all direcoty
+:vimgrep /string/ /tmp/test/*   not recursive, just the one direcotry
+
+quickfix window and locationlist window
+:lv[imgrep] smilar to :vimgrep just the results saved in the location list
+use :lopen to open the location list window
+:copen to open the quickfix window  
+use ZZ to close the window 
+
+
+quickfix  window 保存文件列表 
+switchbuf    window open for quickfix 列表entry的方式  
+   //在quickfixwindows里 enter，可以在新tab中打开buffer
+:set switchbuf+=usetab,newtab
+
+查找替换 字符串：
+1.当前文件替换  
+(1) replace
+:substitute     :s/pattern/bereplacedchar/g  表示当前行，g表示当前行的全局
+:%s/pattern/bereaplacedchar/       所有行，全局
+(2) 按用户选择，一个一个询问：
+:%s/love/Love/gc
+这里，c表示confirm，然后每到一个单词前，它会问你要怎样，y为替换，n为跳过，q为退出
+(3) 替换某区域内的单词：
+:8,16s/love/Love/g   表示替换8到16行的，怎么看出行数呢，把 set number 设上贝
+:'a,'bs/love/Love/g   表示替换a到b行的，这个a和b是用mark做的标记，即把光标停留在你要的两行上按 :make a 和 :make b
+艾，要再懒点，用区域选择吧，先选好，它会自动出现 :'<,'> 然后不要改这个，这个表示范围，在后面写上s/love/Love/g 就好！
+
+2.当前文件查找
+#love  
+ 查找忽略大小写：
+/love\c
+
+3.所有文件查找
+vimgrep /love\c/ %    grep in the current file
+:vimgrep /string/ /tmp/test/**   recursive all direcoty
+:vimgrep /string/ /tmp/test/**/*.txt   recursive all direcoty in the /tmp/test/ to find *.txt files
+NOTICE:  if there's a file a.txt in /tmp/test/a.txt, this will  find a.txt
+
+:vimgrep /string/ /tmp/test/*   not recursive, just the one direcotry
+:vimgrep /string/ /tmp/test/*.txt        not recursive, just the one direcotry for *.txt files
+:lv   :lvimgrep
+:vim  :vimgrep
+
+:vimgrep /\<string\>/ /tmp/test/*.txt       //  precisely search
+
+4. grep和vim
+grep能找到特定的字符，这样就需要编辑，尤其是找到很多文件都需要打开的情况，这是在ｖｉｍ的命令里　
+:grep /test/ /tmp/test/*
+:cn   :cp　　对于多个搜索结果的切换
+结果还是会保存在ｑｕｉｃｋｆｉｘｗｉｎｄｏｗ。
+:copen　打开，可以逐个进入，这个ｖｉｍｇｒｅｐ可以实现，但是重要的是比如一些特定的文件，
+find /tmp/test -type f -name Android.mk >/tmp/test/flist 
+:grep test `cat /tmp/test/flist` 这里同样可以在ｖｉｍ的你表里看都匹配的文件
+每次结果都保存在不同的列表中，若要保存在同一个列表佣 :vimgrepadd /test/ /tmp/test/*  
+                                                                                       grepadd 
+多个结果列表中的切换，:colder, :cnewr [count]
+:lolder [count]       :lnewer [count]
+
+
+=============================================
+列出当前文件列表，不退出vi
+:edit /home/zxx  
+: e  .   编辑当前目录
+
+
+* vi newwindow :new/:vnew(a window hori or vertic)  
+
+** redirect shell command to vim new window/tab
+:new |r !ls -la #
+:vnew |r !ls -la #
+:tabnew |r !ls -la #
+# is replaced with the filename of the current buffer
+r! means read all the output of the shell command
+
+** input from vim buffer
+:'<,'>!wc
+selet all the lines in current buffer
+:%!wc
+// get all the lines in the current buffer
+:'<,'>w !wc
+the ouput will not in the current buffer
+
+
+* vi 中容易忘记 的命令
+
+移动到指定行或指定文件位置
+
+gg                                — 把光标移动到文件开头
+numG/:num                  — 把光标移动到文件的某行
+[0]G                             — 把光标移动到文件结尾
+''（两个单引号）          －回到光标跳转前的位置
+$                                  －当前行的末尾
+0/^                                －当前行的开头
+f/F + 字母                     －向前/后移动到第一个字母处
+%                                 －移动到与之匹配的括号上去（），{}，[]，<>等，后面会看到，"%"很有用。
+CTRL＋G                     －得到当前光标在文件中的位置
+
+
+查找文本
+
+/word             — 在文件中查找word。
+/\<word\>—在文件中精确查找word，另在光标所在词处shift+*也可以达到同样的效果。
+/\<word          —在文件中查找以word开头的串。
+/word\>          —在文件中查找以word结尾的串。
+
+
+复制文本段
+
+yy               — 复制光标所在行
+nyy             — 复制从光标所在行向下n行的内容
+yw              — 复制光标所在的一个单词
+y^               — 复制从行首到当前位置的内容
+y$              — 复制到行尾为止的全部内容
+yf/F + 字母        —向前/后复制到第一个“字母”处
+y%             — 复制到匹配括号为止的全部内容
+yG             — 复制由当前光标位置开始到文件结尾为止的全部内容（[0]G代表结尾）
+y num G－ 复制当前行到指定行的内容
+ygg            — 复制由当前光标位置开始到文件开头为止的全部内容。
+
+
+删除文本段
+
+x                  — 删除光标所在的一个字符
+dd               — 删除光标当前行
+ndd             — 删除从光标所在行向下n行的内容
+dw               — 删除光标所在的一个单词
+d^                — 删除从行首到当前位置的内容
+d$               — 删除到行尾为止的全部内容
+df/F + 字母        —从光标所在向 前/后 删除到第一个“字母”处
+d%              — 删除到匹配括号为止的全部内容
+dG               — 删除由当前光标位置开始到文件结尾为止的全部内容（[0]G代表结尾）
+d num G－ 删除当前行到指定行的内容
+dgg              — 删除由当前光标位置开始到文件开头为止的全部内容。
+
+
+更改操作符，c，其工作方式几乎与 d（删除）操作符完全一样。唯一的区别在于，c 将您置于插入模式下。下面给出了一些使用更改操作符的示例：
+
+cw — 更改当前单词
+cc — 更改整行
+c$ — 更改到行尾为止的全部内容。
+
+列操作
+
+在Normal模式下ctrl+v，就进入列操作模式，此时可以用方向键选取操作范围，可以对多个列进行处理，比如删除，复制等。I（大写i）进入插入模式，插入完后返回Normal模式，就会产生多行效果。
+
+文本替换
+
+替换是vi 的强项, 因为可以用正规表达式来匹配字符串。以下提供几个例子，很多都很有用：
+
+:s/aa/bb/g                            将光标所在行出现的所有包含 aa 的字符串中的 aa 替换为 bb
+:s/\<aa\>/bb/g                      将光标所在行出现的所有aa串替换为 bb, 仅替换aa这个单词，aab不替换
+:%s/aa/bb/g                         将文档中出现的所有包含 aa 的字符串中的 aa 替换为 bb
+:12,23s/aa/bb/g                   将从12行到23行中出现的所有包含 aa 的字符串中的 aa 替换为 bb
+:12,23s/^/#/                         将从12行到23行的行首加入 # 字符
+:33,43s/^\t*\t//                      将从33行到43行的行首为“\t*\t”的字符（串）删除
+:%s= *$==                           将所有行尾多余的空格删除
+:g/^\s*$/d                             将所有不包含字符(空格也不包含)的空行删除.
+:%s/^/Head content/g 全局插入开头信息
+:%s/$/Tail content/g             全局插入尾部信息
+
+分屏显示：
+
+:e filename                          先关闭原有文件再打开新文件
+:new filename 或                 ctrl+w再s或n 以水平分屏方式打开新文件
+:vnew filename 或               ctrl+w再v 以垂直分屏方式打开新文件
+ctrl+w再加方向键                切换到不同的子屏幕，也可用h,i,j,k代替4个方向键
+ctrl+w再c或q                       关闭或退出文件（关闭屏幕）
+ctrl+w再|                             最大化当前分屏
+ctrl+w再=                            平分两个分屏
+:resize n 或:resize +/-n                  改变窗口大小，或者增加减少行数n
+:vertical resize n 或:vertical resize +/-n                  改变窗口大小，或者增加减少宽度n
+
+录制宏和点（.）操作：
+
+如果需要重复多次操作，则需要录制宏和重复点操作，“.”即是重复上一次命令，我们可以使用点操作来进行重复的命令，但如果重复很多次，就需要进行宏录制。
+录制宏                               －            在Normal模式下，q表示进入recording模式，之后还要再加一个字母，表示该字母对应的寄存器。然后可以执行想要的操作，操作完成后，q表示完成recording。
+播放宏 number@letter －           在Normal模式下，number@letter可以重复letter存储的内容number次，比如1000@m表示重复寄存器m的内容1000次。
+
+Diff
+
+1. 进入 diff 模式
+        vimdiff file1 file2 [file3 [file4]]
+        vim -d file1 file2 [file3 [file4]]
+两者效果一样。Vim 将为每个文件打开一个窗口，并且就象使用 -O 参数一样，使用垂直分割。如果你
+要水平分割，加上 -o 参数:
+        vimdiff -o file1 file2 [file3]
+2. 当已在 Vim 中时，你可以用3种方式进入 diff 模式。
+:diffsplit filename      对 filename 开一个新窗口。
+:diffthis         使当前窗口成为 diff 窗口的一部分。也就是，设定和 "vimdiff" 同样的选项。
+还有一个不常用。要垂直分割窗口，在前面加上 vertical。例如:
+:vert diffs main.c
+
+* vi highlight and colour  
+http://blah.blogsome.com/2006/06/14/vim_tut_hl/
+高亮::Vim进阶索引[5]
+
+vi中的颜色显示有两种一种是语法的高亮，可以同时有很多是同种高亮，一种是search高亮，search只能是只有一种，
+
+下一次的search结果会覆盖这次的高亮结果
+设置查找高亮
+:set hlsearch
+:set nohlsearch
+
+字体颜色用fg定义，背景颜色用bg定义（也就是所谓的高亮）
+highlight命令可以设定颜色组：
+终端类型    前景色      背景色      注释
+term         -          -           黑白终端
+cterm       ctermfg     ctermgb     彩色终端（vim）
+gui         guifg       guibg       图形介面(gvim有效）
+
+
+定义新的高亮
+----------------------------------------------------------------------------------------------------------------------
+在定义新的高亮组时我们要先回答这个问题：为什么要定义新的组呢？有很多可能的原因：其中之一是我们想在不修改原来的高亮的情况下增加一种色彩，为些我们需要定义新的高亮组，并分配适当的颜色。
+现在我们要定义自已的组了，首先要为我们自定义的组取个名字，组的命名与变量一样只能由字符下划线和数字组成（虽然我们前面的例子中使用了不同的大小写，但组名是不区分大小写的）。下面的命令中我们定义了一个组名为“mygroup”的组2。
+:hi mygroup guifg=#ff9999
+这条命令告诉Vim将mygroup组的字串颜色定义为淡红色（lightred）。但Vim现在还不知道哪些字串属于mygroup，所以我们得告诉Vim——方法是使用:match命令：
+:match mygroup /xxx/
+这条命令告诉Vim凡匹配式样的xxx的字串都属于mygroup。这样当前文件中所有匹配“xxx”的字串都会变成淡红色。定义自己的颜色是不是很容易呢？先用:hi命令定义组及其使用的颜色。再用:match告诉Vim编辑区文本中哪些部分是属于自定义组的。最后，Vim会根据:match设置的规则将当前编辑区文本分为许多不同的组（如果有定义多个组的话），并对不同的组应用:hi为其分配的颜色
+
+下面我们要用一个更实际的例子来加深对语法高亮的印象。
+
+看一下这个简单的表格：
+
+王小明	数学	46
+李阿月	数学	72
+林小丽	数学	91
+
+这是某个班主任手中的成绩单。他/她的班级有25个学生，这是其中的三条数据。这个班级经常有考试，这个老师希望考试的结果更直接明了一点：不及格（少于60分）的成绩显示为红色，90分以上的成绩有显示为青色，这样他/她就可以很快知道哪些学生该补课3，而哪些学生该表扬。当科目为数学时将科目显示为蓝色，这个班主任教数学的！学生名字显示为粉红色——看来这个班主任是女的。最后全班最高分的颜色反白显示。
+我们先取几个不同的组名4：“u_student、u_subject、u_mark_fail、u_mark_a”分别表示“学生、科目、不及格、优秀”等。将这个表格另存为文本文件并用gVim打开，使用下面的命令：
+
+:hi u_student guifg=#ff9999 guibg=white
+:hi u_subject guifg=lightblue guibg=white
+:hi u_mark_fail guifg=red guibg=white
+:hi u_mark_a guifg=darkcyan guibg=white
+" 上面的命令定义了不同的组及其对应的颜色
+" 现在我们要用match告诉Vim怎么分辨不同的组，
+" 我们要用到一些的正则表达式
+	
+"行头开始至第一个空白字符
+:syn match u_student /^\S*/
+:syn match u_subject /数学/
+:syn match u_mark_fail /\s[1-5]\=.$/
+:syn match u_mark_a /\s100\|\s9.$/
+
+你可能发现了每条match命令前面都多了:syn。这是因为使用match命令时前一个match定义的组的颜色会丢失。用match命令你没办法同时显示多种颜色。在上面的match命令前加上syn就行了，就可以显示所有自定义的颜色了。
+
+提示：其实:syntax match与:match是不同的命令，不过“目前为止”它们的语法是一样的，我们在下一篇会讲到:syntax命令。
+
+现在我们为成绩单加上颜色了，但下一次呢？我们可不希望每次打开都手动设置，我们可以将之放进单独文件中。将上面的命令复制到单独的文件中，然后用:so命令运行就可以了。
+---------------------------------------------------
+
+
+
+
+
+
+
+两条命令可以用红色显示字体
+:highlight mygroup ctermfg=red
+:match mygroup /keyword/ 
+
+用红色字体显示第26行所有文字
+:syn match mygroup1 /\%26l.*/
+用红色字体显示23至26行之间的行数（不包含23和26行）
+:syn match mygroup /\%>23l.\%<26l/
+
+用红色字体显示光标所在当前行的所有文字
+:exe 'match mygroup /\%'.line(".").'l.*/ '
+
+高亮显示当前行的做法
+-------------------------
+
+    1 :highlight CurrentLine guibg=darkgrey guifg=white  (or whatever colors you want)
+    2 :au! Cursorhold * exe ‘match CurrentLine /\%’ . line(‘.’) . ‘l.*/’
+    3 :set ut=100
+
+注意以上三句是在Ex command下逐条输入，如果要使 Vim 运行后即启动此项功能，必须将这三行加到vimrc（windows下即_vimrc）文件中，开头的三个”:“应去掉。
+
+说明：该方法使用”match“来高亮显示一个字符串（match的用法在Ex下简单用法为 :match highlight-group-name string-match-some-pattern，如:match ErrorMsg "This" 会把文件里的”This“字符串都显示成红底白字），但并不会干扰当前搜索匹配。
+
+行1，定义一个highlight group（此处用法为:hi[ghlight] [default] {group-name} {key}={arg} ..），名为CurrentLine，设定高亮文本背景色（guibg）和前景色（guifg），此处可自行设定高亮颜色。
+
+行2，一有Cursorhold事件（:h Cursorhold查看详细解释，注意该事件在插入模式下不发生，故这个tip在插入模式无法工作:(），便在Ex command里执行（exe）match CurrentLine /\%’ . line(‘.’) . ‘l.*/，CurrentLine是行1定义的highlight group；第二个参数指定要高亮的字符串，先:h /\%l看看/\%{line-number}l的用法，而line(‘.’)则是取得光标所在行的行号，.*即该行的所有字符（包括控制符）。
+
+行3，ut即updatetime，单位ms，表示经多少ms不按键盘即表明Cursorhold发生。
+
+下列命令关闭该高亮功能，注意执行的顺序
+
+    1 :au! Cursorhold
+    2 :match none
+--------------------------------------------
+
+
+* vi 查找文本
+
+VIM学习笔记 查找文本
+
+查找字符
+
+命令f用于在本行内向前搜索。例如fx是向前（Forward）搜索字母x。而命令F是向后（Backward）搜索。例如Fx是向后搜索字母x。与f和F这两个相类似的是t和T命令。t命令类似于f向前搜索命令，所不同的是t搜索到时并不是将光标停在目标字符上，而是停在目标字符的前一个字符上。在搜索的过程中，我们可以使用ESC来退出搜索而开始新的工作。
+
+对于以上四个查找命令，我们可以重复执行这些操作。命令;是按照前一次的查找方向继续查找，如果要向相反的方向查找可以使用,命令。但是这些查找只是在行本行内进行，并不会将光标移动到其它的行。
+
+查找字符串
+
+我们可以使用/string命令来向前（Forward）查找字符串string，按下回车后，光标就能跳到正确的地方。在这个命令中，/后的字符是我们想要查找的字符，而回车键则表明了命令的结束。
+
+有时想要查找的内容并不仅在一处，我们可以在整个文章中进行查找：/可以继续刚才的查找操作。我们还可以使用n命令来继续刚才的查找命令。这两个命令都能达到同样的效果。
+
+一般来说，在进行查找时总是在向前查找。我们也可以使用?命令向后（Backward）查找。N也是逆向查找命令，他可以实现立即反向查找。
+
+如果我们想要停止这一查找，可以使用ctrl+C命令，如果是在Windows系统中，则要使用ctrl+Break命令。
+
+vi具有记录查找命令历史的功能，这样就不用重复输入查找命令了。例如你刚才做过的三次查找分别是：/one，/two，/three。而现在输入/，然后按方向键的上或是下就看到刚才查找的内容显示在vi的下面，这时只要按下回车就会找到想要的内容了。
+
+指定光标放置位置
+
+在默认情况下，查找时Vim会将光标放在第一个匹配的结果的开始处。我们也可以指定查找结束后，光标所处的位置。对于向前查找的命令，我们可以在斜线后用数字来指明光标所处的位置，例如/set/2命令会在查找结束后将光标放在第一个set字符串之后第二行的开始处。命令中的数字可以是正数也可以是负数。如果仅是一个简单的数字，光标会被放在第一个匹配字符串之后或之前的数字所指定的行的开始处。正是向后，负数是向前。如果斜线后是b和数字，那么在查找结束后，光标将会放在第一个匹配字符串的开始处，然后向左或是右移动n个字符，这里的n即为数字所指定的数。如果为正数则是向右移动，如果是负数，则是向左移动。例如/set/b2，这个命令使光标在查找结束后放在第一个匹配字符的开始处，然后向右移动两个字符，也就是说最后光标会位于第一个匹配字符串中的t的位置。将b改为s也是一样的效果。而参数e会使得光标放在第一个匹配字符串的结尾处。同样我们也可以用数字来指定向右还是向左移动光标以及移动的字符数。例如/set/e命令会使光标放在第一个匹配字符处的结尾处。如果命令改为/set/e2，会将光标放在第一个匹配字符串的结尾处，然后向右移动2个字符。这里的数字如果是正数则向右移，如果为负数则向左移。
+
+命令/set/e+2是在查找set字符串结束后，将光标放在第一个匹配字符串的结尾处，然后向右移动两个字符。在这里我们将这个数字称为偏移量。如果要重复上一次的查找，但是需要不同的偏移量，可以用//5命令。不使用偏移量时，可以指明一个空的偏移量，如//命令。/命令，重复前一次的查找，使用相同的偏移量。
+
+查找命令?也可以实现类似的功能。例如?set?b5命令，是将光标放在最后一个匹配字符串的开头部分，然后向右移动5个字符。??-2命令，则继续前一次的查找命令，但是使用新的偏移量。??命令，是继续前一次的查找命令，但是不使用偏移量。
+
+立时查找字符串
+
+如果我们想快速查找当前光标下的字符串，可以使用命令*，这个命令可以向前查找与当前光标下的字符精确匹配的字符串。而命令#，则向后查找与当前光标下的字符精确匹配的字符串。如果当前光标下的字符串为word，在执行*命令查找时并不会与Word相匹配。与这个立时查找命令相类似的就是g*命令。他不会进行严格的匹配。如果用这个命令来查找word，那么就有可能和Word相匹配。而g#命令与其相同，只不过他是向相反的方向进行查找匹配。
+
+设置查找选项
+
+我们可以选择高亮显示查找的文本，命令为：:set hlsearch，关闭高亮显示的命令为：:set nohlsearch。如果想关掉刚才高亮显示的结果，可以使用:nohlsearch命令。
+
+使用:set incsearch命令，将打开匹配查找选项。在进行查找时就会显示出不断匹配的过程。例如你想查找的内容是include，在打开这个选项后，当你输入/i，光标定位在i上，再继续输入n光标定位在in上，如此直到查打到所要求的内容。关闭这个选项的命令为：:set noincsearch。
+
+在默认的情况下，Vim是大小写敏感的。如果一个文件中有这样几个字符串：include,INCLUDE,Include。当我们使用命令/include来查找字符串时，只有include字符会被高亮显示。但是如果我们用:set ignorecase命令打开ignorecase选项后，所有的类似的字符都会被高亮显示。如果这样的查找结果并不是我们想要的,可以使用:set noignorecase命令关闭这个选项。
+
+如果设置了ignorecase选项后，我们想要查找字符串word，而匹配的则可能是word、Word，WORD。如果我们要查找字符串WORD，匹配的结里也是一样的。但是如果设置了:set ignorecase和:set smartcase两项后，执行结果就会变得不一样了：如果我们输入的是小写字符，那么就会匹配各种可能的组合，这时与设置了ignorecase的情况相同，但是如果我们在输入中有一个大写字符，那么这时就变成了精确查找，与设置了noignorecase的情况相同。
+
+我们在执行查找命令时，也可以用修饰符来控制大小写敏感。在命令中加入修饰符\C将告诉Vim执行大小写敏感的查询，比如?\Cword命令就只匹配单词word。而在命令中加入修饰符\c则执行忽略大小写的查询。
+
+在默认的情下，我们输入要查找的字符串，vim是从当前光标处向前查找，直到文件的结尾，如果没有找到，那么就会从文件的开头开始查找，直到光标所处的位置。我们可以通过:set nowrapscan命令，来禁止这种循环查找的方式，这样如果已经查找到文件的底部时，就会在底部显示出一条错误信息。如果我们想要回到正常的状态，可以使用:set wrapscan命令。
+命令小结f	向前搜索并将光标停留在目标字符上
+F	向后搜索并将光标停留在目标字符上
+;	重复刚才的查找
+,	反向重复刚才的查找
+t	向前搜索并将光标停留在目标字符的前一个字符上
+T	向后搜索并将光标停留在目标字符的后一个字符上
+/	向前查找
+?	向后查找
+n	继续查找
+N	反向查找
+*	向前查找与当前光标下字符精确匹配的字符串
+#	向后查找与当前光标下字符精确匹配的字符串
+:set hlsearch	打开高亮显示查找的文本
+:set nohlsearch	关闭高亮显示查找的文本
+:nohlsearch	关闭当前高亮显示的结果
+:set incsearch	打开显示查找匹配过程
+:set noincsearch	关闭显示查找匹配过程
+:set ignorecase	忽略大小写
+:set noignorecase	精确匹配大小写
+:set nowrapscan	禁止循环查找方式
+:set wrapscan	启用循环查找方式
+
+
+* vi 进阶
+
+copy paste
+为了在vi terminal等地方共享一些文字，需要用到系统剪切板。
+在linux下： 系统剪切板的命令   "+y
+shift insert   粘贴系统剪切板内的内容   "+p
+要在vi中将vi的内容复制到系统剪切板可佣 set mouse=v设置
+右键就可以复制了。
+gvim support all keyboard like +y 
+t backspace
+代码:
+"在插入模式中使用Ctrl+v粘贴全局剪贴板内容
+inoremap <C-v> <esc>:set paste<cr>mui<C-R>+<esc>mv'uV'v=:set nopaste<cr>
+
+"在Visual模式中使用Ctrl+c复制内容到全局剪贴板
+vnoremap <C-c> "+y
+
+"在Visual模式中使用Ctrl+x剪切内容到全局剪贴板
+vnoremap <C-x> "+x
+
+vi内部复制粘贴
+:help registers
+可以同时保存多份文本   
+
+
+multi window switch
+:ls  :files
+num1  *.c
+mum2 *.h
+:buffer number
+buffers
+ls! 查看buffer
+bd  num1 删除buffer
+BOARD_CAMERA_LIBRARIES
+:set 查看vi设置 
+:source ~/.vimrc.bak  动态加载vim配置文件
+
+gvim 乱码问题
+set encoding=utf-8
+set langmenu=zh_CN.UTF-8
+language message zh_CN.UTF-8
+
+保存session设置 
+:mksession {filename}
+vim -S {filename}
+
+commandline paste
+q:
+the command line window appeared, use "+p to copy sth in the command line
+
+列块 模式 的编辑
+Ctrl+v
+enter visual mode
+select some block, insert multi char in the block use  Ichar<Esc>
+Esc很重要，按 了才会出现多个插入的情况
+
+vi里 的工作目录                            file replace with - in shell 里的
+:pwd                                            :!pwd
+:cd {direcotry}                           :!cd
+
+文本文件里 保存的文件名：
+~/test/ta.txt
+gf （光标在文件上时） vim中打开ta.txt文件
+:set path   
+:set path+=~/test     设置查找路径
+ 
+
+# 使用拼写检查功能   
+Vm
+7 内置了一项与 Microsoft Word
+类似的拼写检查功能，使用该功能可以检查出所拼写词语的错误。在默认情况下，这项功能是没有开启的。若是使用 GVim 的话，可通过“Tools
+-> Spelling -> Spell check on”菜单命令开启。Vim
+一旦发现拼写错误的词语，则以红色的波浪线标记。而使用以下命令可以执行拼写检查功能的相关操作：
+    * :set spell－开启拼写检查功能
+    * :set nospell－关闭拼写检查功能
+    * ]s－移到下一个拼写错误的单词
+    * [s－作用与上一命令类似，但它是从相反方向进行搜索
+    * z=－显示一个有关拼写错误单词的列表，可从中选择
+    * zg－告诉拼写检查器该单词是拼写正确的
+    * zw－与上一命令相反，告诉拼写检查器该单词是拼写错误的
+
+   
+# 使用括弧高亮显示功能   
+此特性在编码时非常具有帮助。对于如“{”、“}”之类的配对括弧，Vim 7 将高亮显示它们。如果不喜欢，可以使用“:NoMatchParen”命令禁用该功能。
+   
+# 使用自动补完功能   
+这
+是一个非常酷的特性。当你在写代码的时候，可以使用该功能帮助你自动完成标记、关键字等等。此功能支持 C、(X)HTML（包含
+CSS）、JavaScript、PHP、Python、Ruby、SQL、XML 等语言。在插入模式中，连续按“[Ctrl+x]
+[Ctrl+o]”组合键可以打开该功能。你可以从弹出的列表框中进行选择。
+   
+# 使用分页（tabs）功能   
+此功能可让 Vim 同时打开多个文档进行编辑。其命令如下：
+   
+
+    * :tabe /path/to/file.txt－在一个新的 tab 页中打开文件
+    * :tabnew－新建一个 tab 页
+    * :tabs－查看 tab 页列表，通过“>”显示当前窗口、“+”显示可修改的缓冲区
+    * :tabc－关闭当前的 tab 页
+    * :tab split－在当前缓冲区使用新的 tab 页打开文件
+    * :tabn－切换到下一个 tab 页
+    * :tabp－切换到上一个 tab 页
+    * :tabr[ewind]－转到第一个 tab 页
+    * :tabf[irst]－与上一命令作用相同
+
+vim查看配置项的值以及查看环境变量的值
+已有 157 次阅读  2011-06-25 21:30
+1，查看环境变量。
+例如，要查看$VIMRUNTIME的值。
+
+   1. :echo $VIMRUNTIME
+
+2，查看配置项的值。
+例如，要查看fileencodings的值。
+
+   1. :set fileencodings?
+
+buffer 和window的关系
+buffer 相当与data，  window相当于 canvas
+在buffer之间的切换 用插件bufexplor.vim
+\be  打开bufferlist window
+
+
+window 位置的控制
+：vertical topleft split
+可以打开一个windwow放置bufferlist
+ 
+ 
+* vi 查找文本
+
+VIM学习笔记 查找文本
+
+查找字符
+
+命令f用于在本行内向前搜索。例如fx是向前（Forward）搜索字母x。而命令F是向后（Backward）搜索。例如Fx是向后搜索字母x。与f和F这两个相类似的是t和T命令。t命令类似于f向前搜索命令，所不同的是t搜索到时并不是将光标停在目标字符上，而是停在目标字符的前一个字符上。在搜索的过程中，我们可以使用ESC来退出搜索而开始新的工作。
+
+对于以上四个查找命令，我们可以重复执行这些操作。命令;是按照前一次的查找方向继续查找，如果要向相反的方向查找可以使用,命令。但是这些查找只是在行本行内进行，并不会将光标移动到其它的行。
+
+查找字符串
+
+我们可以使用/string命令来向前（Forward）查找字符串string，按下回车后，光标就能跳到正确的地方。在这个命令中，/后的字符是我们想要查找的字符，而回车键则表明了命令的结束。
+
+有时想要查找的内容并不仅在一处，我们可以在整个文章中进行查找：/可以继续刚才的查找操作。我们还可以使用n命令来继续刚才的查找命令。这两个命令都能达到同样的效果。
+
+一般来说，在进行查找时总是在向前查找。我们也可以使用?命令向后（Backward）查找。N也是逆向查找命令，他可以实现立即反向查找。
+
+如果我们想要停止这一查找，可以使用ctrl+C命令，如果是在Windows系统中，则要使用ctrl+Break命令。
+
+vi具有记录查找命令历史的功能，这样就不用重复输入查找命令了。例如你刚才做过的三次查找分别是：/one，/two，/three。而现在输入/，然后按方向键的上或是下就看到刚才查找的内容显示在vi的下面，这时只要按下回车就会找到想要的内容了。
+
+指定光标放置位置
+
+在默认情况下，查找时Vim会将光标放在第一个匹配的结果的开始处。我们也可以指定查找结束后，光标所处的位置。对于向前查找的命令，我们可以在斜线后用数字来指明光标所处的位置，例如/set/2命令会在查找结束后将光标放在第一个set字符串之后第二行的开始处。命令中的数字可以是正数也可以是负数。如果仅是一个简单的数字，光标会被放在第一个匹配字符串之后或之前的数字所指定的行的开始处。正是向后，负数是向前。如果斜线后是b和数字，那么在查找结束后，光标将会放在第一个匹配字符串的开始处，然后向左或是右移动n个字符，这里的n即为数字所指定的数。如果为正数则是向右移动，如果是负数，则是向左移动。例如/set/b2，这个命令使光标在查找结束后放在第一个匹配字符的开始处，然后向右移动两个字符，也就是说最后光标会位于第一个匹配字符串中的t的位置。将b改为s也是一样的效果。而参数e会使得光标放在第一个匹配字符串的结尾处。同样我们也可以用数字来指定向右还是向左移动光标以及移动的字符数。例如/set/e命令会使光标放在第一个匹配字符处的结尾处。如果命令改为/set/e2，会将光标放在第一个匹配字符串的结尾处，然后向右移动2个字符。这里的数字如果是正数则向右移，如果为负数则向左移。
+
+命令/set/e+2是在查找set字符串结束后，将光标放在第一个匹配字符串的结尾处，然后向右移动两个字符。在这里我们将这个数字称为偏移量。如果要重复上一次的查找，但是需要不同的偏移量，可以用//5命令。不使用偏移量时，可以指明一个空的偏移量，如//命令。/命令，重复前一次的查找，使用相同的偏移量。
+
+查找命令?也可以实现类似的功能。例如?set?b5命令，是将光标放在最后一个匹配字符串的开头部分，然后向右移动5个字符。??-2命令，则继续前一次的查找命令，但是使用新的偏移量。??命令，是继续前一次的查找命令，但是不使用偏移量。
+
+立时查找字符串
+
+如果我们想快速查找当前光标下的字符串，可以使用命令*，这个命令可以向前查找与当前光标下的字符精确匹配的字符串。而命令#，则向后查找与当前光标下的字符精确匹配的字符串。如果当前光标下的字符串为word，在执行*命令查找时并不会与Word相匹配。与这个立时查找命令相类似的就是g*命令。他不会进行严格的匹配。如果用这个命令来查找word，那么就有可能和Word相匹配。而g#命令与其相同，只不过他是向相反的方向进行查找匹配。
+
+设置查找选项
+
+我们可以选择高亮显示查找的文本，命令为：:set hlsearch，关闭高亮显示的命令为：:set nohlsearch。如果想关掉刚才高亮显示的结果，可以使用:nohlsearch命令。
+
+使用:set incsearch命令，将打开匹配查找选项。在进行查找时就会显示出不断匹配的过程。例如你想查找的内容是include，在打开这个选项后，当你输入/i，光标定位在i上，再继续输入n光标定位在in上，如此直到查打到所要求的内容。关闭这个选项的命令为：:set noincsearch。
+
+在默认的情况下，Vim是大小写敏感的。如果一个文件中有这样几个字符串：include,INCLUDE,Include。当我们使用命令/include来查找字符串时，只有include字符会被高亮显示。但是如果我们用:set ignorecase命令打开ignorecase选项后，所有的类似的字符都会被高亮显示。如果这样的查找结果并不是我们想要的,可以使用:set noignorecase命令关闭这个选项。
+
+如果设置了ignorecase选项后，我们想要查找字符串word，而匹配的则可能是word、Word，WORD。如果我们要查找字符串WORD，匹配的结里也是一样的。但是如果设置了:set ignorecase和:set smartcase两项后，执行结果就会变得不一样了：如果我们输入的是小写字符，那么就会匹配各种可能的组合，这时与设置了ignorecase的情况相同，但是如果我们在输入中有一个大写字符，那么这时就变成了精确查找，与设置了noignorecase的情况相同。
+
+我们在执行查找命令时，也可以用修饰符来控制大小写敏感。在命令中加入修饰符\C将告诉Vim执行大小写敏感的查询，比如?\Cword命令就只匹配单词word。而在命令中加入修饰符\c则执行忽略大小写的查询。
+
+在默认的情下，我们输入要查找的字符串，vim是从当前光标处向前查找，直到文件的结尾，如果没有找到，那么就会从文件的开头开始查找，直到光标所处的位置。我们可以通过:set nowrapscan命令，来禁止这种循环查找的方式，这样如果已经查找到文件的底部时，就会在底部显示出一条错误信息。如果我们想要回到正常的状态，可以使用:set wrapscan命令。
+命令小结f	向前搜索并将光标停留在目标字符上
+F	向后搜索并将光标停留在目标字符上
+;	重复刚才的查找
+,	反向重复刚才的查找
+t	向前搜索并将光标停留在目标字符的前一个字符上
+T	向后搜索并将光标停留在目标字符的后一个字符上
+/	向前查找
+?	向后查找
+n	继续查找
+N	反向查找
+*	向前查找与当前光标下字符精确匹配的字符串
+#	向后查找与当前光标下字符精确匹配的字符串
+:set hlsearch	打开高亮显示查找的文本
+:set nohlsearch	关闭高亮显示查找的文本
+:nohlsearch	关闭当前高亮显示的结果
+:set incsearch	打开显示查找匹配过程
+:set noincsearch	关闭显示查找匹配过程
+:set ignorecase	忽略大小写
+:set noignorecase	精确匹配大小写
+:set nowrapscan	禁止循环查找方式
+:set wrapscan	启用循环查找方式
+
+
+* quickfix窗口保存cscope结果
+
+http://blog.csdn.net/jiayu/archive/2008/05/08/2418147.aspx
+
+原创  VIM使用技巧（1） -- 使用quickfix窗口保存cscope结果 收藏
+
+当CSCOPE查询包含多个查询结果时，VIM默认使用一个一次性列表将结果显示。当选中某个结果查看代码后，这个列表将会被自动关闭。如果要从中选取几个位置仔细查看，需要多次查询。这样工作效率不高。
+
+VIM 7.0以上的版本提供使用quickfix窗口保存cscope查询结果的功能。如果要使用此功能，需要在$HOME/.vimrc或其他VIM配置文件中增加：
+
+    set cscopequickfix=c-,d-,e-,g-,i-,s-,t-
+
+为方便使用，可以定义一些快捷键：
+
+    nmap <C-n> :cnext<CR>
+    nmap <C-p> :cprev<CR> 
+
+重新启动VIM后，当使用Ctrl-]或者Ctrl-\ s等查询某个tag时，所有的结果将保存在quickfix窗口中。
+
+使用Ctrl-n、Ctrl-p可以在同一个窗口中的不同结果之间跳跃。
+
+需要注意的是，当使用quickfix窗口后，原先的tag stack和Ctrl-t键会失效。为弥补这不足，可以将Ctrl-t重新地定义：
+
+    nmap <C-t> :colder<CR>:cc<CR>
+
+这样，使用Ctrl-t，依然可以达到pop tag stack的效果。
+
+
+* 把文件列表用fixwindow打开
+
+比如用find命令找出一连串的文件列表，
+/dir/file1
+/dir2/fiel2
+...
+
+1.用标签打开
+vim -p `cat filelist`  
+
+2. 把查找文件列表用vi打开  
+find .... |vim -
+
+3. .vimrc加入函数
+function Openall()
+  edit <cfile>
+ bfirst
+endfunction
+
+then highlight the entire file list
+(1G, Shift-V,G) 
+:'<,'>call Openall()
+will open all the files
+
+4. cat filelist | xargs   vim
+
+5. using buffer add to add all the files
+in bash $ vim -S < (sed "s/^/badd /" filelist)
+
+6. using quickfix mode
+:set errorformat=%f:%l:%c:\ %m
+###  mainwindow.cpp:66:1: warning: unused parameter ‘wd’
+
+:cf filelist
+这个方法可以然vim打开很多文件
+
+7. using gf to the file
+open the filelist in vi , then gf the line 
+
+
+vi中的内置变量 cword, 帮助在cmdline.txt.
+
+<<<<<<< .mine
+* vi option set check
+set ignorecase
+set ignorecase?      ## this will show the value of ingorecase
+set ignorecase!     ## toggle this option to other value
+set ignorecase?    ## revert to its default value
+set noingorecase   ## will turn off ingorcase option
+* vi replace
+:%s/foo/bar/g
+ Find each occurrence of 'foo' (in all lines), and replace it with 'bar'. 
+ 
+ :s/foo/bar/g
+ Find each occurrence of 'foo' (in the current line only), and replace it with 'bar'. 
+ 
+ :%s/foo/bar/gc
+ Change each 'foo' to 'bar', but ask for confirmation first. 
+ 
+ :%s/\<foo\>/bar/gc
+ Change only whole words exactly matching 'foo' to 'bar'; ask for confirmation. 
+ 
+ :%s/foo/bar/gci
+ Change each 'foo' (case insensitive) to 'bar'; ask for confirmation. 
+ This may be wanted after using :set noignorecase to make searches case sensitive (the default). 
+ 
+ :%s/foo/bar/gcI 
+ 
+* vi paste
+A useful command to have in your .vimrc is set pastetoggle=<F10> or some other button, to easily toggle between paste and nopaste.
+share|improve this answer
+	
+I kept typing :set paste / :set nopaste,    	 
+
+I usually use :r! cat and then paste ( shift + insert ) the content, and CTRL+D.
+No need to enable & disable, direct usage.
+
+=======
+* vi option set check
+set ignorecase
+set ignorecase?      ## this will show the value of ingorecase
+set ignorecase!     ## toggle this option to other value
+set ignorecase?    ## revert to its default value
+set noingorecase   ## will turn off ingorcase option
+>>>>>>> .r61
+
+* vim starup too slow
+** diagnose the startup time
+$ vim --startuptime vim.log
+vim.log content would be like this:
+==============================
+times in msec
+ clock   self+sourced   self:  sourced script
+  clock   elapsed:              other lines
+
+  000.006  000.006: --- VIM STARTING ---
+  000.082  000.076: Allocated generic buffers
+  000.299  000.217: locale set
+  000.303  000.004: clipboard setup
+  000.308  000.005: window checked
+  000.787  000.479: inits 1
+  000.793  000.006: parsing arguments
+=============================
+the second colum is the time consuming in that entry, you can tell which take
+too much time.
+
+
+** clipboard startup 
+setup clipboard
+
+First, try running Vim with the following command:
+
+$ vim -X
+
+You can try using the -X --startuptime <file> options together to see if the "setup clipboard" component is still slow.
+
+If -X helps, you can get the same effect by adding the following line to your vimrc file:
+
+set clipboard=exclude:.*
+
+Explanation
+
+If this helps what is happening is that on startup Vim is trying to connect to an X server to allow it to use the clipboard. The -X option tells Vim to not try connecting to the X server. From :help -X
+
+-X          Do not try connecting to the X server to get the current
+            window title and copy/paste using the X clipboard.  This
+            avoids a long startup time when running Vim in a terminal
+            emulator and the connection to the X server is slow.
+            See --startuptime to find out if affects you.
+            Only makes a difference on Unix or VMS, when compiled with the
+            +X11 feature.  Otherwise it's ignored.
+            To disable the connection only for specific terminals, see the
+            'clipboard' option.
+            When the X11 Session Management Protocol (XSMP) handler has
+            been built in, the -X option also disables that connection as
+            it, too, may have undesirable delays.
+
+The clipboard option can be used to achieve the same thing more permanently via your vimrc file. From :help 'clipboard'
+
+
+** another one might take much startup time
+inits 3
+
+You seem to have already eliminated your plugins/customisations as a possible cause by trying vim -u NONE (and you said your vimrc was empty).
+
+I am not familiar with this issue, but as suggested above, it might be to do with your viminfo file.
+
+You can determine whether this is the case by starting Vim with the following command:
+
+$ vim -i NONE
+
+According to :help slow-start:
+
+    If you have "viminfo" enabled, the loading of the viminfo file may take a while. You can find out if this is the problem by disabling viminfo for a moment (use the Vim argument "-i NONE"). Try reducing the number of lines stored in a register with ":set viminfo='20,<50,s10".
+
+
+
+
+    
+
+    That's actually a builtin. (here's the help link)
+
+    :set autochdir
+
+    Stick that in your .vimrc or whatnot (:e $MYVIMRC). As mentioned here, sometimes plugins will have issues with that and you need to use something more complicated like
+
+    autocmd BufEnter * lcd %:p:h
+
+    or cd %:h

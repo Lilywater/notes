@@ -1,0 +1,753 @@
+* git basic introduction?
+
+git is a very useful tool,and very specific is that it could manage all of vesrsions including your locals and remotes.
+For example, you git clone a repo from remote server, and when you modified it, you could just save your modification in your local with add/commit.
+and in remote, no modification could be retrieved until you push it to remote server.
+
+**  basic usage
+*** git clone <url>
+get exactly the same copy from remote rep to your local.
+
+*** create a repo as a remote rep
+This is the typical way of using git; people will make a bare repository and push code into it and pull changes from it into their repositories.
+
+A bare repository has special restrictions to help keep things in order.  The easiest way to start up a bare repository is with a working copy that you push to a bare repository.
+
+First, make your working repository per the instructions above.  Have at least one commit made before you start.  For the instructions, let's assume your project is in the directory my_project/ and we want to make my_project.git/ (bare repositories typically have directory names that end in .git).  From the directory just above your project, run these commands:
+
+**** creat a bare rep 
+git init --bare --shared my_project.git
+Now my_project.git could be use as git clone parameter.
+
+**** local repository initialization
+cd my_project
+git init
+gid add .
+git commit
+git remote add origin ../my_project.git
+git remote -v   ### for verification what is the remote addr
+git push origin master
+
+
+*** git status/ add /reset
+git add <filename>
+git status ##this will list your local files status different from rep.
+Changes not staged for commit:
+(use "git add <file>..." to update what will be committed)
+(use "git checkout -- <file>..." to discard changes in working directory
+
+Untracked files:
+(use "git add <file>..." to include in what will be committed)
+
+**** git add . 
+this will add all the  "not staged for commit" and untracked files in this dir
+
+**** git add -u
+this will only add "not staged for commit" files.
+
+**** git reset local "add/del" operation
+opposite operation of the git add.
+
+*** git show url and branches in remote (svn info)
+[admin1@TeamCI-136 MME_SGSN_tester]$ git remote  show origin
+* remote origin
+  Fetch URL: https://glili@deveo.ext.net.nokia.com/Nokia/projects/mme_sgsn_teste                                                                                                              r/repositories/git/MME_SGSN_tester
+  Push  URL: https://glili@deveo.ext.net.nokia.com/Nokia/projects/mme_sgsn_teste                                                                                                              r/repositories/git/MME_SGSN_tester
+  HEAD branch: master
+  Remote branches:
+    master tracked
+    ns17   tracked
+  Local branches configured for 'git pull':
+    master merges with remote master
+    ns17   merges with remote ns17
+  Local refs configured for 'git push':
+    master pushes to master (up to date)
+    ns17   pushes to ns17   (local out of date)
+* git branch -r -v 
+this command show the remote origin branch
+git branch -r
+-------------------
+  origin/HEAD -> origin/master
+  origin/master
+  origin/ns17
+------------------
+
+this command show the local branch
+git branch 
+[admin1@TeamCI-136 MME_SGSN_tester]$ git branch
+  master
+  * ns17
+ [admin1@TeamCI-136 MME_SGSN_tester]$ git branch -v
+    master 2d9d43d add support for teid as optional field in  errencoding message.
+    * ns17   a1dbbbe Add support for teid as optinal field in message "EncdingErr" of Gtpv2
+
+
+*** git commit
+**** git commit ###will commit all the  "Changes to be committed" files
+[admin1@TeamCI-136 cleancodeContest]$ git status
+HEAD detached at v1
+Changes to be committed:
+  (use "git reset HEAD <file>..." to unstage)
+          modified:   Makefile
+
+**** $ git commit -a
+which will automatically notice any modified (but not new) files, add them to the index, and commit, all in one step.
+it mean "git add -u; git commit;"
+A note on commit messages: Though not required, it's a good idea to begin the commit message with a single short (less than 50 character) line summarizing the change, followed by a blank line and then a more thorough description. i
+The text up to the first blank line in a commit message is treated as the commit title, and that title is used throughout Git. 
+For example, git-format-patch(1) turns a commit into email, and it uses the title on the Subject line and the rest of the commit in the body.
+
+
+
+*** git checkout
+checkout means a lot of things in git 
+**** revert local change from local repo( not remote repo)
+git  checkout -- <filename>
+regurlar expr:
+git checkout -- '*.c'
+
+**** switch branches/tags
+git checkout <tagname>/<branchname>
+
+
+*** git diff
+git diff shows the diff between HEAD and the current project state
+git diff --cached will show the files differnece with remote rep.
+
+**** between two <tagname>
+git diff HEAD..FETCH_HEAD <filename>
+
+**** <tagname>'s parent/child
+$ git diff HEAD^  <filename> # to see the parent of HEAD
+$ git diff HEAD^^ <filename> # to see the grandparent of HEAD
+$ git diff HEAD~4 <filename> # to see the great-great grandparent of HEAD
+
+
+*** git push 
+git push [<repoistory>]  [<refspec>]
+[]$git push origin master
+origin is the name of the remote repository shortname.
+master is the branch which you want to push
+
+when modified some files 
+[]$git push
+in default, git push means git push origin master
+it will push the current branch to the default remote repository
+for verification us "git -v remote" and "git branch"
+to check which is your current remot and branch
+
+
+*** git pull
+Fetch from and inegrate with another rep
+it means "git fetch &  git merge FETCH_HEAD"
+git pull 
+means git pull origin master
+git push [<repoistory>]  [<refspec>]
+
+                     A---B---C master on origin
+                    /
+               D---E---F---G master
+                   ^
+                   origin/master in your repository
+
+       Then "git pull" will fetch and replay the changes from the remote master branch since it diverged from the local master (i.e., E) until its current commit (C) on top of master
+       and record the result in a new commit along with the names of the two parent commits and a log message from the user describing the changes.
+
+                     A---B---C origin/master
+                    /         \
+               D---E---F---G---H master
+
+
+*** git reset
+**** undo add(without any parameter)
+git add fil.c
+git reset ### will undo add fil.c step
+
+
+git reset <option>  <ref>=default
+
+HEAD, ORIG_HEAD FETCH_HEAD
+**** undo commit
+git commit ...
+HEAD^ means reset to HEAD's 1st previous commit
+git reset --soft HEAD^   #### commit will make HEAD forward, so HEAD^ is the HEAD before commit
+                         ### reset copies the old head to .git/ORIG_HEAD
+editing files
+git commit -a -c ORIG_HEAD ## commit Take an existing commit object, and reuse the log message and
+                           ## the authorship information (including the timestamp) when creating the commit 
+
+**** undo commit permanently
+git commit ...
+git reset --hard HEAD~3   ### reset the change 3 times before HEAD
+
+**** make a branch from master
+git branch topic/wip      ### in the master branch now
+git reset --hard HEAD~3   ### reset the change 3 times ago
+git checkout topic/wip    ## now master without those 3 times changes,but topic/wip dose
+
+**** undo pull/merge 
+               $ git pull                         (1)  conflict occur. 
+               Auto-merging nitfol
+               CONFLICT (content): Merge conflict in nitfol
+               Automatic merge failed; fix conflicts and then commit the result.
+               $ git reset --hard ORIG_HEAD      ### let HEAD be ORIG_HEAD, files would be exactly the same with remote rep. 
+
+*** git stash
+
+Often, when you've been working on part of your project, things are in a messy state and you want to switch branches for a bit to work on something else. 
+The problem is, you don't want to do a commit of half-done work just so you can get back to this point later. The answer to this issue is the git stash command.
+
+Stashing takes the dirty state of your working directory ?? that is, your modified tracked files and staged changes ?? and saves it on a stack of unfinished 
+changes that you can reapply at any time.
+Stashing Your Work
+
+**** stash your not add/commit changes (this will push your modification into a stash list)
+$ git status
+# On branch master
+# Changes to be committed:
+#   (use "git reset HEAD <file>..." to unstage)
+#
+#      modified:   index.html
+#
+# Changes not staged for commit:
+#   (use "git add <file>..." to update what will be committed)
+#
+#      modified:   lib/simplegit.rb
+#
+
+Now you want to switch branches, but you don??t want to commit what you??ve been working on yet; so you??ll stash the changes. To push a new stash onto your stack, run git stash:
+ git stash save "the label which you want to put when stash list "
+$ git stash save "added the index file"
+Saved working directory and index state \
+  "WIP on master: 049d078 added the index file"
+  HEAD is now at 049d078 added the index file
+  (To restore them type "git stash apply")
+
+  Your working directory is clean:
+
+  $ git status
+  # On branch master
+  nothing to commit, working directory clean
+
+  At this point, you can easily switch branches and do work elsewhere; your changes are stored on your stack. To see which stashes you??ve stored, you can use git stash list:
+
+
+**** stash history list 
+  $ git stash list
+  stash@{0}: WIP on master: 049d078 added the index file
+  stash@{1}: WIP on master: c264051 Revert "added file_size"
+  stash@{2}: WIP on master: 21d80a5 added number to log
+
+
+**** reapply your stash after you'v pulled something from remote server
+  In this case, two stashes were done previously, so you have access to three different stashed works. You can reapply the one you just stashed by using the command shown in the help output of the original stash command: git stash apply. If you want to apply one of the older stashes, you can specify it by naming it, like this: git stash apply stash@{2}. If you don??t specify a stash, Git assumes the most recent stash and tries to apply it:
+
+  $ git stash apply
+  # On branch master
+  # Changes not staged for commit:
+  #   (use "git add <file>..." to update what will be committed)
+  #
+  #      modified:   index.html
+  #      modified:   lib/simplegit.rb
+  #
+
+  You can see that Git re-modifies the files you uncommitted when you saved the stash. In this case, you had a clean working directory when you tried to apply the stash, and you tried to apply it on the same branch you saved it from; but having a clean working directory and applying it on the same branch aren??t necessary to successfully apply a stash. You can save a stash on one branch, switch to another branch later, and try to reapply the changes. You can also have modified and uncommitted files in your working directory when you apply a stash ?? Git gives you merge conflicts if anything no longer applies cleanly.
+
+  The changes to your files were reapplied, but the file you staged before wasn??t restaged. To do that, you must run the git stash apply command with a --index option to tell the command to try to reapply the staged changes. If you had run that instead, you??d have gotten back to your original position:
+
+  $ git stash apply --index
+  # On branch master
+  # Changes to be committed:
+  #   (use "git reset HEAD <file>..." to unstage)
+  #
+  #      modified:   index.html
+  #
+  # Changes not staged for commit:
+  #   (use "git add <file>..." to update what will be committed)
+  #
+  #      modified:   lib/simplegit.rb
+  #
+
+  The apply option only tries to apply the stashed work ?? you continue to have it on your stack. To remove it, you can run git stash drop with the name of the stash to remove:
+
+  $ git stash list
+  stash@{0}: WIP on master: 049d078 added the index file
+  stash@{1}: WIP on master: c264051 Revert "added file_size"
+  stash@{2}: WIP on master: 21d80a5 added number to log
+
+**** drop your stash apply
+  $ git stash drop stash@{0}
+  Dropped stash@{0} (364e91f3f268f0900bc3ee613f9f733e82aaed43)
+
+  You can also run git stash pop to apply the stash and then immediately drop it from your stack.
+  Un-applying a Stash
+
+  In some use case scenarios you might want to apply stashed changes, do some work, but then un-apply those changes that originally came from the stash. Git does not provide
+  such a stash unapply command, but it is possible to achieve the effect by simply retrieving the patch associated with a stash and applying it in reverse:
+
+  $ git stash show -p stash@{0} | git apply -R
+
+  Again, if you don??t specify a stash, Git assumes the most recent stash:
+
+  $ git stash show -p | git apply -R
+
+  You may want to create an alias and effectively add a stash-unapply command to your Git. For example:
+
+  $ git config --global alias.stash-unapply '!git stash show -p | git apply -R'
+  $ git stash apply
+  $ #... work work work
+  $ git stash-unapply
+
+****  Creating a Branch from a Stash
+
+  If you stash some work, leave it there for a while, and continue on the branch from which you stashed the work, you may have a problem reapplying the work. If the apply tries to modify a file that you??ve since modified, you??ll get a merge conflict and will have to try to resolve it. If you want an easier way to test the stashed changes again, you can run git stash branch, which creates a new branch for you, checks out the commit you were on when you stashed your work, reapplies your work there, and then drops the stash if it applies successfully:
+
+  $ git stash branch testchanges
+  Switched to a new branch "testchanges"
+  # On branch testchanges
+  # Changes to be committed:
+  #   (use "git reset HEAD <file>..." to unstage)
+  #
+  #      modified:   index.html
+  #
+  # Changes not staged for commit:
+  #   (use "git add <file>..." to update what will be committed)
+  #
+  #      modified:   lib/simplegit.rb
+  #
+  Dropped refs/stash@{0} (f0dfc4d5dc332d1cee34a634182e168c4efc3359)
+
+
+*** git log
+ Exploring history Git history is represented as a series of interrelated commits. We have already seen that the git log command can list those commits. 
+ Note that first line of each git log entry also gives a name for the commit:
+
+**** $ git log
+commit c82a22c39cbc32576f64f5c6b3f24b99ea8149c7
+Author: Junio C Hamano <junkio@cox.net>
+Date:   Tue May 16 17:18:22 2006 -0700
+
+$ git log -p
+Often the overview of the change is useful to get a feel of each step
+
+**** graph option
+git push date is not clear, as we can see the Date is only the commit date instead of push date
+so graph option could help us to show the parenet-child relationship between different commits.
+for example, when Eve and Bob push/pull to/from the same respository origin/branch, then they modify files not conflict with each other.
+Eve commit its "eve add" at 13:58, but not push it yet.
+Bog commit its "bob comments" at 14:00 and push it. 
+Then Eve want to push the commit "eve add",it pull firstly, then commit 5be9e4f181a5b00be854b478e360131e470ddadf will be generated automatically at 14:01.
+Then Eve push both commits, "eve add" and "Merge" at the same time.
+Then when we use log --graph, it will show the parent-child relationship here.
+commit "eve add" won't contain comit "bob comment" and commit "bob comment" won't contain "eve add" also.
+only "Merge" have both commits.
+So it would be like this:
+                 eve add       
+               /             \
+"first edition"\               "Merge"
+                 bob comment /
+
+$ git log --graph
+*   commit 5be9e4f181a5b00be854b478e360131e470ddadf
+|\  Merge: e7a2fa8 9df545c
+| | Author: Lilywater <glili@5CG4381FZ2.nsn-intra.net>
+| | Date:   Tue Aug 16 14:01:25 2016 +0800
+| |
+| |     Merge branch 'master' of /cygdrive/d/userdata/glili/Downloads/test_git/Eve/../remoterep/my_project
+| |
+| * commit 9df545c2c9daabdc460fa6cb5a32c1a61b9af307
+| | Author: Lilywater <glili@5CG4381FZ2.nsn-intra.net>
+| | Date:   Tue Aug 16 14:00:04 2016 +0800
+| |
+| |     bob comments
+| |
+* | commit e7a2fa88e871d55a34be69354e0643980880a233
+|/  Author: Lilywater <glili@5CG4381FZ2.nsn-intra.net>
+|   Date:   Tue Aug 16 13:58:58 2016 +0800
+|
+|       eve add
+|
+*   commit b8e0d87bbcd9ae8d20da6e9e57558ea8339eed8d
+  Author: Lilywater <glili@5CG4381FZ2.nsn-intra.net>
+  Date:   Tue Aug 16 13:32:46 2016 +0800
+
+      first editon
+
+//$ git log --graph --abbrev-commit --decorate --format=format:'%C(bold blue)%h%C(reset) - %C(bold green)(%ar)%C(reset) %C(white)%s%C(reset) %C(dim white)- %an%C(reset)%C(bold yellow)%d%C(reset)' --all
+=====================================================
+$ git log --graph  --format=format:'%h - %cD %s%Creset --%an'
+*   5be9e4f - Tue, 16 Aug 2016 14:01:25 +0800 --Merge branch 'master' of /cygdrive/d/userdata/glili/Downloads/test_git/Eve/../remoterep/my_project
+|\
+| * 9df545c - Tue, 16 Aug 2016 14:00:04 +0800 --biob comments
+* | e7a2fa8 - Tue, 16 Aug 2016 13:58:58 +0800 --even add
+|/
+* 04ea21a - Tue, 16 Aug 2016 13:32:46 +0800 --first editon
+
+%h is hash, %c is commit date, %s is comment(reset means oneline)
+
+
+
+**** git show (detailed modification )(diff thie revision with prvious commit which this revision based on )
+[admin1@TeamCI-136 cleancodeContest]$ git show 5dd7f629f21da3da4a17d616d06330d5129fcef8
+commit 5dd7f629f21da3da4a17d616d06330d5129fcef8
+Author: glili <you@ex>
+Date:   Tue Jun 2 09:11:35 2015 +0300
+
+    fix leak memory
+
+diff --git a/libcache.c b/libcache.c
+index d2e133f..995dc66 100644
+--- a/libcache.c
++++ b/libcache.c
+@@ -91,6 +91,7 @@ void* libcache_add(void * libcache, const void* key, const void* src_entry)
+     void * entry;
+     int    index;
+     void * cache_addr;
++    int  * lock_status;
+=============================
+
+ $ git show c82a22c39cbc32576f64f5c6b3f24b99ea8149c7
+But there are other ways to refer to commits. You can use any initial part of the name that is long enough to uniquely identify the commit:
+
+$ git show c82a22c39c	# the first few characters of the name are
+			# usually enough
+$ git show HEAD		# the tip of the current branch
+
+
+
+**** git diff between versions
+$ git log v2.5..v2.6            # commits between v2.5 and v2.6
+$ git log v2.5..                # commits since v2.5
+$ git log --since="2 weeks ago" # commits from the last 2 weeks
+$ git log v2.5.. Makefile       # commits since v2.5 which modify # Makefile
+
+$ git show experimental	# the tip of the "experimental" branch
+Every commit usually has one "parent" commit which points to the previous state of the project:
+
+$ git show HEAD^  # to see the parent of HEAD
+$ git show HEAD^^ # to see the grandparent of HEAD
+$ git show HEAD~4 # to see the great-great grandparent of HEAD
+Note that merge commits may have more than one parent:
+
+$ git tag v2.5 1b2e1d63ff
+you can refer to 1b2e1d63ff by the name "v2.5". If you intend to share this name with other people (for example, to identify a release version), you should create a "tag" object, and perhaps sign it; see git-tag(1) for details.
+
+Any Git command that needs to know a commit can take any of these names. For example:
+
+$ git diff v2.5:Makefile HEAD:Makefile.in
+$ git diff v2.5 HEAD	 # compare the current HEAD to v2.5
+$ git branch stable v2.5 # start a new branch named "stable" based
+			 # at v2.5
+$ git reset --hard HEAD^ # reset your current branch and working directory to its state at HEAD^
+Be careful with that last command: in addition to losing any changes in the working directory, it will also remove all
+ later commits from this branch. If this branch is the only branch containing those commits, they will be lost. Also,
+ don't use git reset on a publicly-visible branch that other developers pull from, as it will force needless merges on other
+ developers to clean up the history. If you need to undo changes that you have pushed, use git revert instead.
+
+
+*** git grep
+The git grep command can search for strings in any version of your project, so
+
+$ git grep "hello" v2.5
+searches for all occurrences of "hello" in v2.5.
+
+If you leave out the commit name, git grep will search any of the files it manages in your current directory. So
+
+$ git grep "hello"
+is a quick way to search just the files that are tracked by Git.
+
+
+
+
+** advanced usage
+If you want to drop all your changes and get another copy from local/remote rep
+***  reset/update files to local rep state
+if you have modifed your files and want to revert them to the local status(not from remote)
+**** git reset --hard 
+return your repository to the previous working version.
+
+**** git checkout -- <filename>
+this will revert the file like svn revert but from local rep.
+
+**** git checkout <tagname> <filename>
+git can get the file from some tag, for example git checkout FETCH_HEAD test.c
+
+
+*** reset/updat files from remote rep
+git pull
+git reset --hard origin/master   ###move HEAD to origin/master
+------------------
+
+If you modified something, but you just want to keep it in your local rep,not remote rep.
+You commit your changes in your local rep. after that you want to get clean code from remote repo.
+git tag -a <tagname> <commithash>     ### tag this time commithash
+git pull
+git reset --hard origin/master ### get clean code form remoet repo.
+             .....             ### do something with these clean codes.
+git merge <tagname>            ### get those two merged
+
+*** git retrieve history
+git could only retrieve the history of the specific branch.
+if you just add a tag to some commithash, then when you are in branch "master", you can't see the history commit after that tag's checkout.
+for tag is not a branch, so anything commit to a tag(detached HEAD) will be very hard to retrieve, if you want that, create a branch instead not a tag.
+
+**** retrieve all the commit history.
+$ git rev-list --all --pretty=oneline --date-order
+8a644b0e7356c964b6dbda289c28bdbfe613af26 local ch
+b4f1ca131bda6fcdffd65d81196d3aa84b4cdf82 4m added
+7352e7dc3b1400a122c0e01d3a85ab4788414b26 Merge branch 'master' of /cygdrive/d/userdata/glili/Work/remg/ merge
+220d411b9cb97fa22ed09f21048c2495eb5b81ba first resp
+
+$ git show/log b4f1ca131bda6fcdffd65d81196d3aa84b4cdf82
+
+
+***  branch conception
+**** create a new branch for the current HEAD 
+git branch test
+
+**** lookup all the branches in the current code
+git branch 
+
+**** get the branch code
+git checkout <branch-name>
+
+**** merge branch
+## get master branch 
+git checkout master 
+# merge master branch with test branch
+git merge test 
+
+**** pull branch
+git checkout master
+git pull origin master 
+## 
+**** push branch
+git push origin branch
+---------------------------------------------------
+li@ubuntu:/home/lily/qtwork/qt$ git remote show origin
+**remote origin
+  Fetch URL: git://gitorious.org/qt/qt.git
+  Push  URL: git://gitorious.org/qt/qt.git
+  HEAD branch: 4.7
+  Remote branches:
+    4.5                               tracked
+    4.6                               tracked
+    4.7                               tracked
+    4.8                               tracked
+    history/qtquick2                  tracked
+    history/qtquick2-v8               tracked
+    master                            tracked
+    refs/remotes/origin/4.6-stable    stale (use 'git remote prune' to remove)
+    refs/remotes/origin/4.7-stable    stale (use 'git remote prune' to remove)
+    refs/remotes/origin/master-stable stale (use 'git remote prune' to remove)
+  Local branches configured for 'git pull':
+    4.7      merges with remote 4.7
+    mybranch merges with remote 4.8
+  Local ref configured for 'git push':
+    4.7 pushes to 4.7 (local out of date)
+--------------------------------------
+
+li@ubuntu:/home/lily/qtwork/qt$ git branch  -v
+  4.7       ac1fcae Merge branch '4.7' of scm.dev.nokia.troll.no:qt/qt-s60-public into 4.7-integration
+  branch    8051a73 Merge branch 'master' of scm.dev.nokia.troll.no:qt/qt-tools-staging into master-integration
+*mybranch  8051a73 Merge branch 'master' of scm.dev.nokia.troll.no:qt/qt-tools-staging into master-integration
+  mybraunch ac1fcae Merge branch '4.7' of scm.dev.nokia.troll.no:qt/qt-s60-public into 4.7-integration
+
+
+
+*** git fetch scenario example
+**** alice git clone from bob
+alice$ git clone /home/bob/myrepo/.git
+alice$cat ab
+12
+###modify file ab
+alice$cat ab
+412
+alice$ git commit -a 
+
+
+bob$cat ab
+12
+###modify file ab
+bod$cat ab
+312
+bob$ git commit -a 
+
+**** now alice want to peak what does bob modified
+alice$ git fetch /home/bob/myrepo/.git master
+
+alice$ git diff HEAD...FETCH_HEAD
+diff --git a/ab b/ab
+index 48082f7..a1e0432 100644
+--- a/ab
++++ b/ab
+@@ -1 +1 @@
+-12
++312
+
+alice$ git log -p  HEAD..FETCH_HEAD
+commit 4ab1b39640d235806f01e1115cf09093d583b1db
+Author: U-NSN-INTRA\glili <glili@5CG4381FZ2.nsn-intra.net>
+Date:   Fri Jun 5 17:39:04 2015 +0800
+    312
+
+diff --git a/ab b/ab
+index 48082f7..a1e0432 100644
+--- a/ab
++++ b/ab
+@@ -1 +1 @@
+-12
++312
+
+alice$ git log -p  HEAD...FETCH_HEAD
+commit 4ab1b39640d235806f01e1115cf09093d583b1db
+Author: U-NSN-INTRA\glili <glili@5CG4381FZ2.nsn-intra.net>
+Date:   Fri Jun 5 17:39:04 2015 +0800
+
+    312
+
+diff --git a/ab b/ab
+index 48082f7..a1e0432 100644
+--- a/ab
++++ b/ab
+@@ -1 +1 @@
+-12
++312
+
+commit 379a593ed67e41ee039bbb3553ba85198da35a58
+Author: U-NSN-INTRA\glili <glili@5CG4381FZ2.nsn-intra.net>
+Date:   Fri Jun 5 17:38:03 2015 +0800
+
+    412
+
+diff --git a/ab b/ab
+index 48082f7..ddabef8 100644
+--- a/ab
++++ b/ab
+@@ -1 +1 @@
+-12
++412
+
+**** alice want to  merge her files with bob's
+alice$ git merge
+Auto-merging ab
+CONFLICT (content): Merge conflict in ab
+Automatic merge failed; fix conflicts and then commit the result.
+
+alice$ cat ab
+<<<<<<< HEAD
+412
+=======
+312
+>>>>>>> refs/remotes/origin/master
+
+*** git pull ERROR
+$ git pull
+Updating 1598d61..a0e7d30
+error: Your local changes to the following files would be overwritten by merge:
+        cc
+        Please, commit your changes or stash them before you can merge.
+        Aborting
+
+#####this is protecting your local changes to file cc, and not commit yet.
+
+**** using git commit cc to resolve this problem
+
+
+**** git fetch to peek what diff is 
+
+**** don't want to commit your change, then stash them
+git stash
+git pull
+git stash apply
+$ git stash apply
+Auto-merging cc
+CONFLICT (content): Merge conflict in cc
+glili@5CG4381FZ2 /cygdrive/d/userdata/glili/Work/test_git/alice/myp
+$ cat cc
+ab
+cd
+<<<<<<< Updated upstream
+bod
+=======
+alice adding something
+>>>>>>> Stashed changes
+
+**** discard all the changes 
+git reset --hard HEAD
+
+
+--------------------------------
+****  git config for all the git repository in local
+$ git config --global user.name "Your Name Comes Here"
+$ git config --global user.email you@yourdomain.example.com
+
+****  git config for the specific  git repository in local
+in the git root diretory
+$ git config  user.name "Your Name Comes Here"
+$ git config  user.email you@yourdomain.example.com
+
+
+
+**** git ignore
+ untrack a single file that has already been added/initialized to your repository, i.e., stop tracking the file but not delete it from your system use: git rm --cached filename
+it will work on the 'Changes not staged for commit' files
+To untrack every file that is now in your .gitignore:*, it will on the Untracked files: 
+
+**** git diff with remote rep
+ git cherry -v
+
+****  git show-ref 
+$ git show-ref master
+3b5e94a6670c4bf9f3a5dac39ab3f0aff3fefe73 refs/heads/master
+5be9e4f181a5b00be854b478e360131e470ddadf refs/remotes/origin/master
+
+glili@5CG4381FZ2 /cygdrive/d/userdata/glili/Downloads/test_git/Eve/my_project
+$ git show-ref HEAD
+5be9e4f181a5b00be854b478e360131e470ddadf refs/remotes/origin/HEAD
+
+**** unpushed commit check
+[admin1@TeamCI-136 MME_SGSN_tester]$ git status
+On branch ns17
+Your branch is  advanced  with 'origin/ns17' 2 commits
+$ git pull
+ Already up-to-date.
+
+$ git log origin/master..master
+ commit 3b5e94a6670c4bf9f3a5dac39ab3f0aff3fefe73
+ Author: Lilywater <glili@5CG4381FZ2.nsn-intra.net>
+ Date:   Wed Aug 17 15:17:42 2016 +0800
+
+     for stash comments,zzzz
+
+     commit e10e01d5f12454a066f9521c802533c0a5dcf37c
+     Author: Lilywater <glili@5CG4381FZ2.nsn-intra.net>
+     Date:   Wed Aug 17 15:17:12 2016 +0800
+
+         for stash comments,ddd
+
+**** git rev-parse
+[admin1@TeamCI-136 MME_SGSN_tester]$ git rev-parse HEAD
+68911f5d27ae48cf670e3d54590ec91694f0f70f
+[admin1@TeamCI-136 MME_SGSN_tester]$ git rev-parse FETCH_HEAD
+d75b6641422ce9be0e0c392270154092bf80571f
+[admin1@TeamCI-136 MME_SGSN_tester]$ git rev-parse ORIG_HEAD
+
+**** check your unpushed things
+
+[admin1@TeamCI-136 MME_SGSN_tester]$ git fetch // not change the HEAD
+...
+[admin1@TeamCI-136 MME_SGSN_tester]$ git status
+On branch ns17
+Your branch is behind 'origin/ns17' by 2 commits, and can be fast-forwarded. //since git fetch get 2 commits update from remote
+  (use "git pull" to update your local branch)
+
+[admin1@TeamCI-136 MME_SGSN_tester]$ git commit ...  //change to HEAD
+[admin1@TeamCI-136 MME_SGSN_tester]$ git status
+On branch ns17
+Your branch is forward 'origin/ns17' by 2 commits //since git local 2 commits before remote
+  (use "git pull" to update your local branch)
+
+in  forward scenarios, you can git reset to which you want to.
+git reset HEAD~2 to back to discard your local commit
+

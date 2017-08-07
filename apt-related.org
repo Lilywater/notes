@@ -1,0 +1,579 @@
+* apt 相关命令
+
+
+sudo apt-get install libqt4-sql-mysql
+比起在Windows下安装和配置Qt的MySQL驱动来说，简直太方便了。如果还需要其它的没有默认安装的Qt库，可以在命令行输入 sudo apt-get install libqt4- 然后按tab键自动补全，就会列出所有以libqt4- 开头的软件包，如下图所示：
+liguo@lili:~$ sudo apt-get install libqt4-
+libqt4-assistant                    libqt4-ruby1.8
+libqt4-core                         libqt4-script
+libqt4-dbg                          libqt4-scripttools
+libqt4-dbus                         libqt4-sql
+libqt4-declarative                  libqt4-sql-mysql
+libqt4-declarative-folderlistmodel  libqt4-sql-odbc
+libqt4-declarative-gestures         libqt4-sql-psql
+libqt4-declarative-particles        libqt4-sql-sqlite
+libqt4-designer                     libqt4-sql-sqlite2
+libqt4-dev                          libqt4-sql-tds
+libqt4-gui                          libqt4-svg
+libqt4-help                         libqt4-test
+libqt4-network                      libqt4-webkit
+libqt4-opengl                       libqt4-webkit-dbg
+libqt4-opengl-dev                   libqt4-xml
+libqt4-qt3support                   libqt4-xmlpatterns
+libqt4-ruby                         libqt4-xmlpatterns-dbg
+liguo@lili:~$ sudo apt-get install libqt4-
+
+这些都可以使用一个命令搞定，而不需要自己从源码开始编译。在记不准或不知道名字的情况下，使用tab键列出所有可选的软件包是一个很实用的小技巧。
+
+apt-cache search editor   //可把相关功能的软件查到，例如
+
+<size:small>yudit-common - Unicode text editor (arch-independent files)
+yudit-doc - Unicode text editor (Documentation)
+zile - very small Emacs-subset editor
+zim - graphical text editor based on wiki technologies
+avidemux - a free video editor - GTK version
+avidemux-cli - a free video editor - command line version
+avidemux-common - a free video editor - Internationalization files
+avidemux-plugins-cli - a free video editor - CLI plugins
+avidemux-plugins-common - a free video editor - common files for plugins
+avidemux-plugins-gtk - a free video editor - GTK plugins
+avidemux-plugins-qt - a free video editor - Qt plugins
+avidemux-qt - a free video editor - QT version
+axe - An editor for X
+bombono-dvd - DVD authoring program with nice and clean GUI
+bombono-dvd-data - Data files for bombono-dvd
+clustalw - global multiple nucleotide or peptide sequence alignment
+clustalw-mpi - MPI-distributed global sequence alignment with ClustalW
+doc-rfc-misc - Miscellaneous RFCs
+docbookwiki - a Web application to display and edit DocBook documents online
+eagle - Printed circuit board design tool
+eagle-data - Data files for Eagle
+exult-studio - tools for editing and viewing exult games
+ibus-mozc - Mozc engine for IBus - Client of the Mozc input method
+kic - Enhanced KIC layout editor
+kid3 - KDE MP3 ID3 tag editor
+kid3-qt - Audio tag editor
+mgltools-networkeditor - Python GUI library for the editing of networks
+mozc-server - Server of the Mozc input method
+mozc-utils-gui - GUI uitilities of the Mozc input method
+sauerbraten - 3D first-person game engine
+sauerbraten-data - Game content for the Sauerbraten game
+sauerbraten-dbg - Debug symbols for the Sauerbraten game engine
+sauerbraten-server - Standalone server for the Sauerbraten game
+scim-mozc - Mozc engine for SCIM - Client of the Mozc input method
+sisu-markup-samples - document markup examples for sisu, publish and search framework
+spectrum-roms - ZX Spectrum ROMs
+uim-mozc - Mozc engine for uim - Client of the Mozc input method
+xml2rfc - XML-based formatting tool for RFCs
+emacs - The GNU Emacs editor (metapackage)
+emacs23 - The GNU Emacs editor (with GTK+ user interface)
+emacs23-bin-common - The GNU Emacs editor's shared, architecture dependent files
+emacs23-common - The GNU Emacs editor's shared, architecture independent infrastructure
+emacs23-el - GNU Emacs LISP (.el) files
+emacs23-nox - The GNU Emacs editor (without X support)
+gimp - The GNU Image Manipulation Program
+gparted - GNOME partition editor
+libktexteditor4 - the KTextEditor interfaces for the KDE Platform
+openoffice.org-math - office productivity suite -- equation editor
+pitivi - non-linear audio/video editor using GStreamer
+eclipse-cdt - C/C++ Development Tools for Eclipse
+eclipse-jdt - Eclipse Java Development Tools (JDT)
+emacs23-lucid - The GNU Emacs editor
+evolution-plugins-experimental - experimental plugins for Evolution
+josm-plugins - Plugins for JOSM
+juffed - Lightweight Qt 4 text editor
+kicad - Electronic schematic and PCB design software
+monkeystudio - Qt 4 Integrated Development Enviroment (IDE)
+monkeystudio-common - Qt 4 Integrated Development Enviroment (IDE) - common files
+monkeystudio-dbg - Qt 4 Integrated Development Enviroment (IDE) - debug symbols
+openoffice.org - office productivity suite
+openoffice.org-report-builder - OpenOffice.org extension for building database reports
+pgdesigner - Graphical database designer for PostgreSQL
+pype - Python programmers editor
+seamonkey - The Seamonkey Internet Suite
+seamonkey-browser - Seamonkey Navigator (Internet browser) and Composer
+tuxguitar - Multitrack guitar tablature editor and player (gp3 to gp5)
+<link:internal>meego</link:internal></size:small><size:small>-sdk-qtcreator - lightweight integrated development environment (IDE) for Qt</size:small>
+
+<highlight>apt-get install  * --fix-missing
+
+apt-cache showpkg   vim   //查看安装软件信息
+apt-get --purge remove packagename——卸载一个已安装的软件包（删除配置文件） 
+dpkg --force-all --purge packagename 有些软件很难卸载，而且还阻止了别的软件的应用，就可以用这个，不过有点冒险</highlight>
+
+
+。 
+apt-get autoclean apt会把已装或已卸的软件都备份在硬盘上，所以如果需要空间的话，可以让这个命令来删除你已经删掉的软件 
+apt-get clean 这个命令会把安装的软件的备份也删除，不过这样不会影响软件的使用的。 
+apt-get upgrade——更新所有已安装的软件包 
+apt-get dist-upgrade——将系统升级到新版本 
+apt-cache search string——在软件包列表中搜索字符串 
+dpkg -l package-name-pattern——列出所有与模式相匹配的软件包。如果您不知道软件包的全名，您可以使用“*package-name-pattern*”。 
+aptitude——详细查看已安装或可用的软件包。与apt-get类似，aptitude可以通过命令行方式调用，但仅限于某些命令——最常见的有安装和卸载命令。由于aptitude比apt-get了解更多信息，可以说它更适合用来进行安装和卸载。 
+apt-cache showpkg pkgs——显示软件包信息。 
+apt-cache dumpavail——打印可用软件包列表。 
+apt-cache show pkgs——显示软件包记录，类似于dpkg –print-avail。 
+apt-cache pkgnames——打印软件包列表中所有软件包的名称。 
+dpkg -S file——这个文件属于哪个已安装软件包。 
+dpkg -L package——列出软件包中的所有文件。 
+apt-get  -f install   ------修复依赖关系
+apt-file search filename——查找包含特定文件的软件包（不一定是已安装的），
+试使用apt-file search filename | grep -w filename（只显示指定字符串作为完整的单词出现在其中的那些文件名）或者类似方法，例如：apt-file search filename | grep <link:url>/bin/（只显示位于诸如/bin或/usr/bin这些文件夹中的文件，如果您要查找的是某个特定的执行文件的话，这样做是有帮助的</link:url>）。
+
+sudo apt-get update,
+ sudo apt-get upgrade,
+ sudo apt-cache search terminator</note-content></text>
+apt-cache depends [pkgname]
+apt-rdepends [pkgname]  递归
+
+
+apt-get source firefox   //取得源代码
+apt-get build-dep firefox  //安装依赖包
+
+   source
+           source causes apt-get to fetch source packages. APT will examine the available packages to decide which source
+           package to fetch. It will then find and download into the current directory the newest available version of
+           that source package while respect the default release, set with the option APT::Default-Release, the -t option
+           or per package with the pkg/release syntax, if possible.
+
+
+       build-dep
+           build-dep causes apt-get to install/remove packages in an attempt to satisfy the build dependencies for a
+           source package.
+
+
+o
+dpkg-query -l  ---list all file installed in system
+rmp -qa        ---list all file installed in system
+  
+
+* apt-get 指定版本安装
+
+问题描述：
+使用apt-get安装程序时，报告已安装依赖库的版本高于安装包所需的依赖库指定版本。
+相关信息如下：
+Loong:~/hw_test/toolsloongson-0.1lemote#apt-get install qt4-dev-tools
+Reading package lists...
+Building dependency tree...
+Reading state information...
+Some packages could not be installed. This may mean that you have
+requested an impossible situation or if you are using the unstable
+distribution that some required packages have not yet been created
+or been moved out of Incoming.
+The following information may help to resolve the situation:
+
+The following packages have unmet dependencies:
+  qt4-dev-tools: Depends: libqt4-dbus (= 4.4.3-1) but 4.5.1-2 is to be installed
+                 Depends: libqt4-help (= 4.4.3-1) but 4.5.1-2 is to be installed
+                 Depends: libqt4-network (= 4.4.3-1) but 4.5.1-2 is to be installed
+                 Depends: libqt4-xml (= 4.4.3-1) but 4.5.1-2 is to be installed
+                 Depends: libqt4-xmlpatterns (= 4.4.3-1) but 4.5.1-2 is to be installed
+                 Depends: libqtcore4 (= 4.4.3-1) but 4.5.1-2 is to be installed
+                 Depends: libqtgui4 (= 4.4.3-1) but 4.5.1-2 is to be installed
+                 Depends: libqt4-sql-sqlite but it is not going to be installed
+                 Recommends: libqt4-dev but it is not going to be installed
+                 Recommends: qt4-designer but it is not going to be installed
+E: Broken packages
+Loong:~/hw_test/toolsloongson-0.1lemote#
+
+解决方案：
+1，先使用apt-cache showpkg命令来确认有libqt4-xx(使用其中的一个库来查找，这里使用libqt4-dbus)的较低版本：
+Loong:~/hw_test/toolsloongson-0.1lemote#apt-cache showpkg libqt4-dbus
+Package: libqt4-dbus
+Versions:
+4.5.1-2 (/var/lib/dpkg/status)
+ Description Language:
+                 File: /var/lib/dpkg/status
+                MD5: d4138bc6e2864e684d9cd85db1fb1bb8
+4.4.3-1 (/var/lib/apt/lists/192.168.2.60_debian-rebuild_dists_lenny_main_binary-mipsel_Packages)
+ Description Language:
+                 File: /var/lib/apt/lists/192.168.2.60_debian-rebuild_dists_lenny_main_binary-mipsel_Packages
+                 MD5: d4138bc6e2864e684d9cd85db1fb1bb8
+
+Reverse Depends:
+  libqt4-script,libqt4-dbus 4.5.1-2
+  libqt4-ruby1.8,libqt4-dbus 4.4.3
+  libsmokeqt4-1,libqt4-dbus 4.4.3
+  libqt4-dev,libqt4-dbus 4.4.3-1
+  libqt4-script,libqt4-dbus 4.4.3-1
+  qt4-demos,libqt4-dbus 4.4.3-1
+  qt4-dev-tools,libqt4-dbus 4.4.3-1
+  libqt4-core,libqt4-dbus 4.4.3-1
+  libakonadiprivate1,libqt4-dbus 4.4.3
+  akonadi-server,libqt4-dbus 4.4.3
+  systemsettings,libqt4-dbus 4.4.3
+  libstrigiqtdbusclient0,libqt4-dbus 4.4.3
+  libsoprano4,libqt4-dbus 4.4.3
+  marble,libqt4-dbus 4.4.3
+  mumble,libqt4-dbus 4.4.3
+  mumble-server,libqt4-dbus 4.4.3
+  libphonon4,libqt4-dbus 4.4.3
+  ktorrent,libqt4-dbus 4.4.3
+  kdelibs-bin,libqt4-dbus 4.4.3
+  kdelibs5,libqt4-dbus 4.4.3
+  kdepimlibs5,libqt4-dbus 4.4.3
+  kdebase-runtime-bin-kde4,libqt4-dbus 4.4.3
+  khelpcenter4,libqt4-dbus 4.4.3
+  phonon-backend-xine,libqt4-dbus 4.4.3
+  kdebase-runtime,libqt4-dbus 4.4.3
+Dependencies:
+4.5.1-2 - libc6 (2 2.7-1) libgcc1 (2 1:4.1.1) libqt4-xml (5 4.5.1-2) libqtcore4 (5 4.5.1-2) libstdc++6 (2 4.1.1) libqt4-core (3 4.4.0~beta1-1)
+4.4.3-1 - libc6 (2 2.7-1) libgcc1 (2 1:4.1.1) libqt4-xml (5 4.4.3-1) libqtcore4 (5 4.4.3-1) libstdc++6 (2 4.1.1) libqt4-core (3 4.4.0~beta1-1)
+Provides:
+4.5.1-2 -
+4.4.3-1 -
+Reverse Provides:
+Loong:~/hw_test/toolsloongson-0.1lemote#
+从上面的信息中查看"Provides"的信息就可以确认有较低版本的libqt4-xx(4.4.3-1)，我们就可以将高版本的libqt4-xx库恢复到较低版本了，即从4.5.1-2到4.4.3-1。下面我们就可以通过aptitude install命令来将高版本的恢复到所需的低版本的libqt4-xx库了。
+
+2，恢复安装4.4.3-1版本的libqt4-xx库
+Loong:~/hw_test/toolsloongson-0.1lemote#aptitude install libqt4-dbus=4.4.3-1
+Reading package lists... Done
+Building dependency tree
+Reading state information... Done
+Reading extended state information
+Initializing package states... Done
+Writing extended state information... Done
+Reading task descriptions... Done
+The following packages are BROKEN:
+  libqt4-dbus libqt4-script
+0 packages upgraded, 0 newly installed, 1 downgraded, 0 to remove and 3 not upgraded.
+Need to get 230kB of archives. After unpacking 36.9kB will be freed.
+The following packages have unmet dependencies:
+  libqt4-dbus: Depends: libqt4-xml (= 4.4.3-1) but 4.5.1-2 is installed.
+                     Depends: libqtcore4 (= 4.4.3-1) but 4.5.1-2 is installed.
+  libqt4-script: Depends: libqt4-dbus (= 4.5.1-2) but 4.4.3-1 is to be installed.
+The following actions will resolve these dependencies:
+
+Remove the following packages:
+cloudy
+colockout
+lemote-cocreate-desktop
+libqt4-gui
+rdesktoploongson
+recorder-loongso
+sysinfoloongson
+
+Downgrade the following packages:
+libqt4-assistant [4.5.1-2 (now) -> 4.4.3-1 (stable)]
+libqt4-designer [4.5.1-2 (now) -> 4.4.3-1 (stable)]
+libqt4-help [4.5.1-2 (now) -> 4.4.3-1 (stable)]
+libqt4-network [4.5.1-2 (now) -> 4.4.3-1 (stable)]
+libqt4-opengl [4.5.1-2 (now) -> 4.4.3-1 (stable)]
+libqt4-qt3support [4.5.1-2 (now) -> 4.4.3-1 (stable)]
+libqt4-script [4.5.1-2 (now) -> 4.4.3-1 (stable)]
+libqt4-sql [4.5.1-2 (now) -> 4.4.3-1 (stable)]
+libqt4-sql-mysql [4.5.1-2 (now) -> 4.4.3-1 (stable)]
+libqt4-svg [4.5.1-2 (now) -> 4.4.3-1 (stable)]
+libqt4-test [4.5.1-2 (now) -> 4.4.3-1 (stable)]
+libqt4-webkit [4.5.1-2 (now) -> 4.4.3-1 (stable)]
+libqt4-xml [4.5.1-2 (now) -> 4.4.3-1 (stable)]
+libqt4-xmlpatterns [4.5.1-2 (now) -> 4.4.3-1 (stable)]
+libqtcore4 [4.5.1-2 (now) -> 4.4.3-1 (stable)]
+libqtgui4 [4.5.1-2 (now) -> 4.4.3-1 (stable)]
+smplayer [0.6.6-0ubuntu1loongson2fcocreate11 (now) -> 0.6.1-1 (stable)]
+smplayer-translations [0.6.6-0ubuntu1loongson2fcocreate11 (now) -> 0.6.1-1 (stable)]
+
+Score is 63
+
+Accept this solution? [Y/n/q/?] y
+The following packages will be DOWNGRADED:
+  libqt4-assistant libqt4-dbus libqt4-designer libqt4-help libqt4-network libqt4-qt3support libqt4-script
+  libqt4-sql libqt4-sql-mysql libqt4-svg libqt4-test libqt4-webkit libqt4-xml libqt4-xmlpatterns
+  libqtcore4 libqtgui4 smplayer smplayer-translations
+The following packages will be REMOVED:
+  cloudy{a} colockout{a} lemote-cocreate-desktop{a} libphonon4{u} libqt4-gui{a} libqt4-opengl{u}
+  phonon{u} phonon-backend-gstreamer{u} rdesktop{u} rdesktoploongson{a} recorder-loongson{a}
+  sysinfoloongson{a}
+The following packages are RECOMMENDED but will NOT be installed:
+  qt4-qtconfig
+0 packages upgraded, 0 newly installed, 18 downgraded, 12 to remove and 1 not upgraded.
+Need to get 17.3MB of archives. After unpacking 27.4MB will be freed.
+Do you want to continue? [Y/n/?]
+Writing extended state information... Done
+Get:1 http://192.168.2.60 lenny/main libqt4-xmlpatterns 4.4.3-1 [760kB]
+Get:2 http://192.168.2.60 lenny/main libqt4-test 4.4.3-1 [60.2kB]
+Get:3 http://192.168.2.60 lenny/main libqt4-qt3support 4.4.3-1 [1328kB]
+Get:4 http://192.168.2.60 lenny/main libqt4-designer 4.4.3-1 [1959kB]
+Get:5 http://192.168.2.60 lenny/main libqt4-script 4.4.3-1 [425kB]
+Get:6 http://192.168.2.60 lenny/main libqt4-dbus 4.4.3-1 [230kB]
+Get:7 http://192.168.2.60 lenny/main libqt4-sql-mysql 4.4.3-1 [57.8kB]
+Get:8 http://192.168.2.60 lenny/main libqt4-help 4.4.3-1 [237kB]
+Get:9 http://192.168.2.60 lenny/main libqt4-sql 4.4.3-1 [130kB]
+Get:10 http://192.168.2.60 lenny/main libqt4-webkit 4.4.3-1 [3144kB]
+Get:11 http://192.168.2.60 lenny/main smplayer 0.6.1-1 [835kB]
+Get:12 http://192.168.2.60 lenny/main smplayer-translations 0.6.1-1 [1037kB]
+Get:13 http://192.168.2.60 lenny/main libqt4-svg 4.4.3-1 [183kB]
+Get:14 http://192.168.2.60 lenny/main libqtgui4 4.4.3-1 [4290kB]
+Get:15 http://192.168.2.60 lenny/main libqt4-xml 4.4.3-1 [136kB]
+Get:16 http://192.168.2.60 lenny/main libqt4-assistant 4.4.3-1 [41.8kB]
+Get:17 http://192.168.2.60 lenny/main libqt4-network 4.4.3-1 [440kB]
+Get:18 http://192.168.2.60 lenny/main libqtcore4 4.4.3-1 [2048kB]
+Fetched 17.3MB in 1min41s (172kB/s)
+(Reading database ... 73022 files and directories currently installed.)
+Removing cloudy ...
+dpkg - warning: while removing cloudy, directory `/usr/local' not empty so not removed.
+Removing colockout ...
+Removing lemote-cocreate-desktop ...
+dpkg - warning: while removing lemote-cocreate-desktop, directory `/usr/share/desktop-cocreate/resource/mainpage' not empty so not removed
+dpkg - warning: while removing lemote-cocreate-desktop, directory `/usr/share/desktop-cocreate/resource' not empty so not removed.
+dpkg - warning: while removing lemote-cocreate-desktop, directory `/usr/share/desktop-cocreate' not empty so not removed.
+Removing libqt4-gui ...
+dpkg - warning: downgrading libqt4-xmlpatterns from 4.5.1-2 to 4.4.3-1.
+(Reading database ... 72800 files and directories currently installed.)
+Preparing to replace libqt4-xmlpatterns 4.5.1-2 (using .../libqt4-xmlpatterns_4.4.3-1_mipsel.deb) ...
+Unpacking replacement libqt4-xmlpatterns ...
+dpkg - warning: downgrading libqt4-test from 4.5.1-2 to 4.4.3-1.
+Preparing to replace libqt4-test 4.5.1-2 (using .../libqt4-test_4.4.3-1_mipsel.deb) ...
+Unpacking replacement libqt4-test ...
+(Reading database ... 72799 files and directories currently installed.)
+Removing rdesktoploongson ...
+Removing recorder-loongson ...
+Removing sysinfoloongson ...
+Processing triggers for man-db ...
+Processing triggers for menu ...
+dpkg - warning: downgrading libqt4-qt3support from 4.5.1-2 to 4.4.3-1.
+Reading database ... 72761 files and directories currently installed.)
+Preparing to replace libqt4-qt3support 4.5.1-2 (using .../libqt4-qt3support_4.4.3-1_mipsel.deb) ...
+Unpacking replacement libqt4-qt3support ...
+dpkg - warning: downgrading libqt4-designer from 4.5.1-2 to 4.4.3-1.
+Preparing to replace libqt4-designer 4.5.1-2 (using .../libqt4-designer_4.4.3-1_mipsel.deb) ...
+Unpacking replacement libqt4-designer ...
+dpkg - warning: downgrading libqt4-script from 4.5.1-2 to 4.4.3-1.
+Preparing to replace libqt4-script 4.5.1-2 (using .../libqt4-script_4.4.3-1_mipsel.deb) ...
+Unpacking replacement libqt4-script ...
+dpkg - warning: downgrading libqt4-dbus from 4.5.1-2 to 4.4.3-1.
+Preparing to replace libqt4-dbus 4.5.1-2 (using .../libqt4-dbus_4.4.3-1_mipsel.deb) ...
+Unpacking replacement libqt4-dbus ...
+dpkg - warning: downgrading libqt4-sql-mysql from 4.5.1-2 to 4.4.3-1.
+Preparing to replace libqt4-sql-mysql 4.5.1-2 (using .../libqt4-sql-mysql_4.4.3-1_mipsel.deb) ...
+Unpacking replacement libqt4-sql-mysql ...
+dpkg - warning: downgrading libqt4-help from 4.5.1-2 to 4.4.3-1.
+Preparing to replace libqt4-help 4.5.1-2 (using .../libqt4-help_4.4.3-1_mipsel.deb) ...
+Unpacking replacement libqt4-help ...
+dpkg - warning: downgrading libqt4-sql from 4.5.1-2 to 4.4.3-1.
+Preparing to replace libqt4-sql 4.5.1-2 (using .../libqt4-sql_4.4.3-1_mipsel.deb) ...
+Unpacking replacement libqt4-sql ...
+dpkg - warning: downgrading libqt4-webkit from 4.5.1-2 to 4.4.3-1.
+Preparing to replace libqt4-webkit 4.5.1-2 (using .../libqt4-webkit_4.4.3-1_mipsel.deb) ...
+Unpacking replacement libqt4-webkit ...
+(Reading database ... 72760 files and directories currently installed.)
+Removing phonon ...
+Removing phonon-backend-gstreamer ...
+Removing libqt4-opengl ...
+dpkg - warning: downgrading smplayer from 0.6.6-0ubuntu1loongson2fcocreate11 to 0.6.1-1.
+(Reading database ... 72736 files and directories currently installed.)
+Preparing to replace smplayer 0.6.6-0ubuntu1loongson2fcocreate11 (using .../smplayer_0.6.1-1_mipsel.deb) ...
+Unpacking replacement smplayer ...
+dpkg - warning: downgrading smplayer-translations from 0.6.6-0ubuntu1loongson2fcocreate11 to 0.6.1-1.
+Preparing to replace smplayer-translations 0.6.6-0ubuntu1loongson2fcocreate11 (using .../smplayer-translations_0.6.1-1_all.deb) ...
+Unpacking replacement smplayer-translations ...
+dpkg - warning: downgrading libqt4-svg from 4.5.1-2 to 4.4.3-1.
+Preparing to replace libqt4-svg 4.5.1-2 (using .../libqt4-svg_4.4.3-1_mipsel.deb) ...
+Unpacking replacement libqt4-svg ...
+dpkg - warning: downgrading libqtgui4 from 4.5.1-2 to 4.4.3-1.
+Preparing to replace libqtgui4 4.5.1-2 (using .../libqtgui4_4.4.3-1_mipsel.deb) ...
+Unpacking replacement libqtgui4 ...
+dpkg - warning: downgrading libqt4-xml from 4.5.1-2 to 4.4.3-1.
+Preparing to replace libqt4-xml 4.5.1-2 (using .../libqt4-xml_4.4.3-1_mipsel.deb) ...
+Unpacking replacement libqt4-xml ...
+dpkg - warning: downgrading libqt4-assistant from 4.5.1-2 to 4.4.3-1.
+Preparing to replace libqt4-assistant 4.5.1-2 (using .../libqt4-assistant_4.4.3-1_mipsel.deb) ...
+Unpacking replacement libqt4-assistant ...
+dpkg - warning: downgrading libqt4-network from 4.5.1-2 to 4.4.3-1.
+Preparing to replace libqt4-network 4.5.1-2 (using .../libqt4-network_4.4.3-1_mipsel.deb) ...
+Unpacking replacement libqt4-network ...
+dpkg - warning: downgrading libqtcore4 from 4.5.1-2 to 4.4.3-1.
+Preparing to replace libqtcore4 4.5.1-2 (using .../libqtcore4_4.4.3-1_mipsel.deb) ...
+Unpacking replacement libqtcore4 ...
+Processing triggers for man-db ...
+Processing triggers for menu ...
+(Reading database ... 72699 files and directories currently installed.)
+Removing libphonon4 ...
+Removing rdesktop ..
+Processing triggers for man-db ...
+Setting up libqtcore4 (4.4.3-1) ...
+Setting up libqt4-network (4.4.3-1) ...
+Setting up libqt4-xmlpatterns (4.4.3-1) ...
+Setting up libqt4-test (4.4.3-1) ...
+Setting up libqt4-xml (4.4.3-1) ...
+Setting up libqt4-dbus (4.4.3-1) ...
+Setting up libqt4-script (4.4.3-1) ...
+Setting up libqtgui4 (4.4.3-1) ...
+Setting up libqt4-designer (4.4.3-1) ...
+Setting up libqt4-sql (4.4.3-1) ...
+Setting up libqt4-qt3support (4.4.3-1) ...
+Setting up libqt4-sql-mysql (4.4.3-1) ...
+Setting up libqt4-help (4.4.3-1) ...
+Setting up libqt4-webkit (4.4.3-1) ...
+Setting up smplayer-translations (0.6.1-1) ...
+Setting up smplayer (0.6.1-1) ...
+Setting up libqt4-svg (4.4.3-1) ...
+Setting up libqt4-assistant (4.4.3-1) ...
+Processing triggers for menu ...
+Reading package lists... Done
+Building dependency tree
+Reading state information... Done
+Reading extended state information
+Initializing package states... Done
+Writing extended state information... Done
+Reading task descriptions... Done
+
+Current status: 1 update [-2], 17475 new [-2].
+Loong:~/hw_test/toolsloongson-0.1lemote#
+
+3，现在就可以安装qt4-dev-tool等工具包了。
+Loong:~/hw_test/toolsloongson-0.1lemote# apt-get install qt4-dev-tools qt4-doc qt4-qtconfig qt4-demos qt4-designer
+Reading package lists... Done
+Building dependency tree
+Reading state information... Done
+The following packages were automatically installed and are no longer required:
+  x11proto-input-dev libpthread-stubs0-dev libpthread-stubs0
+Use 'apt-get autoremove' to remove them.
+The following extra packages will be installed:
+  libpthread-stubs0 libpthread-stubs0-dev libqt4-dev libqt4-opengl libqt4-sql-sqlite qt4-qmake
+  x11proto-input-dev
+Suggested packages:
+  libmysqlclient15-dev libsqlite0-dev libsqlite3-dev libpq-dev libiodbc2-dev firebird2.0-dev
+Recommended packages:
+  libqt4-opengl-dev
+The following NEW packages will be installed:
+  libpthread-stubs0 libpthread-stubs0-dev libqt4-dev libqt4-opengl libqt4-sql-sqlite qt4-demos qt4-designer
+  qt4-dev-tools qt4-doc qt4-qmake qt4-qtconfig x11proto-input-dev
+0 upgraded, 12 newly installed, 0 to remove and 1 not upgraded.
+Need to get 71.7MB of archives.
+After this operation, 138MB of additional disk space will be used.
+Do you want to continue [Y/n]? y
+Get:1 http://192.168.2.60 lenny/main x11proto-input-dev 1.4.3-2 [16.0kB]
+Get:2 http://192.168.2.60 lenny/main libpthread-stubs0 0.1-2 [2782B]
+Get:3 http://192.168.2.60 lenny/main libpthread-stubs0-dev 0.1-2 [3060B]
+Get:4 http://192.168.2.60 lenny/main qt4-qmake 4.4.3-1 [1586kB]
+Get:5 http://192.168.2.60 lenny/main libqt4-dev 4.4.3-1 [4449kB]
+... ...
+
+此问题是基于源里面有低版本的pkg，如果没有就要自己找来添加。
+ 
+
+* 需设代理或无网络情况的apt-get用法
+
+本来linux自带的安装软件方法apt-get是个很好的工具，它自动帮你下载你的linux系统适用的版本的软件，但是在网络不好的情况下用它却是一场噩梦。尤其是在公司装东西，那叫一个痛苦。因为公司对网络的管控，又要设代理，又容易断，经常下几百兆的东西，下到一百兆的东西就断了，简直无语。因为linux装一个软件可能要依赖n个软件，所以要装好这个软件前，先要装好前n个软件，前n个软件又可能有依赖关系，不过这个apt-get已经为你想好，但是一旦网络不好，那就完了。无奈之下我只有研究下apt-get的工作原理。
+
+
+
+
+1.   设置代理下载
+. apt-get设置代理proxy方法
+方法一：
+这是一种临时的手段，如果您仅仅是暂时需要通过http代理使用apt-get，您可以使用这种方式。
+在使用apt-get之前，在终端中输入以下命令（根据您的实际情况替换yourproxyaddress和proxyport）。
+export http_proxy=http://yourproxyaddressroxyport
+据说取消代理使用
+export http_proxy=""
+即可。
+
+方法二：
+这种方法要用到/etc/apt/文件夹下的apt.conf文件。如果您希望apt-get（而不是其他应用程序）一直使用http代理，您可以使用这种方式。
+注意：某些情况下，系统安装过程中没有建立apt配置文件。下面的操作将视情况修改现有的配置文件或者新建配置文件。
+sudo gedit /etc/apt/apt.conf在您的apt.conf文件中加入下面这行（根据你的实际情况替换yourproxyaddress和proxyport）。
+Acquire::http::Proxy "http://yourproxyaddress:proxyport";保存apt.conf文件。
+
+方法三：
+这种方法会在您的主目录下的.bashrc文件中添加两行。如果您希望apt-get和其他应用程序如wget等都使用http代理，您可以使用这种方式。
+gedit ~/.bashrc在您的.bashrc文件末尾添加如下内容（根据你的实际情况替换yourproxyaddress和proxyport）。
+http_proxy=http://yourproxyaddressroxyport
+export http_proxy保存文件。关闭当前终端，然後打开另一个终端。
+使用apt-get update或者任何您想用的网络工具测试代理。我使用firestarter查看活动的网络连接。
+
+如果您为了纠正错误而再次修改了配置文件，记得关闭终端并重新打开，否自新的设置不会生效。
+
+
+
+
+2.软件包备份与清理
+
+备份快速设置已下载的部分软件包，以便重装系统再次使用，免去重新下载的时间:
+tar cizvf backup.tar.gz /var/cache/apt/archives --exclude=/var/cache/apt/archives/partial/* --exclude=/var/cache/apt/archives/lock--exclude=/var/cache/apt/archives/lock
+
+清理:
+sudo apt-get clean rm -rf ~/.thumbnails/fail/gnome-thumbnail-factory/*
+
+还原操作，设置好源列表后，导入已备份的软件包即可，操作方法：
+sudo apt-get update && sudo tar xzvf backup.tar.gz -C /
+
+
+3. apt-get的几个重要配置文件
+源的配置：
+Add the following line to /etc/apt/sources.list.d/meego-sdk.list.
+deb http://repo.meego.com/MeeGo/sdk/host/repos/ubuntu/10.04 /
+这个源指明了软件包所找的deb包的位置。
+
+ apt-get update,依赖网络，更新软件列表，保存在本地。
+ls  /var/lib/apt/list/repo.meego.com_MeeGo_sdk_host_repos_ubuntu_10.04_Packages   （这个文件包含所有软件包的信息）
+cat /var/lib/apt/lists/repo.meego.com_MeeGo_sdk_host_repos_ubuntu_10.04_Packages
+=========================================
+Package: qt-tools
+Version: 4.7.0
+Architecture: i386
+Maintainer: Fathi Boudra <fathi.boudra@nokia.com>
+Installed-Size: 5452
+Filename: ./i386/qt-tools_4.7.0_i386.deb
+Size: 5509844
+MD5sum: 1965411d7e354a9d25676ed68455a651
+Section: devel
+Priority: optional
+Description: Qt tools for MADDE
+ This package contains a collection of Qt tools used by MADDE:
+  * lrelease
+  * lupdate
+  * moc
+  * qmake
+  * rcc
+  * uic
+  * QtCore
+  * QtXml
+
+Package: utfs-client
+Source: utfs
+Version: 1.959-1
+Architecture: amd64
+Maintainer: Fathi Boudra <fathi.boudra@nokia.com>
+Installed-Size: 68
+Depends: libc6 (>= 2.4), libfuse2 (>= 2.8.1), fuse-utils
+Filename: ./amd64/utfs-client_1.959-1_amd64.deb
+Size: 13358
+MD5sum: bf1163db2c81a5ada2cee4aed0d3b005
+Section: utils
+Priority: extra
+Description: User TCP FileSystem client
+ User TCP File System is a FUSE (Filesystem in Userspace) based networked file
+ system. It consists of 2 parts: a network server daemon that is started on
+ the (remote) host, and a FUSE module running in user-space on the local host.
+ The server component is launched via SSH, and after the client and server have
+ communicated and created a separate TCP connection for data transfer, the SSH
+ link is shut down.
+ .
+ This package contains the UTFS client.
+=================================================================
+有了这张表就知道软件的位置和名字呢：
+eg   http://repo.meego.com/MeeGo/sdk/host/repos/ubuntu/10.04/amd64/utfs-client_1.959-1_amd64.deb
+如果网络有问题，用wget --continue http://repo.meego.com/MeeGo/sdk/host/repos/ubuntu/10.04/amd64/utfs-client_1.959-1_amd64.deb
+下载。
+下载完当然要放到apt-get的配置目录下： /var/cache/apt/archive
+这样再运行apt-get install ***就可以了，其实就是把apt-get上网的功能省略掉了，手动搞定。
+如果运行时又有依赖包要用的话，可以 用apt-get upgrade(install xxx)那请用重定向将错误信息重定向到文件里，直接回车亦可取得下载列表,就是sudo apt-get upgrade 2>list.txt 这样list.txt
+如果运气不好一个包要依赖30个包左右的话就太麻烦了。那就写个脚本吧！！
+
+
+
+      总结下，到了这我还是喜欢windows啊，下个软件直接安，搞定。可是linux本来就是可定制的，所以安装的时候系统就是最小的，windows安的时候装了非常多的东西，所以linux安装软件也是每次只安依赖的东西。可定制性很强啊。
+
+
+
+
+
+
+
+* 只下载源代码，不下载安装包
+
+aptitude download  pkgname
+apt-build source pkgname

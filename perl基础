@@ -1,0 +1,215 @@
+perl 基础
+
+此篇相当于学习笔记，多处为转载http://www.cbi.pku.edu.cn/chinese/documents/perl/index.htm
+Perl是什么?
+      Perl是Practical Extraction and Report Language的缩写，它是由Larry Wall设计的，并由他不断更新和维护，用于在UNIX环境下编程。
+      .Perl具有高级语言（如C）的强大能力和灵活性。事实上，你将看到，它的许多特性是从C语言中借用来的。
+      .与脚本语言一样，Perl不需要编译器和链接器来运行代码，你要做的只是写出程序并告诉Perl来运行而已。这意味着Perl对于小的编程问题的快速解决方案和为大型事件创建原型来测试潜在的解决方案是十分理想的。
+      .Perl提供脚本语言（如sed和awk）的所有功能，还具有它们所不具备的很多功能。Perl还支持sed到Perl及awd到Perl的翻译器。
+      简而言之，Perl象C一样强大，象awk、sed等脚本描述语言一样方便。
+
+最初看到这段介绍觉得有些夸张，学了下才觉得这个介绍很恰当，确实很强大。真是后悔以前怎么没找点时间学学呢。人接受新鲜事物总是有过程的。
+
+
+perl的一条命令行
+perl 虽然在windows上和unix上都通用，但是在用perl执行一条命令的时候，毕竟dos对命令的解释和linux的shell对命令的解释会用误差：比如：
+
+C:\Perl\eg>perl  -e   "$cmd=$$; print $cmd"
+3332
+C:\Perl\eg>perl  -e   " print “hello world\n”"
+   
+C:\Perl\eg>perl  -e   "print 'hello world'"
+hello world
+---------------------------------------------------------
+#perl  -e  ‘print  "$$\n"’ 
+5719
+#perl  -e  ‘print  "hello world\n"’ 
+hello world
+
+以下是linux一些常用的简单实例
+
+#perl  -pi  -e’s/aaa/bbb/’  filename                  修改当前file文件中的文件,不生成中间文件,速度很快.记住  -i  开关，因为它让你原地编辑文件.
+#perl  -ne  ‘print  if  /^aaaaa/’  filename          象grep一样过滤文件中需要的内容.这个地方,使用了-n,所以一次是做一行的操作,直到整个文件读完.另外,在管道时,-n也会一样,来遍历管道送过来的内容.
+#perl  -n  -e  ‘print  "$.  –  $_"’  filename          这个例子中的,没用-ne,只是命令写成了-n  -e,其实一样,这个例子中,是给当前文件中的内容都加一个行号打印出来.注:$.表示当前行号
+#perl  -pe  ‘$_  =  "$.    $_"’  filename                这个其实和上面一样,分别只是使用了-p替换了-n,这个有个什么好处啦,别的地方都一样,但-p按行来遍历完文件后,会给$_打印出来.
+
+大家还记得awk分割域(awk  ‘{i  =  NF  –  1;  print  $1  +  $i}’)啊,是不是很方便,下面我们来看看perl
+#perl  -lane  ‘print  $F[0]  +  $F[-2]‘          这个神奇的地方在于-a,使用-a后.因为-n分行读进来,然后-a给数据分割成@F的数组.
+#perl  -ne  ‘print  if  /^START$/  ..  /^END$/’    打印正则中从$start到$end的地方
+#perl  -ne  ‘print  if  $.  >=  15;  exit  if  $.  >=  17;’  有效地打印数字范围中的行
+#perl  -p  -i.bak  -e  ’s/\bfoo\b/bar/g’  *.c            原地修改  -i  开关的神奇之处在于它对  @ARGV  中的每个文件都用该脚本对该文件输出所产生的文件版本进行替代
+#perl  -ne  ‘print  scalar  reverse  $_’  test      给文件中的内容反向排序,比如文件中有fukai,就会变成iakuf
+#perl -e 'open (MYPIPE, "| cat >hello"); print MYPIPE "txt"'  重定向输出到hello里。
+
+perl调试命令：
+perl -de 42
+
+--------------------------------------------
+#example.pl
+#$varname = <STDIN>;    
+#     if ($varname =~ /^\$[A-Za-z][_0-9a-zA-Z]*$/) {
+#       print ("$varname is a legal scalar variable\n");
+#     } elsif ($varname =~ /^@[A-Za-z][_0-9a-zA-Z]*$/) {
+ #      print ("$varname is a legal array variable\n");
+ #    } elsif ($varname =~ /^[A-Za-z][0-9a-zA-Z]*$/) {
+#       print ("$varname is a legal file variable\n");
+ #    } else {
+ #      print ("I don't understand what $varname is.\n");
+ #   }
+    #@var = (11,27.1,"a string");
+    #print ("@var\n");
+    #print (@var);
+      #@matches = "balata" ;
+      $string = "axxxxx \nxxxxbc";
+      $result = $string =~ s/\n/\r\n/s;
+    
+      print ("$string\n");
+       print ("$result\n");
+     #$matches = "balata";
+    # $pat = ($matches =~ /.a/g); # now @matches = ("ba", "la", "ta")
+   #while ("balata" =~ /.a/g) {
+   #  $match = $&;
+   #  print ("$match\n");
+   #}
+     #print ("$pat\n");
+    #print ("@matches\n");
+    #     unless (open (MYFILE, "example.pl")) {
+   #  die ("cannot open input file file1\n");
+   #  }
+    # @array = <MYFILE>;
+  #  $count = 1;
+   #  while ($count <= @array) {
+   #  print ("element $count: $array[$count-1]\n");
+  #   $count++;
+  #   }
+#     close(MYFILE);
+_______________________
+perl -w example.pl
+
+
+
+
+zxx@zxx-desktop:~$ perl -e '@str="balata"=~/.a/;  {print "str matched is: @str and matched pattern is: $&\n"} '
+str matched is: 1 and matched pattern is: ba //（匹配最开始的字符ba）
+zxx@zxx-desktop:~$ perl -e '@str="balata"=~/.a/g;  {print "str matched is: @str and matched pattern is: $&\n"} '
+str matched is: ba la ta and matched pattern is: ta
+//在这个命令中，模式匹配优先于赋值运算，含有/g选项将匹配所有的字符，所以这时数组变成了3个元素的{ba la ta }
+而最后一次匹配的字符串是ta
+zxx@zxx-desktop:~$ perl -e '$str="balata"; while($str =~ /.a/g) {print "OK$&\n"}'
+OKba
+OKla
+OKta
+
+
+Perl中数组和哈希表的用法小结(ZT)
+http://www.cnblogs.com/markjiao/archive/2007/08/29/874532.html
+
+1、二维数组
+@a=();
+@b=("1","2","3");
+@c =("4","5","6");
+$a[0] = \@b;
+$a[1] =\@c;
+1>
+print  $a[0]->[0],"\n";
+print  $a[1]->[0],"\n";
+print  $a[0][0],"\n";
+print  $a[1][0],"\n";
+2>
+foreach(@){
+ print "${@$_}[2]\n";#will print value of $b[2] and $c[2] 
+ print "@$_\n"; #will print value of all
+}
+
+Perl格言：(“There’s More Than One Way To Do It”)
+
+2、数组作为子程序参数
+eg1.
+#!/usr/bin/perl    
+   
+  @a=(9,2,3,4);  
+  @b=("a","b");  
+   
+  func(\@a,\@b);  
+   
+  sub   func   {  
+  $c=shift;  
+  $d=shift;  
+  print   $#{@$c},$#{@$d};  
+  }
+eg2.
+#!/usr/bin/perl
+@participants=("mark","terry","jason");
+@participants2=('33','yts');
+my @arr;
+$arr[0]=[@participants];
+$arr[1]=\@participants2;
+print scalar @arr ."\n";
+for(my $i=0;$i<scalar @arr;$i++){
+        @temp=$arr[$i];
+        print scalar @temp," temp's value\n";
+        #print "\t [ @{$arr[$i]} ],,\n";
+        for(my $j=0;$j<scalar @{$arr[$i]};$j++){
+                print $arr[$i][$j],"\n";
+        }
+}
+
+3、哈希值是数组
+my @difs;
+my (%records,%record);
+@difs1= qw /xx.dif x2.dif y3.dif/;
+@difs2= qw /xx1.dif x22.dif/;
+$record{"xg3"}=\@difs1;
+$record{"xg5"}=[@difs2];
+print "test value:",$record{"xg5"}[1],"\n";
+print "-----------------------------2\n";
+while(($key,$value)=each %record){
+  print "$key:";
+  for(my $i=0;$i<scalar @$value;$i++){
+     print @$value[$i]," ";
+  }
+  print "\n";
+}
+4、数组作为哈希表A的值，哈希表A作为另一哈希表B的值
+print "-----------------------------1\n";
+#hash as a value in another hash
+my @difs;
+my (%records,%record1,%record2);
+@difs1= qw /x11.txt x22.dif x3.csv/;
+@difs2= qw /ya.dif xyz.dif/;
+$record1{"xg3"}=\@difs1;
+$record1{"xg5"}=[@difs2];
+print "test value:",$record1{"xg5"}[1],"\n";
+print "-----------------------------2\n";
+while(($key,$value)=each %record1){
+  print "$key:";
+  for(my $i=0;$i<scalar @$value;$i++){
+     print @$value[$i]," ";
+  }
+  print "\n";
+}
+print "-----------------------------3\n";
+$record2{"xg7"}=\@difs2;
+$record2{"xg8"}=[@difs1];
+$records{"RDBMS_MAIN_LINUX_070827"}={%record1};#should not use [ ] here
+$records{"RDBMS_MAIN_LINUX_070828"}=\%record2;
+while(($key1,$value1)=each %records){
+  print "$key1:";
+  while(($key2,$value2)=each %$value1){
+   print "$key2:";
+   for(my $i=0;$i<scalar @$value2;$i++){
+      print @$value2[$i]," ";
+   }   
+  } 
+  print "\n";
+}
+
+output:
+-----------------------------1
+test value:xyz.dif
+-----------------------------2
+xg5:ya.dif xyz.dif
+xg3:x11.txt x22.dif x3.csv
+-----------------------------3
+RDBMS_MAIN_LINUX_070828:xg7:ya.dif xyz.dif xg8:x11.txt x22.dif x3.csv
+RDBMS_MAIN_LINUX_070827:xg5:ya.dif xyz.dif xg3:x11.txt x22.dif x3.csv 

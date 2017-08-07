@@ -1,0 +1,1404 @@
+
+* dd命令详解
+
+http://blog.csdn.net/liumang_D/article/details/3899462
+
+dd命令详解
+分类： LINUX系统知识 存储知识 2009-02-17 11:25 7514人阅读 评论(7) 收藏 举报
+
+一、dd命令的解释。
+
+dd：用指定大小的块拷贝一个文件，并在拷贝的同时进行指定的转换。
+
+注意：指定数字的地方若以下列字符结尾则乘以相应的数字：b=512；c=1；k=1024；w=2
+
+参数：
+
+1. if=文件名：输入文件名，缺省为标准输入。即指定源文件。< if=input file >
+
+2. of=文件名：输出文件名，缺省为标准输出。即指定目的文件。< of=output file >
+
+3. ibs=bytes：一次读入bytes个字节，即指定一个块大小为bytes个字节。
+
+    obs=bytes：一次输出bytes个字节，即指定一个块大小为bytes个字节。
+
+    bs=bytes：同时设置读入/输出的块大小为bytes个字节。
+
+4. cbs=bytes：一次转换bytes个字节，即指定转换缓冲区大小。
+
+5. skip=blocks：从输入文件开头跳过blocks个块后再开始复制。
+
+6. seek=blocks：从输出文件开头跳过blocks个块后再开始复制。
+
+注意：通常只用当输出文件是磁盘或磁带时才有效，即备份到磁盘或磁带时才有效。
+
+7. count=blocks：仅拷贝blocks个块，块大小等于ibs指定的字节数。
+
+8. conv=conversion：用指定的参数转换文件。
+
+    ascii：转换ebcdic为ascii
+
+     ebcdic：转换ascii为ebcdic
+
+    ibm：转换ascii为alternate ebcdic
+
+    block：把每一行转换为长度为cbs，不足部分用空格填充
+
+    unblock：使每一行的长度都为cbs，不足部分用空格填充
+
+    lcase：把大写字符转换为小写字符
+
+    ucase：把小写字符转换为大写字符
+
+    swab：交换输入的每对字节
+
+     noerror：出错时不停止
+
+     notrunc：不截短输出文件
+
+    sync：将每个输入块填充到ibs个字节，不足部分用空（NUL）字符补齐。
+
+二、dd应用实例。
+
+1.将本地的/dev/hdb整盘备份到/dev/hdd
+
+   dd if=/dev/hdb of=/dev/hdd
+
+2.将/dev/hdb全盘数据备份到指定路径的image文件
+
+   dd if=/dev/hdb of=/root/image
+
+3.将备份文件恢复到指定盘
+
+   dd if=/root/image of=/dev/hdb
+
+4.备份/dev/hdb全盘数据，并利用gzip工具进行压缩，保存到指定路径
+
+    dd if=/dev/hdb | gzip > /root/image.gz
+
+5.将压缩的备份文件恢复到指定盘
+
+   gzip -dc /root/image.gz | dd of=/dev/hdb
+
+6.备份磁盘开始的512个字节大小的MBR信息到指定文件
+
+   dd if=/dev/hda of=/root/image count=1 bs=512
+
+   count=1指仅拷贝一个块；bs=512指块大小为512个字节。
+
+   恢复：dd if=/root/image of=/dev/hda
+
+7.备份软盘
+
+   dd if=/dev/fd0 of=disk.img count=1 bs=1440k (即块大小为1.44M)
+
+8.拷贝内存内容到硬盘
+
+   dd if=/dev/mem of=/root/mem.bin bs=1024 (指定块大小为1k)  
+
+9.拷贝光盘内容到指定文件夹，并保存为cd.iso文件
+
+   dd if=/dev/cdrom(hdc) of=/root/cd.iso
+
+10.增加swap分区文件大小
+
+第一步：创建一个大小为256M的文件：
+
+dd if=/dev/zero of=/swapfile bs=1024 count=262144
+
+第二步：把这个文件变成swap文件：
+
+mkswap /swapfile
+
+第三步：启用这个swap文件：
+
+swapon /swapfile
+
+第四步：编辑/etc/fstab文件，使在每次开机时自动加载swap文件：
+
+/swapfile    swap    swap    default   0 0
+
+11.销毁磁盘数据
+
+     dd if=/dev/urandom of=/dev/hda1
+
+注意：利用随机的数据填充硬盘，在某些必要的场合可以用来销毁数据。
+
+12.测试硬盘的读写速度
+
+     dd if=/dev/zero bs=1024 count=1000000 of=/root/1Gb.file
+
+      dd if=/root/1Gb.file bs=64k | dd of=/dev/null
+
+通过以上两个命令输出的命令执行时间，可以计算出硬盘的读、写速度。
+
+13.确定硬盘的最佳块大小：
+
+     dd if=/dev/zero bs=1024 count=1000000 of=/root/1Gb.file
+
+     dd if=/dev/zero bs=2048 count=500000 of=/root/1Gb.file
+
+     dd if=/dev/zero bs=4096 count=250000 of=/root/1Gb.file
+
+     dd if=/dev/zero bs=8192 count=125000 of=/root/1Gb.file
+
+通过比较以上命令输出中所显示的命令执行时间，即可确定系统最佳的块大小
+14.修复硬盘：
+
+     dd if=/dev/sda of=/dev/sda 或dd if=/dev/hda of=/dev/hda
+
+当硬盘较长时间(一年以上)放置不使用后，磁盘上会产生magnetic flux point，当磁头读到这些区域时会遇到困难，并可能导致I/O错误。当这种情况影响到硬盘的第一个扇区时，可能导致硬盘报废。上边的命令有可能使这些数据起死回生。并且这个过程是安全、高效的。
+
+ 
+
+ 
+/dev/null和/dev/zero的区别
+/dev/null，外号叫无底洞，你可以向它输出任何数据，它通吃，并且不会撑着！
+/dev/zero,是一个输入设备，你可你用它来初始化文件。
+
+ 
+
+/dev/null，外号叫无底洞，你可以向它输出任何数据，它通吃，并且不会撑着！
+/dev/zero,是一个输入设备，你可你用它来初始化文件。
+
+ 
+/dev/null------它是空设备，也称为位桶（bit bucket）。任何写入它的输出都会被抛弃。如果不想让消息以标准输出显示或写入文件，那么可以将消息重定向到位桶。
+/dev/zero------该设备无穷尽地提供0，可以使用任何你需要的数目——设备提供的要多的多。他可以用于向设备或文件写入字符串0。
+
+oracle@localhost oracle]$if=/dev/zero of=./test.txt bs=1k count=1
+oracle@localhost oracle]$ ls -l
+total 4
+-rw-r--r--    1 oracle   dba          1024 Jul 15 16:56 test.txt
+
+ 
+
+eg,
+
+    find / -name access_log  2>/dev/null
+
+ 
+
+ 
+
+ 
+
+使用/dev/null
+把/dev/null看作"黑洞". 它非常等价于一个只写文件. 所有写入它的内容都会永远丢失. 而尝试从它那儿读取内容则什么也读不到. 然而, /dev/null对命令行和脚本都非常的有用.
+
+禁止标准输出.    1 cat $filename >/dev/null
+   2 # 文件内容丢失，而不会输出到标准输出.
+ 
+
+
+禁止标准错误 (来自例子 12-3).    1 rm $badname 2>/dev/null
+   2 #           这样错误信息[标准错误]就被丢到太平洋去了.
+ 
+
+
+禁止标准输出和标准错误的输出.    1 cat $filename 2>/dev/null >/dev/null
+   2 # 如果"$filename"不存在，将不会有任何错误信息提示.
+   3 # 如果"$filename"存在, 文件的内容不会打印到标准输出.
+   4 # 因此Therefore, 上面的代码根本不会输出任何信息.
+   5 #
+   6 #  当只想测试命令的退出码而不想有任何输出时非常有用。
+   7 #
+   8 #
+   9 # cat $filename &>/dev/null
+  10 #     也可以, 由 Baris Cicek 指出.
+ 
+
+
+Deleting contents of a file, but preserving the file itself, with all attendant permissions (from Example 2-1 and Example 2-3):    1 cat /dev/null > /var/log/messages
+   2 #  : > /var/log/messages   有同样的效果, 但不会产生新的进程.（因为:是内建的）
+   3
+   4 cat /dev/null > /var/log/wtmp
+ 
+
+
+自动清空日志文件的内容 (特别适合处理这些由商业Web站点发送的讨厌的"cookies"):
+
+
+--------------------------------------------------------------------------------
+
+例子 28-1. 隐藏cookie而不再使用
+
+   1 if [ -f ~/.netscape/cookies ]  # 如果存在则删除.
+   2 then
+   3   rm -f ~/.netscape/cookies
+   4 fi
+   5
+   6 ln -s /dev/null ~/.netscape/cookies
+   7 # 现在所有的cookies都会丢入黑洞而不会保存在磁盘上了.
+ 
+
+--------------------------------------------------------------------------------
+
+使用/dev/zero
+像/dev/null一样, /dev/zero也是一个伪文件, 但它实际上产生连续不断的null的流（二进制的零流，而不是ASCII型的）. 写入它的输出会丢失不见, 而从/dev/zero读出一连串的null也比较困难, 虽然这也能通过od或一个十六进制编辑器来做到. /dev/zero主要的用处是用来创建一个指定长度用于初始化的空文件，就像临时交换文件.
+
+
+--------------------------------------------------------------------------------
+
+例子 28-2. 用/dev/zero创建一个交换临时文件
+
+   1 #!/bin/bash
+   2 # 创建一个交换文件.
+   3
+   4 ROOT_UID=0         # Root 用户的 $UID 是 0.
+   5 E_WRONG_USER=65    # 不是 root?
+   6
+   7 FILE=/swap
+   8 BLOCKSIZE=1024
+   9 MINBLOCKS=40
+  10 SUCCESS=0
+  11
+  12
+  13 # 这个脚本必须用root来运行.
+  14 if [ "$UID" -ne "$ROOT_UID" ]
+  15 then
+  16   echo; echo "You must be root to run this script."; echo
+  17   exit $E_WRONG_USER
+  18 fi 
+  19  
+  20
+  21 blocks=${1:-$MINBLOCKS}          #  如果命令行没有指定，
+  22                                  #+ 则设置为默认的40块.
+  23 # 上面这句等同如：
+  24 # --------------------------------------------------
+  25 # if [ -n "$1" ]
+  26 # then
+  27 #   blocks=$1
+  28 # else
+  29 #   blocks=$MINBLOCKS
+  30 # fi
+  31 # --------------------------------------------------
+  32
+  33
+  34 if [ "$blocks" -lt $MINBLOCKS ]
+  35 then
+  36   blocks=$MINBLOCKS              # 最少要有 40 个块长.
+  37 fi 
+  38
+  39
+  40 echo "Creating swap file of size $blocks blocks (KB)."
+  41 dd if=/dev/zero of=$FILE bs=$BLOCKSIZE count=$blocks  # 把零写入文件.
+  42
+  43 mkswap $FILE $blocks             # 将此文件建为交换文件（或称交换分区）.
+  44 swapon $FILE                     # 激活交换文件.
+  45
+  46 echo "Swap file created and activated."
+  47
+  48 exit $SUCCESS
+ 
+
+--------------------------------------------------------------------------------
+
+关于 /dev/zero 的另一个应用是为特定的目的而用零去填充一个指定大小的文件, 如挂载一个文件系统到环回设备 （loopback device） (参考例子 13-8) 或"安全地" 删除一个文件(参考例子 12-55).
+
+
+* windows linux换行符
+---------------------------
+windows     /r/n
+linux            /n
+--------------------------
+window ->linux   //remove \r
+cat weibo.txt tr -d '\r' > weibo.py
+cat  weibo.txt  tr -d "\015"  > weibo.py
+find ./ -maxdepth 1 -type f |xargs -i sh -c 'f="{}"; file $f|grep text|grep exec >/dev/null; if [ "0" -eq "$?"  ]; then cp $f ${f}_ntp; tr -d "\015" < ${f}_ntp > $f; fi '
+//   当前文件夹下的可执行文本文件去掉多余的\r换行符
+--------------------------------------------
+linux -> windows   //add \r before \n
+
+lily@willow:/tmp$ sed -i 's/$/\r/' ts
+lily@willow:/tmp$ cat ts
+is afdf
+dbe 
+lily@willow:/tmp$ cat -A ts
+is afdf^M$
+dbe ^M$
+==========================
+windows->linux  //delete \r
+
+ly@willow:/tmp$ sed 's/\r//' ts|cat -A
+is afdf$
+dbe $
+lily@willow:/tmp$ sed 's/\r//' ts
+is afdf
+dbe 
+
+tr 命令详解
+### 1.比方说要把目录下所有的大写档名换为小写档名?
+　　
+　　似乎有很多方式，"tr"是其中一种:
+　　
+　　#!/bin/sh
+　　
+　　dir="/tmp/testdir";
+　　files=`find $dir -type f`;
+　　for i in $files
+　　 do
+　　 dir_name=`dirname $i`;
+　　 ori_filename=`basename $i`
+　　 new_filename=`echo $ori_filename | tr [:upper:] [:lower:]` > /dev/null;
+　　 #echo $new_filename;
+　　 mv $dir_name/$ori_filename $dir_name/$new_filename
+　　 done
+　　
+　　
+　　### 2.自己试验中...lowercase to uppercase
+　　
+　　 tr abcdef...[del] ABCDE...[del]
+　　 tr a-z A-Z
+　　 tr '[:lower:]' '[:upper:]'
+　　
+　　 shell>> echo "this is a test" | tr a-z A-Z > www
+　　 shell>> cat www
+　　 THIS IS A TEST
+　　
+　　### 3.去掉不想要的字串
+　　
+　　 shell>> tr -d this ### 去掉有关 t.e.s.t
+　　 this
+　　
+　　 man
+　　 man
+　　 test
+　　 e
+　　
+　　### 4.取代字串
+　　
+　　 shell>> tr -s "this" "TEST"
+　　 this
+　　 TEST
+　　 th
+　　 TE
+
+~~~~~~~~~~~~~~~~~~~~```
+
+tr的详细用法
+1、关于tr
+通过使用 tr，您可以非常容易地实现 sed 的许多最基本功能。您可以将 tr 看作为 sed 的（极其）简化的变体：它可以用一个字符来替换另一个字符，或者可以完全除去一些字符。您也可以用它来除去重复字符。这就是所有 tr 所能够做的。
+tr用来从标准输入中通过替换或删除操作进行字符转换。tr主要用于删除文件中控制字符或进行字符转换。使用tr时要转换两个字符串：字符串1用于查询，字符串2用于处理各种转换。tr刚执行时，字符串1中的字符被映射到字符串2中的字符，然后转换操作开始。
+带有最常用选项的tr命令格式为：
+tr -c -d -s ["string1_to_translate_from"] ["string2_to_translate_to"] < input-file
+这里：
+-c 用字符串1中字符集的补集替换此字符集，要求字符集为ASCII。
+-d 删除字符串1中所有输入字符。
+-s 删除所有重复出现字符序列，只保留第一个；即将重复出现字符串压缩为一个字符串。
+input-file是转换文件名。虽然可以使用其他格式输入，但这种格式最常用。
+2、字符范围
+指定字符串1或字符串2的内容时，只能使用单字符或字符串范围或列表。
+[a-z] a-z内的字符组成的字符串。
+[A-Z] A-Z内的字符组成的字符串。
+[0-9] 数字串。
+\octal 一个三位的八进制数，对应有效的ASCII字符。
+[O*n] 表示字符O重复出现指定次数n。因此[O*2]匹配OO的字符串。
+tr中特定控制字符的不同表达方式
+速记符含义八进制方式
+\a Ctrl-G 铃声\007
+\b Ctrl-H 退格符\010
+\f Ctrl-L 走行换页\014
+\n Ctrl-J 新行\012
+\r Ctrl-M 回车\015
+\t Ctrl-I tab键\011
+\v Ctrl-X \030
+3、应用例子
+（1）去除oops.txt里面的重复的小写字符
+tr -s "[a-z]"<oops.txt >result.txt
+（2）删除空行
+tr -s "[\012]" < plan.txt 或 tr -s ["\n"] < plan.txt
+（3）有时需要删除文件中的^M，并代之以换行
+tr -s "[\015]" "[\n]" < file 或 tr -s "[\r]" "[\n]" < file
+（4）大写到小写
+cat a.txt |tr "[a-z]" "[A-Z]" >b.txt
+（5）删除指定字符
+一个星期的日程表。任务是从其中删除所有数字，只保留日期。日期有大写，也有小写格式。因此需指定两个字符范围[a-z]和[A-Z]，命令tr -cs "[a-z][A-Z]" "[\012*]" 将文件每行所有不包含在[a-z]或[A-Z]（所有希腊字母）的字符串放在字符串1中并转换为一新行。-s选项表明压缩所有新行， -c表明保留所有字母不动。原文件如下，后跟tr命令：
+tr -cs "[a-z][A-Z]" "[\012*]" <diary.txt
+（6）转换控制字符
+tr的第一个功能就是转换控制字符，特别是从dos向UNIX下载文件时，忘记设置ftp关于回车换行转换的选项时更是如此。cat -v filename 显示控制字符。
+cat -v stat.txt
+box aa^^^^^12^M
+apple bbas^^^^23^M
+^Z
+猜想&lsquo;^ ^ ^ ^ ^ ^’是tab键。每一行以Ctrl-M结尾，文件结尾Ctrl-Z，以下是改动方法。
+使用-s选项，查看ASCII表。^的八进制代码是136，^M是015，tab键是011，^Z是032 ,下面将按步骤完成最终功能。
+用tab键替换^ ^ ^ ^ ^ ^，命令为"\136" "[\011*]"。将结果重定向到临时工作文件stat.tmp
+tr -s "[\136]" "[\011*]" <stat.txt >stat.tmp
+用新行替换每行末尾的^M，并用\n去除^Z，输入要来自于临时工作文件stat.tmp。
+tr -s "[\015][\032]" "\n" <stat.tmp
+要删除所有的tab键，代之以空格，使用命令
+tr -s "[\011]" "[\040*]" <input.file
+（7）替换passwd文件中所有冒号，代之以tab键，可以增加可读性
+tr -s "[:]" "[\011]" < /etc/passwd 或 tr -s "[:]" "[\t]" < /etc/passwd
+（8）使路径具有可读性
+如果用 echo $PATH 或者 echo $LD_LIBRARY_PATH 等类似的命令来显示路径信息的话，我们看到的将会是一大堆用冒号连接在一起的路径， tr命令可以把这些冒号转换为回车，这样，这些路径就具有很好的可读性了
+echo $PATH | tr ":" "\n"
+（9）可以在vi内使用所有这些命令！只要记住：在tr命令前要加上您希望处理的行范围和感叹号 （！），如 1,$!tr -d '\t'（美元符号表示最后一行）。
+（10）另外，当有人给您发送了一个在 Mac OS 或 DOS/Windows 机器上创建的文本文件时，您会发现tr非常有用。
+如果没有将文件保存为使用 UNIX 换行符来表示行结束这种格式，则需要将这样的文件转换成本机 UNIX 格式，否则一些命令实用程序不会正确地处理这些文件。Mac OS 的行尾以回车字符(\r)结束，许多文本处理工具将这样的文件作为一行来处理。为了纠正这个问题，可以用下列技巧：
+Mac -> UNIX：tr "\r" "\n"<macfile > unixfile
+UNIX -> Mac：tr "\n" "\r"<unixfile > macfile
+Microsoft DOS/Windows 约定，文本的每行以回车字符(\r)并后跟换行符(\n)结束。为了纠正这个问题，可以使用下列命令：
+DOS -> UNIX：tr -d "\r"<dosfile > unixfile
+UNIX -> DOS：在这种情况下，需要用awk，因为tr不能插入两个字符来替换一个字符。要使用的 awk 命令为 awk '{ print $0"\r" }'<unixfile > dosfile
+
+注：都可以用sed 来完成。
+tr -d '\001'-'\011''\013''\014''\016'-'\037''\200'-'\377'
+'\011'  ^I
+
+Sets are specified as strings of characters. Most represent themselves. Interpreted sequences are:
+
+        \nnn -- character with octal value nnn
+        \xnn -- character with hexadecimal value nn
+        \\ -- backslash
+        \a -- alert
+        \b -- backpace
+        \f -- form feed
+        \r -- return
+        \t -- horizontal tab
+        \v -- vertical tab
+        \E -- escape
+        c1-c2 -- all characters from c1 to c2 in ascending order. The character specified by c1 must collate before the character specified by c2.
+        [c1-c2] -- same as c1-c2 if both sets use this form
+        [c*] -- set2 extended to the length of set1 with the symbol c. In other words fills out the set2 with the character specified by c. This option can be used only at the end of the set2. Any characters specified after the * (asterisk) are ignored.
+        [c*N] -- N copies of symbol c. N is considered a decimal integer unless the first digit is a 0; then it is considered an octal integer.
+        [:alnum:] -- all letters and digits
+        [:alpha:] -- all letters
+        [:blank:] -- all horizontal whitespace
+        [:cntrl:] -- all control characters
+        [:digit:] -- all digits
+        [:graph:] -- all printable characters, not including space
+        [:lower:] -- all lower case letters
+        [:print:] -- all printable characters, including space and line reteurn
+        [:punct:] -- all punctuation characters
+        [:space:] -- all horizontal or vertical whitespace
+        [:upper:] -- all upper case letters
+        [:xdigit:] -- all hexadecimal digits
+        [=c=] -- Specifies all of the characters with the same equivalence class as the character specified by C.
+
+Remove all the non-printable characters in the file except for line return:
+$ tr -dc "[:alnum:][:space:][:punct:]" </tmp/009
+
+
+* crontab at 计划任务
+
+用实例告诉你Linux下如何编写计划任务crontab。
+
+输入crontab -e 编辑crontab 计划任务，Ubuntu里默认编辑器是Nano，如何使用Nano可以参考Nano 快捷键
+
+# m h dom mon dowcommand
+
+#分         时     日       月       周  执行命令
+*           *       *       *        *
+[0,59]   [0,23]   [1,31]   [1,12]   [0,6]
+分钟[0,59]，小时[0,23]，日期[1,31] ，月[1,12]，周[0,6]，可以使用的参数有“*”，“/”，“-”和“，”。
+
+* * * * * command
+
+* 表示任意取值范围内数字 在分钟里*表示0到59的任意数字
+- 表示选择区域范围内的数字 3-10表示3-10的任意数字，包含3和10 , 选择数字 2,4,5 选择2，4，5
+/ 每多少数字 在分钟里 */2表示每二分钟
+
+每1分钟执行一次command
+*/1   *   *   *   *   ls          每1分钟执行一次ls命令
+its equal to this:
+0,59/1   0,23   1,31   1,12   0,6
+
+每1小时执行一次command
+0    */1  *   *   *   ls          每1小时执行一次ls命令
+its equal to this:
+0  [0,23/1   1,31   1,12   0,6 //every 1 hour's number 0 min
+or equal to 
+30  [0,23/1   1,31   1,12   0,6 //every 1 hour's number 30 min
+
+
+每小时的第3和第15分钟执行
+3,15 * * * *command
+
+在上午8点到11点的第3和第15分钟执行
+3,15 8-11 * * *command
+
+每隔两天的上午8点到11点的第3和第15分钟执行
+3,15 8-11 */2 * *command
+
+每个星期一的上午8点到11点的第3和第15分钟执行
+3,15 8-11 * * 1command
+
+crontab可以定时执行任务，在Ubuntu下输入crontab帮助如下
+
+test@ubuntu:~$crontab
+
+crontab: usageerror: file name must be specified for replace
+
+crontab [-u user]file
+
+crontab [-u user]{ -e | -l | -r }
+
+-e (edit user'scrontab)
+
+-l (list user'scrontab)
+
+-r (delete user'scrontab)
+
+----------------------------------------------------------------------
+简单的任务
+at -f [shellfile] -t  MMDDhhmm
+
+crontab -e  // add a new crontab task
+crontab -l  // list the crontab task
+crontab -r  // remove task 
+crontab -u 
+sudo /etc/init.d/cron start
+
+check the logs of cron
+grep -i cron  /var/log/syslog 
+
+* windows net 
+用IP地址反查主机名
+2010-09-08 12:36:53
+ping ip 就可以得到主机名,nbtstat -A xxx.xxx.xxx.xxx可得到主机名。
+ NBTSTAT命令:用于查看当前基于NETBIOS的TCP/IP连接状态，通过该工具你可以获得远程或本地机器的组名和机器名。虽然用户使用ipconfig/winipcfg工具可以准确地得到主机的网卡地址，但对于一个已建成的比较大型的局域网，要去每台机器上进行这样的操作就显得过于费事了。网管人员通过在自己上网的机器上使用DOS命令nbtstat，可以获取另一台上网主机的网卡地址。我们还是先来看看它的语法格式吧: 　　NBTSTAT [ [-a RemoteName] [-A IP address] [-c] [-n] [-r] [-R] [-RR] [-s] [-S] [interval] ] 　　参数说明: 　　-a Remotename—说明使用远程计算机的名称列出其名称表，此参数可以通过远程计算机的NetBios名来查看他的当前状态。 　　
+-A IP address—说明使用远程计算机的 IP 地址并列出名称表，这个和-a不同的是就是这个只能使用IP，其实-a就包括了-A的功能了。 　　-c—列出远程计算机的NetBIOS 名称的缓存和每个名称的 IP 地址 这个参数就是用来列出在你的NetBIOS里缓存的你连接过的计算机的IP。 　　-n—列出本地机的 NetBIOS 名称，此参数与上面所介绍的一个工具软件“netstat”中加“ -a”参数功能类似，只是这个是检查本地的，如果把netstat -a后面的IP换为自己的就和nbtstat -n的效果是一样的了。 　　-r—列出 Windows 网络名称解析的名称解析统计。在配置使用 WINS 的 Windows 2000 计算机上，此选项返回要通过广播或 WINS 来解析和注册的名称数。 　　-R—清除 NetBIOS 名称缓存中的所有名称后，重新装入 Lmhosts 文件，这个参数就是清除nbtstat -c所能看见的缓存里的IP。 　　-S—在客户端和服务器会话表中只显示远程计算机的IP地址。 　　-s—显示客户端和服务器会话，并将远程计算机 IP 地址转换成NETBIOS名称。此参数和-S差不多，只是这个会把对方的NetBIOS名给解析出来。 　
+　-RR—释放在 WINS 服务器上注册的 NetBIOS 名称，然后刷新它们的注册。 　　interval—每隔interval 秒重新显示所选的统计，直到按“CTRL+C”键停止重新显示统计。如果省略该参数，nbtstat 将打印一次当前的配置信息。此参数和netstat的一样，nbtstat中的“interval”参数是配合-s和-S一起使用的。 　　好了，关于nbtstat的应用就不多讲了，相信看了它的一些参数功能也就明白了它的功能了，只是要特别注意这个工具中的一些参数是区分大、小写的，使用时要特别留心!另外在系统中还人置有许多这方面的工具，如ARP命令是用于显示并修改Internet到以太网的地址转换表;
+
+nslookup命令的功能是查询一台机器的IP地址和其对应的域名，它通常需要一台域名服务器来提供域名服务，如果用户已经设置好域名服务器，就可以用这个命令查看不同主机的IP地址对应的域名……在此就不多讲了，另外还要说明的一点就是不同的系统中的相应命令参数设置可能有不同之处，但大体功能是一致的，希望大家在应用时稍加注意，本文所列的这些工具软件参数用法全是针对Win9xWinMe，在NT和UNIX、LINUX系统中有一些不同之处 在局域网内，我们常使用一些工具来查IP查主机名，利用ipconfig或者ping可以查到IP地址，也是我们常 使用的工具。而要查网内的主机，可以用网上邻居，其实我们也有一个很方便的方法，通过指定IP地址就可以查 询到主机名，在windows的命令行方式下i
+，输入命令:nbtstat -A 192.168.1.111(对方的IP地址） 就会把主机名，此主机所在的群组名也显示出来 nbtstat 该命令使用TCP/IP上的NetBIOS显示协议统计和当前TCP/IP连接，使用这个命令你可以得到远程主机的NETBIOS信息，比如用户名、所属的工作组、网卡的MAC地址等。在此我们就有必要了解几个基本的参数。 -a使用这个参数，只要你知道了远程主机的机器名称，就可以得到它的NETBIOS信息（下同）。 -A这个参数也可以得
+到远程主机的NETBIOS信息，但需要你知道它的IP。 -n列出本地机器的NETBIOS信息。 当得到了对方的IP或者机器名的时候，就可以使用nbtstat命令来进一步得到对方的信息了，这又增加了我们入侵的保险系数。 
+
+*  wubi进入后出现grub命令行
+
+首先，当显示sh:grub的时候，敲入如下代码
+
+ls，会显示当前硬盘分区的情况，像我的结果就是
+
+(hd0) (hd0,1) (hd0,5) (hd0,6)
+
+
+
+(hd0,1)是C盘，我把ubuntu安装在D盘，就是(hd0,5)，其实只要知道有哪几个分区就行了，可以一个个试的，然后是下面的代码：
+
+
+
+set root=(hd0,5)
+
+loopback loop0 /ubuntu/disks/root.disk
+
+set root=(loop0)
+
+linux /boot/vmlinuz-2.6.31-14(TAB键补齐) root=/dev/sda5 loop=/ubuntu/disks/root.disk
+
+initrd /boot/initrd.img-2.6.31-14(TAB键补齐)
+
+boot enter
+
+
+ root (hd0,0)
+        kernel /vmlinuz-2.6.9-34.EL ro root=/dev/VolGroup00/LogVol00 rhgb quiet
+        initrd /initrd-2.6.9-34.EL.img
+
+
+不出意外的话，ubuntu就能够正常启动了，启动之后终端中键入如下代码：
+
+sudo update-grub2
+
+
+cat (hd0,1)/boot/grub/grub.cfg
+然后复制 /boot/grub/目录下的grub.cfg，到/host/ubuntu/install/boot/grub/目录下面，重启ubuntu应该就可以了
+
+如果没有install下面没有boot文件夹的话，自己新建吧，我就是自己建的
+-----------------------------------------------------------------------------------
+
+根据这个方法解决了 可以进入系统了 不过有点问题的是内核版本的问题
+我的系统中最新的内核是 Linux ubuntu 2.6.31-16-generic 按照上面的方法选择这个版本是进不了的
+于是我就选择旧一点的版本 Linux ubuntu 2.6.31-15-generic 就进去了
+然后sudo update-grub2 重启后出现了平时的引导菜单  选择  2.6.31-16-的版本 还是进不去
+再次无奈选择 15的版本 终于进来了
+
+然后我就来到这里发贴了～～～～
+
+
+
+一怒之下删除最新内核
+sudo apt-get remove linux-image-2.6.31-16-generic
+重建 grub
+sudo update-grub2
+一切恢复到更新前的状态
+
+但是 我还是不知道为什么最新的内核不行
+
+
+
+* xargs  find
+
+xargs 对于输入的文件名含有空格的可以佣 -0 参数来避免
+在查找时忽略大小写：
+find 查找文件名，忽略大小写，case insensitive
+find ./ -iname 
+file name contains white space:
+find ./ -maxdepth 1 -type d -print0|xargs -0 ls
+ls /usr/lib/lib* |grep -i qt
+
+ /sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_cur_freq 
+
+
+* sudo 环境变量
+sudo 的环境变量和user的是不一样的，这就是为什么
+有的命令直接运行能找到，而sudo后找不到。
+sudo 默认会重置所有的环境变量
+有两种办法，一种是直接su -切换到root运行命令。
+修改sudo配置文件
+lily@willow:/mnt/ram$ sudo cat /etc/sudoers
+
+Defaults	env_reset
+
+%admin ALL=(ALL) ALL
+
+# Allow members of group sudo to execute any command
+%sudo	ALL=(ALL:ALL) ALL
+把 env_reset,改成!env_reset
+
+# User privilege specification
+root	ALL=(ALL:ALL) ALL
+guest 	ALL=(ALL:ALL) ALL
+username1 ALL= NOPASSWD: /path/to/command
+####表示username1用户在执行/path/to/command命令时不用输入passwd
+
+
+* sh -c
+
+对于命令 bzcat *.img > /dev/sdb
+需要root权限。sudo bzcat *.img > /dev/sdb
+还是会导致权限不够 ，因为sudo只对前面bzcat有效，这时需要
+sudo sh -c 'bzcat *.img > /dev/sdb'
+
+
+* chinese encoding
+ Linux  下查看文件字符编码和转换编码 如果你需要在 Linux  中操作 windows 下的文件，那么你可能会经常遇 到 文 件 编 码 转 换 的 问 题 。 Windows 中 默 认 的 文 件 格 式 是 GBK(gb2312)，而 Linux 一般都是 UTF-8。下面介绍一下，在 Linux 中如何查看文件的编码及如何进行对文件进行编码转换。
+ 一，查看文件编码： 在 Linux  中查看文件编码可以通过以下几种方式：
+ 
+  1.在 Vim 中可以直接查看文件编码 :set fileencoding 即可显示文件编码格式。 如果你只是想查看其它编码格式的文件或者想解决用 Vim 查看文件乱 码的问题，那么你可以在 ~/.vimrc 文件中添加以下内容： set encoding=utf-8 fileencodings=ucs-bom,utf-8,cp936 这样， 就可以让 vim 自动识别文件编码 （可以自动识别 UTF-8或者 GBK 编码的文件） ，其实就是依照 fileencodings 提供的编码列表尝试，如 果没有找到合适的编码，就用 latin-1(ASCII)编码打开。 
+ 
+  2. enca (如果你的系统中没有安装这个命令，可以用 sudo yum install -y enca 安装 )查看文件编码 $ enca filename filename: Universal transformation format 8 bits; UTF-8 CRLF line terminators 需要说明一点的是，enca 对某些 GBK 编码的文件识别的不是很好，识 别时会出现： Unrecognized encoding 
+
+二，文件编码转换 
+ 1.在 Vim 中直接进行转换文件编码,比如将一个文件转换成 utf-8格式 :set fileencoding=utf-8
+ 
+ 2. iconv 转换，iconv 的命令格式如下：输入/输出格式规范： -f, --from-code=名称 原始文本编码 -t, --to-code=名称 输出编码 信息：     Www.Svn8.Com -l, --list 列举所有已知的字符集 输出控制： -c 从输出中忽略无效的字符 -o, --output=FILE 输出文件 Svn8.Com -s, --s    ilent 关闭警告 --verbose 打印进度信息 -?, --help 给出该系统求助列表 --usage 给出简要的用法信息 -V, --version 打印程序版本号     例子: iconv -f utf-8 -t gb2312 aaa.txt >bbb.txt 这个命令读取 aaa.txt 文件，从 utf-8编码转换为 gb2312编码,其输出定向到 bbb.txt文件。 iconv -f encoding -t encoding inputfile 比如将一个 UTF-8 编码的文件转换成 GBK 编码 iconv -f GBK -t UTF-8 file1 -o file2
+ 
+ 3. enconv 转换文件编码 比如要将一个 GBK 编码的文件转换成 UTF-8编码，操作如下 enconv -L zh_CN -x UTF-8 filename
+
+
+1. Ubuntu下安装方法:
+sudo apt-get install enca
+
+2. 命令使用介绍：
+1) 返回文件的编码：
+enca -L zh_CN 文件名
+返回例如下面的信息：
+Universal transformation format 8 bits; UTF-8
+Mixed line terminators
+或 单独一句
+
+Universal transformation format 8 bits; UTF-8
+2) 将当前目录下的所有文件的字符编码转换为 UTF-8 编码：
+enca -L zh_CN -x utf-8 *
+
+3) 假如不想覆盖原文件可以这样：
+enca -L zh_CN -x utf-8 原文件 目标文件
+
+注：其中 UTF-8 是目标编码， -L 代表了语言环境，
+　　在转换的过程中如果有些文件无法转换，enca会帮你列出来。
+
+
+a locale=english but having chinese input method
+Don't modify anylocale keep it as English, 
+
+apt-get install fcitx im-switch
+apt-cache search fctix |grep pinyin  ///get your favorite pinyin input to install
+fcitx -r   //invoke it manually
+/*invoke it when x server restart*/ cat /etc/X11/Xsession.d/95xinput
+export XMODIFIERS=@im=fcitx
+export XIM=fcitx
+export XIM_PROGRAM=fcitx
+export GTK_IM_MODULE=fcitx
+export QT_IM_MODULE=XIM
+fcitx
+
+
+apt-get install fcitx 
+
+setting default locale:   /etc/default/locale
+LANG=en_US.UTF-8
+//this will compatible with chinese and english
+
+command locale will show how many locales system supported
+dpkg-reconfigure locales //will add new locales
+
+
+* cursor theme
+
+
+正在解压缩 moblin-cursor-theme (从 .../moblin-cursor-theme_0.3-3_all.deb) ...
+正在设置 moblin-cursor-theme (0.3-3) ...
+update-alternatives: 使用 /etc/X11/cursors/moblin.theme 来提供 /usr/share/icons/default/index.theme (x-cursor-theme)，于 自动模式 中。
+
+update-alternatives:arm using /etc/X11/cursors/moblin.theme to provide /usr/share/icons/default/index.theme (x-cursor-theme) in auto mode.
+
+
+
+* mount disks with loopback device
+
+http://blog.edseek.com/~jasonb/articles/linux_loopback.shtml
+
+
+fdisk -l -u -C 592 /nebula/hda_dd.image
+
+Disk /nebula/hda_dd.image: 0 MB, 0 bytes
+255 heads, 63 sectors/track, 592 cylinders, total 0 sectors
+Units = sectors of 1 * 512 = 512 bytes
+
+       Device Boot    Start       End    Blocks   Id  System
+/nebula/hda_dd.image1   *63   7438094   3719016    7  HPFS/NTFS
+/nebula/hda_dd.image2       7438095   9510479   1036192+   5  Extended
+/nebula/hda_dd.image5       7438158   7695134    128488+  82  Linux swap
+/nebula/hda_dd.image6       7695198   9510479    907641   83  Linux
+
+
+
+
+The offset must be specified in bytes, so now you must take the starting offset, in this instance 63, and multiply it by 512 bytes. From this we obtain 32256. (This assumes 63 sectors per track and 512 bytes per sector.) The file system type in this case is NTFS, so let us mount this partition from within the image using the usual loopback method. 
+
+faith:/usr/src# mount -o loop,offset=32256   -t ntfs /nebula/hda_dd.image /mnt
+faith:/usr/src# ls /mnt
+AUTOEXEC.BAT
+boot.ini
+CONFIG.SYS
+
+对于dd命令，可以指定bs的大小，skip表示从第几个sector开始，count表示一共用了多少sector
+end-start为9510479 - 7695198 + 1 = 1815282
+faith:/home/jasonb# dd if=/nebula/hda_dd.image of=/nebula/test.image \
+  bs=512 skip=7695198 count=1815282
+1815282+0 records in
+1815282+0 records out
+
+====================================================================
+
+linux分区大小改变及fdisk的应用
+http://hi.baidu.com/%C5%AC%C1%A6%BC%D3%B1%B4/blog/item/3cb8046e70b235cd81cb4a9f.html
+-------------------------------------------------------------------------------
+关于fdisk -l 一些数值的说明
+Disk /dev/hda: 80.0 GB, 80026361856 bytes
+255 heads, 63 sectors/track, 9729 cylinders
+Units = cylinders of 16065 * 512 = 8225280 bytes
+16065=255*63(heads*sectors)
+这个硬盘是80G的，有255个磁面；63个扇区；9729个磁柱；每个 cylinder(磁柱)的容量是 8225280 bytes=8225.280 K(约为)=8.225280M(约为)；
+分区序列 引导 开始 终止 容量 分区类型ID 分区类型
+Device Boot Start End Blocks Id System
+/dev/hda1 * 1 765 6144831 7 HPFS/NTFS
+/dev/hda2 766 2805 16386300 c W95 FAT32 (LBA)
+/dev/hda3 2806 9729 55617030 5 Extended
+/dev/hda5 2806 3825 8193118+ 83 Linux
+/dev/hda6 3826 5100 10241406 83 Linux
+/dev/hda7 5101 5198 787153+ 82 Linux swap / Solaris
+/dev/hda8 5199 6657 11719386 83 Linux
+/dev/hda9 6658 7751 8787523+ 83 Linux
+/dev/hda10 7752 9729 15888253+ 83 Linux
+
+说明：
+硬盘分区的表示：在Linux 是通过hd*x 或 sd*x 表示的，其中 * 表示的是a、b、c …… …… x表示的数字 1、2、3 …… …… hd大多是IDE硬盘；sd大多是SCSI或移动存储；
+引导(Boot)：表示引导分区，在上面的例子中 hda1 是引导分区；
+Start (开始)：表示的一个分区从X cylinder(磁柱)开始；
+End (结束)：表示一个分区到 Y cylinder(磁柱)结束；
+id和System 表示的是一个意思，id看起来不太直观，我们要在fdisk 一个分区时，通过指定id来确认分区类型；比如 7表示的就NTFS 分区；这个在fdisk 中要通过t功能来指定。下面的部份会提到；
+Blocks(容量)：这是我翻译的，其实不准确，表示的意思的确是容量的意思，其单位是K；一个分区容量的值是由下面的公式而来的；
+Blocks = (相应分区End数值 - 相应分区Start数值)x 单位cylinder(磁柱)的容量
+所以我们算一下 hda1的 Blocks 的大小 ：
+hda1 Blocks=(765-1)x8225.280=6284113.92 K = 6284.113.92M
+---------------------
+lily@willow:~$ sudo fdisk -l -u
+[sudo] password for lily: 
+
+Disk /dev/sda: 21.5 GB, 21474836480 bytes
+255 heads, 63 sectors/track, 2610 cylinders, total 41943040 sectors
+Units = sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disk identifier: 0x000671a0
+
+   Device Boot      Start         End      Blocks   Id  System
+/dev/sda1   *        2048    40894463    20446208   83  Linux
+/dev/sda2        40896510    41940991      522241    5  Extended
+/dev/sda5        40896512    41940991      522240   82  Linux swap / Solaris
+--------------------
+这里磁盘是以sector为单位来换算的。
+start end 都是指扇区数, blocks 是以kbyte为单位的：
+这里      (41940991-40896510)*512/1024=      522241 
+
+磁盘是多个碟片堆积起来的，head是指有多少张碟片，cylinder是指同心圆的多少（track的多少），sector是一个track有多少个段。track就是将圆形划分成的同心圆环，sector是被n条直径划分出来的扇形个数。所以硬盘容量实际是个体积的计算就是cylinder*sector*head
+---
+
+fdisk 分区的概念，分区最多可以分4个主分区。
+所以一般是一个主分区，一个扩展分区，再在扩展分区上分出多个逻辑分区。
+看一个磁盘分区是否有遗漏，可以从柱面的start，end看出。理论上start，end必须是连续的。
+-------------------
+3、估算一个存储设备是否被完全划分
+我们估算一个硬盘是否完全被划分，我们只要看 fdisk -l 输出的内容中的 cylinders(柱体) 上一个分区的End 和下一个分区的Start是不是一个连续的数字，另外要看一下每个硬盘设备的fdisk -l 的开头部份，看一下他的 cylinders(柱体)的值；
+比如hda设备，我们看到的是 9729 cylinders ；我们通过 hda的分区表可以看到上一个分区的End的值+1 就是下一个分区的Start 的值；比如 hda2的Start的值是 hda1 的End 的值+1，这证明 hda1 和hda2 中间没有空白分区，是连续的，以此类推；在 hda10，我们看到 End 的值是9729 ，而在fdisk -l头部信息中也有9729 cylinders，证明这个硬盘已经完全划分。
+Disk /dev/sda: 1035 MB, 1035730944 bytes
+256 heads, 63 sectors/track, 125 cylinders
+Units = cylinders of 16128 * 512 = 8257536 bytes
+Device Boot Start End Blocks Id System
+/dev/sda1 1 25 201568+ c W95 FAT32 (LBA)
+/dev/sda2 26 125 806400 5 Extended
+/dev/sda5 26 50 201568+ 83 Linux
+/dev/sda6 51 76 200781 83 Linux
+我们再看看 sda 移动储是不是被完全划分了；sda有 125个cylinders (柱体)，有一个主分区和一个扩展分区构成；在扩展分区中，我们看到End的值为125，而这个移动硬盘的cylinder也是125，这能说明这个硬盘不可能再添加任何主分区了；根据我们上面所说的 sda1 sda2 sda5 sda6 之间未有任何未划分空间，但sda6 的cylinders (柱体)的End值却是 76 ，而 sda总的cylinders (柱体)有125个，由此看来sda 在 sda6后面有未划分区域。
+
+================================
+linux查看文件系统类型，大小
+http://bbs.winos.cn/thread-60728-1-1.html
+[分享] Linux 中查看文件系统类型的命令
+Linux, 文件系统, 命令, 类型
+不需挂载就能查看的命令：
+
+1. file 
+[root@localhost dev]# file -s /dev/sda1
+/dev/sda1: Linux rev 1.0 ext4 filesystem data (extents) (huge files)
+
+
+2.parted
+[root@localhost dev]# parted /dev/sda
+GNU Parted 1.8.8
+Using /dev/sda
+Welcome to GNU Parted! Type 'help' to view a list of commands.
+(parted) print
+Model: VMware, VMware Virtual S (scsi)
+Disk /dev/sda: 21.5GB
+Sector size (logical/physical): 512B/512B
+Partition Table: msdos
+Number  Start   End     Size    Type     File system  Flags
+1      32.3kB  206MB   206MB   primary  ext3         boot
+2      206MB   21.5GB  21.3GB  primary               lvm
+
+
+3.fdisk
+[root@localhost dev]# fdisk -l /dev/sda
+Disk /dev/sda: 21.4 GB, 21474836480 bytes
+255 heads, 63 sectors/track, 2610 cylinders
+Units = cylinders of 16065 * 512 = 8225280 bytes
+Disk identifier: 0x0007c1e8
+   Device Boot      Start         End      Blocks   Id  System
+/dev/sda1   *           1          25      200781   83  Linux
+/dev/sda2              26        2610    20764012+  8e  Linux LVM
+
+
+
+需要挂载才能查看的命令：
+
+1.mount
+[root@localhost dev]# mount
+/dev/mapper/VolGroup00-LogVol00 on / type ext3 (rw)
+/proc on /proc type proc (rw)
+sysfs on /sys type sysfs (rw)
+devpts on /dev/pts type devpts (rw,gid=5,mode=620)
+/dev/sda1 on /boot type ext3 (rw)
+tmpfs on /dev/shm type tmpfs (rw)
+none on /proc/sys/fs/binfmt_misc type binfmt_misc (rw)
+sunrpc on /var/lib/nfs/rpc_pipefs type rpc_pipefs (rw)
+
+
+2.df
+[root@localhost dev]# df -T
+Filesystem    Type   1K-blocks      Used Available Use% Mounted on
+/dev/mapper/VolGroup00-LogVol00
+              ext3    18320140   3426724  13962808  20% /
+/dev/sda1     ext3      194442     13480    170923   8% /boot
+tmpfs        tmpfs      516908         0    516908   0% /dev/shm
+
+
+3.stat
+[root@localhost /]# stat -f bin
+  File: "bin"
+    ID: 3ef5d5f4a8cc1340 Namelen: 255     Type: ext2/ext3
+Block size: 4096       Fundamental block size: 4096
+Blocks: Total: 4580035    Free: 3723354    Available: 3490702
+Inodes: Total: 1163264    Free: 1044678 
+
+different between Change and Modify
+[gll@localhost MME_SGSN_tester]$ stat svnstat.sh
+  File: `svnstat.sh'
+  Size: 236             Blocks: 8          IO Block: 4096   regular file
+Device: 802h/2050d      Inode: 12291601    Links: 1
+Access: (0755/-rwxr-xr-x)  Uid: (  507/     gll)   Gid: (  508/     gll)
+Access: 2013-11-22 17:04:19.000000000 +0800
+Modify: 2013-10-14 14:50:02.000000000 +0800
+Change: 2013-10-14 15:41:49.000000000 +0800
+[gll@localhost MME_SGSN_tester]$ cp -p svnstat.sh svnstat.sh_bak
+[gll@localhost MME_SGSN_tester]$ stat svnstat.sh_bak
+  File: `svnstat.sh_bak'
+  Size: 236             Blocks: 8          IO Block: 4096   regular file
+Device: 802h/2050d      Inode: 20321213    Links: 1
+Access: (0755/-rwxr-xr-x)  Uid: (  507/     gll)   Gid: (  508/     gll)
+Access: 2013-11-22 17:04:19.000000000 +0800
+Modify: 2013-10-14 14:50:02.000000000 +0800
+Change: 2014-01-15 17:13:02.000000000 +0800
+
+
+
+* nclog.out 
+[Desktop Entry]
+Version=1.0
+Type=Link
+Name=Examples
+Comment=Example content for Ubuntu
+URL=file:///usr/share/example-content/
+Icon=folder
+X-Ubuntu-Gettext-Domain=example-content
+
+* nohup.txt
+
+nohup
+
+mmcblk0 是当前系统正在佣的文件系统，含有boot分区，
+和ext2分区，含linux的文件系统
+nohup sudo sh -c 'bzcat *.img > /dev/mmcblk0'
+
+nohup 命令
+　　用途：LINUX命令用法，不挂断地运行命令。
+　　语法：nohup Command [ Arg ... ] [　& ]
+　　描述：nohup 命令运行由 Command 参数和任何相关的 Arg 参数指定的命令，忽略所有挂断（SIGHUP）信号。在注销后使用 nohup 命令运行后台中的程序。要运行后台中的 nohup 命令，添加 & （ 表示“and”的符号）到命令的尾部。
+　　如果不将 nohup 命令的输出重定向，输出将附加到当前目录的 nohup.out 文件中。如果当前目录的 nohup.out 文件不可写，输出重定向到 $HOME/nohup.out 文件中。如果没有文件能创建或打开以用于追加，那么 Command 参数指定的命令不可调用。如果标准错误是一个终端，那么把指定的命令写给标准错误的所有输出作为标准输出重定向到相同的文件描述符。
+　　退出状态：该命令返回下列出口值：
+　　126 可以查找但不能调用 Command 参数指定的命令。
+　　127 nohup 命令发生错误或不能查找由 Command 参数指定的命令。
+　　否则，nohup 命令的退出状态是 Command 参数指定命令的退出状态。
+　　nohup命令及其输出文件
+　　nohup命令：如果你正在运行一个进程，而且你觉得在退出帐户时该进程还不会结束，那么可以使用nohup命令。该命令可以在你退出帐户/关闭终端之后继续运行相应的进程。nohup就是不挂起的意思( no hang up)。
+　　该命令的一般形式为：nohup command &
+　　使用nohup命令提交作业
+　　如果使用nohup命令提交作业，那么在缺省情况下该作业的所有输出都被重定向到一个名为nohup.out的文件中，除非另外指定了输出文件：
+　　nohup command > myout.file 2>&1 &
+　　在上面的例子中，输出被重定向到myout.file文件中。
+　　使用 jobs 查看任务。
+　　使用 fg %n　关闭。
+　　另外有两个常用的ftp工具ncftpget和ncftpput，可以实现后台的ftp上传和下载，这样我就可以利用这些命令在后台上传和下载文件了。
+
+
+* openbox相关配置
+
+所有的配置文件在ubuntu
+/etc/xdg/openbox/  也可放在 ~/.config/openbox/
+rc.xml 总管窗口的风格：
+
+<theme>
+  <name>Clearlooks</name>
+  <titleLayout>L</titleLayout>
+  <!--
+      available characters are NDSLIMC, each can occur at most once.
+      N: window icon
+      L: window label (AKA title).
+      I: iconify
+      M: maximize
+      C: close
+      S: shade (roll up/down)
+      D: omnipresent (on all desktops).
+  -->
+如果是L的话就没有窗口管理器最上面的最大，最小，标题，关闭的frame
+
+
+如果要定制鼠标的操作，mouse-bind里修改，可以关闭关于鼠标的很多操作，如拖动等。
+<keybind  key="C-A-Left">
+      <action name="DesktopLeft"><dialog>no</dialog><wrap>no</wrap></action>
+</keybind>
+
+如果要屏蔽键盘的操作，board-bind里修改，可以关必系统的很多热键操作，如alt+F4关闭当前窗口
+<keybind key="A-F4">
+ <action name="close">
+</keybind>
+
+最后对于特殊的application也可以定制
+<!--
+  # this is an example with comments through out. use these to make your
+  # own rules, but without the comments of course.
+
+  <application name="the window's _OB_APP_NAME property (see obxprop)"
+              class="the window's _OB_APP_CLASS property (see obxprop)"
+               role="the window's _OB_APP_ROLE property (see obxprop)"
+               type="the window's _OB_APP_TYPE property (see obxprob)..
+                      (if unspecified, then it is 'dialog' for child windows)">
+  # you may set only one of name/class/role/type, or you may use more than one
+  # together to restrict your matches.
+
+  # the name, class, and role use simple wildcard matching such as those
+  # used by a shell. you can use * to match any characters and ? to match
+  # any single character.
+
+  # the type is one of: normal, dialog, splash, utility, menu, toolbar, dock,
+  #    or desktop
+
+  # when multiple rules match a window, they will all be applied, in the
+  # order that they appear in this list
+
+
+    # each rule element can be left out or set to 'default' to specify to not 
+    # change that attribute of the window
+
+    <decor>yes</decor>
+    # enable or disable window decorations
+
+    <shade>no</shade>
+    # make the window shaded when it appears, or not
+
+    <position force="no">
+      # the position is only used if both an x and y coordinate are provided
+      # (and not set to 'default')
+      # when force is "yes", then the window will be placed here even if it
+      # says you want it placed elsewhere.  this is to override buggy
+      # applications who refuse to behave
+      <x>center</x>
+      # a number like 50, or 'center' to center on screen. use a negative number
+      # to start from the right (or bottom for <y>), ie -50 is 50 pixels from the
+      # right edge (or bottom).
+      <y>200</y>
+      <monitor>1</monitor>
+      # specifies the monitor in a xinerama setup.
+      # 1 is the first head, or 'mouse' for wherever the mouse is
+    </position>
+
+    <focus>yes</focus>
+    # if the window should try be given focus when it appears. if this is set
+    # to yes it doesn't guarantee the window will be given focus. some
+    # restrictions may apply, but Openbox will try to
+
+    <desktop>1</desktop>
+    # 1 is the first desktop, 'all' for all desktops
+
+    <layer>normal</layer>
+    # 'above', 'normal', or 'below'
+
+    <iconic>no</iconic>
+    # make the window iconified when it appears, or not
+
+    <skip_pager>no</skip_pager>
+    # asks to not be shown in pagers
+
+    <skip_taskbar>no</skip_taskbar>
+    # asks to not be shown in taskbars. window cycling actions will also
+    # skip past such windows
+
+    <fullscreen>yes</fullscreen>
+    # make the window in fullscreen mode when it appears
+
+    <maximized>true</maximized>
+    # 'Horizontal', 'Vertical' or boolean (yes/no)
+  </application>
+
+  # end of the example
+-->
+
+
+<application name="*">
+<decor>yes</decor>
+</application>
+
+<application name="firefox-bin" class="Firefox-bin">
+<fullscreen>yes</fullscreen>
+</application>
+
+</applications>
+
+
+
+系统启动时自动启动一些程序  autosart.sh
+cd /home/zxx/UI
+DELAY=.75
+APPS='/home/zxx/UI/UI'
+
+(for X in $APPS ; do ($X &) ; sleep $DELAY ; done) &
+* grep or/and usage
+if the two patterns have or relation ship
+grep -e "pa1" -e  "pa2"
+grep "\(pa1\|pa2\)samepattern3" 
+
+example:
+
+[admin1@TeamCI-136 MME_SGSN_tester]$ cat ta
+ab
+id-ab
+ab-5
+
+# this will either remvoe - before ab or after ab 
+[admin1@TeamCI-136 MME_SGSN_tester]$ grep  "\([^-]\|^\)ab\([^-]\|$\)"  ta
+ab
+
+
+** glob(Programmming) vs. regular exp
+*** *(all character)    vs  .*(all character)
+In computer programming, in particular in a Unix-like environment, the term globbing is sometimes used to refer to pattern matching based on wildcard characters.[citation needed] The noun "glob" is used to refer to a particular pattern, e.g. "use the glob *.log to match all those log files".[citation needed] Its notation is simpler than regular expressions, and without their expressive power.
+
+
+*** case insensitive
+glob is case insensitive vs.  regular exp is case sensitive
+[a-z] or [A-Z] are all the same in glob
+but in regular you have to use this   [a-zA-Z] the
+
+
+
+* make your own mail system
+
+make your own email R/S client system
+
+The beginner use, simply to receive mails to local
+
+mutt
+read all the emails in inbox.
+//  inbox, postponed, sent is files, not directory.
+
+~/.muttrc
+set editor="vi"
+#设置邮件发送程序
+set sendmail="/usr/bin/msmtp"
+#
+##建立信箱
+set folder="~/Mail"
+set mbox="~/Mail/inbox"
+set mbox_type=maildir
+set spoolfile="~/Mail/inbox"
+set postponed="~/Mail/postponed"
+set record="~/Mail/sent"
+#
+## 让mutt监视下面几个邮箱，并随时报告新邮件
+mailboxes "=inbox"
+#mailboxes "=USTCstudent"
+#mailboxes "=USTCteacher"
+#mailboxes "=ustcbbs
+#mailboxes "=Gmail"
+#
+set check_new = yes
+
+-----------------------
+getmail  // receive the mail to the local mailbox
+ vi /home/zxx/.getmail/getmailrc
+========================
+message_log = ~/.getmail/log
+
+[retriever]
+type = SimplePOP3Retriever
+server = pop.163.com
+username = mqyyy777@163.com
+password = *****
+
+[destination]
+type = Maildir
+path = ~/Mail/inbox/
+#type = MDA_external
+#path = /usr/bin/procmail
+#unixfrom = true
+==============================
+
+~/.msmtprc   //send the mail
+=========================
+
+account gmail
+host smtp.163.com
+from mqyyy777@163.com
+auth login
+user  ******
+password ****
+#port 587
+#auth on
+#tls_certcheck off
+account default:gmail
+
+* rpm package build
+
+步骤一：建立需打包的project小例子
+
+　　利用mad建立我们的project，我们可以现查看一下mad可以创建那些类型的project，然后根据需要选择创建。
+
+$ mad pscreate -l
+TEMPLATE NAME    TYPE     DESCRIPTION
+lib-simple       lib      Simple example for C/C++ library
+python           python   Simple example for Python (Qt) application
+qt-empty         prog     Empty project for Qt application
+qt-lib-simple    lib      Simple example for Qt library
+qt-simple        qtprog   Simple example for Qt application
+simple           prog     Simple example for C/C++ application
+
+$ mad -t <link:internal>meego</link:internal>-handset-ia32-1.1 pscreate -t qt-simple test-rpm-0.0.1
+
+　　请注意这个project的名字，我们将version信息也加入，这也是rpm包命名的标准方式。在后面我们也会看到spec文件中对文件夹的缺省命名，提供version信息，可以是我们更好的管理不同版本当然源代码，同时也方便打patch。
+
+$ cd test-rpm-0.0.1/
+$ mad -t <link:internal>meego</link:internal>-handset-ia32-1.1 qmake
+
+　　通过这一步，可以生成Makefile，打开Makefile文件，我们做一些小修改，将涉及绝对路径的修改为相对路径，例如该文件夹的绝对路径在/workspace/<link:internal>meego</link:internal>/test/qt/test-rpm-0.0.1，我们可以查询这个路径，或者查询install，是在 target中install desktop文件时会写成绝对路径。因为我们将利用rpmbuild的缺省目录，而且不同环境，安装的绝对路径不一样，所以需要修改。
+
+　　这是我们可以直接通过make命令来进行编译。由于是实验打包的情况，我只在*.desktop文件中修改了图标的描述名字，并将源文件中的Hello, World改为其他文字。
+
+
+tar –czvf  test-rpm-0.0.1.tar.gz  test-rpm-0.0.1
+
+liguo@lili:~/rpmbuild/SPECS$ rpmbuild -ba test-rpm.spec
+Executing(%prep): <link:url>/bin/sh</link:url> -e <link:url>/var/tmp/rpm-tmp.pQRhOb</link:url>
++ umask 022
++ cd <link:url>/home/liguo/rpmbuild/BUILD</link:url>
++ cd <link:url>/home/liguo/rpmbuild/BUILD</link:url>
++ rm -rf test-rpm-0.0.1
++ <link:url>/bin/gzip</link:url> -dc <link:url>/home/liguo/rpmbuild/SOURCES/test-rpm-0.0.1.tar.gz</link:url>
++ <link:url>/bin/tar</link:url> -xf -
++ STATUS=0
++ [ 0 -ne 0 ]
++ cd test-rpm-0.0.1
++ exit 0
+Executing(%build): <link:url>/bin/sh</link:url> -e <link:url>/var/tmp/rpm-tmp.guqDbi</link:url>
++ umask 022
++ cd <link:url>/home/liguo/rpmbuild/BUILD</link:url>
++ cd test-rpm-0.0.1
++ make
+g++ -c -pipe -g -Wall -W -D_REENTRANT -DQT_GUI_LIB -DQT_CORE_LIB -DQT_SHARED -I/usr/lib/madde/linux-i686/sysroots/<link:internal>meego</link:internal>-handset-ia32-madde-sysroot-1.1.20110106.1204-fs/usr/share/qt4/mkspecs/linux-g++ -I. -I/usr/lib/madde/linux-i686/sysroots/<link:internal>meego</link:internal>-handset-ia32-madde-sysroot-1.1.20110106.1204-fs/usr/include/qt4/QtCore -I/usr/lib/madde/linux-i686/sysroots/<link:internal>meego</link:internal>-handset-ia32-madde-sysroot-1.1.20110106.1204-fs/usr/include/qt4/QtGui -I/usr/lib/madde/linux-i686/sysroots/<link:internal>meego</link:internal>-handset-ia32-madde-sysroot-1.1.20110106.1204-fs/usr/include/qt4 -Ibuild -o build/qtmain.o src/qtmain.cpp
+g++  -o build/test-rpm-0.0.1 build/qtmain.o    -L/usr/lib/madde/linux-i686/sysroots/<link:internal>meego</link:internal>-handset-ia32-madde-sysroot-1.1.20110106.1204-fs/usr/lib -lQtGui -lQtCore -lpthread 
++ exit 0
+Executing(%install): <link:url>/bin/sh</link:url> -e <link:url>/var/tmp/rpm-tmp.plxuSq</link:url>
++ umask 022
++ cd <link:url>/home/liguo/rpmbuild/BUILD</link:url>
++ cd test-rpm-0.0.1
++ make install INSTALL_ROOT=/home/liguo/rpmbuild/BUILDROOT/test-rpm-0.0.1-1.i386
+install -m 755 -p "build/test-rpm-0.0.1" "/home/liguo/rpmbuild/BUILDROOT/test-rpm-0.0.1-1.i386/usr/bin/test-rpm-0.0.1"
+install -m 644 -p <link:url>/home/liguo/test-rpm-0.0.1/data/test-rpm-0.0.1.desktop</link:url> <link:url>/home/liguo/rpmbuild/BUILDROOT/test-rpm-0.0.1-1.i386/usr/share/applications/</link:url>
+install -m 644 -p <link:url>/home/liguo/test-rpm-0.0.1/data/test-rpm-0.0.1.service</link:url> <link:url>/home/liguo/rpmbuild/BUILDROOT/test-rpm-0.0.1-1.i386/usr/share/dbus-1/services/</link:url>
+install -m 644 -p <link:url>/home/liguo/test-rpm-0.0.1/data/64x64/test-rpm-0.0.1.png</link:url> <link:url>/home/liguo/rpmbuild/BUILDROOT/test-rpm-0.0.1-1.i386/usr/share/icons/hicolor/64x64/apps/</link:url>
+Processing files: test-rpm-0.0.1-1.i386
+unknown, 0: Warning: using regular magic file `/etc/magic'
+error: Couldn't exec <link:url>/usr/lib/rpm/desktop-file.prov</link:url>: No such file or directory
+Requires(rpmlib): rpmlib(CompressedFileNames) &lt;= 3.0.4-1 rpmlib(PayloadFilesHavePrefix) &lt;= 4.0-1
+Requires: libQtCore.so.4 libQtGui.so.4 libc.so.6 libc.so.6(GLIBC_2.0) libgcc_s.so.1 libgcc_s.so.1(GCC_3.0) libm.so.6 libpthread.so.0 libstdc++.so.6 libstdc++.so.6(CXXABI_1.3) rtld(GNU_HASH)
+Checking for unpackaged file(s): <link:url>/usr/lib/rpm/check-files</link:url> <link:url>/home/liguo/rpmbuild/BUILDROOT/test-rpm-0.0.1-1.i386</link:url>
+Wrote: <link:url>/home/liguo/rpmbuild/SRPMS/test-rpm-0.0.1-1.src.rpm</link:url>
+Wrote: <link:url>/home/liguo/rpmbuild/RPMS/i386/test-rpm-0.0.1-1.i386.rpm</link:url>
+Executing(%clean): <link:url>/bin/sh</link:url> -e <link:url>/var/tmp/rpm-tmp.uny3AR</link:url>
++ umask 022
++ cd <link:url>/home/liguo/rpmbuild/BUILD</link:url>
++ cd test-rpm-0.0.1
++ <link:url>/bin/rm</link:url> -rf <link:url>/home/liguo/rpmbuild/BUILDROOT/test-rpm-0.0.1-1.i386</link:url>
++ exit 0
+liguo@lili:~/rpmbuild/SPECS$ ls <link:url>/usr/lib/rpm/desktop-file.prov</link:url>
+ls: cannot access <link:url>/usr/lib/rpm/de</link:url>
+
+
+
+Qtcreator run the rpm package
+sudo rpm -i --force qthello-0.0.1-1.i586.rpm &amp;& sudo sudo chmod a+x <link:url>/usr/local/bin/qthello</link:url> &amp;& source <link:url>/etc/profile</link:url> &amp;& export DISPLAY=:0  &amp;& sudo su -m <link:internal>meego</link:internal> -c 'xhost + ';   <link:url>/usr/local/bin/qthello</link:url> ;echo Ꭰ
+
+用rpm －qpi 和rpm －qpl 看一下吧
+rpm -qpi cbook-0.0.1-1.i586.rpm
+rpm -e packagename?
+<link:internal>meego</link:internal>@[<link:internal>meego</link:internal>-handset-sdk]::~$ rpm -qpi cbook-0.0.1-1.i586.rpm 
+Name        : cbook                        Relocations: (not relocatable)
+Version     : 0.0.1                             Vendor: (none)
+Release     : 1                             Build Date: (none)
+Install Date: (not installed)               Build Host: (none)
+Group       : &lt;insert group tag>            Source RPM: cbook-0.0.1-src.rpm
+Size        : 5616516                          License: &lt;insert license tag>
+Signature   : (none)
+Summary     : &lt;insert summary tag>
+Description :
+# Add here description of the package.
+<link:internal>meego</link:internal>@[<link:internal>meego</link:internal>-handset-sdk]::~$ rpm -qpl cbook-0.0.1-1.i586.rpm 
+<link:url>/usr/local</link:url>
+<link:url>/usr/local/bin</link:url>
+<link:url>/usr/local/bin/cbook</link:url>
+<link:internal>meego</link:internal>@[<link:internal>meego</link:internal>-handset-sdk]::~$ 
+
+使用工具rpm2cpio和cpio
+
+　　rpm2cpio xxx.rpm | cpio -vid
+
+　　rpm2cpio xxx.rpm | cpio -idmv
+
+　　rpm2cpio xxx.rpm | cpio --extract --make-directories
+
+　　参数i和extract相同，表示提取文件。v表示指示执行进程
+
+　　d和make-directory相同，表示根据包中文件原来的路径建立目录
+
+　　m表示保持文件的更新时间。</note-content></text>
+
+
+* screen
+screen comand will lead you a screen session
+ctrl a d will exit the session in the original shell(detach)
+
+** windows commands:
+ctrl a c will create a new window in this session
+ctrl a n will jump between windows
+ctrl a ctrl w will show the windows list
+ctrl a k will kill the current window
+
+
+*** Put the following lines in your .screenrc:
+-------------------------
+hardstatus on
+hardstatus alwayslastline
+hardstatus string "%w"
+--------------------------
+//  %w will show the window list in the status line.
+
+*** name a screen session 
+screen -S foo
+
+*** name a window in a screen session
+ctrl a A  :will name the window with your input name
+ctrl a "  : will let you choose the screen window
+
+*** regions commands:
+ctrl a S or | will split the region horizontally or vertically
+ctrl a X  will exit the regison
+ctrl a tab will jump between regsions
+
+*** send command to the nested screen
+ctrl+a a d will do ctrl+a d in the sub-screen (detaching it)
+
+** back to original bash
+screen -ls   // check all the sessions in host, for different screen command
+screen -wipe // flush dead screen
+screen -r tty // will resume the detached session
+kill -9 process // will kill the session
+
+
+* ssh into remote host without a password
+*** Create public and private keys using ssh-key-gen on local-host
+
+jsmith@local-host$ ssh-keygen
+Generating public/private rsa key pair.
+Enter file in which to save the key (/home/jsmith/.ssh/id_rsa):[Enter key]
+Enter passphrase (empty for no passphrase): [Press enter key]
+Enter same passphrase again: [Pess enter key]
+Your identification has been saved in /home/jsmith/.ssh/id_rsa.
+Your public key has been saved in /home/jsmith/.ssh/id_rsa.pub.
+The key fingerprint is:
+33:b3:fe:af:95:95:18:11:31:d5:de:96:2f:f2:35:f9 jsmith@local-host
+
+*** Copy the public key to remote-host using ssh-copy-id
+
+jsmith@local-host$ ssh-copy-id -i ~/.ssh/id_rsa.pub remote-host
+jsmith@remote-host's password:
+
+Now try logging into the machine, with "ssh 'remote-host'", and check in:
+.ssh/authorized_keys
+to make sure we haven't added extra keys that you weren't expecting.
+Note: ssh-copy-id appends the keys to the remote-host’s .ssh/authorized_key.
+
+*** Login to remote-host without entering the password
+jsmith@local-host$ ssh remote-host
+Last login: Sun Nov 16 17:22:33 2008 from 192.168.1.2
+
+* raspberry
+** deluge in raspberry
+sudo apt-get install deluge
+sudo service deluged start
+sudo service deluge-web start
+
+https://localhost:8112
+
+

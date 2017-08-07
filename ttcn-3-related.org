@@ -1,0 +1,634 @@
+there are flaws in ttcn, sometimes, the compilation can pass, but it will fail in the execution
+. That's very typical, so when writing testcase, if there're errors reported in the very unuaual
+way, for example, it will come somewhere everytime, but in that case, it can't reach the generic
+place, that's probably because of the templates or para passed wrongly in testcase which should
+be examined in the compilation phase, but it fail to report in that phase, instead, it run wiredly. In such case, you should examine the case carefully.
+
+1. For example,
+
+port_Port1.send(Atemplate );
+port_Port1.receive(Atemplate); 
+port_Port1.receive(Typename:?)
+port_Port1.receive(Typename:*)
+
+EG.
+template   TRICTRLPRIMs.TriCtrlPrimes a_TriCtrpPrimes := 
+{
+  saIndentifier := c_saIdentifier,
+  result   := { success := a_suceess}
+}
+############# the choice and record field need fields in  braces 
+template   TRICTRLIEs.Result a_success := { success :=? };
+Result ::=      CHOICE {
+            success  NULL,    
+            failure ReasonPhrase
+}
+
+if using 
+port.send(a_TriCtrpPrimes)
+the compilation will pass, but the running will fail, and you barely can debug into it,
+very wired
+
+-------------------------------------------------------------------------------
+
+2. port.send/receive without a template defined before
+altstep alt_awaitPhaseStartReq () runs on SyncSlave {
+
+[] pt_sync.receive( PhaseStartReq:{ phase := v_phase } )
+{};
+##############// a_phase is a template it can be assigned to a field
+[] pt_sync.receive( PhaseStartReq:{ phase := a_phase } )
+{};
+#############// ? is any value of it, and 
+[] pt_sync.receive( PhaseStartReq:{ phase := ? } ) {
+setverdict( inconc )
+}
+}
+
+
+3. list format
+type record length ( 1..infinity ) of ViaHeader ViaHeaders;
+type record ViaHeader {
+charstring sentProtocol,
+charstring sentBy,
+charstring viaParams optional
+};
+const ViaHeaders c_aliceViaHeaders :=
+{ { sentBy := "SIP/2.0/UDP",
+sentBy := "bigbox3.site3.atlanta.com",
+viaParams := omit
+},
+{ sentBy := "SIP/2.0/UDP",
+sentBy := "pc33.atlanta.com",
+viaParams := omit
+}
+};
+
+4. about raw message
+generally the raw message is octet string, but tester will add some extra info in the 
+beginning of the message 
+like "testsystem name" "msg name"
+
+[14:06:36.515][TriCtrlComponent]dd Data (text):
+[14:06:36.515][TriCtrlComponent]dd     <10>Bicc_TestSystem<00><0f>RawCtrlPrimMsg<00><00><tb> A00D800
+[14:06:36.515][TriCtrlComponent]dd     75369675472616EA102800000
+
+so if you want the real raw message, you should custom the rawmessage encode/decode to just send them.
+if through the tau tester default one the extra fields will be addd in the beggining.
+
+  
+5. send and receive a raw msg is meaningless, no encode/decode process will be done
+type octetstring RawCtrlPrimMsg;
+template RawCtrlPrimMsg a_RawCtrlPrimMsg(template octetstring p_RawMsg) := p_RawMsg;
+
+ function f_sendRawRec(template RawCtrlPrimMsg p_sendMsg,
+template TRICTRLPRIMs.TRICtrl_ConnectStackCnf p_a_connectStackCnfPos
+  )  runs on TriCtrlComponent {
+
+    timer t_guard := 5.0;
+    connect(self:g_pt_triCtrl,self:g_pt_triCtrl);
+    g_pt_triCtrl.send(p_sendMsg);
+   t_guard.start;
+    alt {
+          [] g_pt_triCtrl.receive(RawCtrlPrimMsg:?) {
+
+##################instead, should be
+ g_pt_triCtrl.receive( TRICTRLPRIMs.TRICtrl_Prims:?}) {
+######this should be one of field of the union
+ g_pt_triCtrl.receive( TRICTRLPRIMs.TRICtrl_Prims:{connectStackCnf := p_a_connectStackCnfPos}) {
+#######this is the specific unino field
+
+-------------------------------------------- 
+Bicc_TestSystem.ttcn (253):
+[16:06:38.075][TriCtrlComponent]ts t_guard.start(5.000000)
+
+[16:06:38.075][TriCtrlComponent]dc A message from a test component to port "g_pt_triCtrl" detected
+[16:06:38.075][TriCtrlComponent]dd Data (octets):
+[16:06:38.075][TriCtrlComponent]dd     00000000: 02 20 10 42 69 63 63 5f 54 65 73 74 53 79 73 74
+[16:06:38.075][TriCtrlComponent]dd     00000010: 65 6d 00 0f 52 61 77 43 74 72 6c 50 72 69 6d 4d
+[16:06:38.075][TriCtrlComponent]dd     00000020: 73 67 00 00 09 20 41 30 30 44 38 30 30 37 35 33
+[16:06:38.075][TriCtrlComponent]dd     00000030: 36 39 36 37 35 34 37 32 36 31 36 45 41 31 30 32
+[16:06:38.075][TriCtrlComponent]dd     00000040: 38 30 30 30 30 30
+[16:06:38.075][TriCtrlComponent]dd Data (text):
+[16:06:38.075][TriCtrlComponent]dd     <02> <10>Bicc_TestSystem<00><0f>RawCtrlPrimMsg<00><00><tb> A0
+[16:06:38.075][TriCtrlComponent]dd     0D80075369675472616EA102800000
+
+[16:06:38.076][TriCtrlComponent]md A message decoded successfully
+[16:06:38.076][TriCtrlComponent]dd Data (octets):
+[16:06:38.076][TriCtrlComponent]dd     00000000: 10 42 69 63 63 5f 54 65 73 74 53 79 73 74 65 6d
+[16:06:38.076][TriCtrlComponent]dd     00000010: 00 0f 52 61 77 43 74 72 6c 50 72 69 6d 4d 73 67
+[16:06:38.076][TriCtrlComponent]dd     00000020: 00 00 09 20 41 30 30 44 38 30 30 37 35 33 36 39
+[16:06:38.076][TriCtrlComponent]dd     00000030: 36 37 35 34 37 32 36 31 36 45 41 31 30 32 38 30
+[16:06:38.076][TriCtrlComponent]dd     00000040: 30 30 30 30
+[16:06:38.076][TriCtrlComponent]dd Data (text):
+[16:06:38.076][TriCtrlComponent]dd     <10>Bicc_TestSystem<00><0f>RawCtrlPrimMsg<00><00><tb> A00D800
+[16:06:38.076][TriCtrlComponent]dd     75369675472616EA102800000
+
+------------------------------------
+function f_sendRawRec(template RawCtrlPrimMsg p_sendMsg,
+template TRICTRLPRIMs.TRICtrl_ConnectStackCnf p_a_connectStackCnfPos
+  )  runs on TriCtrlComponent {
+
+    timer t_guard := 5.0;
+    connect(self:g_pt_triCtrl,self:g_pt_triCtrl);
+    g_pt_triCtrl.send(p_sendMsg);
+   t_guard.start;
+    alt {
+          [] g_pt_triCtrl.receive(TRICTRLPRIMs.TRICtrl_Prims:*)
+
+
+########################this prims is union, it could be any field of it
+
+
+[16:07:23.667][TriCtrlComponent]md A message decoded successfully
+[16:07:23.667][TriCtrlComponent]dd Data (octets):
+[16:07:23.667][TriCtrlComponent]dd     00000000: a0 0e 80 07 53 69 67 54 72 61 6e a1 03 80 01 00
+[16:07:23.667][TriCtrlComponent]dd Data (text):
+[16:07:23.667][TriCtrlComponent]dd     <a0><0e><80><07>SigTran<a1><03><80><01><00>
+
+
+Bicc_TestSystem.ttcn (258):
+[16:07:23.667][TriCtrlComponent]rc g_pt_triCtrl.receive(TRICtrl_Prims:<implicit template>) from a test component   @+0.004
+[16:07:23.667][TriCtrlComponent]rc Message received successfully
+[16:07:23.667][TriCtrlComponent]vv Message: {
+[16:07:23.667][TriCtrlComponent]vv     connectStackCnf {
+[16:07:23.667][TriCtrlComponent]vv         saIdentifier "SigTran"
+[16:07:23.667][TriCtrlComponent]vv         resultCtrl {
+[16:07:23.667][TriCtrlComponent]vv             successResult 0
+[16:07:23.667][TriCtrlComponent]vv         }
+[16:07:23.667][TriCtrlComponent]vv     }
+
+6. the NULL type of ASN.1
+template Result a_successResult := { success := NULL}
+
+Result ::=      CHOICE {
+            success  NULL,    
+            failure ReasonPhrase
+}
+
+
+
+* /opt/software/tautester/examples/ttcn3tutorial
+*  the link option different when run case in the tautester GUI
+** Dynamic through TAU/Tester GUI
+ -lt3tcite -lt3tci -lrpcsvc  -lt3dbg -lrpcsvc  -lasn2t3rts -lrts -lcvrts  -lt3rts     -lt3tri
+** static using TCI TM functions in ETS
+            -lt3tci -lrpcsvc  -lt3dbg           -lasn2t3rts -lrts -lcvrts  -lt3rts     -lt3tri
+** static using RTS functions in ETS
+                              -lt3dbg -lrpcsvc  -lasn2t3rts -lrts -lcvrts  -lt3rts  -lt3tri
+
+* ttcn3 grammar
+Data types
+Record :  like a struct
+
+type record SipStatus {
+float version,
+SipStatusCode statusCode,
+charstring reasonPhrase
+};
+const SipStatus c_successStatus := {2.0, 200, "OK"}; // value list
+const SipStatus c_failureStatus := { // assignment list
+version := 2.0,
+statusCode := 400,
+reasonPhrase := "Bad Request"
+};
+
+var SipStatus partialStatus := {2.0,-,-};
+var SipStatus partialStatus1 := {
+version := 2.0
+};
+partialStatus.statusCode := 100; // OK - write
+var charstring v_reasonPhrase := partialStatus.reasonPhrase; // ERROR - read
+if ( partialStatus == partialStatus1 ) { ... } // ERROR - read
+//Table 8.15 Partially defined record values
+
+type record SipUri {
+UserInfo userInfo optional, //optional user name and password
+HostPort hostPort, // user domain and port
+charstring uriParams optional, // an encoded list of URI parameters
+charstring headers optional // an encoded list of URI headers
+};
+const SipUri c_uriAtlanta := {
+userInfo := omit, // omit in assignment list notation
+hostPort := {"atlanta.com", 8081},
+uriParams := omit,
+headers := omit
+};
+//Table 8.16 Record types with optional fields
+
+Set: similar to struct but no fixed order
+/*records should be
+used to represent structured values whose fields have to be encoded in a fixed order,
+whereas sets should be used where the fields may be encoded in arbitrary order*/
+
+Union: similar to union
+
+Record-of types
+/* may contain an 
+arbitrary number of elements, but may be subtyped to fixed length or length ranges*/
+
+type record length ( 1..infinity ) of ViaHeader ViaHeaders;
+type record ViaHeader {
+charstring sentProtocol,
+charstring sentBy,
+charstring viaParams optional
+};
+const ViaHeaders c_aliceViaHeaders :=
+{ { sentBy := "SIP/2.0/UDP",
+sentBy := "bigbox3.site3.atlanta.com",
+viaParams := omit
+},
+{ sentBy := "SIP/2.0/UDP",
+sentBy := "pc33.atlanta.com",
+viaParams := omit
+}
+};
+const ViaHeaders c_switchedViaHeaders :=
+{ { sentBy := "SIP/2.0/UDP",
+sentBy := "pc33.atlanta.com",
+viaParams := omit
+},
+{ sentBy := "SIP/2.0/UDP",
+sentBy := "bigbox3.site3.atlanta.com",
+viaParams := omit
+}
+};
+// since order different
+if (c_aliceViaHeaders == c_switchedViaHeaders ) ... // evaluates to false
+type record length ( 4 ) of unsignedbyte Ipv4Address;
+const IPv4Address c_localHost := { 127, 0, 0, 1};
+Table 8.20 Defining record-of types and values
+8.4 USER-DEFINED TYPES 147
+var charstring v_aliceProxy := { c_aliceViaHeaders[1].sentby;
+type record of integer IntegerList;
+function f_append( inout p_listA, in p_listB )
+var integer v_sizeA := sizeof( p_listA );
+var integer v_sizeB := sizeof( p_listB );
+var integer i;
+for ( i := 0; i < v_sizeB; i := i + 1 ) {
+p_listA[v_sizeA + i] := p_listB[i];
+}
+};
+//Table 8.21 Element access for record-of valueo
+
+
+Arrays:
+// ERROR - 4 elements required
+var unsignedbyte v_ipv4Addr[4] := {0,0,0};
+// OK, two elements undefined
+var unsignedbyte v_localAddr[4] := {192, 15, -, -};
+const unsignedbyte c_myLocalAddr[4] := {192, 15, 17, 42};
+// OK, second element is defined
+if ( v_localAddr[1] == c_myLocalAddr[1] ) ...
+// ERROR, v_localAddr not fully defined
+if ( v_localAddr == c_myLocalAddr ) ...
+v_localAddr[2] := 0;
+v_localAddr[3] := 100;
+if ( v_localAddr == c_myLocalAddr ) ... // OK now
+Table 8.23 Partially defined arrays
+=====================================
+function func_name(...para) runs on comp_name return type_name
+{
+
+}
+testcase tc_name() runs on comp_name system sys_name
+{
+  func_name(..para);
+}
+
+type port SubPort_name message {
+     inout subMsg_type;
+};
+
+type component ChengduComp {
+     port SubPort_name pt_cd
+}
+//port is owned by a component:
+
+/* A port of a test component is mapped to a port of the test system interface by using
+the map operation. 
+*/
+map(self:pt_cd,system:pt_cd);
+/*
+The ports of test components can be connected directly to exchange messages
+between the two test components. The operation to connect two ports is connect.
+The parameters are similar to the map operation. However, whereas in the map
+operation one of the component references must be system, in a connect statement
+both references are referring to test components and not to the test system interface.
+*/
+connect(self:pt_cd, self:pt_cd);
+
+
+///////////////////
+//module parameters work like constants, which can be
+//overwritten externally by the test system user upon test system execution
+
+module mod_name
+{
+  import from mod_name all;
+  import from mod_name2 {
+  type typename;
+  function func_name;
+  modulepar mdp_name;
+  };
+
+}
+/* template  example */ 
+type record Request 
+{
+  integer  msg
+}
+//Request it a record type which has only one integer member 
+type union ChengDuMsg
+{
+   Request  request
+}
+//ChengDuMsg is a union type which has a Request member
+ template ChengDuMsg a_ChengDuMsg_Request
+/*this p_Request can be regard as a parameter  */
+   ( template integer p_Request ) :=
+   {
+      request := 
+      {
+        msg := p_Request
+      }
+   }
+// to template a var a_ChengDuMsg_Request of type ChengDuMsg
+
+template ChengDuMsg p_sendMsg := a_ChengDuMsg_Request(0)
+template ChengDuMsg p_receiveMsg := a_ChengDuMsg_Request(?)
+
+/*Templates can be passed as in parameters to functions, test cases, and so on. In
+this case, the parameter must be defined with the additional keyword template;
+otherwise, only values can be passed.*/
+function f_sendReceive( template ChengDuMsg p_sendMsg,
+                          template ChengDuMsg p_recMsg ) runs on ChengduComp {
+    timer t_guard := 3.0;
+    connect(self:pt_cd, self:pt_cd);   //connect the ports of itself, so it's a loop
+    pt_cd.send(p_sendMsg);
+    t_guard.start;
+    alt {
+      [] pt_cd.receive(p_recMsg) {
+        setverdict(pass);
+        t_guard.stop;
+      }
+      [] pt_cd.receive {
+        setverdict(fail);
+        t_guard.stop;
+      }
+      [] t_guard.timeout {
+        setverdict(inconc);
+      }
+    }
+    disconnect(self:pt_cd, self:pt_cd);  //disconnet, can't be map/unmap for one of port in map must be system
+  }
+
+  testcase tc_loop() runs on ChengDuComp system TSI {
+
+    f_sendReceive ( a_ChengDuMsg_Request(0), a_ChengDuMsg_Request(?) );
+
+  }
+
+=============================================================
+The concept of ports
+Message exchange via ports. 
+type port All port message
+{ inout all
+};    /*all kinds of message can be send/recive via this port*/
+type port Request message {
+out Ticket
+};   /*the message type is Ticket, and this port could only send the message not receive the messae.*/
+type charstring Ticket ("A","B","C");
+template Ticket a_ticketA := "A";
+template Ticket 2_ticket := ("B", "C");
+var Ticket v_retticket;
+pt_Request.send(a_ticketA );  //this will send a message of Type Ticket "A"
+pt_Ticket.receive(2_ticket) -> value v_retticket;  
+ //this will block until it receive a Type Ticket "A" or "B" in the head of
+//message queue, if there's a "C" in the head, then a "B" in the message queue, this operation will
+//block also , when get the right type and value of messae Ticket, this message will be removed from the message
+//queue.and this message will be redirection to variable v_retticket.
+//the receive operation can be used without a parameter
+//as in pt_cash.receive. Note that in this case value redirection is not possible
+
+pt_Ticket.check(2_ticket) -> value v_retticket;  
+/*this check operation is similar to receive except that it won't remove the message when it get the 
+right type and value messae*/
+
+Receive on Several Ports
+any port.receive;
+any port.receive( ? );
+any port.receive( a_coinAny);
+any port.receive(?)  ->value v_returnedCash;  //type error
+
+Default altsetps
+altstep alt_receiveAny() runs on TVMTester{
+ []  any port.receive {
+          setverdict(fail)
+   };
+};
+testcase casename() runs on TVMTester
+{
+   var default v_defaultRef;
+   .......
+   v_defalultRef := activate(alt_receiveAny());
+   /*set the default altsetp for subsequent two alt statements*/
+   alt{
+     [] pt_ticket.receive( a_ticketA) {
+          alt{
+ 	    [] alt_cash(v_returnedCashAmount){};
+            [] alt_timeGuard(t_gurad) {}
+           }
+       };
+     [] alt_timeGuard (t_guard) {}
+    };		
+   /* any unexpected message received via the ports in componet TMVTester that can receive messages can end the two alts statement*/ 
+   deactivate (v_defaultRef);
+}
+///////////////////////the subsequent slip is the same function with the above one
+alt {
+[] pt_ticket.receive( a_ticketA ) {
+alt {
+// expect cash and return the amount of money
+[] alt_cash( v_returnedCashAmount ) {};
+// guard against infinite waiting
+[] alt_timeGuard( t_guard ) {};
+// the default as explicit altstep
+[] alt_receiveAny() {}
+}
+};
+[] alt_timeGuard( t_guard ) {}
+// the default as explicit altstep
+[] alt_receiveAny() {}
+};
+//////////////////////
+=====================================================
+
+/*The modulization of a protocol/interface, component named after the protocol which is running on the interface
+between two NE(network element).
+
+
+*/
+//the protocol Message definition
+module ChengDuMessages {
+   import from NokiaBasicTypesAndValues all;
+   type record Request {
+     integer                   msg
+     }
+}
+//Template the message with some parameter
+module ChengDuTemplates {
+  import from ChengDuMessages all;
+  import from ChengDuTypes all;
+  template ChengDuMsg a_ChengDuMsg_Request
+  ( template integer p_Request ) :=
+  {
+    request := {
+      msg := p_Request
+    }
+  }
+}
+
+//component and ports definiton and map the ports
+module TestSystem
+{
+   import from ChengDuMessage;
+   type port SubPort_name message {
+       inout subMsg_type;
+  };
+     type component ChengduComp {
+    port SubPort pt_cd
+  }
+  function f_mapChengdu()  
+  runs on ChengduComp {
+    map(self:pt_cd,system:pt_cd);
+  }
+  function f_unmapChengdu()
+  runs on ChengduComp {
+    unmap(self:pt_cd,system:pt_cd);
+}
+
+//testcases definiton, start to drive
+module TestCases {
+import from ProtocolTypes all;
+import from ProtocolTemplates all;
+import from TestSystem all;
+import from TestSuiteMPs { modulepar all };
+import from Functions all;
+// configuration and may then invoke other "Functions" to drive
+// the interaction with the SUT
+//the loop testcase is testing for coding and decoding under the layer of Message
+testcase tc_loop() runs on ChengDuComp system TSI {
+     f_sendReceive ( a_ChengDuMsg_Request(0), a_ChengDuMsg_Request(?) );
+   }
+ testcase ... runs on ChengDuComp system ..{
+}
+//the mirror testcase is testing for the whole system(including SA and Stack layer)
+testcase tc_ChengDu_Mirror_A() runs on MTC system TSI {
+//create the two componets vars with the same component type
+     var ChengDuComp PTC_cd := ChengDuComp.create;
+     var ChengDuComp PTC_cdm := ChengDuComp.create;
+     var SyncPointList v_SyncPointList := {"init",c_poSyncPoint};
+//start the function in var component
+     PTC_cd.start(f_cd());
+     PTC_cdm.start(f_cdm());
+     f_serverSyncClientsAndStop(2,{"init","connected",c_poSyncPoint});
+     setverdict(pass);
+     }
+}
+// control all the flow of the testing
+module TestControl{
+  import from TestCases {testcase all };
+
+}
+===================================================================
+         MTC(Main Test Component)
+         /*creating the parallel test components and collect the individual verdicts and calculate a */
+MTC extends BaseComp{}
+BaseComp extends CommSyncComp ...
+CommSyncComp{
+SyncPoint syncpoint
+}
+PTC(procedure test component)   
+
+
+=================================
+//Test systems
+Codecs: The message need to be encoded into some format that is understood by the SUT before sent
+
+SUT adaptation:all message exchages in the abstract test suit are defined as operations referring to a specific
+port. the mapping of port is the real connection between test case and SA.
+
+Platform adaptation: timer function in different OS
+
+Test management: specify the order in which the test suite should be executed.
+
+
+
+===============================
+A methodology for conformance testing [ISO9646]. According to this methodology,
+test cases should be split into three parts: a preamble preparing the test system and
+the SUT for the actual test, a testbody describing the actual test, and a postamble
+returning the SUT to a well-defined state.
+
+
+
+
+
+
+the component relationship
++++++++++++++++++++++++++++++
+ type component IpRouterTSI extends IprComp, TelnetComp, ExtSyncComp, GtpV1Comp, GtpV2Comp, TrafficaComp, S1apComp, DiameterComp, RanapComp, MapComp, SgsapComp, BssappComp, GbComp, Lip2Comp, CapComp, Lip1Comp, ChinaLIComp, SbcComp,
+SctpRemoteComp
+    {}
+    // alias for IpRouterTSI component def
+    type component TSI extends IpRouterTSI {}
+
+   type component MTC extends BaseComp { }
+ type component BaseComp extends IprComp, CMcomp, CommSyncComp, TelnetComp, ExtSyncComp
+ type component CommSyncComp {
+          var  StringStack v_stateStack:= c_initStringStack;
+          port SyncPort syncSendPort;
+          port SyncPort syncPort;
+....}
+type component ExtSyncComp
+  {
+    var ExtSyncIntComp  g_v_extSyncPoint   := null;
+
+    port ExtSyncPort pt_extSync;
+    port ExtSyncPort pt_extSyncPoint; // towards external sync point
+....}
+
+ type component TrafficaComp {
+ type component TRAFComp extends BaseComp, TrafficaComp, UdpTcpComp {
+  function f_mapTraffica() runs on TrafficaComp {
+    map(self:pt_traffica,system:pt_traffica);
+  }
+--------------------------------------
+ //mirror case
+   testcase tc_TrafficaMirror() runs on MTC system TSI {
+    var TRAFComp  traf  := TRAFComp.create("TRAFFICA");
+    var TRAFComp  mME  := TRAFComp.create("MME");
+
+    var SyncPointList v_SyncPointList := {"init", "postAmble"};
+
+    traf.start( f_traffica () );
+    mME.start( f_trafficaMme () );
+
+    f_serverSyncClientsAndStop(2,v_SyncPointList);
+  }
+
+  function f_traffica () runs on TRAFComp {
+    var FncRetCode v_ret := e_success;
+    f_connect4SelfOrClientSync();
+    f_preamble_Traffica( mp_udpIpAddrTraffica,     mp_udpPortNumberTraffica,
+                         mp_udpIpAddrTrafficaMME , mp_udpPortNumberTrafficaMME );
+    f_selfOrClientSyncAndVerdict("init",v_ret);
+    f_sleep(1.5);
+    pt_traffica.send ( a_HeartBeat(17,
+....}
++++++++++++++++++++++
+
+
+
+

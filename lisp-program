@@ -1,0 +1,639 @@
+emacs projects	-*- mode: org; -*- 
+
+http://blog.csdn.net/yunjie2008/article/details/5684964
+*  Programming in Emacs Lisp笔记（一）表处理
+表处理 
+Lisp列表 
+数字，列表中的列表
+
+列表里也可以包含数字：(+ 2 2)。
+
+Lisp里的数据和程序都是相同的方式实现的，他们都是在括号中由单词、数字或者其它列表组成的用空白分隔的列表。因为程序看起来像数据，所以一个程序可以当作数据传递给另一个程序，这是lisp一强非常强大的功能。 
+Lisp原子
+
+Lisp列表中的单词叫原子（意为原子在Lisp列表中不可再分割成更小的单位）。与原子不同，list可以分隔成更小的单位（car cdr & cons）。
+
+空的列表：()，被称作空列表。与其它的数据类型不同，空列表被同时看作原子和列表。
+
+与自然界的原子一样,Lisp中的原子这个名称来出现得太早（意指与自然界的原子一样，原子还可以再分割）。Lisp中部分原子，比如数组就可以进行分割。但是这种机制与列表的分隔是不同的。如果依据对列表的分隔方式来说，列表中原子就是不可分隔的了。 
+列表中的空白
+
+额外的空白被用来提高代码的可读性。
+
+'(this list 
+   looks like this)
+
+与
+
+'(this list looks like this)
+
+是相同的。 
+列表排版
+
+在Emacs Lisp mode下，有多种方法来对Lisp语句进行排版。比如，按<TAB>键将自动缩进当前光标所在行到正确的位置。M-C-/可以格式化当前所选区域中的代码。 
+运行一个程序
+
+执行Lisp程序时，将执行下列三者之一：
+
+   1. 什么都不做，返回列表本身 
+   2. 返回错误信息 
+   3. 把列表中的第一个符号当作命令执行一些操作
+
+放在列表前的单引号被称作引用（quote）；当用它来处理列表时，它告诉Lisp不要对列表进行处理。但如果列表前没有单引号，则列表前的第一个元素是特殊的，它被当作命令被执行（Lisp中这些命令被称作函数）。列表(+ 2 2)显示也与加引号的列表的不同，Lisp知道需要用+来处理列表中的其它元素：把后面的数字相加。 
+生成错误信息
+
+错误信息是由内置的GNU Emacs debugger生成的。进入debugger后，可以用按键q退出debugger。 
+符号名称和函数定义
+
+Lisp中同一指令可以被绑定到多个名称。
+
+另一方面,在同一时刻一个符号只允许绑定到一个函数定义上。
+
+由于Emacs Lisp的庞大，它有一套按照不同函数功能分类的符号命名规则。如：所有处理Texinfo的函数都心textinfo-开头，而处理邮件的函数以rmail-开头。 
+Lisp解释器
+
+Lisp的工作方式：首先，它查看列表前是否有单引号，如果有则解释器给出这个列表。如果没有引号，解释器检查列表中的第一个元素是否有对应的函数定义，如果找到则解释器调用函数定义的指令。否则，解释器将打印出错误信息。 
+复杂一点的内容
+
+Lisp解释器可以对没有单引号且不被括号包围的符号。Lisp解释器将检测符号是否为一个变量。
+
+一些函数不是普通的方法。被用来处理一些特殊的工作，比如定义一个函数。
+
+Lisp求值时，将先对列表内部嵌入的列表进行求值，从内向外。
+
+Lisp解释器工作时从左向右，从一个语句到另一个语句（从上至下）。 
+编译（Byte Compiling）
+
+Lisp解释器可以解释两种类型的代码：人可以读的代码和另一种被你为byte compiled code的代码。编译过的代码执行更快。
+
+可以用byte-compile-file编译代码。被编译好的字节码文件扩展名为.elc。 
+求值
+
+当Lisp解释器工作于一个语句上时，这个活动的过程被称为求值（evaluation）。求值完成后解释器将返回函数定义的执行结果，或者在函数出错时给出错误信息。 
+对内部列表求值
+
+可以把光标停留在内部列表右括号的后面，按C-x C-e执行。
+
+(+ 2 (+ 3 3))
+
+把光标放在括号后面，或者把光标放在代码下面的空行的行首，都可以得到8。如果用C-x C-e对一个数字求值将得到数字自身，这也是数字与符号的不同。 
+变量
+
+Emacs Lisp中符号可以有一个值绑定到它或者一个函数定义绑定到它。两者不同在于，函数定义是指令的集合。值是可以修改的数字或者其它。符号的值可以是任意的Lisp表达式，比如符号、数字、列表、字符串等。有值的符号通常被称作变量。
+
+符号可以同时有一个函数定义和值。两个是分开的。例：
+
+(defun test_f () 
+"test2" 
+(message "bbb"))
+
+(setq test_f "124")
+
+test_f          -> 变量值"124" 
+(test_f)        -> 函数调用显示"bbb"
+
+fill-column一个变量的例子
+
+变量fill-column，每个Emacs缓冲区，这个符号通常被设置成72或70,但也可能有不同的值。可以用C-x C-e对fill-column这个符号求值。
+
+符号可以有值绑定到上面，我们可以绑定变量到值、数字、字符串、列表甚至是函数定义。 
+函数符号未定义时的错误信息
+
+当我们对fill-column求值时将得到变量的值时并没有在符号外面添加括号。这是因为我们不打算将符号当作函数的名称。
+
+如果fill-column是列表中的第一个元素或者唯一的元素，Lisp解释器将查找绑定到符号上的函数定义。但fill-column不是一个函数定义。当我们对
+
+(fill-column)
+
+求值时将产生错误信息：
+
+---------- Buffer: *Backtrace* ---------- 
+Debugger entered--Lisp error: (void-function fill-column) 
+  (fill-column) 
+  eval((fill-column)) 
+  eval-last-sexp-1(nil) 
+  eval-last-sexp(nil) 
+  call-interactively(eval-last-sexp) 
+---------- Buffer: *Backtrace* ----------
+
+函数fill-column未定义。
+
+按q退出调试器。 
+符号没有值时的错误信息
+
+例如对
+
+(+ 2 2)
+
+中的+号求值（光标停留在+的后面，按C-x C-e）时将产生错误信息：
+
+---------- Buffer: *Backtrace* ---------- 
+Debugger entered--Lisp error: (void-variable +) 
+  eval(+) 
+  eval-last-sexp-1(nil) 
+  eval-last-sexp(nil) 
+  call-interactively(eval-last-sexp) 
+---------- Buffer: *Backtrace* ----------
+
+这个错误信息与上节函数未定义时的不同。表示变量+未定义。 
+参数 
+参数类型
+
+传递给函数的数据类型依赖于函数需要使用何种信息。比如+函数需要数字类型的参数。concat需要字符串类型的参数。substring是一个特殊一点的函数（称作原子粉碎机），它能把从原子类型中解析出一部分数据。
+
+(substring "The quick brown fox jumped." 16 19)
+
+变量值或者列表当作参数
+
+例：
+
+(+ 2 fill-column) 
+(concat "The " (number-to-string (+ 2 fill-column)) " red foxes.")
+
+参数数量
+
+一些函数可以带多个参数，例如：+、*。
+
+(+)       => 0
+
+(*)       => 1
+
+(+ 3)     => 3
+
+(* 3)     => 3
+
+(+ 3 4 5) => 12
+
+(* 3 4 5) => 60
+
+
+使用错误类型的参数
+
+当传递了错误的参数类型时Lisp解释器将产生错误信息。例如对
+
+(+ 2 'hello)
+
+求值的结果：
+
+---------- Buffer: *Backtrace* ---------- 
+Debugger entered--Lisp error: 
+         (wrong-type-argument number-or-marker-p hello) 
+  +(2 hello) 
+  eval((+ 2 (quote hello))) 
+  eval-last-sexp-1(nil) 
+  eval-last-sexp(nil) 
+  call-interactively(eval-last-sexp) 
+---------- Buffer: *Backtrace* ----------
+
+错误信息的第一部分直截告诉我们参数类型错误(wrong-type-argument。第二个部分看起来有些迷惑number-or-marker-p，这部分告诉了我们+函数所需要的参数类型。
+
+符号number-or-marker-p说明Lisp解释器检查提供给函数的信息（参数的值）是否是数字或marker（C-@或C-< SPC>设置的位置，mark可以被当作数字进行处理－mark在缓冲区中的字符位置）。Emacs Lisp中+可以将数字和作为数字的marker位置相加。
+
+number-of-marker-p中的p是早期Lisp程序中的用法。p是'predicate'的简写。是早期Lisp研究者所使用的术语， predicate指明了函数用于决定一些属性是true还是false。因此p告诉我们number-or-marker-p是一个根据参数是否为数字或者marker而返回true或者false的函数。另一个以p结尾的Lisp符号包括zerop，这是一个检查参数值是否为0的函数，listp则是一个检测参数是否为一个列表（list）的函数。
+
+最后，错误信息的其它部分将显示出符号hello。这是传递给+的参数值。 
+message函数
+
+message函数显示信息到回显区。占位符%s表示字符串，%d为整数。例子：
+
+(message "This message appears in the echo area!") 
+(message "The name of this buffer is: %s." (buffer-name)) 
+(message "The value of fill-column is %d." fill-column) 
+(message "There are %d %s in the office!" 
+         (- fill-column 14) "pink elephants") 
+(message "He saw %d %s" 
+         (- fill-column 34) 
+         (concat "red " 
+                 (substring 
+                  "The quick brown foxes jumped." 16 21) 
+                 " leaping."))
+
+设置变量值
+
+有几种方法给变量赋值。set或setq函数，let函数。 
+使用set
+
+要把符号flowers的值设置为列表'(rose violet daisy buttercup)，可以执行下面的语句：
+
+(set 'flowers '(rose violet daisy buttercup))
+
+列表(rose violet daisy buttercup)将显示在回显区。这是set函数的返回值。另一方面符号flowers被绑定到列表；这样符号flower可以看作一个变量，它具有那个列表值。
+
+在对set语句求值后，就可以对符号flowers求值，它将返回set设置的值。当对：
+
+flowers
+
+求值时，回显区将显示(ros violet daisy buttercup)。
+
+这时如果对'flowers求值，将在回显区看到符号自身flowers。
+
+当使用set时，需要在两个参数前加单引号，除非你想对它们进行求值。如果没有加单引号，则解释器将先对参数进行求值，例如对flowers求值，如果flowers之前未赋过值，则将报错，如果对flowers的求值返回了值，则后面的变量值将赋给对flowers求值所返回的值上。这种情况非常少见。
+
+(set 'flowers 'aaa) 
+(set flowers "123") 
+(message aaa)       ->显示"123"
+
+使用setq
+
+setq与set类似，但setq将自动给第一个参数前加单引号。另一方面，setq允许在一条语句中同时设置多个不同的变量值。例：
+
+(setq carnivores '(lion tiger leopard))
+
+与
+
+(set 'carnivores '(lion tiger leopard))
+
+相同。
+
+setq可以给多个变量赋值，例：
+
+(setq trees '(pine fir oak maple) 
+      herbivores '(gazelle antelope zebra))
+
+尽管我们一直在用赋值（'assign'），但有另一种方式思考set和setq；即set和setq使一个符号指向（point）一个列表。 
+计数器
+
+这是一个在计数器中使用setq的例子。
+
+(setq counter 0) ; 初始化 
+(setq counter (+ counter 1)) ; 增加 
+counter
+
+小结
+
+    * Lisp程序由表达式组成，表达式可以是列表或者原子。 
+    * 列表由零个或者多个原子或内部列表组成，各元素由空白分隔，被括号包括。列表可以为空。 
+    * 原子是多个字符符号，比如：forward-paragraph，单字符比如+，双引号间的字符串，数字。 
+    * 对自身求值的数字。 
+    * 双引号间的字符串也将对自身求值。 
+    * 当对符号自身求值时，将返回它指向的值。 
+    * 当对列表求值时，Lisp解释器查看列表中的第一个符号所绑定的函数定义。然后按定义的指令执行。 
+    * 单引号，'，告诉Lisp解释器应该把后面的表达式按原样返回，不对它进行求值。 
+    * 参数是传递给函数的信息。函数是列表中的第一个元素，其它元素被求值并作为参数传递给函数。
+
+http://www.iteye.com/topic/93977
+ Programming in Emacs Lisp笔记（三）编写函数
+编写函数 
+关于基本函数(Primitive Function) 
+
+除了少数C编写的基本函数外，所有的函数都是由其它函数语句定义的。当编写自己函数时，C所编写的函数与Emacs Lisp编写的函数看起来是一样的。 
+
+除非你想去考究，否则不需要知道知道一个函数是用Emacs Lisp编写的还是C编写的。 
+defun 
+
+在一个函数的定义中，在defun关键字后面有5个部分： 
+
+   1. 函数符号的名称 
+   2. 传递给函数的参数列表,如果没有参数则传递给函数的是一个空列表,() 
+   3. 描述函数的文档字符串。（可选） 
+   4. 当用户按M-x func_name以交互方式运行函数时的提示信息;或按键组合。（可选） 
+   5. 函数体 
+
+模板 
+
+(defun function-name (arguments...) 
+    "optional-documentation..." 
+    (interactive argument-passing-info) ; optional 
+    body...) 
+
+一个实例（非交互） 
+
+(defun multiply-by-seven (number) 
+  "Multiply NUMBER by seven." 
+  (* 7 number)) 
+
+函数参数列表中的变量名对每个函数是私有的，不同函数的参数名可以相同。 
+
+参数列表后面是描述函数功能的文档字符串。也就是按C-h f name_of_function时所看到的信息。 
+
+在调用的时候使用 
+
+(multiply-by-seven 3) 
+
+尽管传递给函数的参数外面没有加括号。但函数能计算出来。 
+
+当对这个表达式求值时将出错。这是因为我们只编写了函数定义，但并未告诉机器在Emacs中安装(install/load)这个函数定义。 
+安装函数定义 
+
+将光标停留上节所写的函数定义的最后一个括号后面，按C-x C-e。这时回显区将显示multiply-by-seven(这表示函数定义被计算，计算的返回值是所定义的函数的名字)。这时函数就已经安装好，可以在像使用Emacs中其它函数一样使用了。 
+安装后的效果 
+
+可以在 
+
+(multiply-by-seven 3) 
+
+的最后一个括号后按C-x C-e，回显区将显示计算结果21。还可以查看函数帮助文档。按C-h f(describe-function) function_name，multiply-by-seven。y 
+修改函数定义 
+
+可以直接修改函数的定义，然后重新把光标停留在在函数定义的最后一个括号后面按C-x C-e。 
+制作交互式函数 
+
+用户可以通过按键或者M-x 函数名来调用。 
+交互式函数multiply-by-seven预览 
+
+交互式版本的multiply-by-seven： 
+
+(defun multiply-by-seven (number) 
+  "Multiply NUMBER by seven." 
+  (interactive "p") 
+  (message "The result is %d" (* 7 number))) 
+
+安装上面的函数后，可以使用C-u number参数，然后输入M-x multiply-by-seven然后回车。回显区将显示计算结果。 
+
+调用这个函数的两种方法： 
+
+   1. 输入前缀参数，然后输入M-x和函数名，比如C-u 3 M-x forward-sentence 
+   2. 输入任意按键绑定例如：C-u 3 M-e 
+
+输入C-u不带数字，则参数默认为4。 
+交互式函数multiply-by-seven 
+
+在上节所写的函数中,表达式(interactive "p")中的"p"告诉Emacs把前缀参数(C-u后带的参数)作为函数参数(number)传递给函数。 
+
+message是一个Emacs Lisp函数，用于显示信息给用户。 
+不同的interactive选项 
+
+emacs有超过20过的选项可以传递给interactive。具体可以查阅elisp手册。 
+
+例如，字符r，Emacs将把当前选中区域作为两个参数传递给函数。 
+
+(interactive "r") 
+
+B告诉Emacs提示用户输入缓冲区名称，并把该缓冲区作为参数传递给函数。例如： 
+
+(interactive "BAppend to buffer:") 
+
+当函数需要2个或更多参数时，可以在interactive中添加新的部分。每个部分用\n分隔。例如： 
+
+(defun name-of-function (buffer start end) 
+  "documentation..." 
+  (interactive "BAppend to buffer: \nr") 
+  body-of-function...) 
+
+如果一个函数不需要参数，可以直接使用 
+
+(interactive) 
+
+永久的安装函数 
+
+安装函数的几种方法： 
+
+   1. 把代码放在.emacs文件中。 
+   2. 把代码放在其它文件中，使用load函数装载文件。 
+   3. 如果所有用户都要使用可以把代码放在site-init.el文件中 
+
+let 
+
+let表达式是在多数函数中都要用到的一个Lisp表。 
+
+let用于修改或者绑定值到符号上。 
+let 可以防止混乱 
+
+let创建的是本地变量，作用范围止于let表达式范围内，不影响let外部的变量。let可以一次创建多个变量，并给每个变量赋值，初始值也可以是nil。在let执行完后，将返回最后一个语句的值。 
+let表达式的组成 
+
+let表达式分为3个部分，第一部分是符号"let"。第二个部分被称为变量列表（varlist），每个元素都一个符号或者包含二个元素的列表，每个列表中的一个元素是一个符号。第三部分是let的体（body）。 
+
+(let ((variable value) 
+      (variable value) 
+      ...) 
+  body...) 
+
+let表达式举例 
+
+(let ((zebra 'stripes) 
+      (tiger 'fierce)) 
+  (message "One kind of animal has %s and another is %s." 
+           zebra tiger)) 
+
+let语句中的未初始化变量 
+
+(let ((birch 3) 
+      pine 
+      fir 
+      (oak 'some)) 
+  (message 
+   "Here are %d variables with %s, %s, and %s value." 
+   birch pine fir oak)) 
+
+这里的pine、fir的值都是nil。 
+if语句 
+
+if的基本理念就是，如果if测试为真则表达式被执行。 
+if 细节 
+
+(if true-or-false-test 
+    action-to-carry-out-if-test-is-true) 
+
+例： 
+
+(defun type-of-animal (characteristic) 
+  "Print message in echo area depending on CHARACTERISTIC. 
+If the CHARACTERISTIC is the symbol `fierce', 
+then warn of a tiger." 
+  (if (equal characteristic 'fierce) 
+      (message "It's a tiger!"))) 
+
+(type-of-animal 'fierce) 
+(type-of-animal 'zebra) 
+
+(type-of-animal 'fierce)将在回显区显示"It's a tiger!"，第二行将返回nil。 
+if-then-else语句 
+
+(if true-or-false-test 
+    action-to-carry-out-if-the-test-returns-true 
+  action-to-carry-out-if-the-test-returns-false) 
+
+例： 
+
+(defun type-of-animal (characteristic)  ; Second version. 
+  "Print message in echo area depending on CHARACTERISTIC. 
+If the CHARACTERISTIC is the symbol `fierce', 
+then warn of a tiger; 
+else say it's not fierce." 
+  (if (equal characteristic 'fierce) 
+      (message "It's a tiger!") 
+    (message "It's not fierce!"))) 
+
+Emacs Lisp中的真值与假值 
+
+符号nil作为假值，nil外的其它值都为真。 
+对nil的解释 
+
+在Emacs Lisp中对符号nil有两种解释。一种代表空的列表，另一种为真假判断中的假值。nil可以被写作：()、nil。对Lisp解释器来说两种写法是相同的。推荐用nil表示false，()表示空的列表。 
+
+在Emacs lisp里，任何非nil非空列表的值都被当作真。 
+save-excursion 
+
+save-excursion函数保存当前的point和mark，然后执行函数体，然后恢复point和mark的位置。它的主要目的是为了保存用户在调用函数前所设置的point和mark。 
+point和mark 
+
+Point指当前光标之前的一个位置。在Emacs Lisp中，point是一个整数。缓冲区中第一个字符的point数字是1，函数point返回当前光标位置。 
+
+Mark是缓冲区中的另一个位置。其值是通过C-<SPC>（set-mark-command）设置的。通过C-x C-x（exchange-point-and-mark）可以在point和mark间跳转。如果设置了另一个mark，前一个mark被保存到 mark ring里去。可以通过C-u C-<SPC>将光标跳转到被保存的mark。 
+
+缓冲区中point和mark之间的区域叫作region。大量命令用于region上，例：center-region，count-lines-region，kill-region和print-region。 
+
+Emacs里函数工作时经常移动point尽管用户感觉不到这一点。例如：count-lines-region。为防止用户的point被移动到非预期的位置（相对于执行函数之前），save-excursion常用于保存point的位置，使用save-excursion是一个好的习惯。 
+
+不论代码运行是否成功（非正常结束），save-execursion总是恢复point和mark的位置。 
+
+另外，save-excursion也将记录当前所在的缓冲区，并恢复它。这意味着可以在代码中修改当前缓冲区，结果后save-excursion将切换回原来的缓冲区。 
+save-excursion语句模板 
+
+(save-excursion 
+  body...) 
+
+更详细一些的模板： 
+
+(save-excursion 
+  first-expression-in-body 
+  second-expression-in-body 
+  third-expression-in-body 
+   ... 
+  last-expression-in-body) 
+
+在Emacs Lisp代码中，save-excursion语句通常放在let语句中： 
+
+(let varlist 
+  (save-excursion 
+    body...)) 
+
+回顾 
+
+部分函数 
+
+    * eval-last-sexp 
+
+对当前poing前的表达式求值。通常被绑定到C-x C-e上。 
+
+    * defun 
+
+定义函数。这个表(form)有5个部分：名称、参数定义、文档字符串、可选的交互式描述，函数体定义。例： 
+
+(defun back-to-indentation () 
+  "Move point to first visible character on line." 
+  (interactive) 
+  (beginning-of-line 1) 
+  (skip-chars-forward " \t")) 
+
+    * interactive 
+
+告诉解释器函数可以交互。跟在字符串后的特殊的表（form）可以作为参数传递给函数。多个部分之间用\n分隔。常用的字符代码如下： 
+b 一个buffer的名称 
+f 一个文件名 
+p 数字前缀（按C-u时输入的数字，默认为4） 
+r 传递poing和mark两个数字参数，小的数字在前。这是唯一一个传递两个参数的字符代码。 
+
+    * let 
+
+申明并初始化作用于let函数体的局部变量，变量值可以为nil。在let内部，Lisp解释器对外部的同名变量不可见。例： 
+
+(let ((foo (buffer-name)) 
+      (bar (buffer-size))) 
+  (message 
+   "This buffer is %s and has %d characters." 
+   foo bar)) 
+
+    * save-excursion 
+
+记录当前point、mark和当前所在缓冲区，在函数体执行完后恢复这些值。例： 
+
+(message "We are %d characters into this buffer." 
+         (- (point) 
+            (save-excursion 
+              (goto-char (point-min)) (point)))) 
+
+
+    * if 
+
+对第一个参数求值；如果返回的为true，则对第二个参数求值；否则如果第三个参数存在，则对第三个参数求值。if被称作条件语句。Emacs Lisp也有其它的条件语句，但if是最常用的。例： 
+
+(if (string-equal 
+     (number-to-string 21) 
+     (substring (emacs-version) 10 12)) 
+    (message "This is version 21 Emacs") 
+  (message "This is not version 21 Emacs")) 
+
+    * equal 
+    * eq 
+
+检查两个对象是否相同。equal检测是否”相同（same）“，如果两个对象有相似的结构和内容就返回true。eq则需要两个参数指向同一个对象才返回true。 
+
+    * < 
+    * > 
+    * <= 
+    * >= 
+
+上面的比较函数的参数都必须是数字或者mark（C-<SPC>产生的）。 
+
+    * string< 
+    * string-lessp 
+    * string= 
+    * string-equal 
+
+string-lessp函数检测第一个参数是否小于第二个参数。string<是它的简写。传递给string-lessp的参数必须是字符串或者符号（symbols）。空字符串""小于任何其它字符串。 
+
+string-equal用于检查字符串的一致性。string=是它的简写。没有针对字符串>、>=或<=的函数定义。 
+
+    * message 
+
+在回显区显示消息。第一个参数是一个字符串，它可以包含%s，%d或%c这些占位符。%s必须对应于字符串或符号。%d对应于整数。%c必须是一个ascii编码数字。 
+
+    * setq 
+    * set 
+
+setq函数设置第一个变量的值为第二个变量。第一个变量自动被加上单引号。setq可以同时对多个变量赋值。set只能给带两个参数。 
+
+    * buffer-name 
+
+不需要参数，返回缓冲区的名字。 
+
+    * buffer-file-name 
+
+不需要参数，返回缓冲区所对应的文件名。 
+
+    * current-buffer 
+
+返回当前活动的缓冲区；它可以不是当前屏幕上显示的缓冲区（编程时使用）。 
+
+    * other-buffer 
+
+返回最近访问过的访问区。 
+
+    * switch-to-buffer 
+
+选择一个缓冲区显示到当前用户窗口。磁盘被绑定到C-x b。 
+
+    * set-buffer 
+
+在程序运行时切换Emacs的焦点到某个缓冲区。并不会改变当前窗口中显示的内容。 
+
+    * buffer-size 
+
+返回当前缓冲区的字符数。 
+
+    * point 
+
+返回当前光标所在位置，返回值是从缓冲区开始处到光标位置的字符数。 
+
+    * point-min 
+
+返回当前缓冲区的开始位置。默认为1。 
+
+    * point-max 
+
+      返回当前缓冲区的结束位置。
+
+* example
+
+(defun test_f()
+ "test2"
+(message "bbb"))
+(message "the name of this bufer is %s." test_f)
+(test_f)
+test_f
+(substring "The quick brown fox jumped." 16 19)
+"fox"
+(info-file-exists-p "TAGS")
+ (visit-tags-table "TAGS")

@@ -1,0 +1,159 @@
+* java script execution timing
+java script will executed together with dom rendering in default , so 
+the result of this is undefined:
+#######################
+<!DOCTYPE html>
+<html>
+<head>
+<title>Insert title here</title>
+</head>
+<body>
+<p>Hello World!</p>
+
+<p>The DOM is very useful.</p>
+<p>This example demonstrates the <b>getElementsByTagName</b> method</p>
+
+<p id="demo"></p>
+<!--
+<script type="text/javascript" src="jshe.js">
+</script>
+-->
+<script>
+//  $("document").ready ( function(){ // this is for jquery dom is complete
+window.onload = function(){       // this is raw jsp
+//  alert('ok');
+ var patt = new RegExp("e");
+   var x = document.getElementsByTagName("p");
+     for (var i=0, len=x.length; i  <  len; i++){
+        console.log(i,x.item(i)); 
+        // the p tag element may not get if not in onload function.
+          }
+          }
+          //});
+</script>
+</body>
+</html>
+=============================================
+
+* java function calling.
+** Invoking a function as a function
+#################
+<!DOCTYPE html>
+<html>
+<body>
+
+<p>
+The global function (myFunction) returns the product of the arguments (a ,b):
+</p>
+
+<p id="demo"></p>
+
+<script>
+function myFunction(a, b) {
+    return a * b;
+    }
+    document.getElementById("demo").innerHTML = myFunction(10, 2); 
+    // function could be calling 
+    </script>
+
+    </body>
+    </html>
+
+** invoking a function as a method
+++++++++++++++++++
+<!DOCTYPE html>
+<html>
+<body>
+<p>myObject.fullName() will return John Doe:</p>
+
+<p id="demo"></p>
+
+<script>
+var myObject = {
+    firstName:"John",
+    lastName: "Doe",
+    fullName: function() {
+        return this.firstName + " " + this.lastName;
+    }
+}
+document.getElementById("demo").innerHTML = myObject.fullName(); 
+</script>
+</body>
+</html>
++++++++++++++++++++++++++++++++++++++
+
+** Invoking a Function with a Function Constructor
++++++++++++++++++++++
+<!DOCTYPE html>
+<html>
+<body>
+
+<p>In this example, myFunction is a function constructor:</p>
+
+<p id="demo"></p>
+
+<script>
+function myFunction(arg1, arg2) {
+    this.firstName = arg1;
+    this.lastName  = arg2;
+}
+
+var x = new myFunction("John","Doe")//x is a object now.
+document.getElementById("demo").innerHTML = x.firstName; 
+</script>
+
+</body>
+</html>
++++++++++++++++++++++++++++++++    
+
+** Invoking a Function with a Function Method
++++++++++++++++++++
+<!DOCTYPE html>
+<html>
+<body>
+
+<p id="demo"></p>
+
+<script>
+var myObject;
+function myFunction(a, b) {
+    return a * b;
+}
+myObject = myFunction.call(myObject, 10, 2);    // Will return 20 
+document.getElementById("demo").innerHTML = myObject; 
+</script>
+
+</body>
+</html>
++++++++++++++++++++++
+
+** function's constructor's func within it 
+++++++++++++++
+<!DOCTYPE html>
+<html>
+<body>
+
+<p>In this example, myFunction is a function constructor:</p>
+
+<p id="demo"></p>
+
+<script>
+function myFunction(arg1, arg2) {
+    this.firstName = arg1;
+    this.lastName  = arg2;
+    var v_fun=true;
+    this.fun = function(a)
+     {
+         if(v_fun){  this.firstName=a;}
+         return false;
+     };      
+}
+
+var x = new myFunction("John","Doe");
+x.fun("GGGRE");
+document.getElementById("demo").innerHTML = x.firstName; 
+</script>
+
+</body>
+</html>
++++++++++++++++++++++++++++

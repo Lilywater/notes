@@ -1,0 +1,317 @@
+sed 高级用法
+##############the best of all
+[liguo@localhost ttcn]$ echo "apricot (bird) cake (diamond) eland" |sed  's/([^)]*)/QQ/g'
+apricot QQ cake QQ eland
++++minimum match
+[liguo@localhost ttcn]$ echo "apricot (bird) cake (diamond) eland" |sed  's/(.*)/QQ/g'
+apricot QQ eland
++++maximum match
+[liguo@localhost ttcn]$ echo "apricot (bird) cake (diamond) eland" |sed  's/.*(.*)/QQ/g'
+QQ eland
++++first part before the () match
+[liguo@localhost ttcn]$ echo "apricot (bird) cake (diamond) eland" |sed  's/(.*).*/QQ/g'
+apricot QQ
++++last patr after the ()match
+
+
+
+
+################
+匹配两个距离最大之间的所有字符，第一个Z匹配第一个，第二个匹配最后一个
+zxx@gll-bac:~/sedex$ echo "1Z2Z3Z4Z5Z" |sed 's/Z.*Z/Q/'
+1Q
+
+zxx@gll-bac:~/sedex$ echo "1Z2Z3Z4Z5Z" |sed 's/Z.\+Z/Q/'
+1Q
+
+匹配两个距离最小之间的所有字符，第一个Z匹配第一个，第二个匹配第二一个
+zxx@gll-bac:~/sedex$ echo "1Z2Z3Z4Z5Z" |sed 's/Z.\?Z/Q/'
+1Q3Z4Z5Z
+zxx@gll-bac:~/sedex$ echo "1Z2Z3Z4Z5Z" |sed 's/Z[^Z]*Z/Q/'
+1Q3Z4Z5Z
+
+for lazy match
+need the oposite of the pattern
+[liguo@localhost ~]$ echo "t  ////test" |sed   "s/^\([^/]*\)\/\/.*$/\1/"
+t
+[liguo@localhost ~]$ echo "t  ////test" |sed   "s/^\(.*\)\/\/.*$/\1/"
+t  //
+
+
+ sed -n '1~2{h;n;x;H;x;p} ' flist
+交换奇偶行的顺序
+ sed -n '1~2{h;n;x;H;x;};p ' flist
+
+sed -e '1{h;d}' -e'2{g}' flist
+交换第一行和第二行的顺序
+sed '1{h;d};2{g}' flist
+
+sed 's/ /\\&/g'
+在文件中把空格前都加入反斜杠
+
+sed -n '1{h;d};1!{x;H};${x;H;p}'  ta.txt
+把文件的行逆序输出
+
+
+zxx@gll-bac:~/sedex$ for((i=1;i<=4;i++)); do case $i in 1) sed -n 4p ta.txt;; 4)sed -n 1p ta.txt;; *)sed -n ${i}p ta.txt;; esac; done
+4
+2
+3
+1
+//exchang 2 lines,kown line number
+
+no line numbers; read all lines between pater1 and pater2,两行不相邻
+sed -n '/pater1/{:a; N; /pater2/! b a; p};'
+
+
+zxx@gll-bac:~/sedex$ sed  '/2/{:a; N; /5/! b a; s/\([^\n]*\)\n\(.*\)\n\(.*\)/\3\n\2\n\1/; }' ta.txt
+1ZZ
+5
+3ZZ
+4ZZ
+2ZZ
+6
+7
+8
+
+zxx@gll-bac:~/sedex$ sed -n '/2/{:a; N; /5/! b a; s/\([^\n]*\)\n\(.*\)\n\(.*\)/\3\n\2\n\1/; p;}' ta.txt
+5
+3ZZ
+4ZZ
+2ZZ
+
+相邻行之间
+sed -n '/2/{:a; N; /3/! b a; s/\([^\n]*\)\n\(.*\)/\2\n\1/; p;}' ta.txt
+3ZZ
+2ZZ
+
+综合以上，不管相邻与否都可以：
+sed  '/patern2/{:a; N; /patern3/! b a; /^[^\n]*\n[^\n]*$/{s/\([^\n]*\)\n\(.*\)/\2\n\1/; }; s/\([^\n]*\)\n\(.*\)\n\(.*\)/\3\n\2\n\1/; }  }' ta.txt
+
+从最简单的开始：(sed 的工作原理)
+lily@willow:~/notessever$ cat tnlist
+bc
+de
+fg
+hi
+ye
+fq
+（这里sed把命令循环起来，最后才跳出命令行，这时已把所有的行都读入模式空间了）
+lily@willow:~/notessever$ sed  ':a;N; s/\n/ZZ/g;ba' tnlist
+bcZZdeZZfgZZhiZZyeZZfq
+（sed 每次读下一行进入模式空间后在对引号里的命令顺序执行，执行完所有命令后模式空间将被清空，
+来读取下一行，这里从第一行开始，N；命令读入第二行，处理后模式空间被输出后清空，再读第三行）
+lily@willow:~/notessever$ sed  'N; s/\n/ZZ/g;' tnlist
+bcZZde
+fgZZhi
+yeZZfq
+
+
+for adress range:
+cat tlist
+-----------------------
+AA
+1
+BB
+AA
+2
+BB
+------------------------------
+sed '/AA/,/BB/ {:a; /BB/! N; s/\n/ZZ/; /BB/n; ba }; ' tlist
+AAZZ1BB
+AAZZ2BB
+but   sed  '/AA/,/BB/ {:a;  N; s/\n/ZZ/;  ba  }; ' st
+AAZZ1BBAAZZ2BB
+
+
+
+lily@willow:~/notessever$ sed  'N; 4! b a;s/\n/ZZ/g;; :a;' tnlist
+bc
+de
+fgZZhi
+ye
+fq
+
+###################
+#sed can only locate consecutive two character in greedy  mode, when in
+#the maximum pattern match, it will fail out.
+* How to debug sed
+suing sedsed to debug sed
+http://aurelio.net/projects/sedsed/
+** two blank lines should /^\n$/, but only blank line could make this pattern
+--------------
+guolili@cougar archive]$ cat -n cd
+     1  ab
+     2
+     3
+     4  cd
+[guolili@cougar archive]$ cat a.sed
+/^$/{
+N
+/^\n$/d
+}
+[guolili@cougar archive]$ ~/test/sedsed-1.0 -d  -f a.sed cd
+PATT:ab$
+HOLD:$
+COMM:/^$/ {
+PATT:ab$
+HOLD:$
+ab
+PATT:$              ###it's a blank line
+HOLD:$
+COMM:/^$/ {         #/^$/ match PATT:$
+COMM:N
+PATT:\n$            #so \n of line 2 will be added into PATT
+HOLD:$
+COMM:/^\n$/ d       #/^\n$/ math pattern \n$, so this is two blank lines N pattern result
+PATT:cd$
+HOLD:$
+COMM:/^$/ {
+PATT:cd$
+HOLD:$
+cd
+----------------------------------------
+
+** process a pair of something
+text need to be processed
+----------------------
+{
+....
+123
+}
+=====
+othercc
+{
+...
+456
+}
+dfdfdfa
+------------------------
+/{/ {   #### /{/,/}/ {  this is not correct usage, don't use it.
+:a
+N
+/}/!ba   ###get the end pair from here
+w ss
+}
+---------------------------
+
+
+
+the file ss would be 
+---------------------
+{
+...
+123
+}
+{
+...
+456456456456
+}
+---------------------------
+
+*** here if the delimiter is BEG and blank line like this
+-----------
+BEG
+123
+
+dddddd
+BEG
+456
+
+BEG
+789
+---------------
+
+ ------------------------
+/BEG/ {   
+:a
+N
+//!ba  #here blank line is not a symbol to match  
+w ss
+}
+---------------------------
+So here should replace blank lines with some real thing like END
+-----------
+BEG
+123
+END
+dddddd
+BEG
+456
+END
+BEG
+789
+END
+---------------
+
+------------------------
+/BEG/ {   
+:a
+N
+/END/!ba  #here END  a symbol to match  
+w ss
+}
+---------------------------
+
+
+
+*** sed could be used to process a pair of things, but not for netsted one
+for  ex:
+--------------
+{
+  {
+    i
+  }
+}
+---------------
+this could only get the {{} ont {{}}
+
+
+** append line number after a group
+[guolili@cougar archive]$ cat -n ab
+     1  {
+     2  ab
+     3  }
+     4  iiiiiiii
+     5  END
+     6
+     7  {
+     8  dfdf
+     9  dfd
+    10  }
+[guolili@cougar archive]$ sed -n  -f b.sed ab
+{ab}
+3
+{dfdfdfd}
+10
+[guolili@cougar archive]$ sed -n  -f b.sed ab |sed 'N; s/\n//g'
+{ab}3
+{dfdfdfd}10
+[guolili@cougar archive]$ cat b.sed
+/{/ {
+:a
+N
+/}/!ba
+s/\n//g
+p    # print all the pattern space 
+=    # print the linenumber
+}
+[guolili@cougar archive]$
+
+
+** reverse everline of file
+[guolili@cougar archive]$ sed -n  -f ef.sed ef
+3
+2
+1
+[guolili@cougar archive]$ sed -n  '1{h;d}; 1!{x;  H;  }; ${x; H; p} ' ef
+[guolili@cougar archive]$ cat ef.sed
+1{h;d}
+1!{x;H}
+${x;H;p}
+[guolili@cougar archive]$ cat ef
+1
+2
+3
+[guolili@cougar archive]$
+

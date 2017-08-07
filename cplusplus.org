@@ -1,0 +1,3537 @@
+* C/C++ common base
+** gcc option
+*** gcc compile stage option
+**** -E, Stop after the preprocessing stage, not run the compiler.
+    preprocessing is to unfold the macro and the include fies
+for example,gcc hash.c file with -E option, .hash.c include hash, and hash.h include other header files...
+-------------------------------
+# 1 "hash.h" 1
+# 20 "hash.h"
+# 1 "libcache_def.h" 1
+# 10 "libcache_def.h"
+# 1 "/usr/lib/gcc/i386-redhat-linux/4.1.2/include/stddef.h" 1 3 4
+# 152 "/usr/lib/gcc/i386-redhat-linux/4.1.2/include/stddef.h" 3 4
+typedef int ptrdiff_t;
+# 11 "libcache_def.h" 2
+------------------------------------------
+
+-EC means keep the comment when preprocess
+
+**** -M, generated dependency relationship of a file, 
+this is very useful in Makefile to list the dependency rule
+for example:
+============================================================
+hash.o: hash.c /usr/include/stdlib.h /usr/include/features.h \
+  /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h \
+  /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h \
+  /usr/lib/gcc/i386-redhat-linux/4.1.2/include/stddef.h \
+  /usr/include/sys/types.h /usr/include/bits/types.h \
+  /usr/include/bits/typesizes.h /usr/include/time.h /usr/include/endian.h \
+==================================================================
+
+**** -MD, only output the dependecy files not in common library
+
+**** -Dmacro 
+equal to   "#define macro 1"
+-Dmacro=<something> equal to "#define macro <something>"
+
+**** -Umarcro
+equal to  "#undef macro"
+
+**** -Idir header file search directory, if not in common library header
+
+**** -o file, the out put file
+**** -c, Compile or assemble the source fiels, but do not link.
+**** -S, stop after the stage of compilation proper, do not assemble.
+
+*** gcc debug info option
+-g, produce debugging info in the OS's native format.
+GCC allows you to use -g with -O.  The shortcuts taken by optimized code may occasionally produce surprising results: some variables
+you declared may not exist at all; 
+
+
+*** gcc optimization
+gcc -O
+ the compiler tries to reduce code size and execution time, without performing any optimizations that take a great deal of
+compilation time.
+*** -O0 is the default one
+Reduce compilation time and make debugging produce the expected results.
+*** -O1/2/3
+the number is bigger, the optimization will be more deeply by more optimization options.
+may make the debugging miss some line which was optimized
+*** -Os
+optimize for size.
+
+** outlayer of the memory in a c program
+一般来说编译器现将代码编译成汇编语言，也就是函数调用等，但变量没有运行时还是静态的。
+比如这个位置要调用一下函数，就要把代码段的位置给出，让函数跳到相应代码段的函数执行。
+当程序开始运行，就开始分配内存，数据段的内存存放全局数据。
+也就是在main入口前，全局变量空间就被分配在数据段的全局数据区了。
+堆栈处理是函数调用的基本过程，实际上，函数里的所有变量（除去静态变量）都是在堆栈上分配的，
+包括临时的参数和返回值。
+堆内存是malloc，new，delet，free操作的相应内存。
+
+*** c/c++  program layout when executing in memory
+high address    - ---------------------------
+                | command-line arguments   |
+                | and enviroment variables |
+                ------------------------------
+                |  stack                   | 
+                |  |    |
+                | \/    | as we can see stack and heap rise in each other's direction, so stack overflow may occur......
+                |       | when they about to overlap, stack rising will override heap's data
+                |       |
+                | _/\ _ |
+                |  |    |
+                | heap  |
+               _________________________________________________________
+                | .bss(uninitialized data)      |to zero by exec  | all 
+                --------------------------                        | globally 
+                |.rdata  readonly initialized   | read from       | allocated
+                ----------                      |                 | variables
+                |.data   writablely  data       | prg file        |
+low address     ------------------------------------------------------------ 
+                |.txt       assemble code  | by exec
+                 ---------------------------
+
+*** c/c++ program layout in the executable file
+source file t.c
+----------------------
+include <stdio.h>
+int etirint =10;
+static int est = 0;
+const int  cst = 9;
+int * pint =&etirint;
+char * pch1;
+const int * pch2= &etirint;
+int main(void)
+{
+   static int lst;
+   char * p2;
+   char * p3 = "123456";
+   char * p4 = "123456";
+   char s[] = "abcd";
+   printf("rdata section p3 is %x and p4 is %x\n",p3, p4);
+   printf("adress of s in stack is %x\n",&s);
+   printf("adress of static lst is  in bss %x and static est is in data %x\n",&lst);
+   printf("adress of const cst is  in readonly %x\n",&cst);
+   printf("adress of etirint is  in data %x\n",&etirint);
+   printf("adress of pch1  is %x and pch2 is %x\n",&pch1, &pch2);
+   return 0;
+}
+----------------------------------------------------------
+$gcc -o t t.c
+
+
+objdump will dump all sections of a executable file.
+$objdump -h t
+==============================
+Idx Name          Size      VMA       LMA       File off  Algn   //VMA(virtual machineaddr),LMA(load machineaddr),File OFF from t, Size
+  0 .text         00000814  00401000  00401000  00000400  2**4   //the asseble code 
+                  CONTENTS, ALLOC, LOAD, READONLY, CODE, DATA
+  1 .data         00000044  00402000  00402000  00000e00  2**5   //global initialized data
+                  CONTENTS, ALLOC, LOAD, DATA
+  2 .rdata        00000274  00403000  00403000  00001000  2**2   //global initialized readonly data
+                  CONTENTS, ALLOC, LOAD, READONLY, DATA
+  5 .bss          00000150  00406000  00406000  00000000  2**6    //uninitialized global data 
+====================
+$ ./t
+rdata section p3 is 403060 and p4 is 403060   // .rdata section:global initialized const string, p3 and p4 point to the same address
+adress of s in stack is 28cc6f                // local array s  is in stack
+adress of static lst is  in bss 406020 and static est is in data 402016     //static local variable will be in .bss since uninitialized, .data if initialized
+adress of const cst is  in readonly 403144  //.rdata section:global initialized const
+adress of etirint is  in data 402008        // .data section:global initialized 
+adress of pch1  is 406018 and pch2 is 402010  // pch2 is a pointer to a const variable,is in .data section
+------------------
+if  int * const pch2= &etirint;  //then pch2 will be in .rdata section
+
+
+$ objdump -D  t
+==================================
+Disassembly of section .text:
+
+00401000 <.text>:
+  401000:       55                      push   %ebp
+  401001:       89 e5                   mov    %esp,%ebp
+  401003:       83 ec 18                sub    $0x18,%esp
+  401006:       83 e4 f0                and    $0xfffffff0,%esp
+  401009:       c7 04 24 a0 11 40 00    movl   $0x4011a0,(%esp)
+  401010:       e8 6b 02 00 00          call   0x401280
+  401015:       c7 44 24 08 00 00 00    movl   $0x0,0x8(%esp)
+  40101c:       00
+  40101d:       c7 44 24 04 00 00 00    movl   $0x0,0x4(%esp)
+  401024:       00
+...............
+  4084d1:       74 69                   je     0x40853c
+  4084d3:       62 69 6c                bound  %ebp,0x6c(%ecx)
+  4084d6:       69 74 79 3e 0a 3c 2f    imul   $0x612f3c0a,0x3e(%ecx,%edi,2),%esi
+  4084dd:       61
+  4084de:       73 73                   jae    0x408553
+  4084e0:       65 6d                   gs insl (%dx),%es:(%edi)
+  4084e2:       62 6c 79 3e             bound  %ebp,0x3e(%ecx,%edi,2)
+  4084e6:       0a 00                   or     (%eax),%al
+=====================================
+
+**  printf format
+printf the content of a memory address 
+it should be unsigned char *
+----------------------------------
+char ab[5]={254,10,'c'};
+void main()
+{
+  for(i=0; i< NUM; i++)
+    printf(" %02x",((unsigned char *)ab)[i]);
+// convert the pointer to (unsigned char *) is very import for the 
+//correct format output
+}
+
+-----------------------------------
+0xf3 0x0a 0x63
+------------------------
+
+%+2x(%2x)    (right alignment at least 2 characters padding space in the left)
+%-2x         (left alignment at least 2 characters padding space in the right)
+%02x    (right alignment at least 2 characters, if not enough characters to output, padding with 0 in the left)
+
+** strcpy 和memcpy
+*** string
+char *strcpy(char *dest, const char *src);
+char *strncpy(char *dest, const char *src, size_t n);
+
+DESCRIPTION
+       The  strcpy()  function copies the string pointed to by src, including the terminating null
+       byte ('\0'), to the buffer pointed to by dest.  The strings may not overlap, and the desti‐
+       nation string dest must be large enough to receive the copy.
+###strcpy  实际拷贝的字符个数是以\0为界限，所以对于没有以\0结束的字符串源，会导致越界问题
+       The strncpy() function is similar, except that at most n bytes of src are copied.  Warning:
+       If there is no null byte among the first n bytes of src, the string placed in dest will not
+       be null-terminated.
+
+strlen 和sizeof返回不同，sizeof包括('\0'），但strlen不包括
+
+*** memory/memmove
+       void *memcpy(void *dest, const void *src, size_t n);
+
+DESCRIPTION
+       The  memcpy() function copies n bytes from memory area src to memory area dest.  The memory
+       areas should not overlap.  Use memmove(3) if the memory areas do overlap.
+
+RETURN VALUE
+       The memcpy() function returns a pointer to dest.
+
+memmove function is similar to memcpy, but memove will allow the src and dst area overlap, and the ]
+copying takes place as though the bytes in src are first copied into a  temporary  array  that
+       does not overlap src or dest, and the bytes are then copied from the temporary array to dest.
+
+
+*** strlen and sizeof
+char cstr[]={'h','e','l','l','o'};
+printf ("sizeof is %d and strlen is %d\n", sizeof(cstr),strlen(cstr));
+5,5
+char str[]="hello";
+printf ("sizeof is %d and strlen is %d\n", sizeof(str),strlen(str)
+6,5
+
+*** sizeof is a function not a macro，typedef
+gcc -E 表示preprocess the file not compile it.
+lily@willow:~/libtest$ cat size.c
+#define XL(c) c++
+typedef struct list{
+int a;
+char b;
+} List;
+main()
+{
+  List ll;  
+  int s = sizeof(int);
+  XL(s);
+
+}
+lily@willow:~/libtest$ gcc -E size.c 
+# 1 "size.c"
+# 1 "<built-in>"
+# 1 "<command-line>"
+# 1 "size.c"
+
+typedef struct list{
+int a;
+char b;
+} List;
+main()
+{
+  List ll;
+  int s = sizeof(int);
+  s++;
+
+}
+
+
+##====================
+#由此可见，sizeof是个function，而不是宏，typedef也不是宏，而是类型别名
+
+** 简单的C语言函数，考虑健壮性
+*** 字符串拷贝
+已知strcpy的函数原型：char *strcpy(char *strDest, const char *strSrc)其中strDest 是目的字符串，strSrc 是源字符串。不调用C++/C 的字符串库函数，请编写函数 strcpy。 
+
+
+char *strcpy(char *strDest, const char *strSrc) 
+
+{ 
+
+if ( strDest == NULL || strSrc == NULL) 
+
+return NULL ; 
+
+if ( strDest == strSrc) 
+
+return strDest ; 
+
+char *tempptr = strDest ; 
+
+while( (*strDest++ = *strSrc++) != ‘\0’) 
+
+; 
+
+return tempptr ; 
+
+} 
+*** 内存之间拷贝
+内存之间的拷贝，总是i++从小往大拷贝，这时程序员的习惯，但实际上当源和目的有交叉的情况，需要从后往前拷贝
+写一个函数，完成内存之间的拷贝。[考虑问题是否全面]
+答：
+void* mymemcpy( void *dest, const void *src, size_t count )
+{
+       char* pdest = static_cast<char*>( dest );
+       const char* psrc = static_cast<const char*>( src );
+## 这里转换类型非常必要，因为void *的指针不能*dest这样用，因为不知到此类型的实际大小
+       if( pdest>psrc && pdest<psrc+cout )  *能考虑到这种情况就行了*
+       {
+           for( size_t i=count-1; i!=-1; --i )
+                   pdest[i] = psrc[i];
+       }
+       else
+       {
+           for( size_t i=0; i<count; ++i )
+               pdest[i] = psrc[i];
+       }
+       return dest;
+}
+##  优化，兼容不同字长的计算机
+“数据类型"socklen_t"和int应该具有相同的长度。否则就会破坏 BSD套接字层的填充.POSIX开始的时候用的是size_t,
+ Linus Torvalds(他希望有更多的人,但显然不是很多) 努力向他们解释使用size_t是完全错误的,因为在64位结构中 size_t
+和int的长度是不一样的,而这个参数(也就是accept函数的第三参数)的长度必须和int一致,因为这是BSD套接字接口标准.
+最终POSIX的那帮家伙找到了解决的办法,那就是创造了一个新的类型"socklen_t".Linux Torvalds说这是由于他们发现了自己的
+错误但又不好意思向大家伙儿承认,所以另外创造了一个新的数据类型 。
+    在C++中，size_t的引入增强了程序在不同平台上的可移植性，经测试发现，在32位系统中size_t是4字节的，
+而在64位系统中，size_t是8字节的，这样利用该类型可以增强程序的可移植性。”
+
+字长是cpu的数据宽度，如果考虑效率的话，可以按cpu的字长拷贝，即 wide = sizeof（size_t);
+#得出wide可以兼容不同字长的计算机
+size_t * pidst = (size_t *) dest;
+size_t *pisrc =(size_t *) src;
+size_t remain =  pidst%wide;
+count -=remain;
+  for( size_t i=0; i<count/wide ; ++i )
+         pidst[i] = pisrc[i];
+if(remain)
+{
+  char * pcdst =(char *) dest;
+  char * pcsrc =(char *) src;
+  for( size_t j=0; j<remain ; ++j )
+         pcdst[j] = pcsrc[j];
+}
+  
+##########内存拷贝的优化版
+*** memcpy是如何优化拷贝的
+本文主要介绍下memcpy()的工作原理，其中采用的优化方法以及思路值得学习。
+以下为glibc2.5中的memcpy的源码：
+void * memcpy (dstpp, srcpp, len)
+     void *dstpp;
+     const void *srcpp;
+     size_t len;
+{
+unsigned long int dstp = (long int) dstpp;
+unsigned long int srcp = (long int) srcpp;
+//如果需要拷贝的字节数大于临界值，则会使用优化方法进行拷贝
+if (len >= OP_T_THRES)   //根据不同的情况，OP_T_THRES定义为16或8
+    {
+      len -= (-dstp) % OPSIZ; //小技巧，很值得学习
+      BYTE_COPY_FWD (dstp, srcp, (-dstp) % OPSIZ); //按照字节进行对齐
+      PAGE_COPY_FWD_MAYBE (dstp, srcp, len, len); //对于特殊平台可能使用虚拟页拷贝
+      WORD_COPY_FWD (dstp, srcp, len, len); //大字节拷贝
+    }
+BYTE_COPY_FWD (dstp, srcp, len);
+return dstpp;
+}
+
+整个memcpy的流程为：
+1. 判断需要拷贝的字节数是否大于某一临界值。如果大于临界值，则可以使用更加强大的优化手段进行拷贝。否则，直接转6。
+2. 假设要拷贝的目的地如下所示： 
+其中start为拷贝目的地的起始地址，end为拷贝目的地的结束地址，align border为内存中的对齐边界。在大多数平台下，从内存对齐边界开始拷贝会有许多的优化方法可以使用
+，此处memcpy正是利用了这点。
+3. 计算start到align border的距离，此处使用了一个非常聪明的小技巧。使用 (-dstp) % OPSIZ 来计算start到align border的距离，这样可以减少一次判断。
+然后使用字节拷贝的方法来拷贝start到align border之间的内存。
+4. 对于特殊平台，可能使用page copy的方法。由于限制条件较多，一般x86平台下不会使用。
+5. 使用word copy的方法进行字节块拷贝，此处是memcpy优化的关键，优化的条件是拷贝地址处于对齐边界。在pentium系列平台和非pentium系列平台下，word copy有两种实现方式。
+6. 剩余的不能采用word copy的尾部使用字节拷贝。
+
+以下为x86平台下字节拷贝和字节块拷贝的实现
+字节拷贝的实现：
+#define BYTE_COPY_FWD(dst_bp, src_bp, nbytes)                                      \
+do {                                                                              \
+    int __d0;                                                                      \
+    asm volatile(/* Clear the direction flag, so copying goes forward. */    \
+                 "cld\n"                                                      \
+                 /* Copy bytes. */                                              \
+                 "rep\n"                                                      \
+                 "movsb" :                                                      \
+                 "=D" (dst_bp), "=S" (src_bp), "=c" (__d0) :                      \
+                 "0" (dst_bp), "1" (src_bp), "2" (nbytes) :                      \
+                 "memory");                                                      \
+} while (0)
+没啥好说的，利用x86的movsb指令实现字节拷贝。使用movsb指令时，需设置EDI，ESI，ECX寄存器的值,EDI寄存器存放拷贝的
+目的地址，ESI寄存器存放拷贝的源地址，ECX为需要拷贝的字节数。拷贝完成之后，EDI中的值会保存到dst_bp中，
+ESI中的值会保存到src_bp中。这也是为什么memcpy中没有出现对dst_bp操作的原因。
+
+非Pentium平台下的word copy的实现：
+#define WORD_COPY_FWD(dst_bp, src_bp, nbytes_left, nbytes)                      \
+do                                                                              \
+    {                                                                              \
+      int __d0;                                                                      \
+      asm volatile(/* Clear the direction flag, so copying goes forward. */ \
+                   "cld\n"                                                      \
+                   /* Copy longwords. */                                      \
+                   "rep\n"                                                      \
+                   "movsl" :                                                      \
+                    "=D" (dst_bp), "=S" (src_bp), "=c" (__d0) :                      \
+                   "0" (dst_bp), "1" (src_bp), "2" ((nbytes) / 4) :              \
+                   "memory");                                                      \
+      (nbytes_left) = (nbytes) % 4;                                              \
+    } while (0)
+利用x86的movsl指令实现四字节拷贝。如果movsl和movsb花费相同的cpu时钟周期，那优化后的拷贝时间将是原来的四分之一。
+恩，相当可观了。。。
+
+Pentium平台下的word copy的实现：
+#define WORD_COPY_FWD(dst_bp, src_bp, nbytes_left, nbytes)                \
+do                                                                        \
+    {                                                                        \
+      asm volatile ("subl        $32,%2\n"                                \
+                    "js                2f\n"                                        \
+                    "movl        0(%0),%%edx\n"        /* alloc dest line */        \
+                    "1:\n"                                                \
+                    "movl        28(%0),%%eax\n"        /* alloc dest line */        \
+                    "subl        $32,%2\n"        /* decr loop count */        \
+                    "movl        0(%1),%%eax\n"        /* U pipe */                \
+                    "movl        4(%1),%%edx\n"        /* V pipe */                \
+                    "movl        %%eax,0(%0)\n"        /* U pipe */                \
+                    "movl        %%edx,4(%0)\n"        /* V pipe */                \
+                    "movl        8(%1),%%eax\n"                                \
+                    "movl        12(%1),%%edx\n"                                \
+                    "movl        %%eax,8(%0)\n"                                \
+                    "movl        %%edx,12(%0)\n"                                \
+                    "movl        16(%1),%%eax\n"                                \
+                    "movl        20(%1),%%edx\n"                                \
+                    "movl        %%eax,16(%0)\n"                                \
+                    "movl        %%edx,20(%0)\n"                                \
+                    "movl        24(%1),%%eax\n"                                \
+                    "movl        28(%1),%%edx\n"                                \
+                    "movl        %%eax,24(%0)\n"                                \
+                    "movl        %%edx,28(%0)\n"                                \
+                    "leal        32(%1),%1\n"        /* update src ptr */        \
+                    "leal        32(%0),%0\n"        /* update dst ptr */        \
+                    "jns        1b\n"                                        \
+                    "2: addl        $32,%2" :                                \
+                    "=r" (dst_bp), "=r" (src_bp), "=r" (nbytes_left) :        \
+                    "0" (dst_bp), "1" (src_bp), "2" (nbytes) :                \
+                    "ax", "dx");                                        \
+    } while (0)
+字节块单元的大小变为了32。在执行过程中，利用Pentium平台下的pipeline技术。此处光看代码可能感觉不出来优化，但是
+联想一下Pentium平台下强大的流水线技术就会发现以上指令中的许多工作都可以并发执行，执行效率会大大提高。
+
+** Volatile 的作用
+*** volatile variable
+volatile 影响编译器编译的结果,指出，volatile 变量是随时可能发生变化的，与volatile变量有关的运算，不要进行编译优化，以免出错
+，（VC++ 在产生release版可执行码时会进行编译优化，加volatile关键字的变量有关的运算，将不进行编译优化。）。
+
+例如：
+volatile int i=10;
+int j = i;
+...
+int k = i;
+
+volatile 告诉编译器i是随时可能发生变化的，每次使用它的时候必须从i的地址中读取，因而编译器生成的可执行码会重新从i的
+地址读取数据放在k中。
+
+而优化做法是，由于编译器发现两次从i读数据的代码之间的代码没有对i进行过操作，它会自动把上次读的数据放在k中。
+而不是重新从i里面读。这样以来，如果i是一个寄存器变量或者表示一个端口数据就容易出错，所以说volatile可以保
+建议使用volatile变量的场所：
+
+(1) 并行设备的硬件寄存器
+(2) 一个中断服务子程序中会访问到的非自动变量（全局变量）
+(3) 多线程应用中被几个任务共享的变量 证对特殊地址的稳定访问，不会出错。
+
+*** volatile member function
+volatile class object must be operated by volatile member function
+
+
+** 变量的内存对齐问题 memory alignment
+Here is a structure with members of various types, totaling 8 bytes before compilation:
+
+struct MixedData
+{
+    char Data1;
+    short Data2;
+    int Data3;
+    char Data4;
+};
+After compilation the data structure will be supplemented with padding bytes to ensure a proper alignment for each of its members:
+
+struct MixedData  /* After compilation in 32-bit x86 machine */
+{
+    char Data1; /* 1 byte */
+    char Padding1[1]; /* 1 byte for the following 'short' to be aligned on a 2 byte boundary 
+assuming that the address where structure begins is an even number */
+    short Data2; /* 2 bytes */
+    int Data3;  /* 4 bytes - largest structure member */
+    char Data4; /* 1 byte */
+    char Padding2[3]; /* 3 bytes to make total size of the structure 12 bytes */
+};
+The compiled size of the structure is now 12 bytes. It is important to note that 
+
+*** why memory alignment
+in a 32 bit system, sizeof(void *),(int),(long) are 4 bytes, and (long long) (double) are 8 bytes.
+in 32 bit sytsem ,cpu has a word size,  cpu read 4 bytes from memory is the most efficiency way.
+So in c language, two different sizeof var allocated in the stack may result in padding.
+a int need to be beging at sizeof(int)/4=0 addr.
+char a;
+int b;
+b will be start with &a+pad[3] addr.
+
+**** memory addr alignment in stack
+and this is automatically. you don't have to care this.
+
+**** memory addr alignment in heap
+what about heap?
+when malloc(size),  the return mem addr is aligned with 8*mul addr(since the maximum basic type size is 8 in a 32 bit system),
+ and every malloc operation will allocate 8 extra bytes for free to use.
+So when malloc(size), the minimum allocated size is 16 bytes. even if you malloc(1) only 1 byte.
+=========================
+typedef struct ta
+{
+  int a ;
+  char b;
+}ss;
+
+int main()
+{
+   char ma;
+   struct ta tta[2];
+   char * mem1 = malloc(sizeof(ma));
+   void * mem2 = malloc(sizeof(ss)*2); //mem2 = mem1+16;
+   char * mem3 = malloc(sizeof(ma));   //mem3 = mem2 +24
+   int i =0;
+   char * p;
+   *mem1 = 'a';
+   printf("ma is %x and %x and %x\n",mem1,mem2,mem3);
+   p = (char *)mem2;
+   for(;i<24; i++)
+     *(p++) = i;  // over write the extra 8 bytes in the end
+
+   *mem3 = 55;
+   printf("mem3 before is %c",mem3);
+   free(mem2);  // error will occur when free that memory addr.
+
+
+**** get a 16 bytes alligned addr from heap in a 32 bit system
+How to allocate aligned memory only using the standard library?:
+A: allocation
+void *mem = malloc(1024+15+sizeof(void*));    //sizeof(void *) will keep the actual alligned addr.  15 for adjusting the alignment
+if (!mem) return mem;
+void *ptr = ((char*)mem+sizeof(void*)+15) & ~ (size_t)0x0F;  // erase the mod 16 number of the memory  addr 
+            //make enough room for addr store and alignment adjusting
+((void**)ptr)[-1] = mem;
+return ptr;
+
+B: free
+if (ptr) free(((void**)ptr)[-1]);
+
+*** modify the default alignment 
+#pragma pack(push)  /* push current alignment to stack */
+#pragma pack(1)     /* set alignment to 1 byte boundary */
+ 
+struct MyPackedData
+{
+    char Data1;
+    long Data2;
+    char Data3;
+};
+ 
+#pragma pack(pop)   /* restore original alignment from stack */
+This structure would have a compiled size of 6 bytes on a 32-bit system
+
+
+
+*** 概念
+　　 对齐跟数据在内存中的位置有关。如果一个变量的内存地址正好位于它长度(如果小于4，如果大于4，则取4）的整数倍，他就被称做自然对齐。比如在32位cpu下，
+假设一个整型变量的地址为0x00000004，那它就是自然对齐的。
+　　 需要字节对齐的根本原因在于CPU访问数据的效率问题。假设上面整型变量的地址不是自然对齐，比如为0x00000002，
+则CPU如果取它的值的话需要访问两次内存，第一次取从0x00000002-0x00000003的一个short，第二次取
+从0x00000004-0x00000005的一个 short然后组合得到所要的数据，如果变量在0x00000003地址上的话则要访问三次内存，
+第一次为char，第二次为short，第三次为 char，然后组合得到整型数据。而如果变量在自然对齐位置上，则只要一次就可以取出
+数据。一些系统对对齐要求非常严格，比如sparc系统，如果取未对齐的数据会发生错误，举个例：
+　　　　char ch[8];
+　　char *p = &ch[1];
+　　int i = *(int *)p;
+　　运行时会报segment error，而在x86上就不会出现错误，只是效率下降。
+
+*** 对齐的种类
+why alignmet?
+
+1.数据类型自身的对齐值：min(sizeof(type),wl) #wl,字长，32位系统为4,64为系统为8
+comparision of type long between 32bits and 64 bits
+           | 32 bit  | 64 bit |
+pointer    | 4       |   8    |
+int        | 4       |   4    |
+long       | 4       |   8    |
+### only long sizeof is different in normal type
+long long  | 8       |   8    |
+float      | 4       |   4    |   
+double     | 8       |   8    |
+char       | 1       |   1    |
+short      | 2       |   2    |
+
+   
+
+
+自身对齐值是sizeof和word length（4）中取最小值。比如char：sizeof 为1，wl为4，则char对齐为1.
+in other words, maximum self-alignment value is the cpu word length(4 in 32 bit system).
+int：sizeof为4，wl为4， 则int对齐为4.
+double：sizeof为8，wl为4，则double对齐为4.
+
+      对于char型数据，其自身对齐值为1，对于short型为2，对于int,float,double类型，其自身对齐值为4，单位字节。
+虽然double sizeof是8，但是取最小的。
+2.结构体或者类,联合的自身对齐值：其成员中自身对齐值最大的那个值。
+3.指定对齐值：#pragma pack (value)时的指定对齐值value。如果没有这个宏，每个编译器都有特定的默认值，GNU和vc都是4。
+这个值一般是根据cpu的int型字长来的。
+
+也即其分配的地址只要addr%N==0
+
+4.数据成员、结构体和类的有效对齐值：自身对齐值和指定对齐值中小的那个值。
+所以数据成员在分配内存的时候是根据自身对齐值和默认的4（如果指定则用指定的）的对齐值取最小值对齐的。
+
+in a word, alignment should be less or equal to default value(word lenhth)
+in 32 bit system, 4 bytes is the word length, when no specific aligned, pack.if so, the default is n;
+n should be 2^. from 1,2,4.....
+
+
+*** example
+sizeof(long) = 4;
+sizeof(float) =4;
+sizeof(double)=8;
+struct A
+{
+char b;
+double d;
+short s;
+};
+b为第一个位置，
+d的自然对齐是N=8，而默认是4，取最小值为4，而b是一个字节，则填充3字节后为的的地址。
+s的自然对齐是N=2，而默认是4，取最小值为4，前面是12个字节了，取对齐值2，则不需填充直接用。
+A的自然对齐是其中最大的double值=8，而默认是4，则取4为默认对齐值，一共是12字节，需填充4个字节为16%4==0；
+所以sizeof(structA) 是16
+
+如果是64bit system，
+d alignment is 8, and system's alignment is 8, so d should be aligned in 8 bytes pos.
+1 +7  
+alignment min(double, wl)=8,so need padding 7 bytes
+8   
+2 + 6
+here short is 2, but the whole struct should be aligned with maximum member,double, min(double,wl) which is 8, so 
+24 totally
+
+
+struct B
+{
+ char a;
+ struct A aa;
+};
+sizoef(struct B) 是20.可见structA是4字节对齐的 
+   
+*** 更改C编译器的缺省字节对齐方式
+
+在缺省情况下，C编译器为每一个变量或是数据单元按其自然对界条件分配空间。一般地，可以通过下面的方法来改变缺省的对界条件：
+· 使用伪指令#pragma pack (n)，C编译器将按照n个字节对齐。
+· 使用伪指令#pragma pack ()，取消自定义字节对齐方式。
+
+另外，还有如下的一种方式：
+· __attribute((aligned (n)))，n必须为2的几次幂， n表示指定对齐
+· __attribute__ ((packed))，取消结构在编译过程中的优化对齐，按照实际占用字节数进行对齐。
+
+##example
+#pragma pack(1) //让编译器对这个结构作1字节对齐
+struct test
+{
+char x1;
+short x2;
+float x3;
+char x4;
+};
+#pragma pack() //取消1字节对齐，恢复为默认4字节对齐
+这时候sizeof(struct test)的值为8。
+
+#pragma pack(2) //让编译器对这个结构作2字节对齐
+struct test
+{
+char x1;      1 + pad1
+short x2;     2
+float x3;     4
+char x4;      1 +pad1   ## maximum is 2, so struct test is 2 alignment. 10 is enough
+};
+#pragma pack() //取消1字节对齐，恢复为默认4字节对齐
+这时候sizeof(struct test)的值为10。
+
+　struct stu{
+　　 char sex;
+　　 int length;
+　　 char name[10];
+　　}__attribute__ ((aligned (1)));
+
+　　　　struct stu my_stu;
+　　则sizeof(my_stu)可以得到大小为15
+
+#define GNUC_PACKED __attribute__((packed))
+struct PACKED test
+{
+char x1;
+short x2;
+float x3;
+char x4;
+}GNUC_PACKED;
+
+这时候sizeof(struct test)的值仍为8。
+
+*** 字节对齐可能带来的隐患:
+
+        代码中关于对齐的隐患，很多是隐式的。比如在强制类型转换的时候。例如：
+unsigned int i = 0x12345678;
+unsigned char *p=NULL;
+unsigned short *p1=NULL;
+
+p=&i;
+*p=0x00;
+p1=(unsigned short *)(p+1);
+*p1=0x0000;
+最后两句代码，从奇数边界去访问unsignedshort型变量，显然不符合对齐的规定。
+在x86上，类似的操作只会影响效率，但是在MIPS或者sparc上，可能就是一个error,因为它们要求必须字节对齐.
+
+
+** 有符号数的正0和负0
+byte signed：from -128(-2^7) to 127(2^7-1)
+-128 means the most left bit is 1, and other bit is 0
+other bits ~ +1 =128
+byte unsigned: from 0 to 255(2^8-1)
+
+** 高效的算法
+*** 输入一个字符串，将其逆序后输出。（使用C++，不建议用伪码）
+#include <iostream>
+using namespace std;
+void main()
+{
+  char a[50];memset(a,0,sizeof(a));
+  int i=0,j;
+  char t;
+  cin.getline(a,50,'\n');
+  for(i=0,j=strlen(a)-1;i<strlen(a)/2;i++,j--)  //二分查找的效率
+  {
+  t=a[i];
+  a[i]=a[j];
+  a[j]=t;
+  }
+  cout<<a<<endl;  
+}
+
+//第二种
+
+string str;
+cin>>str;
+str.replace;
+cout<<str;
+
+*** 用C++写个程序，如何判断一个操作系统是16位还是32位的？不能用sizeof()函数
+A1:
+16位的系统下，
+int i = 65536;
+cout << i; // 输出0；
+int i = 65535;
+cout << i; // 输出-1；
+
+32位的系统下，
+int i = 65536;
+cout << i; // 输出65536；
+int i = 65535;
+cout << i; // 输出65535；
+
+A2:
+
+int a = ~0;
+if( a>65536 ) 
+{
+  cout<<"32 bit"<<endl;
+}
+else
+{
+  cout<<"16 bit"<<endl;
+}
+。
+
+--------------------------------------------------------------------------
+*** 在不用第三方参数的情况下，交换两个参数的值
+#include <stdio.h>
+
+void main()
+{
+  int i=60;
+  int j=50;
+  i=i+j;
+  j=i-j;
+  i=i-j;
+  printf("i=%d\n",i);
+  printf("j=%d\n",j);
+}
+
+方法二：
+i^=j;
+j^=i;
+i^=j;
+
+方法三：
+// 用加减实现，而且不会溢出
+a = a+b-(b=a)
+
+*** 在一个升序的链表里按序插入一个新的node
+如果链表里含有相同值，返回1，如果成功插入返回0，失败返回-1.
+typedef struct taglist
+{
+  int value;
+struct taglist * netx; 
+}List;
+
+int AddNode(int value, List * pHead)
+{
+# pHead 为空的情况
+   如果value小于或等于pHead->value, 则插入一个新值为value的头
+#  List *pl = pHead;
+   do
+  {
+   if( value > pl->value)   // there's no condition that value <= pl->value, becasue it's a ascedant order list
+// and the conditon has been dealed above the whiel, 
+   {
+       if(pl->next)
+       {
+          if(pl->next->value > value)
+          {add a new node afer pl; return 0;}
+          else if(pl->next->value == value)
+          {return 1;}
+          else pl = pl->next;
+       }
+      else
+         break;  //the new node should be the last node
+   }    
+   }while(pl);
+## deal add the node as tail of the list
+  if(pl)
+{   List * pp= new List;
+   pl->next = pp;
+  pp->value = value;
+  pp->next = NULL;  
+}
+  else
+  return -1;  //there must be something wrong 
+}
+
+** 大小端字节
+*** 概念
+小端字节是指n个字节的数据以字节为单位在内存中的存放顺序，
+低位字节存放在低内存地址里，大端则相反，一般Intel CPU采用小端
+union test
+{
+ int x;
+char b[4];
+};
+test x;
+x.x=256;
+printf("the array b is %d, %d,%d, %d",x.b[0],x.b[1],x.b[2],x.b[3]);
+0,1,0,0 
+
+ |     0000 0000    b[0]
+ |     0000 0001    b[1]
+ |     0000 0000    b[2]
+\|/    0000 0000    b[3]
+
+*** 网络字节序 
+我们在big-endian的机器上创建了这个test文件,把其复制到little-endian的机器上再用fread读到一个short里面,我们得到的就不再是0x3132而是0x3231了,这样读到的数据就是错误的,所以在两个字节顺序不一样的机器上传输数据时需要特别小心字节顺序,理解了字节顺序在可以帮助我们写出移植行更高的代码.
+正因为有字节顺序的差别,所以在网络传输的时候定义了所有字节顺序相关的数据都使用big-endian,BSD的代码中定义了四个宏来处理:
+#define ntohs(n)     //网络字节顺序到主机字节顺序 n代表net, h代表host, s代表short
+#define htons(n)     //主机字节顺序到网络字节顺序 n代表net, h代表host, s代表short
+#define ntohl(n)      //网络字节顺序到主机字节顺序 n代表net, h代表host, s代表 long
+#define htonl(n)      //主机字节顺序到网络字节顺序 n代表net, h代表host, s代表 long
+
+
+*** endian, so how to konw if your cpu is big or little endian:
+using ntohs(n)==n if true, it's big endian,.
+When you get a hexstring for 2 octets in big endian, you don't know how to interpret 
+them as a short
+in your system, casue which byte should be the first one?
+so you using ntohs(n)==n to determin the endian big/little, then get the related order
+to the addr.   
+for a system, ntohs(n)==n is equal to htons(n)==n
+-------------------
+unsigned short ss= 256;
+printf("the ss is %d and htons is %d, and ntohs is %d",ss,htons(ss),ntohs(ss) );
+ss:            256        1        1
+oss:            1         256      256
+--------------------------------------------------
+when you get a number ss, then how to encode it into the network order(big endian),
+unsigned char rawnetowrk[2] 
+a[0]=rawnetwork[0];  a[1]=rawnetwork[1];
+unsigned short dd=0;
+dd = (unsigned short *)&a[0];
+dd=ntohs(dd);   equal to dd=htons(dd);  //this code is endian compatible
+/*for a little endian, dd is different from origin, but big endian, the same*/ 
+
+
+So in such case, the two function ntohs and htons are the same.
+is not the meaning that network to host or host to network any more,
+it will exchange the bytes order(little endian) or not(big endian) in a endian known
+system. using ntohs(n)==n to determine that, for both endians sytem,
+  
+
+
+** 联合和位域
+unino and bit field
+are all pack space, especially for the embedded system,not enough memory space
+
+*** 联合
+联合是一种类型，union的大小是数据成员中最大的值的，其余的成员共享此空间
+union test
+{
+ int x;
+ char b[4];
+};
+
+*** 位结构 
+  位结构是一种特殊的结构, 在需按位访问一个字节或字的多个位时, 位结构 
+比按位运算符更加方便。 
+  位结构定义的一般形式为: 
+  struct位结构名{ 
+  数据类型 变量名: 整型常数; 
+  数据类型 变量名: 整型常数; 
+  } 位结构变量; 
+  其中: 数据类型必须是int(unsigned或signed)。 整型常数必须是非负的整 
+数, 范围是0~15, 表示二进制位的个数, 即表示有多少位。 
+  变量名是选择项, 可以不命名, 这样规定是为了排列需要。 
+  例如: 下面定义了一个位结构。 
+  struct{ 
+  unsigned incon: 8; /*incon占用低字节的0~7共8位*/ 
+  unsigned txcolor: 4;/*txcolor占用高字节的0~3位共4位*/ 
+  unsigned bgcolor: 3;/*bgcolor占用高字节的4~6位共3位*/ 
+  unsigned blink: 1; /*blink占用高字节的第7位*/ 
+  }ch; 
+  位结构成员的访问与结构成员的访问相同。 
+  例如: 访问上例位结构中的bgcolor成员可写成: 
+  ch.bgcolor 
+  
+  注意: 
+  1. 位结构中的成员可以定义为unsigned, 也可定义为signed, 但当成员长 
+度为1时, 会被认为是unsigned类型。因为单个位不可能具有符号。 
+  2. 位结构中的成员不能使用数组和指针, 但位结构变量可以是数组和指针, 
+如果是指针, 其成员访问方式同结构指针。 
+  3. 位结构总长度(位数), 是各个位成员定义的位数之和, 可以超过两个字 
+节。 
+  4. 位结构成员可以与其它结构成员一起使用。 
+  例如: 
+  struct info{ 
+  char name[8]; 
+  int age; 
+  struct addr address; 
+  float pay; 
+  unsigned state: 1; 
+  unsigned pay: 1; 
+  }workers;
+  上例的结构定义了关于一个工人的信息。其中有两个位结构成员, 每个位结 
+构成员只有一位, 因此只占一个字节但保存了两个信息, 该字节中第一位表示工 
+人的状态, 第二位表示工资是否已发放。由此可见使用位结构可以节省存贮空间。
+
+
+** extern in C 
+	"extern" changes the linkage. With the keyword, the function / variable is assumed to be available somewhere else and the resolving is deferred to the linker.
+
+	There's a difference between "extern" on functions and on variables: on variables it doesn't instantiate the variable itself, i.e. doesn't allocate any memory. 
+    This needs to be done somewhere else. Thus it's important if you want to import the variable from somewhere else. For functions, this only tells the compiler
+    that linkage is extern. As this is the default (you use the keyword "static" to indicate that a function is not bound using extern linkage) you don't need to use it explicitly.
+
+a example is a global variable needed to be declared in the header file, which many o file needed, but the real allocation memory for this global variable need to be defineded in c file only once.
+
+Don't initialize variables in headers. Put declaration in header and initialization in one of the c files.
+
+In the header:
+extern int i;   // this is declaration
+
+In file2.c:
+int i=1;        // this is definition
+
+
+
+
+* C和C++
+** C和C++有什么不同
+
+从机制上：c是面向过程的（但c也可以编写面向对象的程序）；c++是面向对象的，提供了类。但是，
+c++编写面向对象的程序比c容易
+从适用的方向：c适合要求代码体积小的，效率高的场合，如嵌入式；c++适合更上层的，复杂的； llinux核心大部分是c写的，因为它是系统软件，效率要求极高。
+C语言是结构化编程语言，C++是面向对象编程语言。
+C++侧重于对象而不是过程，侧重于类的设计而不是逻辑的设计
+**  用C模拟(simulat)实现C++
+//#include "stdafx.h"
+/*
+描述:纯c模拟类,纯c编写c++类,纯c实现c++类的简单范例,结构模拟类,struct 编写class.
+c编写类是实现纯c编写com组件的基础。
+*/
+#include <stdio.h>
+
+typedef struct _Vtbl
+{
+    void (*AddRef)(struct CObject* obj,int);//所有的函数的第一个参数类似class的隐匿的this指针
+    void (*Release)(struct CObject* obj);
+}Vtbl;//函数指针数组
+
+typedef struct CObject
+{
+    Vtbl vtbl;//函数指针数组指向成员函数
+    int a;
+    int b;
+}Cobj;//结构模拟类的简单定义
+
+
+void fun1(Cobj *obj,int count)//成员函数
+{
+    obj->a+=count;
+    printf("CObject::a=%d\n",obj->a);
+}
+
+void fun2(Cobj *obj)//成员函数
+{
+    obj->a--;
+    printf("CObject::a=%d\n",obj->a);
+}
+
+static Vtbl vt={fun1,fun2};//声明一个静态函数指针数组
+
+int main()
+{
+    Cobj obj;//定义对象
+    obj.vtbl=vt;
+    obj.a= 10;
+    obj.vtbl.AddRef(&obj,1);
+    obj.vtbl.Release(&obj);
+    return 0;
+} 
+
+
+*** extern "C" usage
+**** c call a function from a c++ library
+in c++ file, declare the c function wrapped with extern "C"{}
+.c
+-------------------
+#include "t.h"
+int foo(int a, int b)
+{
+   return a+b;
+}
+--------------------
+t.h
+--------------------
+#ifndef T
+#define T
+int foo(int a, int b);
+#endif
+---------------------
+$gcc -o t.o -c t.c
+$ar cr libmyt.o t.o
+
+test.c
+----------------------
+extern "C"
+{
+  #include "t.h"
+}
+#include <iostream>
+int main()
+{
+   std::cout <<   "the result is %d\n", foo(5,7) ;
+}
+---------------------------
+$gcc -o a.out test.c -L.  -lmyt 
+
+
+**** c call a c++ function from a c library
+in cpp file, function need to be defined wrapped in extern "C" {},
+in declaration header file, _cplusplus used to use extern "C"{} or not.
+in c file, call the function as normal
+
+t.cpp  // extern C for function definition in c++ file
+--------------------
+#include "t.h"
+extern "C"
+{
+int foo(int a, int b)
+{
+   return a+b;
+}
+}
+---------------
+t.h //this is common head for both c and c++ file, when in c++, __cplusplus 
+//macro was defined. while in c, __cplusplus macro not defined
+-----------------
+#ifndef T
+#define T
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+   int foo(int a, int b);
+   #ifdef __cplusplus
+   }
+   #endif
+
+   #endif
+
+
+---------------------
+$g++ -fpic -shared foo.cpp -o libfoo.so
+$ nm libfoo.so|grep foo    // when extern "C" used, the function will comipled as c function way not a c++ function way
+00000000 T _foo
+//$ ar cr libmyt.o t.o //libmyt.o generated.
+
+m.c
+---------------------------
+#include "t.h"
+#include <stdio.h>
+//extern int foo(int a, int b);
+int main()
+{
+   printf( "the result is %d\n", foo(5,7)) ;
+}
+---------------------------------
+$gcc m.c -L. -lfoo -o m.out
+
+
+
+** 设计模式中关联，聚合
+16. 关联、聚合(Aggregation)以及组合(Composition)的区别？ 
+
+涉及到UML中的一些概念：关联是表示两个类的一般性联系，比如“学生”和“老师”就是一种关联关系；聚合表示has-a的关系，是一种相对松散的关系，
+聚合类不需要对被聚合类负责，如下图所示，用空的菱形表示聚合关系： 
+
+从实现的角度讲，聚合可以表示为: 
+
+class A {...} class B { A* a; .....} 
+
+而组合表示contains-a的关系，关联性强于聚合：组合类与被组合类有相同的生命周期，组合类要对被组合类负责，采用实心的菱形表示组合关系： 
+实现的形式是: 
+
+class A{...} class B{ A a; ...} 
+
+参考文章：http://blog.csdn.net/wfwd/archive/2006/05/30/763753.aspx
+
+http://blog.csdn.net/wfwd/archive/2006/05/30/763760.aspx 
+
+
+17.面向对象的三个基本特征，并简单叙述之？ 
+1. 封装(encapsulation)：将客观事物抽象成类，每个类对自身的数据和方法实行protection(private, protected,public) 
+2. 继承(inherance)：广义的继承有三种实现形式：实现继承（指使用基类的属性和方法而无需额外编码的能力）、可视继承（子窗体使用父窗体的外观和实现代 码）
+接口继承（仅使用属性和方法，实现滞后到子类实现）。前两种（类继承）和后一种（对象组合=>接口继承以及纯虚函数）构成了功能复用的两种方式。 
+3. 多态(polymorphism)：是将父对象设置成为和一个或更多的他的子对象相等的技术，赋值之后，父对象就可以根据当前赋值给它的子对象的特性以不同的方式运作。简单的说，
+就是一句话：允许将子类类型的指针赋值给父类类型的指针。 
+
+
+18. 重载（overload)和重写(override，有的书也叫做“覆盖”）的区别？ 
+重载：是指允许存在多个同名函数，而这些函数的参数表不同（或许参数个数不同，或许参数类型不同，或许两者都不同）。 
+重写：是指子类重新定义复类虚函数的方法。 
+
+从实现原理上来说： 
+重载：编译器根据函数不同的参数表，对同名函数的名称做修饰，然后这些同名函数就成了不同的函数（至少对于编译器来说是这样的）。如，有两个同名
+函数：function func(p:integer):integer;和function func(p:string):integer;。那么 编译器做过修饰后的函数名称可能是这样的：
+int_func、str_func。对于这两个函数的调用，在编译器间就已经确定了，是静态的。也就是说，它 们的地址在编译期就绑定了（早绑定）
+因此，重载和多态无关！ 
+
+重写：和多态真正相关。当子类重新定义了父类的虚函数后，父类指针根据赋给它的不同的子类指针，动态的调用属于子类的该函数，这样的函数
+调用在编译期间是无法确定的（调用的子类的虚函数的地址无法给出）。因此，这样的函数地址是在运行期绑定的（晚绑定）。
+
+** 指向同一变量的静态变量
+** sizeof and pointer+1 mean
+*** a pointer's size is system wide,in 32bit system, it's 4, and in 64bit system, it's 8.
+*** a array size is the value in []
+#include <stdio.h>
+main()
+{
+   char *a="012345";
+   char b[10]="012345";
+   printf("size of a is %d\n", sizeof(a));      4
+   printf("size of *a is %d\n", sizeof(*a));    1
+   printf("size of b is %d\n", sizeof(b));      10
+   printf("size of *b is %d\n", sizeof(*b));    1 
+   printf("address of  b  is %x\n", &b);        0x10
+   printf("address of  b +1 is %x\n", &b+1);    0x1a     //sizeof b is 10, so &b+1=addr+1*10
+   printf("address of  b[0] +1 is %x\n", &b[0]+1);    0x11     //sizeof b[0] is 1, so &b[0]+1=addr+1*1
+}
+2. int aa[]={1,2,3,4,5}
+int * p = &aa +1; 
+## p =&aa+5*4 bytes.
+## *(aa+1) is 2, so aa+1 will be &aa+4bytes
+
+
+
+1. 以下三条输出语句分别输出什么？[C易] 
+char str1[] = "abc"; 
+char str2[] = "abc"; 
+const char str3[] = "abc"; 
+const char str4[] = "abc"; 
+const char* str5 = "abc"; 
+const char* str6 = "abc"; //这种形式定义的字符串在全局内存里，并且不可写。
+cout << boolalpha << ( str1==str2 ) << endl; // 输出什么？ false
+cout << boolalpha << ( str3==str4 ) << endl; // 输出什么？ false
+cout << boolalpha << ( str5==str6 ) << endl; // 输出什么？ true
+
+3. char *a ="abcdef";
+   char b[50] = "abcdef";
+sizeof(a)= a pointer length in 64bit system is 8.
+sizeof(b)= 50;
+sizof(*a)=1;
+sizeof(*b)=1;
+
+** C++ 和C 函数之间相互引用，由于C++的重载特性，编译器对C++和C函数名处理不同
+在C++ 程序中调用被C 编译器编译后的函数，为什么要加extern “C”？ 
+
+首先，作为extern是C/C++语言中表明函数和全局变量作用范围（可见性）的关键字，该关键字告诉编译器，其声明的函数和变量可以在本模块或其它模块中使用。 
+
+通常，在模块的头文件中对本模块提供给其它模块引用的函数和全局变量以关键字extern声明。例如，如果模块B欲引用该模块A中定义的全局变量 和函数时只需
+包含模块A的头文件即可。这样，模块B中调用模块A中的函数时，在编译阶段，模块B虽然找不到该函数，但是并不会报错；它会在连接阶段中从模 块A编译生成的目
+标代码中找到此函数 
+extern "C"是连接申明(linkage declaration),被extern "C"修饰的变量和函数是按照C语言方式编译和连接的,来看看C++中对类似C的函数是怎样编译的： 
+作为一种面向对象的语言，C++支持函数重载，而过程式语言C则不支持。函数被C++编译后在符号库中的名字与C语言的不同。例如，假设某个函数的原型为： 
+void foo( int x, int y ); 
+
+　　 
+
+该函数被C编译器编译后在符号库中的名字为_foo，而C++编译器则会产生像_foo_int_int之类的名字（不同的编译器可能生成的名字不同，
+但是都采用了相同的机制，生成的新名字称为“mangled name”）。 
+
+_foo_int_int这样的名字包含了函数名、函数参数数量及类型信息，C++就是靠这种机制来实现函数重载的。例如，在C++中，函数 void 
+foo( int x, int y )与void foo( int x, float y )编译生成的符号是不相同的，后者为 _foo_int_float。 
+
+同样地，C++中的变量除支持局部变量外，还支持类成员变量和全局变量。用户所编写程序的类成员变量可能与全局变量同名，我们以"."来区分。而 本质上，
+编译器在进行编译时，与函数的处理相似，也为类中的变量取了一个独一无二的名字，这个名字与用户程序中同名的全局变量名字不同。 
+
+
+** static 在C++ 的作用
+*** static local variable
+if a static local variable is a object, it will be in .bss section withou initilization, even you initilalize  it.
+static A globa;
+class A{
+int a;
+public:
+A(int aa=1) {a = aa;} };
+
+void tt()
+{
+static A localbb;
+static int cp =7;
+}
+
+main()
+{
+...
+tt();
+}
+
+objdump -D <exe> |less 
+cp will be in .data section, and 7 is in .data section
+while globa and localbb are both in .bss section. that means class objects couldn't be initialized when compiled.
+So globa will be initialized when executing, and in the first place before main function invoked,
+and localbb will be initialized when executing also, and it will be so in the tt function where tt is localbb is declared.
+
+
+*** static member variable
+当static作用于成员变量和成员函数时意味着什么？
+static 成员变量的内存也在全局区，而且对于static来说是一个class一个，而不是一个object一个。
+当然对于static 成员变量的操作也需要static成员函数来进行。
+static成员变量必须在全局开始处初始化，所有函数外。
+int test::ss = 0; *必须在全局处初始化类的成员变量，否则链接会报错。*
+class test{
+public: 
+   static int ss;
+   int tt;
+   static void dosss() {ss++;};
+};
+main()
+
+ test::dosss(); *静态函数的调用形式，实际上静态函数是没有this指针的，所以只有通过类调用*
+ test a;
+ a.dosss();
+ test *p;
+ p->dosss();
+}
+**** static 成员不在对象或类的大小中
+上例中sizeof(test)为4，sizeof（a）也是4， 静态成员不算在其中
+ 
+http://blog.csdn.net/starlee/article/details/2062586
+** static 和 extern 在c中
+static作用于局部变量，则是把变量的分配区放在了全局数据区，而作用域放在了函数内。
+static作用于全局变量，表明这个变量的作用域在本C文件上。（extern则表示其他c文件可用）
+staic作用于函数，表明这个函数的可见范围在文C文件上。  （extern则表示其他c文件可用）
+---------
+main()
+{
+test();
+test();
+test();
+}
+test()
+{
+static int i=0;  *在申明时就必须初始化*
+i++;
+printf("static data is %d\n",i);
+}
+-----------------------
+
+
+** const 
+*** const built-in variable
+when declare a variable, firstly start with a const, it means that this variable
+is readonly, so const is similar to a define macro.
+-------------------------------
+   const int a = 10;
+   int c =20;
+//   a = 5; // compilation error, since a is readonly
+   const int *pa; //a pointer to a const int var, and this pointer could get assigned later.
+//   int const *pa; // this is equal to const int *pa;
+   pa = &a;   // pa could be assinged to point any variable
+//   *pa = 7;     //compilation error,but the content in pa is not writable.
+   pa = &c; //pa could point to a non const variable also
+//   *pa =27; //but still compilation error, if you modified the content of pa;
+
+//   int  * const pc = &c; //a constant pointer which should be initialized by a non const variable's address
+  const int  * const pc2 = &a; //a constant pointer which should be initialized
+-------------------------------------------
+
+*** pointer which point to a constant variable
+   const int a;
+   const int *pa; //a pointer to a const int var, and this pointer could get assigned later.
+//   int const *pa; // this is equal to const int *pa;
+   pa = &a;   // pa could be assinged to point any constant variable later...
+
+
+*** const pointer variable
+int c = 20;
+int * const pc = &c; // pc is a pointer only point to c's addr, it can't be pointed to another address anymore, must be initialized here
+
+
+*** const pointer point to a const variable
+   const int a;
+  const int  * const pc2 = &a; //a constant pointer which should be initialized
+
+*** const member variable 
+class Ta
+{
+  const int a;      //declaration of const member variable
+  int b;
+ public:
+  int fa()    { return a; } // a is readonly, so it's ok. a=6 is not OK
+    Ta():a(5){} };     // const variable initialization must like this
+
+main()
+{ Ta c;
+  cout << "this is a " << c.fa();
+
+*** const member function would only operate on the const object
+class Ta
+{
+  int a;     
+  public: int fa()  const  { return a; } //declaration of const member function
+    Ta(){ a = 7;} };
+main()
+{ const Ta dc;
+  cout << "this is a " << dc.fa();} // dc.fa() will be illeagal if fa() is not a const function
+}
+
+*** mutable member variable
+mutable: 易变的
+mutable string _cursor; // mutable 成员
+inline void Screen::move( int r, int c ) const
+{ _cursor = row + c - 1; }  // const member function could operate on the mutable variable
+
+** static int  member variable
+every class has only one static member variable.
+*** member varaible could be  of its own class
+class Bar
+{   static Bar mem1; //ok
+    Bar *mem2;       //ok
+    Bar mem3;        // error, non static member variable could be the pointer of its own class
+}
+
+*** static member variable could be passed as a default parameter
+extern int var;
+class Foo {
+private:
+int var;
+static int stcvar;
+public:
+// 错误: 被解析为非 static 的 Foo::var
+// 没有相关的类对象
+int mem1( int = var );
+// ok: 解析为 static 的 Foo::stcvar
+// 无需相关的类对象
+int mem2( int = stcvar );
+// ok: int var 的全局实例
+int mem3( int = ::var );
+};
+
+*** static member function
+only static member function could operate the static member variable
+
+class Ta
+{
+ private:
+  const int a;
+  static  int b;
+ public:
+  int fa() const
+  { return a; }
+   static int fb(){return b;}
+  Ta():a(5){}
+};
+
+int Ta::b = 7; 
+main()
+{ Ta c; }
+
+*** pointer to a static variable
+main()
+{
+int *pa = &Ta::b;
+cout << "b is " << *pa;
+
+** pointer to member variable and member funtion
+*** pointer to member function
+a pointer to member function should be preceeded with <classname>::
+class Ta
+{
+ private: const int a;
+  static  int b;
+  int cc;
+ public:
+  int fc(){}
+  int fa() const { return a; }
+   static int fb(){return b;}
+  Ta():a(5){}
+};
+int Ta::b = 7;
+main()
+{
+  int (*pfs)() = &Ta::fb;     // function pointer to a static function
+  int (Ta::*pf)() = &Ta::fc;  // function pointer to a non-static function.
+  Ta c;
+  (c.*pf)():    // the usage of the function pointer of member function.   
+   (*pfs)();    // the usage of the function pointer to a static member function.
+
+*** pointer to member variable
+main()
+{
+   Ta c;
+   const int Ta::*pa = &Ta::a;
+   int *pb = &Ta::b;
+    int  Ta::*pc  = &Ta::cc;
+   cout << "const var is " << (c.*pa);
+   cout << "static var is " << (*pa);
+   cout << "cc var is " << (c.*pc);
+}
+** array pointer
+a pointer which point to an array is an array pointer
+int a[5] = {1, 2, 3, 4, 5};
+int (*pa) [5] = &a;   // array pointer
+printf("b is %d and %d \n", (*pa)[0], (*pa)[1]); // how to get element from array pointer
+->>>b is 1 and 2                               
+  int *pae = &a[0];    // this pae is not an array pointer, it is a pointer to int.
+  printf("b is %d and %d \n", pae[0], pae[1]);
+->>>> b is 1 and 2
+
+
+** function pointer
+*** general function pointer
+int cstrcmp(const string &s1, const string &s2); //function declare
+int (*pfunc)(const string &s1, const string &s2);   //function poninter def which could be cstrcmp
+int *pfunc2 (const string &s1, const string &s2);   //function decl with a int * pointer return value
+
+int (*pfce)( const char*, ... ); // 可以指向 printf() int printf( const char*, ... );
+int (*pfc)( const char* ); // 可以指向 strlen() int strlen( const char* );
+
+int calc( int, int );
+int (*pfi2s)( const string &, const string & ) = 0;
+int (*pfi2i)( int, int ) = 0;
+int main() {
+pfi2i = calc; // ok
+pfi2s = calc; // 错误: 类型不匹配
+pfi2s = pfi2i; // 错误: 类型不匹配
+}
+
+**** function pointer array
+***** function pointer definition
+int (*tstcase[10])();  //tstcase is an array with element of type "function pointer int ();"
+a more clear dec would be:
+typede int (*PFV) ();  // function pointer def
+PFV tstcase[10];      // an array of type PFV
+
+***** function pointer initialization
+int lexicoCompare( const string &, const string & );
+int sizeCompare( const string &, const string & );
+typedef int ( *PFI2S )( const string &, const string & );
+PFI2S compareFuncs[2] =
+{
+lexicoCompare,
+sizeCompare
+};
+
+***** array pointer which point to array of function pointer.
+PFI2S (*pfCompare)[2] = &compareFuncs;
+// 两个等价的调用
+pfCompare[ 0 ]( string1, string2 ); // 编写
+((*pfCompare)[ 0 ])( string1, string2 ); // 显式
+
+***** function pointer to execute the actual function
+const int size = 10;
+PFV testCases[size];
+int testResults[size];
+void runtests() {
+for ( int i = 0; i < size; ++i )
+testResults[ i ] = testCases[ i ](); // invoke testCase execution();
+}
+
+ 
+** new/delete usage and auto_ptr
+there are three different occasions relate to memory dynamically allocation
+1. delete faild, then the memory leaked
+2. delete the same address twice. when the address firstly deleted, this memory addr maybe reassigned
+to other usage, then it is deleted at the second time, it may mess up this second allocation usage
+3. dlete the addr, but read/write this again, the ptr should be reset to NULL when delete.
+
+*** auto_ptr
+auto_ptr< int > p1( new int( 1024 ) );  // new a int value initialized as 1024, ant this p1 could be deleted automatcially when p1 
+                                        // out of its scope.
+* C++基本
+** 空类所需的函数
+C++中的空类，默认产生哪些类成员函数？[C++易]
+=======================
+class Empty
+{
+public:
+       Empty();                             // 缺省构造函数
+       Empty( const Empty& );               // 拷贝构造函数
+       ~Empty();                            // 析构函数
+       Empty& operator=( const Empty& ); // 赋值运算符
+       Empty* operator&();                  // 取址运算符
+       const Empty* operator&() const;      // 取址运算符 const
+};
+
+===================================================
+
+***  what default constructor do
+if you defined a constructor with argument, you must define your own constructor without argument, otherwise you can't invoke like this: Classname obj;  
+but if you didn't define either of it, the compiler will generate them for you.
+
+*** what  copy construtor do
+if you defined a constructor function, you need to define the copy constructor and destructor function.
+since default constructor will only leave the built-in type member variable uninitialized(alone), and invoke type class object constructor function.
+      default destructor will invoke the type class object's destructor function.
+
+*** what destructor do
+it will bit copy the rvalue of the object.
+
+*** default  constructor,default copy constructor,default destructor function must be together
+example,  since you define a class 
+class tt{
+public:  tt(): ptr(new int(5)){}
+private: int * ptr;
+} }
+//if you new a memory in constructor, you must define your own destructor to delete it, otherwise it will be lost. ~tt(){delete ptr; }
+//also copy constructor, you must define your own to prevent the bit-wise copy, tt(const tt& c):ptr(new int(5){ *ptr = *c.ptr } ;
+
+int main()
+{
+   exampleA cc;
+   exampleA cd(cc);
+   cout<< "cc adr is " << cc.a << "cd adr is " << cd.a;  // cc.a and cd.a will be the same value.
+
+
+*** assignment operator will use the copy constructor defined by your own.
+class tt{
+public:  tt(): ptr(new int(5)){}
+tt(const tt& c):ptr(new int(5){ *ptr = *c.ptr } ;
+~tt(){delete ptr; }
+private: int * ptr;
+} }
+
+ int main()
+{
+   exampleA cc;
+   exampleA cd(cc);
+   cout<< "cc adr is " << cc.a << "cd adr is " << cd.a;  // cc.a and cd.a will be the different value.
+   cd = cc;     // even no user defined assginment operator, copy constructor will still be invoked.
+   cout<< "cc adr is " << cc.a << "cd adr is " << cd.a;  // cc.a and cd.a will be the different value also.
+
+     
+** default and delete in constructor/destructor
+*** constructor/destructor could be set as default
+it means using the compiler generated function for that.
+
+*** constructor/destructor could be set as deleted
+it means this function couldn't be invoked.
+
+class NoCopy{
+   NoCopy() = default; // using constructor made by compiler.
+   NoCopy(const NoCopy&) = delete;  // copy constructor couldn't be invoked
+
+
+** 简单的String定义，C++ class's feature, constructor(default/copy),destructor, assignment; 
+Generally, if you don't have constructor defined by your own, compiler will generate it for you, but if there's data of pointer, you'd better define yours, since 
+compiler will only value-copy them.
+
+
+class String 
+
+{ 
+
+public: 
+
+String(const char *str = NULL); // 通用构造函数 
+
+String(const String &another); // 拷贝构造函数 
+
+~ String(); // 析构函数 
+
+String & operater =(const String &rhs); // 赋值函数 
+String & operater +( String &lhs, const String &rhs); // 赋值函数 
+
+private: 
+
+char *m_data; // 用于保存字符串 
+
+}; 
+
+尝试写出类的成员函数实现。 
+
+答案： 
+
+String::String(const char *str) 
+
+{ 
+
+if ( str == NULL ) //strlen在参数为NULL时会抛异常才会有这步判断 
+
+{ 
+
+m_data = new char[1] ; 
+
+m_data[0] = '\0' ; 
+
+} 
+
+else 
+
+{ 
+
+m_data = new char[strlen(str) + 1];
+
+strcpy(m_data,str); 
+
+} 
+
+} 
+
+String::String(const String &another) 
+
+{ 
+
+m_data = new char[strlen(another.m_data) + 1]; 
+
+strcpy(m_data,other.m_data); 
+
+} 
+
+String& String::operator =(const String &rhs) 
+
+{ 
+
+if ( this == &rhs) 
+
+return *this ; 
+
+delete []m_data; //删除原来的数据，新开一块内存 
+
+m_data = new char[strlen(rhs.m_data) + 1]; 
+
+strcpy(m_data,rhs.m_data); 
+
+return *this ; 
+
+} 
+
+String & String::operater +( String &lhs, const String &rhs) 
+{
+   char * tmp = m_data;
+   m_data = new char[ strlen(lhs) + strlen(rhs)] + 1;
+   strcpy(m_data,lhs.m_data); 
+   strcat(m_data,rhs.m_data); 
+   delete [] tmp;
+   return *this;
+}
+
+String::~String() 
+{ 
+  delete []m_data ; 
+} 
+
+** implictly invoking constuctor function of base class and other class object  member variable.
+*** implictly invoking base calss constructor 
+class pX{
+    int i;
+public:
+    pX(){cout<< "pX default construct\n";}
+};
+class X: pX {
+ int j;
+ public:
+ X() { cout << "X default constructor \n"; }
+};  
+main()
+{
+   X tt; // default constructor will implicitly invoking base 
+}
+---------------------
+>> pX default construc
+>> X   default constructor
+//implicitly invoking base class constructor pX(), then X() itself, 
+
+*** implicitly invoking other class object's default constructor 
+**** invoking the default sontructor
+<classname> <objname>;  // this will implictyly invoking class's default constructor.
+<classname> <funcname> (); // this is the definition of a function named as <funcname>, retrun value is <classname>,not arg.
+
+****  if a class has no default constructor at all, it's fine
+class A {int a;}
+main(){ A aa;} // it's fine here
+
+****  user defined the default constructor  generated by compiler
+if you define other constructor, then defualt constructor should be also defined, since the compiler won't generate
+the default constructor for you once you have some constructor definition.
+
+class AA {
+public: AA(int i){cout << "AA construct\n";}
+  // AA()    {cout << "AA default construct\n";} };
+class B {
+public: B()    {cout << "B default construct\n";}
+   B(int i){cout << "B construct\n";} };
+class X{
+B k;
+AA i; //if AA() not defined, but AA(int i)defined, AA i; won't pass compiler 
+int j;
+public:
+X()
+{
+ cout << "X default constructor \n";
+};
+main()
+{ X tt;  }
+------------------------------------------------------
+>> B default construct
+>> AA default construct
+>> X default construtor
+//implicitly invoking AA(), B(), when invoking X() 
+
+*** order of the above two
+if a class has a base class and member variable class object, then 
+a base class's constructor firstly. then class objects in their declaration order
+class AA {
+public:
+   AA(int i){cout << "AA construct\n";}
+   AA()    {cout << "AA default construct\n";}
+};
+
+class B {
+public:
+   B()    {cout << "B default construct\n";}
+   B(int i){cout << "B construct\n";}
+};
+class pX{
+int i;
+public:
+  pX(){cout<< "pX default construct\n";}
+};
+class X: pX {
+B k;
+AA i;
+int j;
+public:
+X()
+{
+ cout << "X default constructor \n";
+}};
+main()
+{ X xx; }
+--------------------------------------------------
+>> B default construct
+>> AA default construct
+>> pX default construtor
+>> X default construtor
+
+
+** constructor function's member initialization list (explicitly invoking the object member variable's constructor)
+*** if a class object not get initialized in the construotr initialization list
+class AA {
+public:
+   AA(int i){cout << "AA construct\n";}
+   AA()    {cout << "AA default construct\n";}
+};
+class B {
+public:
+   B()    {cout << "B default construct\n";}
+   B(int i){cout << "B construct\n";}
+};
+class X:  {
+B k;
+AA i;
+int j;
+public:
+X()
+ cout << "default constructor \n";
+}
+X( int val )    //: j(val), i(2), k(7)
+{
+  j = val;
+  i = 2;
+  k = B(7);
+  cout << "DTTDTT\n";
+}};
+main()
+{ X xx(3); }
+
+---------------------------------------
+B default construct   // these two fucntion will be implicitly invoked
+AA default construct  // before X()'s execution, the order is declaraion
+AA construct           // i=2
+B construct            // k=B(7)
+DTTDTT
+==========================================
+if X use constructor initialziation list  like this
+ X( int val )   : j(val), i(2), k(7)
+{
+  cout << "DTTDTT\n";
+}
+-------------------------
+B construct
+AA construct
+DTTDTT
+----------------------- 
+
+*** difference between constructor and member initialization list
+constructor is used as (), like new Base(); or just new Base;
+so difference between malloc/free and new/delete is that the later will invoke the constructor/destructor functior, and the former won't.
+but assignment using = specifically.
+eg. 
+class B
+{
+ B(int a);
+}
+class A
+{
+ A();
+ private: 
+ int size;
+ B m_data;
+}
+A():size(), m_data(3)  //m_data is evoked from constructor only, 
+{}
+but if { m_data = B(3); //m_data is initialized by default constructor, then B(3) is another variable, last assignment has been invoked.
+
+*** member initializaiton list order
+the order of  members in initialization list 
+class X {
+int i;
+int j;
+public:
+X( int val )
+: j( val ), i( j ) // even though the order is j,i, but in fact i will be constructed firstly.
+{}
+};
+
+*** copy constructor function
+Account( const Account &rhs )
+: _name( rhs._name )  // this should also using copy construcator of 
+                      // _name(type string )
+{
+_balance = rhs._balance;
+_acct_nmbr = get_unique_acct_nmbr();
+}
+
+** the efficiency of the objet's declaration/definition
+*** return value of operator
+Matrix& operator+( const Matrix& m1, const Matrix& m2 )
+{
+  Matrix &result = new Matrix;
+  // operation of adding  
+  return *result;
+}
+//the problem is that no one will delete it.
+
+
+void mat_add( Matrix &result, const Matrix& m1, const Matrix& m2 )
+{
+  // operation of adding  and result = XX;
+}
+// this function will avoid this problem ,but the operator is not 
+
+Mactix c = a + b; // this can't be implemented
+
+*** a tempary variable should be declared when intializing
+Matrix c;   // a default constructor invoked
+c = a + b;  // a copy constructor function invoked
+=============
+Mactix c = a + b; // this only need one time copy constructor functon invoked 
+
+*** class object's array VS. vector
+vector<Point> vec(1); // this will invoke all Point's default constructor and copy constructor also.
+Point pa[1];  // this will only invoke  Point's default constructor 
+
+class AA {
+public:
+   AA(int i){cout << "AA construct\n";}
+   AA(const AA &i){cout << "AA copy construct\n";}
+   AA()    {cout << "AA default construct\n";}
+   ~AA()    {cout << "AA default destruct\n";} };
+
+class X  {
+AA i;
+public:
+X() { cout << "X default constructor \n"; }
+X(const  X &x): i(x.i) { cout << "X copy constructor \n"; }
+~X() { cout << "X default destructor \n"; }};
+
+**** initialization of  class object array 
+in the array, the object's default constructor
+int main()
+{ //  X x(33);
+   X arr[1];
+   cout << "reach the end of the file";
+}
+===============================================================
+AA default construct
+X default constructor
+reach the end of the file
+ X default destructor
+AA default destruct
+
+**** initializaiton of vector
+in the vector, the object's copy constructor
+int main()
+{ //  X x(33);
+   vector<X> vec[1];
+   cout << "reach the end of the file";
+}
+===========================================
+AA default construct
+X default constructor
+AA copy construct
+X copy constructor
+X default destructor
+AA default destruct
+X default destructor
+AA default destruct
+
+
+
+
+
+** 类的函数和变量的汇编形式
+*** 对于创建某个类的对象而言，实际在程序运行时所做的就是分配内存空间（非静态成员变量），而通过对象调用其成员函数(非虚函数）则是在编译的时候就确定好了。
+------------------------------------------------------------
+class CNullPointCall
+{
+public:
+    static void Test1();
+    void Test2();
+    void Test3(int iTest);
+    void Test4();
+
+private:
+    static int m_iStatic;
+    int m_iTest;
+};
+
+int CNullPointCall::m_iStatic = 0;
+void CNullPointCall::Test1()
+{
+    cout << m_iStatic << endl;
+}
+void CNullPointCall::Test2()
+{
+    cout << "Very Cool!" << endl; 
+}
+void CNullPointCall::Test3(int iTest)
+{
+    cout << iTest << endl; 
+}
+void CNullPointCall::Test4()
+{
+    cout << m_iTest << endl; 
+}
+
+CNullPointCall *pNull = NULL; // *没错，就是给指针赋值为空*
+pNull->Test1(); // call 1  // *CNullPointCall::Test1()* //括号内是函数的地址
+pNull->Test2(); // call 2  
+pNull->Test3(13); // call 3
+pNull->Test4(); // call 4
+--------------------------------------------
+空指针并不影响对成员函数的调用，因为这是编译期间就做好的，而根据就是pNull的原型来做的。
+那么pNull这个实际分配内存的对象地址怎样传入呢？这是通过this指针完成的。
+c++代码向C代码的转换，实际上C++是基于C的，至少在第一阶段，编译器会先把C++代码转换成C代码的形式，可见C++是包裹了C的。
+CNullPointCall::Test4(CNullPointCall *this)
+{
+cout << this->m_iTest <<endl;
+}
+pNull->Test4();  *//CNullPointCall::Test4(pNull);//*
+所以这个call4 会导致segmention fault，用了空指针
+但其他三个函数的调用将是成功的，因为没有操作对象的变量（非静态变量）；
+
+*** class类型的强制转换
+为什么要有强制转换，那是因为这两个类型会有些联系，比如把子类指针强制转换给父类
+结果是什么呢？
+---------------------
+class Parent
+{
+public:
+void  func1(){}
+  int var;
+}
+class Child: public Parent
+{
+public:
+ void func1(){}
+  int var1;
+}
+Parent * p=new Child();
+p->func1();   *// Parent::func1(p);* 
+cout << p->var1;   *// cout << Parent::var1;这里将编译不过*
+也就是说p在外部只能调用和Parent相关的函数和变量，不能访问Child自己的，虽然实际p是Child的地址。
+但是还是可以通过强制转换来分文var1
+int * pv = (int *)p;
+cout << *(++pv); *这里就可以访问var1了，Child有两个变量var和var1，++pv就是var1的地址*
+
+*** C++的多态，虚函数表指针
+对于编译器而言，规则就是这样，在对函数的调用必须是编译期间就决定好的，如果想动态地在程序运行时改变，似乎是很困难的，
+虽然类型可以转换，但是p让然访问不了除了parent的Child的函数，当然变量还是可以的，虽然表面调用不行，但至少可以通过
+偏移地址，如上例。
+这时虚函数就登场了，这是设计者do the trick。
+既然通过地址总可以访问到变量，那么就将函数于变量联系起来，这就是虚拟函数表的指针。
+对于含有虚拟函数的对象里，总有一个虚拟函数表指针，指向虚拟函数表，这个表包含这个类所有的虚拟函数地址。pVtab
+是这个对象的第一个成员变量,指针指向虚函数表。
+in a 32 bit system, function addr is 4 bytes, so use "int **pVtab" to get function addr
+pVtab+1 means 4 bytes plus
+===========================
+&vftab    virtual function table pointer
+m_vparent
+m_vchild
+---------------------------------------
+          0               1
+vftab: &vfun1parent   &vfunc1child
+
+===============================
+#include <cstddef>
+#include <iostream>
+#include <stdio.h>
+class Parent
+{
+public:
+  Parent()
+  { var = 7;}
+  virtual void fun1(void ) {
+  std::cout<< "this is Parent \n";
+  }
+  virtual void fun2(void ) {
+  std::cout<< "this is 2 Parent \n";
+  }
+ int var;
+};
+class Child:public Parent
+{
+public:
+ Child()
+ { var1 =9; }
+ virtual void  fun1(void) {
+  std::cout<< "this is Child \n";}
+  virtual void fun2(void ) {
+  std::cout<< "this is 2 Child \n";
+  }
+ int var1;
+};
+typedef void(*Fun)(void);/*函数的指针*/
+main()
+{
+  Child cd;
+  int ** pVtab = (int **)&cd;
+  Fun pFun;
+  std::cout << "the size of class Child is " << sizeof(Child)<<"\n" ;
+  for (int i=0; (Fun)pVtab[0][i] != NULL; i++){
+                pFun = (Fun)pVtab[0][i];
+          //      printf("virtual func talbe is %x\n",pFun);
+                pFun();
+    }
+  std::cout << "var is " << (int)pVtab[1]<<"\n";
+  std::cout << "var1 is " << (int)pVtab[2]<<"\n";
+  cd.fun1();
+  cd.fun2();
+}
+
+==========================================
+the size of class Child is 12
+this is Child
+this is 2 Child
+var is 7
+var1 is 9
+this is Child
+this is 2 Child
+--------
+
+
+** C++对象的析构和构造顺序
+构造函数
+    先看看构造函数的调用顺序规则，只要我们在平时编程的时候遵守这种约定，任何关于构造函数的调用问题都能解决；构造函数的调用顺序总是如下：
+1.基类构造函数。如果有多个基类，则构造函数的调用顺序是某类在类派生表定义中出现的顺序，而不是它们在成员初始化表中的顺序。
+2.成员类对象构造函数。如果有多个成员类对象则构造函数的调用顺序是对象在类中被声明的顺序，而不是它们出现在成员初始化表中的顺序。
+3.派生类构造函数。
+
+析构函数
+    析构函数的调用顺序与构造函数的调用顺序正好相反，将上面3个点反过来用就可以了，首先调用派生类的析构函数；其次再调用成员类对象的析构函数；最后调用基类的析构函数。
+    析构函数在下边3种情况时被调用：
+    1.对象生命周期结束，被销毁时(一般类成员的指针变量与引用都i不自动调用析构函数)；
+    2.delete指向对象的指针时，或delete指向对象的基类类型指针，而其基类虚构函数是虚函数时；
+    3.对象i是对象o的成员，o的析构函数被调用时，对象i的析构函数也被调用。
+
+*** 多次继承并有某个类的对象作为数据成员
+下面用例子来说说构造函数的的调用顺序：
+#include "stdafx.h"
+#include "iostream"
+using namespace std;
+class Base
+{
+public:
+    Base(){ std::cout<<"Base::Base()"<<std::endl; }
+    ~Base(){ std::cout<<"Base::~Base()"<<std::endl; }
+};
+
+class Base1:public Base
+{
+public:
+    Base1(){ std::cout<<"Base1::Base1()"<<std::endl; }
+    ~Base1(){ std::cout<<"Base1::~Base1()"<<std::endl; }
+};
+
+class Derivei
+{
+public:
+    Derive(){ std::cout<<"Derive::Derive()"<<std::endl; }
+    ~Derive(){ std::cout<<"Derive::~Derive()"<<std::endl; }
+};
+
+class Derive1:public Base1
+{
+private:
+    Derive m_derive;
+public:
+    Derive1(){ std::cout<<"Derive1::Derive1()"<<std::endl; }
+    ~Derive1(){ std::cout<<"Derive1::~Derive1()"<<std::endl; }
+};
+
+int _tmain(int argc, _TCHAR* argv[])
+{
+    Derive1 derive;
+    return 0;
+}
+
+运行结果是：
+Base::Base()
+Base1::Base1()
+Derive::Derive()
+Derive1::Derive1()
+Derive1::~Derive1()
+Derive::~Derive()
+Base1::~Base1()
+Base::~Base()
+
+那么根据上面的输出结果，笔者稍微进行一下讲解，构造函数的调用顺序是；首先，如果存在基类，那么先调用基类的构造函数，如果基类的构造函数中仍然存在基类，
+那么程序会继续进行向上查找，直到找到它最早的基类进行初始化； 如上例中类Derive1，继承于类Base与Base1；
+其次，如果所调用的类中定义的时候存在着对象被声明，那么在基类的构造函数调用完成以后，再调用对象的构造函数，如上例中在类Derive1中声明的对象Derive m_derive；
+最后，将调用派生类的构造函数，如上例最后调用的是Derive1类的构造函数。
+
+*** virtual析构函数
+在C++中，构造函数不能声时为虚函数，这是因为编译器在构造对象时，必须知道确切类型，才能正确的生成对象，因此，不允许使用动态束定；
+其次，在构造函数执行之前，对象并不存在，无法使用指向此此对象的指针来调用构造函数，然而，析构函数是可以声明为虚函数；C++明白指出，当derived class对象经由一个base class指针被删除，
+而该base class带着一个non-virtual析构函数，其结果未有定义---实际执行时通常发生的是对象的derived成分没被销毁掉。
+
+看下面的例子：
+class Base
+{
+public:
+    Base(){ std::cout<<"Base::Base()"<<std::endl; }
+    ~Base(){ std::cout<<"Base::~Base()"<<std::endl; }
+};
+
+class Derive:public Base
+{
+public:
+    Derive(){ std::cout<<"Derive::Derive()"<<std::endl; }
+    ~Derive(){ std::cout<<"Derive::~Derive()"<<std::endl; }
+};
+
+int _tmain(int argc, _TCHAR* argv[])
+{
+    Base* pBase = new Derive(); 
+    //这种base classed的设计目的是为了用来"通过base class接口处理derived class对象"
+    delete pBase;
+
+    return 0;
+}
+
+输出的结果是：
+Base::Base()
+Derive::Derive()
+Base::~Base()
+从上面的输出结果可以看出，析构函数的调用结果是存在问题的，也就是说析构函数只作了局部销毁工作，这可能形成资源泄漏败坏数据结构等问题；那么
+解决此问题的方法很简单，给base class一个virtual析构函数；
+
+class Base
+{
+public:
+    Base(){ std::cout<<"Base::Base()"<<std::endl; }
+    virtual ~Base(){ std::cout<<"Base::~Base()"<<std::endl; }
+};
+
+class Derive:public Base
+{
+public:
+    Derive(){ std::cout<<"Derive::Derive()"<<std::endl; }
+    ~Derive(){ std::cout<<"Derive::~Derive()"<<std::endl; }
+};
+
+int _tmain(int argc, _TCHAR* argv[])
+{
+    Base* pBase = new Derive();
+    delete pBase;
+
+    return 0;
+}
+
+输出结果是：
+Base::Base()
+Derive::Derive()
+Derive::~Derive()
+Base::~Base()
+可能上面的输出结果正是我们所希望的吧，呵呵！由此还可以看出虚函数还是多态的基础，在C++中没有虚函数就无法实现多态特性；因为不声明
+为虚函数就不能实现“动态联编”，所以也就不能实现多态啦！
+
+*** example of constructor/destructor
+class Base
+{
+ public:
+  Base(int pa=6)  // default value of pa , no Base() will be generated anymore 
+  {a = pa;}    // inline function(put function declare and definition together
+               // inline function is not a reaaly function, no function caliing and stack
+              // use, just handled in preprocess. gcc -E will see?
+  virtual  ~Base ()  // no function parameter of course, for this will be implicitly called.
+  { cout << "base destruction";}
+  int a;
+}
+class Derived
+{
+public: 
+ Derived(int pa, int pb):Base()  //here Base is in default invoking
+ Derived(int pa, int pb)  //here Base() is in implicitly invoking, if no B() define
+// there will be compilation error. if no construction function at all in Base, then
+// c++ will genrated Base(); Base(Base &other);  ~Base();  Base & Operator=( const Base & other) ;
+ 
+ Derived(int pa, int pb):Base(pa)  //here Base is in default invoking
+{
+  b=pb;
+  a= pa;  // this is the error usage, for a should be init in Base like Base(pa)
+ }
+  ~
+ virtual ~Derived ()  // no function parameter of course, for this will be implicitly called.
+// virtual destruction func means this des func will be in virtual function table;
+// Base *p = new Derived(3,4);
+//  delete p;  /* here will invoke  ~Derived not ~Base */
+  { cout << "Derived destruction";}
+int b;
+
+}
+
+Derived d;
+print d Derived instance like:
+$5 = {<Base> = {_vptr.Base = 0x8048e10, a = 99}, b = 3}
+                //virtal func table pointer, if no virtual func, no this pointer 
+when d is out of the life scope
+~Derived() will be invoked and it will implicitly invoking base destructor, the order is vs constructor order 
+// Derived des firstly, then Base des secondly
+"Derived destrunction"
+"Base destruction"
+
+
+** 内联函数inline
+内联函数是指函数体被插入到调用的代码里，没有函数的调用开销。
+内联函数一定要简单，不能有循环。
+一个函数不能即是虚函数又是内联。内联的实现机制与虚函数的实现相矛盾。
+inline function could be declared as inline, but in the implementation, inline could be omitted.
+class Screen {
+public:
+inline char get( int, int );
+};
+char Screen::get( int r, int c )
+{
+move( r, c ); // _cursor 位置
+return get(); // 另一个 get() 成员函数
+}
+
+*** default inline function
+Member functions can be defined within the class definition or separately using scope resolution operator,
+if a member function defined within the class definition declare the function inline, even if you do not use the inline specifier. 
+
+** C++ 纯虚函数和虚基类
+*** 虚基类的概念
+class A  
+{  
+public:  
+    int iValue;  
+};  
+  
+class B:public A  
+{  
+public:  
+    void bPrintf(){cout<<"This is class B"<<endl;};  
+};  
+  
+class C:public A  
+{  
+public:  
+    void cPrintf(){cout<<"This is class C"<<endl;};  
+};  
+  
+class D:public B,public C  
+{  
+public:  
+    void dPrintf(){cout<<"This is class D"<<endl;};  
+};  
+  
+void main()  
+{  
+    D d;  
+    cout<<d.iValue<<endl; //错误，不明确的访问  
+    cout<<d.A::iValue<<endl; //正确  
+    cout<<d.B::iValue<<endl; //正确  
+    cout<<d.C::iValue<<endl; //正确  
+}  
+从代码中可以看出类B C都继承了类A的iValue成员,因此类B C都有一个成员变量iValue ，而类D又继承了B C，这样类D就有一个重名的成员 iValue(一个是
+从类B中继承过来的，一个是从类C中继承过来的).在主函数中调用d.iValue 因为类D有一个重名的成员iValue编译器不知道调用 从谁继承过来的iValue所以
+就产生的二义性的问题.正确的做法应该是加上作用域限定符 d.B::iValue 表示调用从B类继承过来的iValue。不过 类D的实例中就有多个iValue的实例，
+就会占用内存空间。所以C++中就引用了虚基类的概念，来解决这个问题。 
+
+C++代码  
+class A  
+{  
+public:  
+    int iValue;  
+};  
+  
+class B:virtual public A  
+{  
+public:  
+    void bPrintf(){cout<<"This is class B"<<endl;};  
+};  
+  
+class C:virtual public A  
+{  
+public:  
+    void cPrintf(){cout<<"This is class C"<<endl;};  
+};  
+  
+class D:public B,public C  
+{  
+public:  
+    void dPrintf(){cout<<"This is class D"<<endl;};  
+};  
+  
+void main()  
+{  
+    D d;  
+    cout<<d.iValue<<endl; //正确  
+}  
+在继承的类的前面加上virtual关键字表示被继承的类是一个虚基类，它的被继承成员在派生类中只保留一个实例。例如iValue这个成员，从类 D这个角度上来
+看，它是从类B与类C继承过来的，而类B C又是从类A继承过来的，但它们只保留一个副本。因此在主函数中调用d.iValue时就不 会产生错误。 
+
+
+*** 纯虚函数和抽象类
+纯虚函数 
+    与其叫纯虚函数还不如叫抽象类,它只是声明一个函数但不实现它，让派生类去实现它,其实这也很好理解。 
+
+C++代码  
+class Vehicle  
+{  
+public:  
+    virtual void PrintTyre()=0; //纯虚函数是这样定义的  
+};  
+  
+class Camion:public Vehicle  
+{  
+public:  
+    virtual void PrintTyre(){cout<<"Camion tyre four"<<endl;};  
+};  
+  
+class Bike:public Vehicle  
+{  
+public:  
+    virtual void PrintTyre(){cout<<"Bike tyre two"<<endl;};  
+};  
+  
+void main()  
+{  
+    Camion c;  
+    Bike b;  
+    b.PrintTyre();  
+    c.PrintTyre();  
+}  
+如上代码，定义了一个交通工具类（Vehicle），类中有一函数可打印出交通工具的轮胎个数，但交通工具很多轮胎个数自然也就不确定，
+所以 就把它定义为纯虚函数,也就是光定义函数名不去实现它，类Camion继承了Vehicle并实现了里面的代码，打印出有4个轮胎。
+Bike类也是一样。有一点须要注意一下，纯虚函数不能实化化，但可以声明指针。 
+
+
+总结 
+
+    虚基类 
+    1, 一个类可以在一个类族中既被用作虚基类，也被用作非虚基类。 
+    2, 在派生类的对象中，同名的虚基类只产生一个虚基类子对象，而某个非虚基类产生各自的子对象。 
+    3, 虚基类子对象是由最派生类的构造函数通过调用虚基类的构造函数进行初始化的。 
+    4, 最派生类是指在继承结构中建立对象时所指定的类。 
+    5, 派生类的构造函数的成员初始化列表中必须列出对虚基类构造函数的调用；如果未列出，则表示使用该虚基类的缺省构造函数。 
+    6, 从虚基类直接或间接派生的派生类中的构造函数的成员初始化列表中都要列出对虚基类构造函数的调用。但只有用于建立对象的最派生 类的构造函数调用虚基类的构造函数，而该派生类的所有基类中列出的对虚基类的构造函数的调用在执行中被忽略，从而保证对虚基类子对象只初始化一次。 
+    7, 在一个成员初始化列表中同时出现对虚基类和非虚基类构造函数的调用时，虚基类的构造函数先于非虚基类的构造函数执行。 
+
+    虚函数 
+    1, 虚函数是非静态的、非内联的成员函数，而不能是友元函数，但虚函数可以在另一个类中被声明为友元函数。 
+    2, 虚函数声明只能出现在类定义的函数原型声明中，而不能在成员函数的函数体实现的时候声明。 
+    3, 一个虚函数无论被公有继承多少次，它仍然保持其虚函数的特性。 
+    4, 若类中一个成员函数被说明为虚函数，则该成员函数在派生类中可能有不同的实现。当使用该成员函数操作指针或引用所标识的对象时 ，对该成员函数调用
+可采用动态联编。 
+    5, 定义了虚函数后，程序中声明的指向基类的指针就可以指向其派生类。在执行过程中，该函数可以不断改变它所指向的对象，调用不同 版本的成员函数，而且这些动作都是在运行时动态实现的。虚函数充分体现了面向对象程序设计的动态多态性。纯虚函数 版本的成员函数，而且这些动作都是在运行时动态实现的。虚函数充分体现了面向对象程序设计的动态多态性。 
+
+    纯虚函数 
+    1, 当在基类中不能为虚函数给出一个有意义的实现时，可以将其声明为纯虚函数，其实现留待派生类完成。 
+    2, 纯虚函数的作用是为派生类提供一个一致的接口。 
+    3, 纯虚函数不能实化化，但可以声明指针。
+
+** Friend class/functions
+*** Friend nomral functions
+In principle, private and protected members of a class cannot be accessed from outside the same class in which they are declared. However, this rule does not apply to "friends".
+Friends are functions or classes declared with the friend keyword.
+A non-member function can access the private and protected members of a class if it is declared a friend of that class. That is done by including a declaration of this external function within the class, and preceding it with the keyword friend:
+========================================
+#include <iostream>
+using namespace std;
+
+class Rectangle {
+    int width, height;
+  public:
+    Rectangle() {}
+    Rectangle (int x, int y) : width(x), height(y) {}
+    int area() {return width * height;}
+    friend Rectangle duplicate (const Rectangle&); // a friend function declared within the class 
+};
+
+Rectangle duplicate (const Rectangle& param)
+{
+  Rectangle res;
+  res.width = param.width*2;
+  res.height = param.height*2;
+  return res;
+}
+
+int main () {
+  Rectangle foo;
+  Rectangle bar (2,3);
+  foo = duplicate (bar);
+  cout << foo.area() << '\n';
+  return 0;
+}
+
+########################
+
+
+*** Friend member function
+class Screen {
+  friend void Window_mgr::clear(ScreenIndex);
+}
+
+
+*** Friend class
+class Screen {
+      friend class Window_mgr;
+      ...}
+
+class Window_mgr{
+public ....
+}
+void Window_mgr:clear()
+{
+  Screen s;
+  s.contens= string(s.height*s.witdth, '');  // contens, height, width could be private member of Screen
+}
+
+
+** public inheritance VS. private inheritance
+public inheritance is a kind of is-a relationhsip.
+the derived class get all the interfaces of the base classes and its implementaion.
+But for private inheritance no such logical is-a relationship, just all the 
+bas class's implementation.
+
+
+** C++ unit test
+test main function:
+TEST(libcache_unit_test)
+ {
+     void * libcache;
+     int retval;
+     GET_COST_USEC(test_preperation_create_cache(&libcache, MAX_CACHE_ENTRY));
+     GET_COST_USEC(retval = libcache_test_basic(libcache, TEST_ROUND));
+     GET_COST_USEC(libcache_clean(libcache));
+     CHECK(retval == TEST_SUCCESS);
+     CHECK(libcache_get_entry_number(libcache) == 0);
+     libcache_test_destroy(libcache);
+  }
+
+ int main()
+ {
+     UnitTest::RunAllTests();
+     return 0;
+ }
+** four kinds of casting
+*** const_cast
+const_cast could cast away a variable's const attribute;
+
+*** reinterpret_cast
+reinterpret_cast could convert any kind of type to another type, this is scarcely using.
+
+*** static_cast
+generally speaking, static_cast could be used as the c language's () 
+**** different built-in type convertion
+float floatValue = 21.7;
+int intValue = 7;
+cout << floatValue / 7 << "\t\t" << static_cast<int> (floatValue)/7 <<endl;
+cout << intValue/3 << "\t\t" << static_cast<double> (intValue)/3 << endl;
+
+
+**** casting derived class to base class or vice versa
+class Parents
+{ public: virtual ~Parents(){} /*codes here*/ };
+
+class Children : public Parents
+{ /*codes here*/ }; 
+int main() 
+{   
+    Children * daughter = new Children();
+    Parents * mother = static_cast<Parents*> (daughter); //right, cast with polymorphism
+    
+    Parents * father = new Parents();
+    Children * son = static_cast<Children*> (father); //no error, but not safe, dynamic casting could avoid such problem.
+}
+
+*** dynamic_cast
+
+** RTTI
+RTTI(Runtime type idenification), in C++, a base pointer can operate on the subclass, but if you want to know the exact type of the pointer 
+content, there's two methods:
+*** dynamic_cast 
+it will cast the base class pointer to subclass pointer.
+class employee {
+public:
+virtual int salary();
+};
+class manager : public employee {
+public:
+int salary();
+};
+class programmer : public employee {
+public:
+int salary();
+int bonus();
+};
+
+**** cast the pointer
+if dynamic_cast pointer successful, the pointer won't be null
+
+void company::payroll( employee *pe )
+{
+programmer *pm = dynamic_cast< programmer* >( pe );
+// 如果 pe 指向 programmer 类型的一个对象 // 则 dynamic_cast 成功 // 并且 pm 指向 programmer 对象的开始
+if ( pm ) {
+// 用 pm 调用 programmer::bonus() }
+// 如果 pe 不是指向 programmmer 类型的一个对象 // 则 dynamic_cast 失败 // 并且 pm 的值为 0
+else {
+// 使用 employee 的成员函数 }
+}
+
+**** cast the reference
+if dynamic_caset reference  fail, catch the excepton.
+
+void company::payroll( employee &re )
+{
+try {
+programmer &rm = dynamic_cast< programmer & >( re );
+// 用 rm 调用 programmer::bonus()
+}
+catch ( std::bad_cast ) {
+// 使用 employee 的成员函数
+
+
+*** typeid
+#include <type_info>
+programmer pobj;
+employee &re = pobj;
+// name() 返回 C 风格字符串: "programmer"
+cout << typeid( re ).name() << endl;
+
+
+ 
+** C++ exception
+*** normal usage
+int main () {
+  try
+  {
+    throw "cstr";
+  }
+  catch (char e)
+  {
+    cout << "An exception occurred. Exception char Nr. " << e << '\n';
+  }
+
+
+  catch (int e)
+  {
+    cout << "An exception occurred. Exception int Nr. " << e << '\n';
+  }
+
+  catch(...)
+  {
+    cout << "default exception";
+ }
+  return 0;
+}
+
+*** another usage
+ try
+  {
+    int* myarray= new int[1000];
+  }
+  catch (exception& e)
+  {
+    cout << "Standard exception: " << e.what() << endl;
+  }
+
+
+* C++ STL library
+** container
+*** sequence container
+**** vector 
+dynamic congiguous array
+vector is a consecutive memory region, the access effeciency is good, but if you want to insert element in the middile, it's slow since
+all the afterwords elements will be moved. 
+
+**** deque(pron:[deck])
+double-ended queue is an indexed sequence container that allows fast inser/dele at both its begin and end.
+insert/dele at either end of a deque never invalidates pointers or ref to the rest of the elements.
+the elements of a deque are not stored contiguously.
+
+**** list
+doubly-linked list
+list is non consecutive memory, and it's a bidireciton list.
+-------------------------------
+#include <algorithm>
+#include <iostream>
+#include <list>
+int main()
+{
+    std::list<int> l = { 7, 5, 16, 8 };
+    l.push_front(25);
+    l.push_back(13);
+ 
+    auto it = std::find(l.begin(), l.end(), 16);
+    if (it != l.end()) { l.insert(it, 42); }
+ 
+    for (int n : l) { std::cout << n << '\n'; }
+}
+
+**** foward_list (c++11)
+singly-linked list
+
+**** array  (c++11)
+array is similar to a c array, but it support container operation
+
+                                       vector         deque       list
+Random access                          O(1)           O(1)        O(n)                  
+Ins/Rem of elements a the end/beg                     O(1)
+Ins/Rem of elements                    O(n)           O(n)        
+
+*** function for the vector
+**** copy a set into a vector
+The behavior of this function template is equivalent to:
+
+template<class InputIterator, class OutputIterator>
+  OutputIterator copy (InputIterator first, InputIterator last, OutputIterator result)
+{
+  while (first!=last) {
+    *result = *first;
+    ++result; ++first;
+  }
+  return result;
+}
+
+------------------------------------------
+  int myints[]={10,20,30,40,50,60,70};
+  std::vector<int> myvector (7);
+
+  std::copy ( myints, myints+7, myvector.begin() );
+
+**** back_insert_iterator
+iterator adaptor for insertion at the end of a container 
+(class template)
+
+**** front_inserter
+creates a std::front_insert_iterator of type inferred from the argument 
+(function template)
+inserter
+
+**** unique (together with sort and erase)
+Discard all but the first element from every consecutive group of equivalent elements from the range 
+this means it will only eliminate the consecutive elements which are the same
+for example : 01123211    ----> 012321 
+if you want : 01123211    ----> 0123  you must sort the set firstly
+unique operation will return the first iterator of elemts which should be discarded,
+
+sort( texts.begin(), texts.end() );
+vector<string>::iterator it;
+it = unique( texts.begin(), texts.end() ); // unique operation won't really remove all the repetetive elements, just reorder them to a subvect 
+texts.erase( it, texts.end() );           // this will really remove all the repetitive elements start from unique return value first element
+
+**** sort and stable_sort 
+if two elements are the same, their order won't be changed in stable_sort operation
+but sort won't guaranteen it.
+
+**** remove
+1) Removes all elements that are equal to value.
+3) Removes all elements for which predicate p returns true.
+Removing is done by shifting (by means of move assignment) the elements in the range in such a way that the elements that are not to be removed appear in the beginning of the range
+return value is the iterator of the shifted element
+so remove is not really erase the elements in the vector:
+texts.erase( remove(texts.begin(),texts.end(), vaule), texts.end());
+
+**** count_if
+template<class InputIt, class UnaryPredicate>
+typename iterator_traits<InputIt>::difference_type
+    count_if(InputIt first, InputIt last, UnaryPredicate p)
+{
+    typename iterator_traits<InputIt>::difference_type ret = 0;
+    for (; first != last; ++first) {
+        if (p(*first)) {   // here p could be a function pointer of a function or the operation of a class
+            ret++;
+        }
+    }
+    return ret;
+}
+
+**** a real example of the vector operation
+class GreaterThan6 {
+public:
+GreaterThan( int sz = 6 ) : _size( sz ){}
+int size() { return _size; }
+bool operator()( const string & s1 )
+{ return s1.size() > _size; }
+private:
+int _size;
+};
+
+
+void process_vocab( vector<textwords, allocator>*pvec )
+{
+if ( ! pvec ) { return; }
+vector< string, allocator > texts;
+vector<textwords, allocator>::iterator iter;
+for ( iter = pvec->begin(); iter != pvec->end(); ++iter )
+copy( (*iter).begin(), (*iter).end(), back_inserter( texts ));
+
+sort( texts.begin(), texts.end() );
+for_each( texts.begin(), texts.end(), PrintElem() );
+vector<string, allocator>::iterator it;
+it = unique( texts.begin(), texts.end() );
+texts.erase( it, texts.end() );
+for_each( texts.begin(), texts.end(), PrintElem() );
+// stable_sort() 保留相等元素的相对顺序
+stable_sort( texts.begin(), texts.end(), LessThan() );
+for_each( texts.begin(), texts.end(), PrintElem() );
+cout << "\n\n";
+// 计数长度大于6 的字符串的个数
+int cnt = 0;
+count_if( texts.begin(), texts.end(), GreaterThan6(), cnt ); // GreaterThan is 
+cout << "Number of words greater than length six are "
+<< cnt << endl;
+static string rw[] = { "and", "if", "or", "but", "the" };
+vector<string,allocator> remove_words( rw, rw+5 );
+vector<string, allocator>::iterator it2 = remove_wo rds.begin();
+for ( ; it2 != remove_words.end(); ++it2 )  // erase every words in the remove_words vector
+{
+int cnt = 0;
+count( texts.begin(), texts.end(), *it2, cnt );
+texts.erase( remove(texts.begin(),texts.end(),*it2), texts.end());
+}
+cout << "\n\n";
+for_each( texts.begin(), texts.end(), PrintElem() );
+}
+
+
+****  函数对象类的简单形式
+class less_equal_ten {
+public: bool operator() ( int val ) { return val <= 10; } };
+
+count_if( vec.begin(), vec.end(), less_equal_ten() );  // count if <=10
+count_if( vec.begin(), vec.end(), not1(less_equal_ten()) ); //count if >10 
+
+引入一个数据成员来存储被比较的值以及一个构造函数把这个成员初始化为用户指定的值
+class less_equal_value {
+public:
+less_equal_value( int val ) : _val( val ) {}
+bool operator() ( int val ) { return val <= _val; }
+private:
+int _val;
+};
+count_if( vec.begin(), vec.end(), less_equal_value( 25 ));
+
+another way of doing this:
+template < int _val > bool operator() ( int val ) { return val <= _val; } };
+count_if( vec.begin(), vec.end(), less_equal_value<25>() );
+
+
+*** iterator usage tricks
+**** const_iterator  for const vetor
+const vector< type > vec;
+vector< type >::iterator iter = vec.begin();        // there'll be compilation error
+vector< type >::const_iterator iter = vec.begin();  // this could pass compilation
+
+vector< int > vec0;
+const vector< int > vec1;
+在vec0 上的begin()和end()调用返回一个非const 的iterator 而vec1 上的调用返同一个
+const 的iterator 例如
+vector< int >::iterator iter0 = vec0.begin();
+vector< int >::const_iterator iter1 = vec1.begin();
+
+// ok: 把一个非 const iterator 初始化为一个 const
+vector< int >::const_iterator iter2 = vec0.begin();
+
+**** vector's size
+int ia[] = { 0, 1, 1, 2, 3, 5, 5, 8 };
+vector< int > ivec( ia, ia+8 ), vres;
+unique_copy( ivec.begin(), ivec.end(), vres.begin() );
+这里的问题是vres 中没有已被分配的空间来保存从ivec 向其拷贝的8 个整型值 unique_copy()算法用赋位操作拷贝每个元素值但是赋值会失败因为在vres 中没有可用空 间
+***** back insert
+back_inserter() 它使用容器的push_back()插入操作代替赋值操作符back_inserter()
+的实参是容器自己例如我们可以这样修正unique_copy()调用
+// ok: unique_copy() 现在用 vres.push_back() 插入
+unique_copy( ivec.begin(), ivec.end(), back_inserter( vres );
+
+***** front insert
+front_inserter() 它使用容器的push_front()插入操作代替赋值操作符front_inserter()
+的实参也是容器自己但是注意vector 类不支持push_front()操作所以试图在 vector 上使用它是错误的 // 喔! 错误
+// vector 不支持 push_front() 操作 // 使用 deque 或 list
+unique_copy( ivec.begin(), ivec.end(), front_inserter( vres );
+
+***** insert
+ inserter() 它调用容器的insert()插入操作代替赋值操作符inserter()要求两个实参
+容器本身以及它的一个iterator 指示起始插入的位置例如
+unique_copy( ivec.begin(), ivec.end(), inserter( vres, vres.begin() );
+标记起始插入位置的iterator 并不保持不变而是随着每个被插入的元素而递增这样每 个元素就能顺序被插入就好像我们已经写
+vector< int >::iterator iter = vres.begin(),
+iter2 = ivec.begin();
+for ( ; iter2 != ivec.end(); ++iter, ++iter2 )
+vres.insert( iter, *iter2 );
+
+*** five iterator
+为支持泛型算法全集根据它们提供的操作集标准库定义了五种iterator InputIterator
+OutputIterator ForwardIterator BldirectionalIterator 和RandomAccessIterator 下面是对它们
+各自特性的简要讨论
+1 InputIterator 可以被用来读取容器中的元素但是不保证支持向容器的写入操作
+InputIterator 必须提供下列最小支持提供其他支持的iterator 也可被用作InputIterator 只要
+它们满足这个最小要求集两个iterator 的相等和不相等测试通过operator ++ 的前置和
+求在这个层次上提供支持的泛型算法包括find() accumulate()和equal() 任何一个算法如果
+要求InputIterator 那么我们也可以向其传递第3 4 5 项列出的iterator 类别中的任一个
+2 OutputIterator 可以被认为是与InputIterator 功能相反的iterator 即它可以被用来向容
+器写入元素但是不保证支持读取容器的内容OutputIterator 一般被用作算法的第三个实参
+标记出起始写入的位置例如copy()取OutputIterator 作为第三个实参任何一个算法如果
+要求OutputIterator 那么我们也可以向其传递第3 4 5 项列出的iterator 类别中的任一个
+3 ForwardIterator 可以被用来以某一个遍历方向是的下一个类别支持双向遍历向
+容器读或写有些泛型算法至少要求ForwardIterator 包括adjacent_find() swap_range()和
+replace() 当然任何要求ForwardIterator 支持的算法都可以向其传递第4 和5 项定义的iterator
+类别
+4 BidirectionalIterator 从两个方向读或写一个容器有些泛型算法至少要求
+BidirectionalIterator 包括inplace_merge() next_permutation()和reverse()
+5 RandomAccessIterator 除了支持BidirectionalIterator 所有的功能之外还提供了在
+常数时间内访问容器的任意位置的支持要求RandomAccessIterator 支持的泛型算法包括
+binary_search() sort_heap()和nth_element()
+map set 和list 维护了双向iterator 实际上这意味着它们不能被用在要求 RandomAccessIterator 的泛型算法中如sort_heap()和nth_element() 我们将在12.6 节看到一
+个可用于list 容器的替代操作vector 和deque 维护了随机访问的iterator 因此可以被用 于所有的泛型算法
+
+
+** container adaptors
+stack           adapts a container to provide stack(LIFO data structure)
+queue           adpats a container to provide queue(FIFO data structure)
+priority_queue  adpats a cintainer to provide priority queue
+
+** Associative containers
+Associative containers implement sroted data structure that can be searched quicly (O(log2n) complexity).
+*** set    
+collection of unique keys, sotred by keys
+std:: set is an associative container that contains a sorted set of unique objects of type Key. sortng is done using the key comparison
+function Compare. Serach, removal, and insertion operations have O(log2n) complexity. Sets are usually implemented as red-black trees.
+
+*** map    collection of key-value pairs, sorted by keys(unique)
+*** multiset  collection of keys, sorted by keys
+*** multimap  collection of key-value pairs, sorted by keys
+
+
+** rt pointer
+when a object getout of the scope, like in stack, local object variable of a function, the destructor function will be automatcially
+called when this object get out of the scope.
+so smart pointer is based on this idea. smart pointer's destructor function will invoke the real object's destructor.
+***  smart pointer usage scenario
+void remodel(std::string & str)
+{
+    std::string * ps = new std::string(str);
+    ...
+    if (weird_thing())
+        throw exception();
+    str = *ps; 
+   delete ps;  // if ps could be deleted automatically when ps step out of the redmodel function scope, then you don't need to invoke this explicitly
+    return;
+}
+
+*** types of smart pointers auto_ptr VS. shared_ptr
+**** auto_ptr
+auto_ptr will automatically deletes what it points to when the it is destroyed(out of scope).
+it's important that there never be more than one auto_ptr pointing to an object. if
+there were, the object would be deleted more than once.
+To prevent such problem, auto_ptr has a characteristic that copying them(via copy constructor
+or assingment operator) sets them to null, and the copying pointer assumes sole ownership of the
+resource.
+         std::auto_ptr<Investment> pInv1(createInvestment());
+std::auto_ptr<Investment> pInv2(pInv1); //pINv2 now points to the object, pInv1 is null
+ pInv1 = pInv2; //pINv2 now points to the object, pInv1 is null
+
+**** shared_ptr
+shared_ptr is an enhancement of the auto_ptr.
+it will count the reference of the objects. so no copy constructor behavior to set null
+like auto_ptr.
+Both auto_ptr and tr1::shared_ptr use delete in their destructors, not
+delete []. (Item 16 describes the difference.) That means that using
+auto_ptr or tr1::shared_ptr with dynamically allocated arrays is a bad
+idea
+
+
+
+*** how to implement the shared smart pointer
+shared ptr could be serveral shared_ptr objects share the same ip addr. only last share_ptr desctruced, the ip could be released
+========================================
+#include <cstddef>
+#include <iostream>
+using namespace std;
+template <typename T>
+ class U_Ptr
+ {
+     T *ip;
+     size_t use;
+public:
+     U_Ptr( const U_Ptr& tp) : ip(tp.ip) , use(tp.use+1) { cout << "U_ptr copy constructor called !" << endl; }
+     U_Ptr(T *p) : ip(p) , use(1) { cout << "U_ptr constructor called !" << endl; }
+     ~U_Ptr() {
+      if(use == 1) {delete ip; cout << "U_ptr distructor called !" << endl;}
+      else cout << "just destruv" << endl;
+  }
+    int use_count() { return  use;}
+    T* get(){ return ip;}
+    T& operator=(const U_Ptr& tp) const{
+      ip = tp.ip;
+      use = tp.use + 1;
+     }
+    T& operator*() const{
+        if(ip) return *ip;
+         else return NULL; }
+//    T& operater->(){if(p) return *ip; else return NULL; }
+ };
+int main()
+{
+   U_Ptr<int> pp(new int(5));
+   {
+  //   U_Ptr<int> pp1( pp );
+     U_Ptr<int> pp1= pp ;
+     cout << "the addr is " << pp1.use_count();
+     cout << "pp is "  << *(pp1.get());
+   }
+     cout << "the addr is " << pp.use_count();
+}
+=======================================
+
+*** auto_ptr, shared_ptr and the unique_ptr
+**** usage tips
+***** smart pointer type must be explicit conversion 
+所有的智能指针类都有一个explicit构造函数，以指针作为参数。比如auto_ptr的类模板原型为：
+templet<class T>
+class auto_ptr {
+  explicit auto_ptr(X* p = 0) ; 
+  ...
+};
+因此不能自动将指针转换为智能指针对象，必须显式调用：
+shared_ptr<double> pd; 
+double *p_reg = new double;
+pd = p_reg;                               // not allowed (implicit conversion)
+pd = shared_ptr<double>(p_reg);           // allowed (explicit conversion)
+shared_ptr<double> pshared = p_reg;       // not allowed (implicit conversion)
+shared_ptr<double> pshared(p_reg);        // allowed (explicit conversion)
+
+***** smart pointer couldn't use a non heap address
+•对全部三种智能指针都应避免的一点：
+string vacation("I wandered lonely as a cloud.");
+shared_ptr<string> pvac(&vacation);   // No
+
+pvac过期时，程序将把delete运算符用于非堆内存，这是错误的。
+
+**** unique_ptr VS. auto_ptr
+***** assignment/copy construction of unique/auto_ptr
+unique_ptr will only let one unique_ptr object has the ip adress 
+====================
+auto_ptr<string> p1(new string ("auto") ； //#1  p1 hold string "auto" adress
+auto_ptr<string> p2;                       //#2
+p2 = p1;                                   //#3 here string "auto" adress only hold by p2 now. and p1 not hold this string anymore
+========================================================
+unique_ptr<string> p3 (new string ("auto");   //#4
+unique_ptr<string> p4；                       //#5
+p4 = p3;                                      //#6  this is illeagal for unique_ptr's purpose
+===========================
+
+***** temporary object could be used in unique_ptr
+unique_ptr<string> demo(const char * s)
+{
+    unique_ptr<string> temp (new string (s))； 
+    return temp；
+}
+unique_ptr<string> ps;
+ps = demo('Uniquely special")；
+
+***** how to assign a unique_ptr
+unique_ptr<string> ps1, ps2;
+ps1 = demo("hello");
+ps2 = move(ps1);
+ps1 = demo("alexia");
+cout << *ps2 << *ps1 << endl;
+
+**** shared_ptr usage
+***** constructor
+template<class Y> explicit shared_ptr(Y *ptr);
+template<class Y, class Deleter> explicit shared_ptr(Y *ptr, Deleter d);
+
+eg. void end_connection(connection *p)  { disconnect(*p); }
+    void f()
+{   connection c = connet(&d);
+    shared_ptr<connection> p (&c, end_connection);}
+//when p was destroyed, it won't delete c, instead, it will invoke end_connection. so when some exception occured, c will be end_connection properly.
+
+}
+
+ eg. void end_connection(connection *p)  { disconnect(*p); }
+     void f()
+ {   connection c = connet(&d);
+     shared_ptr<connection> p (&c, end_connection);}
+ //when p was destroyed, it won't delete c, instead, it will invoke end_connection. so when some exception occured, c will be end_connection properly.
+
+***** reset
+ template< class Y> void reset(Y* ptr);
+ Replace the managed object with an objet pointed to by ptr.
+
+**** weak_ptr
+ weak_ptr managed a pointer which also managed by a shared_ptr also. when weak_ptr is bind to a shared_ptr, the use_count won't be effected.
+ when the last shared_ptr was destroyed, the object being managed will be release, even if wea_ptr will point the object.
+ weak_ptr.expired()  //if  use_count is 0, return true, else return false
+ weak_ptr.lock       //if expired is true, will return a null else return the share_ptr
+ example:
+ ================================
+ auto p = make_shared<int>(42);
+ weak_ptr<int> wp(p);    // wp weakly shared p. wp and p point to the same object
+ if(shared_ptr<int> np = wp.lock())   {  wp can't operate on the object, np should be returned  }
+
+** 
+** allocator class
+in default, new will allocate the memory and initialzie it, if you don't 
+want to initialzie it yet ,then use allocator
+eg. string * csont p = new string[n];  // construct n empty string
+------------------------------------------------------------------
+    allocator <string> alloc;
+    auto const p = alloc.allocate(n);   // allocate the memory not initialize it
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    auto q = p;            
+    alloc.construct(q++);   //q's constructor function to initialize it
+    alloc.destroy(q);       //q's destructor function to destroy it
+    alloc.deallocate(p,n);  // return the allocated memeory
+
+* Effective C++
+** make sure that objects are initialized before they are used
+*** the initialization VS. assignment
+**** Assignment
+ABEntry::ABEntry(const std::string& name, const std::string& address,
+const std::list<PhoneNumber>& phones)
+{
+theName = name; // these are all assignments,
+theAddress = address; // not initializations
+thePhones = phones;
+numTimesConsulted = 0;
+}
+
+
+**** Initialization
+ABEntry::ABEntry(const std::string& name, const std::string& address,
+const std::list<PhoneNumber>& phones)
+: theName(name),
+theAddress(address), // these are now all initializations
+thePhones(phones),
+numTimesConsulted(0)
+{} // the ctor body is now empty
+
+the initialization will take place right before entry the true function body.
+that means all member has been intialized by a default constructor function then when enter the function body, the object has been operated with copy assignment
+constructora. for built-in type, no such things, but still a reference and a const built-in type member still need to be "initialized" instead of assignment,
+since these member shouldn't be oprated by "assingment" in C++ concept.
+So all the members built-in or object should be initialized in the member initialization list;
+
+*** the order member initialization list
+members of class will be inistailized by the order they are declared in the class instead of the order listed in the member initialization list.
+
+*** Avoid initialization order problems across translation units by replacing non-local static objects with local static objects.
+this is a very classsic design pattern of singleton: return the reference of local static objects via a member function interface
+if using the outher translation unit's static object, there will be initialization problem.
+
+class FileSystem { ... }; // as before
+FileSystem& tfs() // this replaces the tfs object; it could be
+{ // static in the FileSystem class
+static FileSystem fs; // define and initialize a local static object
+return fs; // return a reference to it
+}
+class Directory { ... }; // as before
+Directory::Directory( params ) // as before, except references to tfs are
+{ // now to tfs()
+...
+std::size_t disks = tfs().numDisks();
+...
+}
+Directory& tempDir() // this replaces the tempDir object; it
+{ // could be static in the Directory class
+static Directory td( params ); // define/initialize local static object
+return td; // return reference to it
+}
+
+** Know what functions C++ silently write and calls
+*** fucntions which compiler will silently generate
+if you declare no constructors at all, compilers will also declare a default constructor for you. All these functions
+will be both public and inline (see Item 30).
+As a result, if you write
+class Empty{};
+it’s essentially the same as if you’d written this:
+class Empty {
+public:
+Empty() { ... } // default constructor
+Empty(const Empty& rhs) { ... } // copy constructor
+~Empty() { ... } // destructor — see below
+// for whether it’s virtual
+Empty& operator=(const Empty& rhs) { ... } // copy assignment operator
+};
+and compiler will only genrate these function when they are needed.
+For example, if your code doesnot invoke copy constructor, then it won't
+be generated either.
+
+*** cases these function will be really generated
+the case which will invoke these kinds of function
+Empty e1; // default constructor;
+// destructor
+Empty e2(e1); // copy constructor
+e2 = e1; // copy assignment operator
+
+
+*** default constructor function
+it will initialize all the buit-in data to 0 and it will invoke member object's constructor.
+But when the type is reference, the initialization will fail, but for pointers it's OK.
+
+** using const objects or enum instead of #define and use inline function for #define function macro
+
+** Avoid hiding inherited names
+C++'s name-hiding rules to do is : hide names from upper scope if there's a local name the same as the upper scope.
+Here, name is just name including the overloading function.
+for example: if there's a local x of tyep double, but there's a global x of type int, x in the local scope always mean the double type defined in local scope.
+or if there's a function void f() in glocal scope, the void f(int a) defined in local scope, wo the f always mean void f(int a), not void f();
+
+class Base {
+private:
+int x;
+public:
+virtual void mf1() = 0;
+virtual void mf2();
+void mf3();
+...
+};
+class Derived: public Base {
+public:
+virtual void mf1();
+void mf4();
+...
+};
+
+
+mf1 (1 function)
+x (data member)
+class Base {
+private:
+int x;
+public:
+virtual void mf1() = 0;
+virtual void mf1(int);
+virtual void mf2();
+void mf3();
+void mf3(double);
+};
+class Derived: public Base {
+public:
+virtual void mf1();
+void mf3();
+void mf4();
+};
+
+base's scope:
+mf1 (2 functions)
+mf2 (1 function)
+mf3 (2 functions)
+                       Derived's scope
+                       mf1 (1 function)
+                       mf3 (1 function)
+                       mf4 (1 function
+
+Derived d;
+int x;
+...
+d.mf1(); // fine, calls Derived::mf1
+d.mf1(x); // error! Derived::mf1 hides Base::mf1
+d.mf2(); // fine, calls Base::mf2
+d.mf3(); // fine, calls Derived::mf3
+d.mf3(x); // error! Derived::mf3 hides Base::mf3
+
+
+class Derived: public Base {
+public:
+using Base::mf1; // make all things in Base named mf1 and mf3
+using Base::mf3; // visible (and public) in Derived’s scope
+virtual void mf1();
+void mf3();
+void mf4();
+};
+
+Things to Remember
+✦ Names in derived classes hide names in base classes. Under public inheritance, this is never desirable.
+✦ To make hidden names visible again, employ using declarations or forwarding functions.
+
+
+** virtual destructor
+*** why virtual functions needed.
+virtual destructor could make sure a base class's pointer whic actually point to the derived one will invoke the derived class's own virtual function.
+So virtual destructor means everything will be destructed.
+in fact derived desturctor will invoke the base class's destructor, this is added implictly by the complier as long as you have a destructor function body.
+just the same as the constructor function will automatically call the base class's constructor function.
+So constructor function won't be virtual.
+
+*** virtual function scenario
+**** a class used as base class need to have vritual destructor function.
+but as a class have a virtual destructor function, there's one more vtble pointer in the size of the object, it won't compatible with c language.
+
+**** a class which doesn't have any virutal function don't declare a virtual destructor function.
+all the stl vector, class don't have any virtual function, so try not to inherit these kinds of classes. 
+
+
+** Prevent exceptions from leaving desturctors
+*** Destructors should never emit exceptions
+if some function called in a destructor may throw, the destructor should catch any exceptions.
+then swallow them or terminate the program
+
+*** leave the throw part to the client 
+if class clients neeed to be able to react to exceptions thrown during an operation the class should
+provide a regular function( instead of a destructor function) that performs the operation.
+
+** Never call virtal functions during construction or destruction
+Don't call virtual functions during construction or destruction.
+Since such calls will never go to a more derived class than that of the currently executing constructor 
+or destructor.
+
+in a derived class constructor, base class's constructor will be called firstly,if at the base class's constructor call
+a virtual function, it just base class's not derived class's since derived class's vtable hasn't been
+intialized yet, so virutal function pointer is not available.
+the same in the destructor function, the derived class's data will be destructed firstly, so when 
+base class's destructor called virtual function, it not exists any more.
+
+
+** Have assignment operators return a reference to *this
+
+** Handle assignment to self in operator =
+the assignment to it self will result in some memory leak problem ,if the operatand of right is 
+itself. if(this == &rhs) is a judgement.
+
+** copy all parts of an object
+if you implement copy constructor fucntion yourself, don't forget 
+to call the base class's copy constructor or assignment operator.
+
+
+** store newed objects in smart pointer in standalone statements
+int priority();
+void processWidget(std::tr1::shared_ptr<Widget> pw, int priority);
+
+processWidget(std::tr1::shared_ptr<Widget>(new Widget), priority());
+
+the order to call new Widget shard_ptr(), priority() is not defined.
+if 
+1. Execute “new Widget”.
+2. Call priority.
+3. Call the tr1::shared_ptr constructor.
+then priority throw exception, then new Widget will be leaked, since step3 was aborted by step2.
+
+std::tr1::shared_ptr<Widget> pw(new Widget); // store newed object
+// in a smart pointer in a
+// standalone statement
+processWidget(pw, priority()); // this call won’t leak
+
+** muliple thread mutex lock/unlock automatically 
+class Lock {
+public:
+explicit Lock(Muex *pm) : mutexPtr(pm)
+{ lock(mutexPtr); } // acquire resource
+~Lock() { unlock(mutexPtr); } // release resource
+private:
+Mutex *mutexPtr;
+};
+----------------Usage of the Lock class.------------
+Mutex m; // define the mutex you need to use
+...
+{ // create block to define critical section
+Lock ml(&m); // lock the mutex
+... // perform critical section operations
+} // automatically unlock mutex at end  of block
+
+if you want to implement the seamphore function, not just unclock it, for example, add reference of it.
+
+class Lock {
+public:
+explicit Lock(Mutex *pm) // init shared_ptr with the Mutex
+: mutexPtr(pm, unlock) // to point to and the unlock func as shared_ptr's deleter
+{ 
+lock(mutexPtr.get()); // see Item15 for info on “get”
+}
+//no destructor,use default destructor generated by compiler. it means when ml destrctor is invoked, mutexPtr wil be deleted,
+// then mutexPtr's own destructor function will be called, thus, mutex's unlock will be called since unlock as a shared_ptr's deleter.
+private:
+std::tr1::shared_ptr<Mutex> mutexPtr; // use shared_ptr
+}; // instead of raw pointer
+----------------Usage of the Lock class.------------
+Mutex m; // define the mutex you need to use
+...
+{ // create block to define critical section
+Lock ml(&m); // lock the mutex
+... // perform critical section operations
+} // automatically unlock mutex at end  of block if the reference of m is 0; 
+
+
+** prefer pass-by-reference const than pass-by-value
+c++'s function parameter passing is by nature a value pass. But if you pass the parameter as the object.
+the constructor and destructor expense is high.
+So you'd better pass-by-reference const of a object as the function parameter.
+but there's exception. Built-in type STL iterator and function object types should passed by value.
+
+
+** don't try to return a reference when you must return a object
+c++'s return value is by nature a pass-by value return.
+So a object's return will have constructor/destructor expense.
+But not all scenarios you need to return a pass-by-reference.
+Never return a pointer/reference to a lcoal stack object/ a heap-allocated object,
+or a local static object, if there is a chance that more than one such object will
+be needed.
+
+if you return a heap object's pointer to many invokers, then it maybe deleted by otheres.
+
+** Declare data members private
+It gives tclients syntactically uniform access to data, affords find-grained access
+contrul, allows invariaats to be enforced, and offers class authors implemetation flexibility.
+protected is no more encapsulated than pbulic.
+
+** Prefer non-member non-friend functions to mmember functions.
+
+** Postphone variable definitions as long as possible.
+Since if you define a object, then constructor and destructor is the expense.
+before you have to use the variable, you should also try to postpone the definition until you have initialization arguments for it. By doing
+so, you avoid constructing and destructing unneeded objects, and you avoid unnecessary default constructions. 
+
+string encrypted; // default-construct encrypted
+encrypted = password; // assign to encrypted
+VS.
+string encrypted(password); // define and initialize 
+
+in loop
+Widget w;
+for (int i = 0; i < n; ++i) { for (int i = 0; i < n; ++i) {
+w = some value dependent on i; Widget w(some value dependent on i);
+... ...
+(n copy constructor and 1 constructor, 1 destructor) 
+or define the Widget inside the loop
+(n constructor, n destructor)
+
+** Minimize casting
+dynamic_cast: dynamic_cast could fail if the parameter is not the type it was requested to cast to.
+and the casting result will be 0, means it fail.
+And dynamic_cast is very low efficiency since strcmp will be invoked.
+
+class Window { ... };
+... // derived classes are defined here
+typedef std::vector<std::tr1::shared_ptr<Window> > VPW;
+VPW winPtrs;
+...
+for (VPW::iterator iter = winPtrs.begin(); iter != winPtrs.end(); ++iter)
+{
+if (SpecialWindow1 *psw1 =
+dynamic_cast<SpecialWindow1*>(iter->get())) { ... }
+else if (SpecialWindow2 *psw2 =
+dynamic_cast<SpecialWindow2*>(iter->get())) { ... }
+else if (SpecialWindow3 *psw3 =
+dynamic_cast<SpecialWindow3*>(iter->get())) { ... }
+...
+}
+
+try to avoid the dynamic_cast by virtual function.
+you just call the same virtual function, the real pointer will get to the correct one.
+
+if you wan to invoke a base class's function, just using  BaseClass::functionname to call it.
+don't use cast operator at all.
+
+class SpecialWindow: public Window { // derived class
+public:
+virtual void onResize() { // derived onResize impl;
+static_cast<Window>(*this).onResize(); // cast *this to Window
+//this call will invoke the copy of *this to invoke onResize, so if there's any modification in onResize function to the data members, there will no
+effect, since the casting one is the copy one...
+
+
+** strive for exception safe function
+*** Exception-safe functions leak no resources and allow no data structure to become corrupted, even when exceptions are thrown. 
+struct PMImpl { // PMImpl = “PrettyMenu
+std::tr1::shared_ptr<Image> bgImage; // Impl.”; see below for
+int imageChanges; // why it’s a struct
+};
+class PrettyMenu {
+...
+private:
+Mutex mutex;
+std::tr1::shared_ptr<PMImpl> pImpl;
+};
+void PrettyMenu::changeBackground(std::istream& imgSrc)
+{
+using std::swap; // see Item25
+Lock ml(&mutex); // acquire the mutex and it will be release automatically when some exception occured later.
+std::tr1::shared_ptr<PMImpl> pNew(new PMImpl(*pImpl)); // copy obj. data
+pNew->bgImage.reset(new Image(imgSrc)); // modify the copy
+++pNew->imageChanges;
+swap(pImpl, pNew); // swap the new  data into place when the modification is successful.
+} // release the mutex
+
+*** The strong guarnatee can often be implemented via copy-and-swap.
+
+*** a function can usuallyoffer a guarantee no strnger than the weakest guarantee of the fucntions it calls.
+
+
+** make sure public inheritance model "is-a"
+Everything that applies to base classes must also apply to derived classes, because every derived
+class object is a base class object.
+
+** differentiate between inheritance of interface and inheritance of implementation
+*** Inheritance of interface is different from inheritance of implementation
+***  pure virutal functions specify inheritance of interface only
+*** Simple(impure) virtual functions specify inheritance of interface plus inheritance of a default implementation
+*** Non-virtual functions sepcify inheritance of interface plus inheritance of a mandatory implementation
+
+** Consider alternativaes to virtual functions
+*** The Template Method Pattern via the Non-virtual Interface Idiom
+class GameCharacter{
+public:
+  int healthvalue() const{  //derived class could never redefine this
+  ...                       // do before the stuff
+    int retval = doHealthValue(); //invoke the virtual function
+ ...                        // do after the stuff
+ }...
+ private:
+   virtual int doHealthValue() const //derived class could redfine this
+   {
+
+   }
+};
+
+*** strategy Pattern via Function pointers
+class GameCharacter; // forward declaration
+// function for the default health calculation algorithm
+int defaultHealthCalc(const GameCharacter& gc);
+class GameCharacter {
+public:
+typedef int (*HealthCalcFunc)(const GameCharacter&);
+explicit GameCharacter(HealthCalcFunc hcf = defaultHealthCalc)
+: healthFunc(hcf )
+{}
+int healthValue() const
+{ return healthFunc(*this); }
+...
+private:
+HealthCalcFunc healthFunc;
+};
+This approach is a simple application
+
+** never redefine the default parameter value in  a virtual function  
+Never redefine an inherited default parameter value, because default parameter values are statically bound, while virtual functions — the
+only functions you should be redefining — are dynamically bound.
+Use alternative way to define a non-virtual function with a defaualt prarmeter value, then inside the function body, invoke the real virtual function.
+
+** Never redfine a non-virtual function in the derived class
+a non-virtual function means it variabless, so if you want to redfine the non-virtual function, it should be a virtual function in the first place.
+
+** Model "has-a" or "is-implemented-in-terms-of" through composition
+✦ Composition has meanings completely different from that of public
+inheritance.
+✦ In the application domain, composition means has-a. In the implementation
+domain, it means is-implemented-in-terms-of.
+

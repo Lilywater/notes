@@ -1,0 +1,870 @@
+Python could do more complicate jobs than shell script, it has list, array,dictionary data structure, and some
+useful handy functions, and it's kind of like C++ has class,
+
+* basic idea
+** number and strings 
+>>>2+2
+4
+
+>>>8/5
+1
+>>>hello="this is \n not your fault"
+>>>print(hello)
+this is 
+not your fault
+
+>>>4 ** 3  (4^3=64)
+
+>>>hello="""\
+this is not
+ your fault"""
+>>>print(hello)
+this is not
+ your fault
+
+###raw string
+>>>hello=r"this is \n not your fault"
+>>>print(hello)
+this is \n not your fault
+
+#Strings can be concatenated (glued together) with the + operator, and repeated with *:
+>>>
+>>> word = 'Help' + 'A'
+>>> word
+'HelpA'
+>>> '<' + word*5 + '>'
+'<HelpAHelpAHelpAHelpAHelpA>'
+
+
+** lists
+>>> squares = [1, 4, 9, 16, 25]
+>>> squares
+[1, 4, 9, 16, 25]
+
+>>> squares[0]  # indexing the first elmement returns the item
+1
+>>> squares[-1]  # indexing the last element 
+25
+>>> squares[-3:]  # slicing returns a new list from position -3
+[9, 16, 25]
+
+>>> squares[2:3]  # slicing returns a new list from position 2, get 3 elements
+[9, 16, 25]
+
+*** concatenation
+>>> squares+ [36,49]
+[1,4,9,16,25,36,49]
+
+
+*** Membership
+1 in [1,2,3,4]
+
+*** change value of lists
+>>> letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g']
+>>> letters
+['a', 'b', 'c', 'd', 'e', 'f', 'g']
+>>> # replace some values
+>>> letters[2:5] = ['C', 'D', 'E']
+>>> letters
+['a', 'b', 'C', 'D', 'E', 'f', 'g']
+>>> # now remove them
+>>> letters[2:5] = []
+>>> letters
+['a', 'b', 'f', 'g']
+>>> # clear the list by replacing all the elements with an empty list
+>>> letters[:] = []
+>>> letters
+[]
+
+*** length of the lists
+>>>len(letters)
+>>>0
+
+*** nested list comprehensions
+Consider the following example of a 3x4 matrix implemented as a list of 3 lists of length 4:
+
+>>>
+>>> matrix = [
+...     [1, 2, 3, 4],
+...     [5, 6, 7, 8],
+...     [9, 10, 11, 12],
+... ]
+The following list comprehension will transpose rows and columns:
+
+>>>for row in maxtrix:
+    print row;
+
+
+>>> print [[row[i] for row in matrix] for i in range(4)]
+[[1, 5, 9], [2, 6, 10], [3, 7, 11], [4, 8, 12]]
+
+
+** tuple
+A tuple is a sequence of immutable Python objects. Tuples are sequences, just like lists. The only difference is that tuples can't be changed i.e., tuples are immutable and tuples use parentheses and lists use square brackets.
+
+Creating a tuple is as simple as putting different comma-separated values and optionally you can put these comma-separated values between parentheses also. 
+
+*** grammar
+
+tup1 = ('physics', 'chemistry', 1997, 2000);
+tup2 = (1, 2, 3, 4, 5 );
+tup3 = "a", "b", "c", "d";
+
+The empty tuple is written as two parentheses containing nothing:
+
+tup1 = ();
+
+To write a tuple containing a single value you have to include a comma, even though there is only one value:
+
+tup1 = (50,);
+
+Like string indices, tuple indices start at 0, and tuples can be sliced, concatenated and so on.
+
+*** Accessing Values in Tuples:
+
+To access values in tuple, use the square brackets for slicing along with the index or indices to obtain value available at that index. Following is a simple example:
+
+#!/usr/bin/python
+
+tup1 = ('physics', 'chemistry', 1997, 2000);
+tup2 = (1, 2, 3, 4, 5, 6, 7 );
+
+print "tup1[0]: ", tup1[0]
+print "tup2[1:5]: ", tup2[1:5]
+
+When the above code is executed, it produces the following result:
+
+tup1[0]:  physics
+tup2[1:5]:  [2, 3, 4, 5]
+
+Updating Tuples:
+
+Tuples are immutable which means you cannot update or change the values of tuple elements. You are able to take portions of existing tuples to create new tuples as the following example demonstrates:
+
+#!/usr/bin/python
+
+tup1 = (12, 34.56);
+tup2 = ('abc', 'xyz');
+
+# Following action is not valid for tuples
+# tup1[0] = 100;
+
+# So let's create a new tuple as follows
+tup3 = tup1 + tup2;
+print tup3;
+
+When the above code is executed, it produces the following result:
+
+(12, 34.56, 'abc', 'xyz')
+
+*** Delete Tuple Elements:
+
+Removing individual tuple elements is not possible. There is, of course, nothing wrong with putting together another tuple with the undesired elements discarded.
+
+To explicitly remove an entire tuple, just use the del statement. Following is a simple example:
+
+#!/usr/bin/python
+
+tup = ('physics', 'chemistry', 1997, 2000);
+
+print tup;
+del tup;
+print "After deleting tup : "
+print tup;
+
+This will produce following result. Note an exception raised, this is because after del tup tuple does not exist any more:
+
+('physics', 'chemistry', 1997, 2000)
+After deleting tup :
+Traceback (most recent call last):
+  File "test.py", line 9, in <module>
+      print tup;
+      NameError: name 'tup' is not defined
+
+***  Basic Tuples Operations:
+
+      Tuples respond to the + and * operators much like strings; they mean concatenation and repetition here too, except that the result is a new tuple, not a string.
+
+      In fact, tuples respond to all of the general sequence operations we used on strings in the prior chapter :
+      Python Expression	Results 	Description
+      len((1, 2, 3))	3	Length
+      (1, 2, 3) + (4, 5, 6)	(1, 2, 3, 4, 5, 6)	Concatenation
+      ('Hi!',) * 4	('Hi!', 'Hi!', 'Hi!', 'Hi!')	Repetition
+      3 in (1, 2, 3)	True	Membership
+      for x in (1, 2, 3): print x,	1 2 3	Iteration
+      Indexing, Slicing, and Matrixes:
+
+      Because tuples are sequences, indexing and slicing work the same way for tuples as they do for strings. Assuming following input:
+
+      L = ('spam', 'Spam', 'SPAM!')
+
+       
+       Python Expression	Results 	Description
+       L[2]	'SPAM!'	Offsets start at zero
+       L[-2]	'Spam'	Negative: count from the right
+       L[1:]	['Spam', 'SPAM!']	Slicing fetches sections
+       No Enclosing Delimiters:
+
+       Any set of multiple objects, comma-separated, written without identifying symbols, i.e., brackets for lists, parentheses for tuples, etc., default to tuples, as indicated in these short examples:
+
+       #!/usr/bin/python
+
+       print 'abc', -4.24e93, 18+6.6j, 'xyz';
+       x, y = 1, 2;
+       print "Value of x , y : ", x,y;
+
+       When the above code is executed, it produces the following result:
+
+       abc -4.24e+93 (18+6.6j) xyz
+       Value of x , y : 1 2
+
+***  Built-in Tuple Functions:
+
+       Python includes the following tuple functions:
+       SN	Function with Description
+       1	cmp(tuple1, tuple2)
+       Compares elements of both tuples.
+       2	len(tuple)
+       Gives the total length of the tuple.
+       3	max(tuple)
+       Returns item from the tuple with max value.
+       4	min(tuple)
+       Returns item from the tuple with min value.
+       5	tuple(seq)
+       Converts a list into tuple.
+
+
+** dictionary
+>>> tel = {'jack': 4098, 'sape': 4139}
+>>> tel['guido'] = 4127
+>>> tel
+{'sape': 4139, 'guido': 4127, 'jack': 4098}
+>>> tel['jack']
+4098
+>>> del tel['sape']
+>>> tel['irv'] = 4127
+>>> tel
+{'guido': 4127, 'irv': 4127, 'jack': 4098}
+>>> tel.keys()
+['guido', 'irv', 'jack']
+>>> 'guido' in tel
+True
+
+
+The dict() constructor builds dictionaries directly from sequences of key-value pairs:
+
+>>>
+>>> dict([('sape', 4139), ('guido', 4127), ('jack', 4098)])
+{'sape': 4139, 'jack': 4098, 'guido': 4127}
+In addition, dict comprehensions can be used to create dictionaries from arbitrary key and value expressions:
+
+>>>
+>>> {x: x**2 for x in (2, 4, 6)}
+{2: 4, 4: 16, 6: 36}
+When the keys are simple strings, it is sometimes easier to specify pairs using keyword arguments:
+
+>>>
+>>> dict(sape=4139, guido=4127, jack=4098)
+{'sape': 4139, 'jack': 4098, 'guido': 4127}
+
+** zip two lists into a list with element of tuple
+>>> b=['a','b','c']
+>>> ziped=zip(a,b)
+>>> print ziped
+[(1, 'a'), (2, 'b'), (3, 'c')]
+
+
+
+** looping technics
+When looping through a sequence, the position index and corresponding value can be retrieved at the same time using the enumerate() function.
+
+>>>
+>>> for i, v in enumerate(['tic', 'tac', 'toe']):
+...     print i, v
+...
+0 tic
+1 tac
+2 toe
+To loop over two or more sequences at the same time, the entries can be paired with the zip() function.
+
+>>>
+>>> questions = ['name', 'quest', 'favorite color']
+>>> answers = ['lancelot', 'the holy grail', 'blue']
+>>> for q, a in zip(questions, answers):
+...     print 'What is your {0}?  It is {1}.'.format(q, a)
+...
+What is your name?  It is lancelot.
+What is your quest?  It is the holy grail.
+What is your favorite color?  It is blue.
+To loop over a sequence in reverse, first specify the sequence in a forward direction and then call the reversed() function.
+
+>>>
+>>> for i in reversed(xrange(1,10,2)):
+...     print i
+...
+9
+7
+5
+3
+1
+To loop over a sequence in sorted order, use the sorted() function which returns a new sorted list while leaving the source unaltered.
+
+>>>
+>>> basket = ['apple', 'orange', 'apple', 'pear', 'orange', 'banana']
+>>> for f in sorted(set(basket)):
+...     print f
+...
+apple
+banana
+orange
+pear
+When looping through dictionaries, the key and corresponding value can be retrieved at the same time using the iteritems() method.
+
+>>>
+>>> knights = {'gallahad': 'the pure', 'robin': 'the brave'}
+>>> for k, v in knights.iteritems():
+...     print k, v
+...
+gallahad the pure
+robin the brave
+To change a sequence you are iterating over while inside the loop (for example to duplicate certain items), it is recommended that you first make a copy. Looping over a sequence does not implicitly make a copy. The slice notation makes this especially convenient:
+
+>>>
+>>> words = ['cat', 'window', 'defenestrate']
+>>> for w in words[:]:  # Loop over a slice copy of the entire list.
+# this slice is very important, if using words, insert will change words itself, and 
+# defenestrate will always been inserted infinitely 
+...     if len(w) > 6:
+...         words.insert(0, w)
+...
+>>> words
+['defenestrate', 'cat', 'window', 'defenestrate']
+
+
+** function
+*** fibonacci series
+>>> # Fibonacci series:
+... # the sum of two elements defines the next
+... a, b = 0, 1
+>>> while b < 10:
+...     print(b)
+...     a, b = b, a+b
+...
+1
+1
+2
+3
+5
+8
+
+
+
+>>> a, b = 0, 1
+>>> while b < 1000:
+...     print(b, end=',')
+...     a, b = b, a+b
+...
+1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,
+
+
+>>>range(3,6)
+[3,4,5]
+>>> args= [3,6]
+// alist
+>>> range(*args)
+[3,4,5]
+
+** function parameter of list/tuple and dictionary
+def parrot(volt,name="Polly",age="5"):
+     print "parrot ", name, 
+     print "is old ", age,
+     print "volt is ",volt
+>>>parrot(3)
+parrot Polly is old 5 volt is 3
+>>>parrot(volt="3",name="DV",age="2")
+parrot DV is old 2 volt is 3
+>>>d={"volt":"2", "name":"Tony","age","1"}
+//this is a dictionary, we 
+>>>parrot(**d)
+parrot Tony is old 1 is 2  
+
+
+
+def cheeseshop(kind, *arguments, **keywords):
+    print "-- Do you have any", kind, "?"
+    print "-- I'm sorry, we're all out of", kind
+    for arg in arguments:
+        print arg
+    print "-" * 40
+    keys = sorted(keywords.keys())
+    for kw in keys:
+        print kw, ":", keywords[kw]
+
+cheeseshop("Limburger", "It's very runny, sir.",
+           "It's really very, VERY runny, sir.",
+           shopkeeper='Michael Palin',
+           client="John Cleese",
+           sketch="Cheese Shop Sketch")
+
+-- Do you have any Limburger ?
+-- I'm sorry, we're all out of Limburger
+It's very runny, sir.
+It's really very, VERY runny, sir.
+----------------------------------------
+client : John Cleese
+shopkeeper : Michael Palin
+sketch : Cheese Shop Sketch
+
+
+
+
+
+
+* pthon regrular expression
+** The match Function
+
+This function attempts to match RE pattern to string with optional flags.
+
+Here is the syntax for this function:
+
+re.match(pattern, string, flags=0)
+
+Here is the description of the parameters:
+Parameter	Description
+pattern	This is the regular expression to be matched.
+string	This is the string, which would be searched to match the pattern at the beginning of string.
+flags	You can specify different flags using bitwise OR (|). These are modifiers, which are listed in the table below.
+
+The re.match function returns a match object on success, None on failure. We would use group(num) or groups() function of match object to get matched expression.
+Match Object Methods	Description
+group(num=0)	This method returns entire match (or specific subgroup num)
+groups()	This method returns all matching subgroups in a tuple (empty if there weren't any)
+Example:
+
+#!/usr/bin/python
+import re
+
+line = "Cats are smarter than dogs"
+
+matchObj = re.match( r'(.*) are (.*?) .*', line, re.M|re.I)
+
+if matchObj:
+   print "matchObj.group() : ", matchObj.group()
+      print "matchObj.group(1) : ", matchObj.group(1)
+         print "matchObj.group(2) : ", matchObj.group(2)
+	 else:
+	    print "No match!!"
+
+	    When the above code is executed, it produces following result:
+
+	    matchObj.group() :  Cats are smarter than dogs
+	    matchObj.group(1) :  Cats
+	    matchObj.group(2) :  smarter
+
+**  The search Function
+
+	    This function searches for first occurrence of RE pattern within string with optional flags.
+
+	    Here is the syntax for this function:
+
+	    re.search(pattern, string, flags=0)
+
+	    Here is the description of the parameters:
+	    Parameter	Description
+	    pattern	This is the regular expression to be matched.
+	    string	This is the string, which would be searched to match the pattern anywhere in the string.
+	    flags	You can specify different flags using bitwise OR (|). These are modifiers, which are listed in the table below.
+
+	    The re.search function returns a match object on success, None on failure. We would use group(num) or groups() function of match object to get matched expression.
+	    Match Object Methods	Description
+	    group(num=0)	This method returns entire match (or specific subgroup num)
+	    groups()	This method returns all matching subgroups in a tuple (empty if there weren't any)
+	    Example:
+
+	    #!/usr/bin/python
+	    import re
+
+	    line = "Cats are smarter than dogs";
+
+	    searchObj = re.search( r'(.*) are (.*?) .*', line, re.M|re.I)
+
+	    if searchObj:
+	       print "searchObj.group() : ", searchObj.group()
+	          print "searchObj.group(1) : ", searchObj.group(1)
+		     print "searchObj.group(2) : ", searchObj.group(2)
+		     else:
+		        print "Nothing found!!"
+
+			When the above code is executed, it produces following result:
+
+			matchObj.group() :  Cats are smarter than dogs
+			matchObj.group(1) :  Cats
+			matchObj.group(2) :  smarter
+
+** match vs search(Matching vs Searching):
+
+Python offers two different primitive operations based on regular expressions: match checks for a match only at the beginning of the string, while 
+search checks for a match anywhere in the string (this is what Perl does by default).
+			Example:
+
+			#!/usr/bin/python
+			import re
+
+			line = "Cats are smarter than dogs";
+
+			matchObj = re.match( r'dogs', line, re.M|re.I)
+			if matchObj:
+			   print "match --> matchObj.group() : ", matchObj.group()
+		    else:
+		      print "No match!!"
+
+      searchObj = re.search( r'dogs', line, re.M|re.I)
+      if searchObj:
+         print "search --> searchObj.group() : ", searchObj.group()
+      else:
+	    print "Nothing found!!"
+
+	  When the above code is executed, it produces the following result:
+	    No match!!
+	    search --> matchObj.group() :  dogs
+
+
+* python unusual usage
+** zip
+foo = ["c", "b", "a"]
+bar = [1, 2, 3]
+foo, bar = zip(*sorted(zip(foo, bar)))
+print foo, "|", bar # prints ('a', 'b', 'c') | (3, 2, 1)
+
+** itemgetter
+  itemgetter(item, ...) --> itemgetter object
+       |
+            |  Return a callable object that fetches the given item(s) from its operand.
+	         |  After f = itemgetter(2), the call f(r) returns r[2].
+		      |  After g = itemgetter(2, 5, 3), the call g(r) returns (r[2], r[5], r[3])
+		           |
+
+** sort
+>>> mylist = [["quux", 1, "a"], ["bar", 0, "b"]]
+>>> mylist.sort(key=lambda x: x[1])
+>>> print mylist
+
+gives:
+[['bar', 0, 'b'], ['quux', 1, 'a']]
+
+*** multiple sort
+ mylist = [["quux", 1, "a"], ["bar", 0, "f"],["foo",0, "c"]]
+ >>> mylist.sort(key=lambda x:(x[1],x[2]))
+ >>> print mylist
+ [['foo', 0, 'c'], ['bar', 0, 'f'], ['quux', 1, 'a']]
+
+do the same thing:
+>>> import operator
+ mylist = [["quux", 1, "a"], ["bar", 0, "f"],["foo",0, "c"]]
+>>> mylist.sort(key=operator.itemgetter(1,2) )
+>>> print mylist
+[['foo', 0, 'c'], ['bar', 0, 'f'], ['quux', 1, 'a']]
+>>>
+*** [] means what? for a list/string is differnt
+>>> print ll
+['2014-2-25 10:20:37', '2014-3-30 07:12:12', '2014-3-30 09:10:23']
+>>> print (ll[0].split(" "))[1]
+10:20:37
+>>> print (ll[0].split(" "))[0]
+2014-2-25
+>>>
+>>> print ll[0][0]
+2
+>>> print ll[0][1]
+0
+
+
+
+* python debug pdb
+python -m pdb *.py <argument of *.py>
+The debugger recognizes the following commands. Most commands can be abbreviated to one or two letters; e.g. h(elp) means that either h or help can be used to enter the help command (but not he or hel, nor H or Help or HELP). Arguments to commands must be separated by whitespace (spaces or tabs). Optional arguments are enclosed in square brackets ([]) in the command syntax; the square brackets must not be typed. Alternatives in the command syntax are separated by a vertical bar (|).
+
+Entering a blank line repeats the last command entered. Exception: if the last command was a list command, the next 11 lines are listed.
+
+Commands that the debugger doesn’t recognize are assumed to be Python statements and are executed in the context of the program being debugged. Python statements can also be prefixed with an exclamation point (!). This is a powerful way to inspect the program being debugged; it is even possible to change a variable or call a function. When an exception occurs in such a statement, the exception name is printed but the debugger’s state is not changed.
+
+Multiple commands may be entered on a single line, separated by ;;. (A single ; is not used as it is the separator for multiple commands in a line that is passed to the Python parser.) No intelligence is applied to separating the commands; the input is split at the first ;; pair, even if it is in the middle of a quoted string.
+
+The debugger supports aliases. Aliases can have parameters which allows one a certain level of adaptability to the context under examination.
+
+If a file .pdbrc exists in the user’s home directory or in the current directory, it is read in and executed as if it had been typed at the debugger prompt. This is particularly useful for aliases. If both files exist, the one in the home directory is read first and aliases defined there can be overridden by the local file.
+
+h(elp) [command]
+    Without argument, print the list of available commands. With a command as argument, print help about that command. help pdb displays the full documentation file; if the environment variable PAGER is defined, the file is piped through that command instead. Since the command argument must be an identifier, help exec must be entered to get help on the ! command.
+    w(here)
+stack trace, with the most recent frame at the bottom. An arrow indicates the current frame, which determines the context of most commands.
+
+ the current frame one level down in the stack trace (to a newer frame).
+
+Move the current frame one level up in the stack trace (to an older frame).
+b(reak) [[filename:]lineno | function[, condition]]
+
+   With a lineno argument, set a break there in the current file. With a function argument, set a break at the first executable statement within that function. The line number may be prefixed with a filename and a colon, to specify a breakpoint in another file (probably one that hasn’t been loaded yet). The file is searched on sys.path. Note that each breakpoint is assigned a number to which all the other breakpoint commands refer.
+
+       If a second argument is present, it is an expression which must evaluate to true before the breakpoint is honored.
+
+ Without argument, list all breaks, including for each breakpoint, the number of times that breakpoint has been hit, the current ignore count, and the associated condition if any.
+ tbreak [[filename:]lineno | function[, condition]]
+ Temporary breakpoint, which is removed automatically when it is first hit. The arguments are the same as break.
+ cl(ear) [filename:lineno | bpnumber [bpnumber ...]]
+ With a filename:lineno argument, clear all the breakpoints at this line. With a space separated list of breakpoint numbers, clear those breakpoints. Without argument, clear all breaks (but first ask confirmation).
+ disable [bpnumber [bpnumber ...]]
+ Disables the breakpoints given as a space separated list of breakpoint numbers. Disabling a breakpoint means it cannot cause the program to stop execution, but unlike clearing a breakpoint, it remains in the list of breakpoints and can be (re-)enabled.
+ enable [bpnumber [bpnumber ...]]
+ Enables the breakpoints specified.
+ ignore bpnumber [count]
+ Sets the ignore count for the given breakpoint number. If count is omitted, the ignore count is set to 0. A breakpoint becomes active when the ignore count is zero. When non-zero, the count is decremented each time the breakpoint is reached and the breakpoint is not disabled and any associated condition evaluates to true.
+ condition bpnumber [condition]
+ Condition is an expression which must evaluate to true before the breakpoint is honored. If condition is absent, any existing condition is removed; i.e., the breakpoint is made unconditional.
+ commands [bpnumber]
+
+ Specify a list of commands for breakpoint number bpnumber. The commands themselves appear on the following lines. Type a line containing just ‘end’ to terminate the commands. An example:
+
+ (Pdb) commands 1
+ (com) print some_variable
+ (com) end
+ (Pdb)
+
+ To remove all commands from a breakpoint, type commands and follow it immediately with end; that is, give no commands.
+
+ With no bpnumber argument, commands refers to the last breakpoint set.
+
+ You can use breakpoint commands to start your program up again. Simply use the continue command, or step, or any other command that resumes execution.
+
+ Specifying any command resuming execution (currently continue, step, next, return, jump, quit and their abbreviations) terminates the command list (as if that command was immediately followed by end). This is because any time you resume execution (even with a simple next or step), you may encounter another breakpoint–which could have its own command list, leading to ambiguities about which list to execute.
+
+ If you use the ‘silent’ command in the command list, the usual message about stopping at a breakpoint is not printed. This may be desirable for breakpoints that are to print a specific message and then continue. If none of the other commands print anything, you see no sign that the breakpoint was reached.
+
+ New in version 2.5.
+ s(tep)
+ Execute the current line, stop at the first possible occasion (either in a function that is called or on the next line in the current function).
+ n(ext)
+ Continue execution until the next line in the current function is reached or it returns. (The difference between next and step is that step stops inside a called function, while next executes called functions at (nearly) full speed, only stopping at the next line in the current function.)
+ unt(il)
+
+ Continue execution until the line with the line number greater than the current one is reached or when returning from current frame.
+
+ New in version 2.6.
+ r(eturn)
+ Continue execution until the current function returns.
+ c(ont(inue))
+ Continue execution, only stop when a breakpoint is encountered.
+ j(ump) lineno
+
+ Set the next line that will be executed. Only available in the bottom-most frame. This lets you jump back and execute code again, or jump forward to skip code that you don’t want to run.
+
+ It should be noted that not all jumps are allowed — for instance it is not possible to jump into the middle of a for loop or out of a finally clause.
+ l(ist) [first[, last]]
+ List source code for the current file. Without arguments, list 11 lines around the current line or continue the previous listing. With one argument, list 11 lines around at that line. With two arguments, list the given range; if the second argument is less than the first, it is interpreted as a count.
+ a(rgs)
+ Print the argument list of the current function.
+ p expression
+
+ Evaluate the expression in the current context and print its value.
+
+ Note
+
+ print can also be used, but is not a debugger command — this executes the Python print statement.
+ pp expression
+ Like the p command, except the value of the expression is pretty-printed using the pprint module.
+ alias [name [command]]
+
+ Creates an alias called name that executes command. The command must not be enclosed in quotes. Replaceable parameters can be indicated by %1, %2, and so on, while %* is replaced by all the parameters. If no command is given, the current alias for name is shown. If no arguments are given, all aliases are listed.
+
+ Aliases may be nested and can contain anything that can be legally typed at the pdb prompt. Note that internal pdb commands can be overridden by aliases. Such a command is then hidden until the alias is removed. Aliasing is recursively applied to the first word of the command line; all other words in the line are left alone.
+
+ As an example, here are two useful aliases (especially when placed in the .pdbrc file):
+
+ #Print instance variables (usage "pi classInst")
+ alias pi for k in %1.__dict__.keys(): print "%1.",k,"=",%1.__dict__[k]
+ #Print instance variables in self
+ alias ps pi self
+
+ unalias name
+ Deletes the specified alias.
+ [!]statement
+
+ Execute the (one-line) statement in the context of the current stack frame. The exclamation point can be omitted unless the first word of the statement resembles a debugger command. To set a global variable, you can prefix the assignment command with a global command on the same line, e.g.:
+
+ (Pdb) global list_options; list_options = ['-l']
+ (Pdb)
+
+ run [args ...]
+
+ Restart the debugged Python program. If an argument is supplied, it is split with “shlex” and the result is used as the new sys.argv. History, breakpoints, actions and debugger options are preserved. “restart” is an alias for “run”.
+
+ New in version 2.6.
+ q(uit)
+ Quit from the debugger. The program being executed is aborted. 
+
+* ptyon unit testing
+** python has a built-in module named unittest
+https://docs.python.org/3/library/unittest.html
+test.py
+===================================
+import random   ## to be tested module
+import unittest   ## testing module
+
+class TestSequenceFunctions(unittest.TestCase):
+
+    def setUp(self):
+        self.seq = list(range(10))
+
+    def test_shuffle(self):
+        # make sure the shuffled sequence does not lose any elements
+        random.shuffle(self.seq)
+        self.seq.sort()
+        self.assertEqual(self.seq, list(range(10)))
+
+        # should raise an exception for an immutable sequence
+        self.assertRaises(TypeError, random.shuffle, (1,2,3))
+
+    def test_choice(self):
+        element = random.choice(self.seq)
+        self.assertTrue(element in self.seq)
+
+    def test_sample(self):
+        with self.assertRaises(ValueError):
+            random.sample(self.seq, 20)
+        for element in random.sample(self.seq, 5):
+            self.assertTrue(element in self.seq)
+
+if __name__ == '__main__':
+    unittest.main()
+#################################################
+
+
+[]$python test.py
+The final block shows a simple way to run the tests. unittest.main() provides a command-line interface to the test script. When run from the command line, the above script produces an output that looks like this:
+
+...
+----------------------------------------------------------------------
+Ran 3 tests in 0.000s
+
+OK
+
+Passing the -v option to your test script will instruct unittest.main() to enable a higher level of verbosity, and produce the following output:
+
+[]$python test.py -v
+test_choice (__main__.TestSequenceFunctions) ... ok
+test_sample (__main__.TestSequenceFunctions) ... ok
+test_shuffle (__main__.TestSequenceFunctions) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.110s
+
+OK
+
+
+** import your own module from other python file
+main.py
+========
+import module1 ## this is python file name
+from mystuff import MyStuff ###the class defined in python file
+def wow():
+   print pi
+
+wow()
+module1.cool()
+thing=MyStuff()
+thing.apple()
+print thing.tangerine
+
+====
+
+module1.py
+==========
+def cool()
+   pirnt "DFD"
+===========
+
+mystuff.py
+++++
+class MyStuff(object):
+
+    def __init__(self):
+         self.tangerine = "And now a thousand years between"
+
+    def apple(self):
+        print "I AM CLASSY APPLES!"
++++++++
+
+*** if those files are not in the same folder, import will fail.
+main.py
+zz  ->  module1.py
+zz  ->  empty __init__.py file in same directory
+
+main.py
+========
+from zz import module1 ## this is python file name
+from zz.mystuff import MyStuff
+def wow():
+   print pi
+
+wow()
+module1.cool()
+thing=MyStuff()
+thing.apple()
+print thing.tangerine
+
+====
+
+module1.py in zz folder
+==========
+def cool()
+   pirnt "DFD"
+===========
+
+
+
+** test the module by unitest
+test.py
+===================================
+import module1   ## to be tested module
+from mystuff import MyStuff    ## to be tested module
+#from mystuff import *    ## if there are many classes
+import unittest   ## testing module
+
+class TestSequenceFunctions(unittest.TestCase):
+
+    def setUp(self):
+        self.seq = list(range(10))
+    def test_module1(self):
+       module1.cool()
+       thing=MyStuff()
+       thing.apple()
+       print thing.tangerine
+       self.assertTrue(True)
+
+if __name__ == '__main__':
+    unittest.main()
+#################################################
+
+python tes.py -v
+
+
+** compile python code
+*** in the command line
+#python -m py_compile <pfile>.py
+//this command will generate a <pfile>.pyc file , and still ptyong <pfile>.pyc to execute it
+
+*** in the source code
+import py_compile
+py_compile.compile("file.py")
+
+
+** join
+>>> sentence = ['this','is','a','sentence']
+>>> '-'.join(sentence)
+'this-is-a-sentence'
+
+* python install --upgrade setuptools
+pip install --upgrade setuptools
+pip install 'Someproject==1.4'
+
+

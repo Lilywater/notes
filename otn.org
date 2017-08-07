@@ -1,0 +1,44 @@
+* acronym
+ITU-T: International Telecommunications
+Union – Telecommunications Section
+ OTN: Optical Transport Network
+ SONET: Synchronous Optical Network
+ SDH: Synchronous Digital Hierarchy
+ STS: Synchronous Transport Signal
+ OTH: Optical Transport Hierarchy
+ ODU: Optical channel Data Unit
+ OPU: Optical channel Payload Unit
+ STM: Synchronous Transport Module
+ GFP: Generic Framing Procedure
+LAN PHY(10GBase-R): LAN Physical
+ OTU: Optical channel Transport Unit
+ Och: Optical Channel
+ FEC: Forward Error Correction
+GBase interface
+ WAN PHY(10GBase-W): WAN Physical interface
+ LO: Low Order
+ HO: High Order
+ PPM: Parts Per Million
+ CBR: Constant Bit Rate
+ AMP: Asynchronous Mapping Procedure
+ VCAT: Virtual Concatenation
+
+* otn container                      
+            ________________________  _______
+Electrical |    Client Signal      |  |Client|
+Domain     |        |              |  --------
+           |       \|/             |  ___________ 
+           | Optical Payload Unit  |  | OPU  |oh|  
+           |        |              |  -----------
+           |       \|/             |  _______________ 
+           | Optical Data Unit     |  |ODU       |oh|
+           |        |              |   --------------- 
+           |        |              | 
+           |       \|/             |  __________________ 
+           | Optical Transport Unit|  |OTU          |oh|
+           |        |              |   ----------------- 
+           |--------|--------------| 
+                    |
+                   \|/                 __________________ 
+Optical        Optical Channel         |Och              |
+Domain                                 -------------------

@@ -1,0 +1,759 @@
+* GNU GDB guide
+
+By default, gdb captures SIGPIPE of a process and pauses it. However, some program ignores SIGPIPE. So, the default behavour of gdb is not desired when debugging those program. To avoid gdb stopping in SIGPIPE, use the folloing command in gdb:
+(gdb)handle SIGPIPE nostop noprint pass
+
+
+** breakpoint
+set functionname/filename:linenum
+to set a breakpoint
+info breakpoints 
+to review the breakpoint
+
+
+** args
+show args  
+to review the arguments
+set args  "some arguments"   
+to set the args
+
+** direcotry 
+show dir
+to show the path gdb look for source files
+dir <direcotryname>
+to add a directory
+
+** list sources
+list <symbolename>
+list <filename>:<num>
+help list
+
+** read/write memory
+*** read memory
+we can examine memory by address.
+This address could be variable or instructions.
+x is the command to read memory in GDB.
+--------------------------------------------------------
+(gdb) help x
+Examine memory: x/FMT ADDRESS.
+ADDRESS is an expression for the memory address to examine.
+FMT is a repeat count followed by a format letter and a size letter.
+Format letters are o(octal), x(hex), d(decimal), u(unsigned decimal),
+  t(binary), f(float), a(address), i(instruction), c(char) and s(string).
+Size letters are b(byte), h(halfword), w(word), g(giant, 8 bytes).
+The specified number of objects of the specified size are printed
+according to the format.
+Defaults for format and size letters are those previously used.
+Default count is 1.  Default address is following last thing printed
+with this command or "print".
+(gdb) 
+--------------------------------------------------------------
+**** example, d表示以十进制unsigned decimal形式显示（format） b表示宽度（一个字节），
+(gdb) p &i
+$10 = (int *) 0xbffff23c
+(gdb) x/1ub 0xbffff23c
+0xbffff23c:	10
+(gdb) x/1uw 0xbffff23c
+0xbffff23c:	266
+(gdb) x/4ub 0xbffff23c
+0xbffff23c:	10	1	0	0
+(gdb) x/1ub 9xbffff23c
+Invalid number "9xbffff23c".
+(gdb) x/1ub 0xbffff23c
+0xbffff23c:	10
+(gdb) x/1ub 0xbffff23d
+0xbffff23d:	1
+(gdb) x/1ub 0xbffff23e
+0xbffff23e:	0
+(gdb) x/1ub 0xbffff23f
+0xbffff23f:	0
+(gdb) 
+**** 这里可以看出对于一个整形数，高位在高地址，低位在低地址（小端字节序little-Endian）；
+（x86是小端字节序，而网络字节序，powerpc都是大端字节序）
+
+*** write memory
+命令形式：set * 有类型的指针=value
+**** write memory directly
+(gdb) set {int}0x08040000 = 42
+(gdb) set {int}0x08040000 = 0xffffffff
+
+***** write a string into memory
+(gdb) p malloc(20)
+$3 = (void *) 0x6ce81808
+(gdb) p strcpy($3, "my string")
+$4 = 1827149832
+(gdb) x/s $3
+0x6ce81808: "my string"
+
+
+int main(void){
+    char[] person = "Bob";
+    char[] p2 = "Alice";
+
+    printf("Hello %s\n");
+}
+
+With GDB you could set a breakpoint in main, and change the person's name via:
+
+(gdb) set main::person = { 'S', 'a', 'm', 0x00 }
+
+or more susinctly
+
+(gdb) set main::person = "Sam"
+
+If you want to set memory directly use:
+
+set {char [4]} 0x08040000 = "Ace"
+
+I'm assuming that since you're poking memory with gdb you know what you're doing, so you know about setting the null bytes for strings etc. Keep in mind if you are trying to change values for an array and you try to put in a string that is longer than what was originally allocated, you have a really good chance that you're going to corrupt memory. (example trying to set main::person to "Dilbert" is going to cause problems 
+
+**** 对于变量名要强制转换
+-------------------------------
+(gdb) p &i
+$6 = (int *) 0xbffff23c
+(gdb) set i=266
+Ambiguous set command "i=266": .
+(gdb) set *((int *)&i)=266
+(gdb) p i
+$7 = 266
+(gdb) p &i
+$8 = (int *) 0xbffff23c
+-----------------------------------------------------------
+
+
+**** 分配地址
+对于void *p = malloc（128）这样分配的地址，可以使用先强制指定类型
+     后再写入值，如：set *（（char *）p）= 0x61；set *（（char *）p）= ‘a’；
+        set *（（char *）（p+110））=‘b'；set *（int *）p=0xff；
+
+
+
+
+
+
+* gdb tips
+** source (to execute multiple commands )
+source <filename>  (filename contains all the commands)
+
+** .gdbinit
+ .gdbinit文件
+GDB在启动时，会在用户主目录中寻找这个文件，并执行该文件中所有命令，文件格式为：
+define command-alias
+command
+end
+如要给“b main”取一个别名“bm”：
+define bm
+b main
+end
+此外，还可以给这个别名加上帮助说明性文字，格式为：
+document bm
+帮助说明性文字
+end
+如，给“bm”别名添加帮助说明性文字：
+document bm
+break at main() function
+end
+这样，在使用“help bm”时，GDB就会打印出“break at main() function” 
+
+** 自定义命令
+除了在.gdbinit文件自定义命令外，还可以直接在GDB运行环境定义命令，语法相同 
+
+** 定义命令钩子
+钩子用来在执行某个命令前或命令后，先执行某个或某些命令。假如想在print命令前显示一段“----------”，则：
+define hook-print
+echo ----------\n
+end
+注意“hook-”后接的必须是命令全称，不能是缩写。
+如果想在命令执行完，再执行某个或某些命令，则：
+#define hookpost-print
+echo ----------\n
+end 
+
+** GDB中循环
+GDB支持if/else/while/loop_break/loop_continue，如：
+(gdb) set $x=1
+(gdb) while $x==1
+>p $x
+>set $x=0
+>p $x
+>end
+-----------------
+b$8 = 1
+-----------------
+b$9 = 0 
+
+* gdb mechanics
+** change something dynamically
+
+** review soomething dynamically
+condition 3 strcmp(EAPgetTypeNodeName(typeNode),"CreateSessionResponse")==0
+3~
+the calling of function strcmp is OK 
+
+* gdb in vim installation
+http://easwy.com/blog/archives/advanced-vim-skills-vim-gdb-vimgdb/
+
+** [ 下载vimgdb补丁 ] 
+下载vimgdb补丁，下载页面在： 
+http://sourceforge.net/project/showfiles.php?group_id=111038&package_id=120238 
+在这里，选择vim 7.1的补丁，把它保存到~/install/vimgdb71-1.12.tar.gz。 
+
+** [ 打补丁 ] 
+运行下面的命令，解压源码文件，并打上补丁： 
+cd ~/install/
+tar xjf vim-7.1.tar.bz2
+tar xzf vimgdb71-1.12.tar.gz
+patch -d vim71 --backup -p0 < vimgdb/vim71.diff 
+
+** [ 定制vim的功能 ] 
+
+缺省的vim配置已经适合大多数人，但有些时候你可能需要一些额外的功能，这时就需要自己定制一下vim。定制vim很简单，进入~/install/vim71/src文件，编辑Makefile文件。这是一个注释很好的文档，根据注释来选择： 
+
+■如果你不想编译gvim，可以打开–disable-gui选项； 
+■如果你想把perl, python, tcl, ruby等接口编译进来的话，打开相应的选项，例如，我打开了–enable-tclinterp选项； 
+■如果你想在vim中使用cscope的话，打开–enable-cscope选项； 
+■我们刚才打的vimgdb补丁，自动在Makefile中加入了–enable-gdb选项； 
+■如果你希望在vim使用中文，使能–enable-multibyte和–enable-xim选项； 
+■可以通过–with-features=XXX选项来选择所编译的vim特性集，缺省是–with-features=normal； 
+■如果你没有root权限，可以把vim装在自己的home目录，这时需要打开prefix = $(HOME)选项； 
+编辑好此文件后，就可以编辑安装vim了。如果你需要更细致的定制vim，可以修改config.h文件，打开/关闭你想要的特性。 
+
+**[ 编译安装 ] 
+编译和安装vim非常简单，使用下面两个命令： 
+make
+make install 你不需要手动运行./configure命令，make命令会自动调用configure命令。 
+上面的命令执行完后，vim就安装成功了。 
+
+我在编译时打开了”prefix = $(HOME)”选项，因此我的vim被安装在~/bin目录。这时需要修改一下PATH变量，以使其找到我编辑好的vim。在~/.bashrc文件中加入下面这两句话： 
+
+PATH=$HOME/bin:$PATH
+export PATH 退出再重新登录，现在再敲入vim命令，发现已经运行我们编译的vim了。 
+
+** [ 安装vimgdb的runtime文件 ] 
+
+运行下面的命令，解压vimgdb的runtime文件到你的~/.vim/目录： 
+
+cd ~/install/vimgdb/
+tar zxf vimgdb_runtime.tgz –C~/.vim/ 现在启动vim，在vim中运行下面的命令以生成帮助文件索引： 
+
+:helptags ~/.vim/doc 现在，你可以使用”:help vimgdb“命令查看vimgdb的帮助了。
+
+
+* gdb usage
+vimgdb补丁已经定义了一些键绑定，我们先加载这些绑定： 
+:run macros/gdb_mappings.vim 加载后，一些按键就被定义为调试命令(vimgdb定义的键绑定见”:help gdb-mappings“)。按<F7>可以在按键的缺省定义和调试命令间切换。
+:help cmdline-window
+按空格键，在当前窗口下方会打开一个小窗口(command-line窗口)，这就是vimgdb的命令窗口，可以在这个窗口中输入任何合法的gdb命令，输入的命令将被送到gdb执行。现在，我们在这个窗口中输入”gdb“，按回车后，command-line窗口自动关闭，而在当前窗口上方又打开一个窗口，这个窗口是gdb输出窗口
+
+现在使用vim的移动命令，把光标移动到sample.c的第7行和14行，按”CTRL-B“在这两处设置断点，然后按”R“，使gdb运行到我们设置的第一个断点处(“CTRL-B“和”R“都是gdb_mappings.vim定义的键绑定，下面介绍的其它调试命令相同)。
+我们再按”C“，运行到第2个断点处，现在，我们输入下面的vim命令，在右下方分隔出一个名为gdb-variables的窗口： 
+
+:bel 20vsplit gdb-variables 然后用”v“命令选中变量i，按”CTRL-P“命令，把变量i加入到监视窗口，用同样的方式把变量result也加入到监视窗口，这里可以从监视窗口中看到变量i和result的值
+
+
+:bel 20vsplit gdb-variables 
+ 
+
+print *(pointer)
+
+
+execute gdb shell
+gdb -x *.gsh
+or gdb
+> source *.gsh
+-----------------------
+file MMETester_debug
+set arg -t3tclog-hide string -t3tclog-suppress message_decode_failure -t3rt '-parfile ../run/default/TesterModPar.par -parfile ../run/default/Verification.par -par TesterModPars.mp_test_case_name "tc_TrafficaRaw" -file ../run/default/TesterConfig.txt' -t3tclog-dir ../run/log/ tc_TrafficaRaw
+dir  ~/ttcn/ttcn3libs/codec/EapTabCodecs/src
+dir  ~/ttcn/ttcn3libs/codec/EAPcodecAPI/TauT3/src
+dir  ~/ttcn/TBPT/protocols/traffica/traffica1/codec/src
+dir  ~/ttcn/TBPT/protocols/gb/gb/codec/src
+dir  ~/ttcn/TBPT/protocols/gtp/gtpV2Core7/codec/src
+b LeDecodeTabStructuredTypes.c:95
+condition 1 strcmp(EAPgetTypeNodeName(typeNode),"MmeMmRtt")==0
+r
+b LeDecodeTabBasicTypes.c:581
+b EAPTypeT3.c:317
+c
+-----------------------
+these command must be gdb command
+shell <shell command>
+
+
+---------------
+* https://access.redhat.com/knowledge/docs/en-US/Red_Hat_Enterprise_Linux/4/html/Debugging_with_gdb/
+(the most useful gdb doc)
+**  Debugging programs with multiple processes
+On most systems, gdb hs no special support for debugging programes which create additional processes using the fork function.
+gdb will deubg the parent process and the child process will run unimplemented.
+1. if gdb not support follow-fork-mode feature,
+sleep to delay child process a little, using ps to get the pid of child process
+invoke another gdb(if you are gdb parent process) to attach processes.
+
+2. show follow-fork-mode
+(gdb) show follow-fork-mode mode
+Debugger response to a program call of fork or vfork is "parent".
+
+(gdb) set follow-fork-mode child
+thus gdb will continue in child process, and the parent process will run unimplemented.
+
+set follow-fork-mode child/parenet/ask
+
+----------------
+** Setting catchpoints
+You can use catchpoints to cause the debugger to stop for certain kinds of program events, such as C++ exceptions or the loading of a shared library. Use the catch command to set a catchpoint.
+
+
+catch event
+Stop when event occurs. event can be any of the following:
+
+throw
+The throwing of a C++ exception.
+
+catch
+The catching of a C++ exception.
+
+exec
+A call to exec. This is currently only available for HP-UX.
+
+fork
+A call to fork. This is currently only available for HP-UX.
+
+vfork
+A call to vfork. This is currently only available for HP-UX.
+
+load, load libname
+The dynamic loading of any shared library, or the loading of the library libname. This is currently only available for HP-UX.
+
+unload, unload libname
+The unloading of any dynamically loaded shared library, or the unloading of the library libname. This is currently only available for HP-UX.
+
+tcatch event
+Set a catchpoint that is enabled only for one stop. The catchpoint is automatically deleted after the first time the event is caught.
+//--------------------------
+Sometimes catch is not the best way to debug exception handling: if you need to know exactly where an exception is raised, it is better to stop before the exception handler is called, since that way you can see the stack before any unwinding takes place. If you set a breakpoint in an exception handler instead, it may not be easy to find out where the exception was raised.
+
+To stop just before an exception handler is called, you need some knowledge of the implementation. In the case of gnu C++, exceptions are raised by calling a library function named __raise_exception which has the following ANSI C interface:
+
+/* addr is where the exception identifier is stored. id is the exception identifier. */ void __raise_exception (void **addr, void *id);
+To make the debugger catch all exceptions before any stack unwinding takes place, set a breakpoint on __raise_exception (refer to Section 7.1 Breakpoints, watchpoints, and catchpoints).
+
+With a conditional breakpoint (refer to Section 7.1.6 Break conditions) that depends on the value of id, you can stop your program when a specific exception is raised. You can use multiple conditional breakpoints to stop your program when any of a number of exceptions are raised.
+-------------
+
+
+----------
+**7.1.2. Setting watchpoints
+You can use a watchpoint to stop execution whenever the value of an expression changes, without having to predict a particular place where this may happen.
+
+Depending on your system, watchpoints may be implemented in software or hardware. gdb does software watchpointing by single-stepping your program and testing the variable's value each time, which is hundreds of times slower than normal execution. (But this may still be worth it, to catch errors where you have no clue what part of your program is the culprit.)
+
+On some systems, such as HP-UX, gnu/Linux and some other x86-based targets, gdb includes support for hardware watchpoints, which do not slow down the running of your program.
+
+
+watch expr
+Set a watchpoint for an expression. gdb will break when expr is written into by the program and its value changes.
+
+rwatch expr
+Set a watchpoint that will break when watch expr is read by the program.
+
+awatch expr
+Set a watchpoint that will break when expr is either read or written into by the program.
+
+info watchpoints
+This command prints a list of watchpoints, breakpoints, and catchpoints; it is the same as info break.
+
+gdb sets a hardware watchpoint if possible. Hardware watchpoints execute very quickly, and the debugger reports a change in value at the exact instruction where the change occurs. If gdb cannot set a hardware watchpoint, it sets a software watchpoint, which executes more slowly and reports the change in value at the next statement, not the instruction, after the change occurs.
+
+When you issue the watch command, gdb reports
+
+Hardware watchpoint num: expr
+if it was able to set a hardware watchpoint.
+
+Currently, the awatch and rwatch commands can only set hardware watchpoints, because accesses to data that don't change the value of the watched expression cannot be detected without examining every instruction as it is being executed, and gdb does not do that currently. If gdb finds that it is unable to set a hardware breakpoint with the awatch or rwatch command, it will print a message like this:
+
+Expression cannot be implemented with read/access watchpoint.
+Sometimes, gdb cannot set a hardware watchpoint because the data type of the watched expression is wider than what a hardware watchpoint on the target machine can handle. For example, some systems can only watch regions that are up to 4 bytes wide; on such systems you cannot set hardware watchpoints for an expression that yields a double-precision floating-point number (which is typically 8 bytes wide). As a work-around, it might be possible to break the large region into a series of smaller ones and watch them with separate watchpoints.
+
+If you set too many hardware watchpoints, gdb might be unable to insert all of them when you resume the execution of your program. Since the precise number of active watchpoints is unknown until such time as the program is about to be resumed, gdb might not be able to warn you about this when you set the watchpoints, and the warning will be printed only when the program is resumed:
+
+Hardware watchpoint num: Could not insert watchpoint
+If this happens, delete or disable some of the watchpoints.
+
+The SPARClite DSU will generate traps when a program accesses some data or instruction address that is assigned to the debug registers. For the data addresses, DSU facilitates the watch command. However the hardware breakpoint registers can only take two data watchpoints, and both watchpoints must be the same kind. For example, you can set two watchpoints with watch commands, two with rwatch commands, or two with awatch commands, but you cannot set one watchpoint with one command and the other with a different command. gdb will reject the command if you try to mix watchpoints. Delete or disable unused watchpoint commands before setting new ones.
+
+If you call a function interactively using print or call, any watchpoints you have set will be inactive until gdb reaches another kind of breakpoint or the call completes.
+
+gdb automatically deletes watchpoints that watch local (automatic) variables, or expressions that involve such variables, when they go out of scope, that is, when the execution leaves the block in which these variables were defined. In particular, when the program being debugged terminates, all local variables go out of scope, and so only watchpoints that watch global variables remain set. If you rerun the program, you will need to set all such watchpoints again. One way of doing that would be to set a code breakpoint at the entry to the main function and when it breaks, set all the watchpoints.
+
+Warning: In multi-thread programs, watchpoints have only limited usefulness. With the current watchpoint implementation, gdb can only watch the value of an expression in a single thread. If you are confident that the expression can only change due to the current thread's activity (and if you are also confident that no other thread can become current), then you can use watchpoints as usual. However, gdb may not notice when a non-current thread's activity changes the expression.
+
+HP-UX Warning: In multi-thread programs, software watchpoints have only limited usefulness. If gdb creates a software watchpoint, it can only watch the value of an expression in a single thread. If you are confident that the expression can only change due to the current thread's activity (and if you are also confident that no other thread can become current), then you can use software watchpoints as usual. However, gdb may not notice when a non-current thread's activity changes the expression. (Hardware watchpoints, in contrast, watch an expression in all threads.)
+
+Logging output
+
+You may want to save the output of GDB commands to a file.  There are
+several commands to control GDB's logging.
+`set logging on'
+     Enable logging.
+`set logging off'
+     Disable logging.
+`set logging file FILE'
+     Change the name of the current logfile.  The default logfile is
+     `gdb.txt'.
+`set logging overwrite [on|off]'
+     By default, GDB will append to the logfile.  Set `overwrite' if
+     you want `set logging on' to overwrite the logfile instead.
+`set logging redirect [on|off]'
+     By default, GDB output will go to both the terminal and the
+     logfile.  Set `redirect' if you want output to go only to the log
+     file.
+`show logging'
+     Show the current values of the logging settings.
+-----------
+This will only log the gdb message, not the program message.
+
+
+redirect the program's output
+set arg  arg1... argn  2>errlog>filename 2>errlog
+
+
+set variable, you can define a variable in gdb, but can't define it's type.
+set $ac=1
+ptype ac
+void
+If a function return some value, 
+call function
+$1=tt
+you can refer this variable with $1
+
+
+Search Memory
+Memory can be searched for a particular sequence of bytes with the find command
+find [/sn] start_addr, +len, val1[,val2,]
+s is b(1)  h(2) w(4) g(8) 
+n is the max number
+s and n are optional
+$_ is the address, and $numfound is the number of found
+(gdb) p str_inc
+$1 = 0x80484c0 "abcdefda"
+(gdb) x/10bx 0x80484c0
+0x80484c0:      0x61    0x62    0x63    0x64    0x65    0x66    0x64    0x61
+0x80484c8:      0x00    0x41
+(gdb) find /b 0x80484c0, +10, 0x61
+0x80484c0
+0x80484c7
+2 patterns found.
+(gdb)  x/10wx 0x80484c0
+0x80484c0:      0x64636261      0x61646665      0x20744100      0x20656874
+0x80484d0:      0x00646e65      0x00000000      Cannot access memory at address 0x80484d8
+(gdb) find /w 0x80484c0, +10,0x64636261
+0x80484c0
+1 pattern found.
+//notice here, when the format not byte, should considering the little-endian or big-endian
+(gdb) find /b 0x80484c0, +10,0x61,0x62,0x63,0x64
+0x80484c0
+1 pattern found.
+
+
+** call functions in gdb, pass parameter
+
+u need an actual memory region (a variable, or something heap-allocated).
+
+(gdb) p (int *) malloc(sizeof(int))
+$8 = (int *) 0x804b018
+(gdb) p * (int *) 0x804b018 = 17
+$9 = 17
+(gdb) p t_foo_ref<int>((const int&) * (const int *) 0x804b018 )
+17
+$10 = void
+(gdb)
+
+** call functions ,return value type not expected
+(gdb) call t3rt_type_definition_name(t3rt_value_type(content,ctx),ctx)
+$4 = 206877898
+(gdb) x/1s $4
+0xc54b4ca:       "InitialContextSetupRequest"
+
+(gdb) call (char *)t3rt_type_definition_name(t3rt_value_type(content,ctx),ctx)
+$2 = 0xc54b4ca "InitialContextSetupRequest"
+
+#########
+* gdb FAQ
+##########
+1. Where is the main GDB project page?
+
+http://sourceware.org/gdb
+2. Is there online documentation available?
+
+http://sourceware.org/gdb/current/onlinedocs/gdb
+Note: This is generated from the main development tree, and may describe features not in the release you are using.
+3. How do I disable the "Type <return> to continue, or q <return> to quit" pagination prompt in GDB?
+
+Either with set height 0 or set pagination off
+4. How do I redirect output from GDB to a file?
+
+See help set logging
+5. How can I get GDB to remember command history across sessions?
+
+(gdb) set history save on
+(gdb) set history filename ~/.gdb-history
+(gdb) set history size 1000
+Note: This may become the default, but for older GDBs do the above.
+6. GDB reports a nonsensical return value from an inferior function call. What's going on?
+
+GDB doesn't know the return type nor the type of the arguments for that function call, because there's no debug information available for it. Either provide debuginfo for the program or library which contains the function, or cast the function to a function pointer of the appropriate signature.
+For example, to call fabs, which takes a double and returns a double, use:
+(gdb) print ((double (*) (double)) fabs) ( -1.25 )
+7. How do I load/unload a shared library in GDB?
+
+GDB doesn't manipulate shared libraries. This is done by the operating system's dynamic linker running in the inferior. GDB just obtains the list of shared libraries from it, and works with that.
+If one wants to manually load a shared library into the inferior one can manually call dlopen and dlsym, or the equivalent in your system, if there is one. However you have to know whether the inferior is stopped at a safe point to do so; often that's the case, but caveat emptor.
+(gdb) set $dlopen = (void*(*)(char *, int)) dlopen
+(gdb) set $my_lib = $dlopen ("/tmp/mylib.so", 1) // 1 == RTLD_LAZY
+(gdb) set $dlsym = (void*(*)(void*, char *)) dlsym
+(gdb) set $foo = $dlsym ($my_lib, "foo") // int foo () { return 42; }
+(gdb) p $foo ()
+$1 = 42
+(gdb) set $dlclose = (int(*)(void*)) dlclose
+(gdb) call $dlclose ($my_lib)
+8. How to show the current instruction when single-stepping instructions?
+
+(gdb) display/i $pc
+9. GDB reports "Cannot find user-level thread for LWP 23957: generic error", how do I fix this?
+
+There are several common causes:
+You have a mismatch between libthread_db.so.1 and libpthread.so.0 (this most often happens when you have multiple installations of glibc, or when you debug a program on remote target, and host and target have different glibc versions).
+You are using 64-bit debugger to debug 32-bit program, and your kernel has a 32-bit ptrace emulation bug. FIXME: add reference to specific kernel fix.
+This has also been known to happen when one of DOSEMU's signal handlers is invoked from DPMI context, where the $gs register has a value different from what GDB and/or libthread_db.so.0 expect; SamuelBronson found running the program under gdbserver to alleviate the problem, at least with version 6.8.50.20090620-cvs on i386.
+10. GDB does not see any threads besides the one in which crash occurred; or SIGTRAP kills my program when I set a breakpoint.
+
+This frequently happen on Linux, especially on embedded targets. There are two common causes:
+you are using glibc, and you have stripped libpthread.so.0
+mismatch between libpthread.so.0 and libthread_db.so.1
+GDB itself does not know how to decode "thread control blocks" maintained by glibc and considered to be glibc private implementation detail. It uses libthread_db.so.1 (part of glibc) to help it do so. Therefore, libthread_db.so.1 and libpthread.so.0 must match in version and compilation flags. In addition, libthread_db.so.1 requires certain non-global symbols to be present in libpthread.so.0. Solution: use strip --strip-debug libpthread.so.0 instead of strip libpthread.so.0.
+11. GDB 6.8 doesn't compile with GCC x.y because of -Werror, what should I do?
+
+GDB 6.8 was released with -Werror configured in by default. You can disable it by configuring with:
+$ /path/to/gdb-6.8/configure --disable-werror
+12. Why doesn't anybody on the GDB IRC channel answer my question about my small distro's GDB, or my custom GDB?
+
+We can help with FSF's original GDB, and also with the GDBs shipped by the biggest distros. if you are lucky, somebody might know some peculiarities about some small distro's GDB.
+13. I've run into a bug in GDB while using XCode. Can you help?
+
+Apple has their own fork of GDB, and they are no longer pulling changes from the FSF GDB. Any bugs in this fork should be reported to Apple; there's nothing we can do about them. The FSF GDB has recently been ported to MacOS; however, it is believed that it will not work in XCode.
+14. How do I print an STL container?
+
+See STLSupport.
+15. When connecting to gdbserver I get "Remote register badly formatted", "g packet reply to long" etc.
+
+Your gdb 32bit/64bit architecture setting may not match that of gdbserver. Try to load the executable by file first. You may also check set/show architecture.
+16. When I try "break 1" or "list" I get: "No symbol table is loaded."
+
+Compile the debugged program with gcc option -g.
+17. Ending of the string is truncated with "...", is there a way to get the whole string?
+
+Use set print elements -1.
+18. How to trace every function entry and return?
+
+With recompilation try itrace.c. Without recompilation using SystemTap try a SystemTap script. Without recompilation using GDB try trace.pl GDB commands generator. Otherwise just for breakpoint on each function entry you can use GDB rbreak. With recompilation one can also put breakpoint on __cyg_profile_func_enter and __cyg_profile_func_exit as done in itrace.c.
+19. Getting an internal error or other error while attaching to processes on GNU/Linux
+
+Try setenforce 0 (SELinux) or echo 0 >/proc/sys/kernel/yama/ptrace_scope (ptrace scope) to disable system security protections.
+20. Is there a way to set commands to be run on a segfault?
+
+Without GDB you can setup (with Linux kernel) /proc/sys/kernel/core_pattern. See man 5 core. It is used by bugreporting tools like ABRT or Apport.
+21. Is there a way to step into the last call (foo) without stepping into the inner calls (bar, baz)? "foo (bar (), baz ());"
+
+Such native feature is missing in GDB (DW_TAG_GNU_call_site should make it possible now).
+There are several workarounds though:
+Write a macro using record, next, reverse-step, reverse-finish, step, record stop if the inferior functions do not run for too long.
+Get ignorefunc.cmd and use ignorefunc bar and ignorefunc baz before doing step.
+Use the skip command. Do skip bar and skip baz before doing step.
+#######################################################################
+
+search memory
+(gdb) find /b 0xb5d29b20, +741, 0x0a
+0xb5d29b46
+0xb5d29e04
+2 patterns found.
+--------
+10.22 Search Memory
+
+Memory can be searched for a particular sequence of bytes with the find command.
+
+find [/sn] start_addr, +len, val1 [, val2, ...]
+find [/sn] start_addr, end_addr, val1 [, val2, ...]
+Search memory for the sequence of bytes specified by val1, val2, etc. The search begins at address start_addr and continues for either len bytes or through to end_addr inclusive.
+s and n are optional parameters. They may be specified in either order, apart or together.
+
+s, search query size
+The size of each search query value.
+b
+bytes 
+h
+halfwords (two bytes) 
+w
+words (four bytes) 
+g
+giant words (eight bytes)
+All values are interpreted in the current language. This means, for example, that if the current source language is C/C++ then searching for the string “hello” includes the trailing '\0'.
+
+If the value size is not specified, it is taken from the value's type in the current language. This is useful when one wants to specify the search pattern as a mixture of types. Note that this means, for example, that in the case of C-like languages a search for an untyped 0x42 will search for ‘(int) 0x42’ which is typically four bytes. 
+
+n, maximum number of finds
+The maximum number of matches to print. The default is to print all finds.
+You can use strings as search values. Quote them with double-quotes ("). The string value is copied into the search pattern byte by byte, regardless of the endianness of the target and the size specification.
+
+The address of each match found is printed as well as a count of the number of matches found.
+
+The address of the last value found is stored in convenience variable ‘$_’. A count of the number of matches is stored in ‘$numfound’.
+
+For example, if stopped at the printf in this function:
+
+     void
+     hello ()
+     {
+       static char hello[] = "hello-hello";
+       static struct { char c; short s; int i; }
+         __attribute__ ((packed)) mixed
+         = { 'c', 0x1234, 0x87654321 };
+       printf ("%s\n", hello);
+     }
+you get during debugging:
+
+     (gdb) find &hello[0], +sizeof(hello), "hello"
+     0x804956d <hello.1620+6>
+     1 pattern found
+     (gdb) find &hello[0], +sizeof(hello), 'h', 'e', 'l', 'l', 'o'
+     0x8049567 <hello.1620>
+     0x804956d <hello.1620+6>
+     2 patterns found
+     (gdb) find /b1 &hello[0], +sizeof(hello), 'h', 0x65, 'l'
+     0x8049567 <hello.1620>
+     1 pattern found
+     (gdb) find &mixed, +sizeof(mixed), (char) 'c', (short) 0x1234, (int) 0x87654321
+     0x8049560 <mixed.1625>
+     1 pattern found
+     (gdb) print $numfound
+     $1 = 1
+     (gdb) print $_
+     $2 = (void *) 0x8049560
+
+
+
+
+* GNU Profiling Tool ---  GPROF
+Flat profile
+Profiling is an important aspect of software programming. Through profiling one can determine the parts in program code that are time consuming and need to be rewritten.
+
+
+** how to profile your program(list the execution time of every function)
+=================================================
+//test_gprof.c
+#include<stdio.h>
+
+void new_func1(void);
+
+void func1(void)
+{
+    printf("\n Inside func1 \n");
+    int i = 0;
+
+    for(;i<0xffffffff;i++);
+    new_func1();
+
+    return;
+}
+    int i = 0;
+
+    for(;i<0xffffffaa;i++);
+    return;
+}
+
+int main(void)
+{
+    printf("\n Inside main()\n");
+    int i = 0;
+
+    for(;i<0xffffff;i++);
+    func1();
+    func2();
+
+    return 0;
+}
+====================================
+//test_gprof_new.c
+#include<stdio.h>
+
+void new_func1(void)
+{
+    printf("\n Inside new_func1()\n");
+    int i = 0;
+
+    for(;i<0xffffffee;i++);
+
+    return;
+}
+
+*** compile/link the prg with gcc option "-pg"
+-pg : Generate extra code to write profile information suitable for the analysis program gprof. You must use this option when compiling the source files you want data about, and you must also use it when linking.
+$ gcc -Wall -pg test_gprof.c test_gprof_new.c -o test_gprof
+
+*** execute the program normally
+$./test_prof
+$ ls
+gmon.out  test_gprof  test_gprof.c  test_gprof_new.
+gmon.out is the generated profiling file
+
+*** run the gprof tool
+$  gprof test_gprof gmon.out > analysis.txt
+
+Note that one can explicitly specify the output file (like in example above) or the information is produced on stdout.
+
+$ ls
+analysis.txt  gmon.out  test_gprof  test_gprof.c  test_gprof_new.c
+
+** how to read the analyze report
+Flat profile:
+
+Each sample counts as 0.01 seconds.
+%    |   cumulative |  self     |        |  self  |  total    | 
+time |    seconds   |  seconds  | calls  |  s/call|  s/call   | name
+--------------------| ----------|--------| -------|-- --------|---------
+33.86|    15.52     |  15.52    |  1     |  15.52 |  15.52    | func2
+33.82|    31.02     |  15.50    |  1     |  15.50 |  15.50    | new_func1
+33.29|    46.27     |  15.26    |  1     |  15.26 |  30.75    | func1
+0.07 |    46.30     |  0.03     |        |        |           | main
+
+
+%33.86 means it's percentage value of the whole prg exectution time.
+=================================================================
+Call graph (explanation follows)
+
+granularity: each sample hit covers 2 byte(s) for 0.02% of 46.30 seconds
+
+index | % time  | self   |children | called  | name
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+[1]   | 100.0   | 0.03   | 46.27   |         | main [1]
+      |         | 15.26  | 15.50   |  1/1    |    func1 [2]
+      |         | 15.52  | 0.00    |  1/1    |    func2 [3]
+----- |-------  |------  |-------- |-------  |--------------
+      |         | 15.26  | 15.50   |  1/1    |    main [1]
+[2]   | 66.4    | 15.26  | 15.50   |  1      | func1 [2]
+      |         | 15.50  | 0.00    |  1/1    |    new_func1 [4]
+----- |-------  |------  |-------- |-------  |--------------
+      |         | 15.52  | 0.00    |  1/1    |    main [1]
+[3]   | 33.5    | 15.52  | 0.00    |  1      | func2 [3]
+----- |-------  |------  |-------- |-------  |--------------
+      |         | 15.50  | 0.00    |  1/1    |    func1 [2]
+[4]   |33.5     | 15.50  | 0.00    |  1      | new_func1 [4]
+----- |-------  |------  |-------- |-------  |--------------
+
+
+* static code analysis tool ----splint
+http://www.splint.org/manual/html/sec2.html
+
+
+* dynamic code analysis tool ----valgrind
+

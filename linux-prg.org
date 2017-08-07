@@ -1,0 +1,1070 @@
+* Files 
+** linux file types
+*** regular file
+the most common type of file, which contains data of some form, there's no distincation to the UNIX kernel whether this data is text or binary.
+Any interpretation of the contents of a regular file is left to the appliation processing the file.
+one notable exception to this is with binary executable files, to execute a program, the kernel must understand its format. All binary executable files conform to a format that allows the kernel to Identify where to load a program's text and data
+
+*** Directory file
+a file that contains the names of other files and pointers to information on these files. Any porcess that has read premission for a directory file can read the contents of the directory, but only the kernel can wirte directly to a directory file. Processes must uss the funtions.
+
+*** Block special file:
+a type of file providing buffered I/( access in fxed-size units to devices such as disk drives.
+
+*** character special file
+a type of file providing unbufferd I/O access in variable-sized unints to devices.
+All devices on a system are either block special files or character special files.
+
+*** FIFO
+a type of file used for communication between processes. 
+
+*** Socket
+a type of file used for network commnunication between processes.
+a socket used for non-network communication between processes on a single host. we use sockets for interprocess communication.
+
+*** Symbolic link
+a type fo file that points to another file
+
+** access rights of  regular file and directory
+[admin1@TeamCI-136 MME_SGSN_tester]$ ls -dl /tmp
+drwxrwxrwt 372 root root 146022400 Dec 26 07:10 /tmp
+===================================================
+r(read), w(wirte),executable(x)  
+d first means it's a directory
+type|  owner  | group    |other      
+---------------------------------------------
+d/- |  wr x/s | wr x/s   |wr x/t     
+s in owner  means setuid,
+s in group  means setgid
+t in other  means sticky bit
+
+#for directory w means can create/remove the files in this directories, not mean modify the file content, that's file's w bit mean.
+#for directory r means can ls the files in this directory, not meaning cat file contents, that's file's r bit mean
+#x means if file is executable. s means it could be executed and  setuid has been set, t means sticky bit set
+
+
+*** sticky bit of files/directories
+**** sticky bit of directories
+[admin1@TeamCI-136 MME_SGSN_tester]$ ls -dl /tmp
+drwxrwxrwt 372 root root 146022400 Dec 26 07:10 /tmp
+the last bit t means sticky bit, and  only the owner of the file/directory in dir /tmp could delete the files/diretories.
+though for others the permission is rwt, but only the owner itself could modify the files/direcs in /tmp 
+
+**** sticky bit of fies
+this is obsolete, no longer use
+
+*** set-user-id and set-group-id
+If a file is a executable file, then when it has been executed, the effecitve userID is for other fils access permission checks.
+
+every process has six or more IDs associated with it.
+__________________________________________________________________________
+real userID/groupID                |who we really are/ which user in evoking this executable file
+effecitve userID/groupID           |used for file acess permission checks
+saved   set-user/group-id          |saved by exec functions
+----------------------------------------------------------------------------
+
+Normally, the effective user/group ID equals the real user/group ID.
+when the file is executed, set the effective user ID of the process to be the owner of the file. so this user could acess the files which it has permission.
+when set-uid bit set, the effective userid will be the ower of the executable file, not the user who invoking this command.
+
+passwd command is like this, 
+How a regular user change the file /etc/passwd
+[admin1@TeamCI-136 MME_SGSN_tester]$ ls -l /usr/bin/passwd
+-rwsr-xr-x 1 root root 23420 Aug  3  2010 /usr/bin/passwd
+
+[admin1@TeamCI-136 MME_SGSN_tester]$ ls -lt  /etc/passwd
+-rw-r--r-- 1 root root 2042 Dec 18  2012 /etc/passwd
+
+the user other than root use passwd command to change its password, the passwd process owner will be root not this user, so it could modify /etc/passwd
+file which could be written only by root.
+
+**** access function could test if you really have the rights
+acess() will ignore the setuid bit to tell if you have the rights
+but open() function will using the setuid to use the user onwer access rights
+
+
+*** change the mode 
+chown root scri.sh
+chmod 4755 scri.sh
+这里四位的chmod值第一位是setuid的值
+4000 sets user ID on execution（owner id）
+2000 sets group ID on execution 
+1000 sets the link permission to directories or sets the save-text attribute for files
+u+s
+g+s
++t
+man chmod
+[admin1@TeamCI-136 MME_SGSN_tester]$ chmod 0777 aa
+[admin1@TeamCI-136 MME_SGSN_tester]$ ls -l aa
+-rwxrwxrwx 1 admin1 admin1 2087 Dec  1 11:02 aa
+[admin1@TeamCI-136 MME_SGSN_tester]$ chmod 7777 aa
+[admin1@TeamCI-136 MME_SGSN_tester]$ ls -l aa
+-rwsrwsrwt 1 admin1 admin1 2087 Dec  1 11:02 aa
+
+*** files being created  access rights in default
+    umask [-p] [-S] [mode]
+              The  user  file-creation mask is set to mode.  If mode begins with a digit, it is interpreted as an octal number; otherwise it is interpreted
+              as a symbolic mode mask similar to that accepted by chmod(1).  If mode is omitted, the current value of the mask is printed.  The  -S  option
+              causes  the  mask  to be printed in symbolic form; the default output is an octal number.  If the -p option is supplied, and mode is omitted,
+              the output is in a form that may be reused as input.  The return status is 0 if the mode was successfully changed or if no mode argument  was
+              supplied, and false otherwise.
+
+when you create a file, the access rights will like that.                                                                
+[admin@host]$ umask
+002
+[admin@host]$umask -S
+u=rwx,g=rxw,o=rx
+[admin1@TeamCI-136 MME_SGSN_tester]$ touch /tmp/13w   # create a new file
+[admin1@TeamCI-136 MME_SGSN_tester]$ ls -l /tmp/13w
+-rw-rw-r-- 1 admin1 admin1 0 Dec 26 08:15 /tmp/13w
+
+
+** file size
+*** a file with a hole in it
+##############################
+#include "apue.h"
+#include <fcntl.h>
+char buf1[] = "abcdefghij";
+char buf2[] = "ABCDEFGHIJ";
+int
+main(void)
+{
+int fd;
+if ((fd = creat("file.hole", FILE_MODE)) < 0)
+err_sys("creat error");
+if (write(fd, buf1, 10) != 10)
+err_sys("buf1 write error");
+/* offset now = 10 */
+if (lseek(fd, 16384, SEEK_SET) == -1)
+err_sys("lseek error");
+/* offset now = 16384 */
+if (write(fd, buf2, 10) != 10)
+err_sys("buf2 write error");
+/* offset now = 16394 */
+exit(0);
+} 
+####################################
+
+The program shown in Figure 3.2 creates a file with a hole in it.
+Running this program gives us
+$ ./a.out
+$ ls -l file.hole check its size
+-rw-r--r-- 1 sar 16394 Nov 25 01:01 file.hole
+$ od -c file.hole let's look at the actual contents
+0000000 a b c d e f g h i j \0 \0 \0 \0 \0 \0
+0000020 \0 \0 \0 \0 \0 \0 \0 \0 \0 \0 \0 \0 \0 \0 \0 \0
+*
+0040000 A B C D E F G H I J
+### 40000 is hex of 16384(bytes)
+0040012
+
+
+To prove that there is really a hole in the file, let's compare the file we've just created with a file of the same
+size, but without holes:
+$ ls -ls file.hole file.nohole compare sizes
+8 -rw-r--r-- 1 sar 16394 Nov 25 01:01 file.hole
+20 -rw-r--r-- 1 sar 16394 Nov 25 01:03 file.nohole
+Although both files are the same size, the file without holes consumes 20 disk blocks, whereas the file with
+holes consumes only 8 blocks.
+ls -s means real block size
+### du means disk use not like ls list the size of file in file system
+du -s file.hole
+the same as du -s file.nohole
+20 bytes
+
+### wc -c file.hole
+16394 file.hole
+
+##if  use cat 
+##cat file.hole >file.hole.copy
+du -s file.hole*
+20    file.hole
+16394 file.hole.copy
+
+
+*** stat and ls command
+[admin1@TeamCI-136 MME_SGSN_tester]$ stat  /etc/passwd
+  File: `/etc/passwd'
+    Size: 2042            Blocks: 8          IO Block: 4096   regular file
+    Device: 6803h/26627d    Inode: 34015952    Links: 1
+    Access: (0644/-rw-r--r--)  Uid: (    0/    root)   Gid: (    0/    root)
+    Access: 2014-12-26 07:14:47.000000000 +0200
+    Modify: 2012-12-18 11:09:57.000000000 +0200
+    Change: 2012-12-18 11:09:57.000000000 +0200
+
+
+
+** file times
+Three time fields are maintained for each file.
+Field      | Description                            | Example     | ls(1) option
+------------------------------------------------------------------|--------------
+st_atime   | last-access time of file data          | read        |   -u
+st_mtime   | last-modification time of file dat     | write       |  default
+st_ctime   | last-change time of i-nodes status     |chmod, chown |   -c
+-----------------------------------------------------------------------------------
+
+
+* Process related
+** exec functions
+execl, execlp, execle, execv, execvp - execute a file
+the first and the second argument should be the filename with path.
+like execl("./test","./test",..<argument list>.., NULL);
+
+the function won't return unless it fail to exec the file.
+
+** strace command
+　　  
+ 　　用途：打印 STREAMS 跟踪消息。
+ 　　语法：strace [ mid sid level ] ...
+ 　
+ 　描述：没有参数的 strace 命令将所有的驱动程序和模块中的所有 STREAMS 事件跟踪消息写到它的标准输出中。 这些消息是从
+ STREAMS
+ 日志驱动程序中获取的。如果提供参数，它们必须是在三元组中。每个三元组表明跟踪消息要从给定的模块或驱动程序、子标识（通常表明次要设备）以及优先级别
+ 等于或小于给定级别的模块或驱动程序中接收。all 标记可由任何成员使用，以表明对该属性没有限制。
+ 　　参数：mid---指定 STREAMS 模块的标识号  sid---指定子标识号  level----指定跟踪优先级别
+ 　　输出格式：每个跟踪消息输出的格式是：
+ 　　   跟踪序列号
+ 　　   消息时间（格式为 hh:mm:ss）
+ 　　   系统启动后，以机器滴答信号表示消息的时间
+ 　　   跟踪优先级别
+ 　　   有以下值之一： 
+　　E 
+　　 消息也在错误日志中 
+　　F 
+　　 表示一个致命错误 
+　　N 
+　　 邮件已发送给系统管理员 
+　　     源的模块标识号
+ 　　     源的子标识号
+ 　　     跟踪消息的格式化文本 
+　　在多处理器系统上， 由两部分组成：消息所有者发送处的处理器号码，格式化文本本身。
+ 　　一旦启动，strace 命令将继续执行，直到用户终止该命令。
+ 　　
+ 　　注：由于性能的考虑，所以一次只允许一个 strace 命令来打开 STREAMS 日志驱动程序。
+ 　
+ 　日志驱动程序有一个三元组的列表（该列表在命令调用中指定），并且程序会根据该列表比较每个潜在的跟踪消息，以决定是否要格式化和发送这个信息到
+ strace 进程中。因此，长的三元组列表会对 STREAMS 的总体性能的影响更大。 运行 strace
+ 命令对于某些模块和驱动程序（生成要发送给 strace 进程的跟踪消息的模块和驱动程序）的定时的影响最大。 如果跟踪消息生成过快，以至
+ strace 进程无法处理，那么就会丢失一些消息。 最后的情况可以通过检查跟踪消息输出上的序列号来确定。
+ 　　
+ 　　示例
+ 　　要输出模块标识为 41 的模块或驱动程序中的所有跟踪消息，请输入： 
+　　 
+　　strace 41 all all
+ 　　要输出模块标识为 41，子标识为 0、1 或 2 的模块或驱动程序中的跟踪消息: 
+　　 
+　　strace 41 0 1 41 1 1 41 2 0
+ 　　 子标识为 0 和 1 的模块或驱动程序中的消息必须具有小于或等于 1 的跟踪级别。子标识为 2 的模块或驱动程序中的消息必须具有跟踪级别 0。
+ 　　
+ 　　strace: option requires an argument -- e
+ 　　usage: strace [-dffhiqrtttTvVxx] [-a column] [-e expr] ... [-o file]
+ 　　              [-p pid] ... [-s strsize] [-u username] [-E var=val] ...
+ 　　              [command [arg ...]]
+ 　　   or: strace -c [-e expr] ... [-O overhead] [-S sortby] [-E var=val] ...
+ 　　              [command [arg ...]]
+ 　　-c -- count time, calls, and errors for each syscall and report summary
+ 　　-f -- follow forks, -ff -- with output into separate files
+ 　　-F -- attempt to follow vforks, -h -- print help message
+ 　　-i -- print instruction pointer at time of syscall
+ 　　-q -- suppress messages about attaching, detaching, etc.
+ 　　-r -- print relative timestamp, -t -- absolute timestamp, -tt -- with usecs
+ 　　-T -- print time spent in each syscall, -V -- print version
+ 　　-v -- verbose mode: print unabbreviated argv, stat, termio[s], etc. args
+ 　　-x -- print non-ascii strings in hex, -xx -- print all strings in hex
+ 　　-a column -- alignment COLUMN for printing syscall results (default 40)
+ 　　-e expr -- a qualifying expression: option=[!]all or option=[!]val1[,val2]...
+ 　　   options: trace, abbrev, verbose, raw, signal, read, or write
+ 　　-o file -- send trace output to FILE instead of stderr
+ 　　-O overhead -- set overhead for tracing syscalls to OVERHEAD usecs
+ 　　-p pid -- trace process with process id PID, may be repeated
+ 　　-s strsize -- limit length of print strings to STRSIZE chars (default 32)
+ 　　-S sortby -- sort syscall counts by: time, calls, name, nothing (default time)
+ 　　-u username -- run command as username handling setuid and/or setgid
+ 　　-E var=val -- put var=val in the environment for command
+ 　　-E var -- remove var from the environment for command
+ 　　
+ 　　
+ 　　strace - 跟踪系统调用和信号
+ 　　 
+　　usage: strace [-dffhiqrtttTvVxx] [-a column] [-e expr] [-o file]
+ 　　[-p pid] [-s strsize] [-u username] [command [arg]]
+ 　　strace -c [-e expr] [-O overhead] [-S sortby] [command [arg]]
+
+*** strace options
+ 　　-a column
+ 　　 指定显示返回值的列位置，默认是40(从0开始计数)，就是说"="出现在40列的位
+ 　　 置。
+ 　　 
+　　-c 产生类似下面的统计信息
+ 　　 
+　　 strace -c -p 14653 (Ctrl-C)
+ 　　 % time seconds usecs/call calls errors syscall
+ 　　 ------ ----------- ----------- --------- --------- ----------------
+ 　　 53.99 0.012987 3247 4 2 wait4
+ 　　 42.16 0.010140 2028 5 read
+ 　　 1.78 0.000429 61 7 write
+ 　　 0.76 0.000184 10 18 ioctl
+ 　　 0.50 0.000121 2 52 rt_sigprocmask
+ 　　 0.48 0.000115 58 2 fork
+ 　　 0.18 0.000043 2 18 rt_sigaction
+ 　　 0.06 0.000014 14 1 1 stat
+ 　　 0.03 0.000008 4 2 sigreturn
+ 　　 0.02 0.000006 2 3 time
+ 　　 0.02 0.000006 3 2 1 setpgid
+ 　　 ------ ----------- ----------- --------- --------- ----------------
+ 　　 100.00 0.024053 114 4 total
+ 　　 
+　　 -d 输出一些strace自身的调试信息到标准输出
+ 　　 
+　　 strace -c -p 14653 -d (Ctrl-C)
+ 　　 [wait(0x137f) = 14653]
+ 　　 pid 14653 stopped, [SIGSTOP]
+ 　　 [wait(0x57f) = 14653]
+ 　　 pid 14653 stopped, [SIGTRAP]
+ 　　 cleanup: looking at pid 14653
+ 　　 % time seconds usecs/call calls errors syscall
+ 　　 ------ ----------- ----------- --------- --------- ----------------
+ 　　 ------ ----------- ----------- --------- --------- ----------------
+ 　　 100.00 0.000000 0 total
+ 　　 
+　　 -e expr 
+　　 A qualifying expression which modifies which events to trace or how to trace
+ 　　 them. The format of the expression is:
+ 　　 
+　　 [qualifier=][!]value1[,value2]...
+ 　　 
+　　 这里qualifier可以是trace、abbrev、verbose、raw、signal、read或者write。
+ 　　 value是qualifier相关的符号或数值。缺省qualifier是trace。!表示取反。
+ 　　 -eopen等价于-e trace=open，表示只跟踪open系统调用。-etrace=!open意思是
+ 　　 跟踪除open系统调用之外的其他所有系统调用。此外value还可以取值all和none。
+ 　　 
+　　 某些shell用!表示重复历史指令，此时可能需要引号、转义符号(\)的帮助。
+ 　　 
+　　 -e trace=set
+ 　　 只跟踪指定的系统调用列表。决定跟踪哪些系统调用时，-c选项很有用。
+ 　　 trace=open,close,read,write意即只跟踪这四种系统调用，缺省是trace=all
+ 　　 
+　　 -e trace=file
+ 　　 跟踪以指定文件名做参数的所有系统调用。
+ 　　 
+　　 -e trace=process
+ 　　 Trace all system calls which involve process management. This is 
+　　 useful for watching the fork, wait, and exec steps of a process.
+ 　　 
+　　 -e trace=network
+ 　　 跟踪所有和网络相关的系统调用
+ 　　 
+　　 -e trace=signal
+ 　　 Trace all signal related system calls.
+ 　　 
+　　 -e trace=ipc
+ 　　 Trace all IPC related system calls.
+ 　　 
+　　 -e abbrev=set
+ 　　 Abbreviate the output from printing each member of large structures.
+ 　　 缺省是abbrev=all，-v选项等价于abbrev=none
+ 　　 
+　　 -e verbose=set
+ 　　 Dereference structures for the specified set of system calls. 
+　　 The default is verbose=all.
+ 　　 
+　　 -e raw=set 
+　　 Print raw, undecoded arguments for the specifed set of system calls. 
+　　 This option has the effect of causing all arguments to be printed in 
+　　 hexadecimal. This is mostly useful if you don"t trust the decoding or 
+　　 you need to know the actual numeric value of an argument.
+ 　　 
+　　 -e signal=set
+ 　　 只跟踪指定的信号列表，缺省是signal=all。signal=!SIGIO (or signal=!io) 
+　　 导致 SIGIO 信号不被跟踪
+ 　　 
+　　 -e read=set 
+　　 Perform a full hexadecimal and ASCII dump of all the data read from 
+　　 file descriptors listed in the specified set. For example, to see all
+ 　　 input activity on file descriptors 3 and 5 use -e read=3,5. Note that 
+　　 this is independent from the normal tracing of the read(2) system call
+ 　　 which is controlled by the option -e trace=read.
+ 　　 
+　　 -e write=set
+ 　　 Perform a full hexadecimal and ASCII dump of all the data written to 
+　　 file descriptors listed in the specified set. For example, to see all 
+　　 output activity on file descriptors 3 and 5 use -e write=3,5. Note 
+　　 that this is independent from the normal tracing of the write(2) 
+　　 system call which is controlled by the option -e trace=write.
+ 　　 
+　　 -f 
+　　 follow forks，跟随子进程？
+ 　　 
+　　 Trace child processes as they are created by currently traced 
+　　 processes as a result of the fork(2) system call. The new process 
+　　 is attached to as soon as its pid is known (through the return value 
+　　 of fork(2) in the parent process). This means that such children may 
+　　 run uncontrolled for a while (especially in the case of a vfork(2)), 
+　　 until the parent is scheduled again to complete its (v)fork(2) 
+　　 call. If the parent process decides to wait(2) for a child that is 
+　　 currently being traced, it is suspended until an appropriate child 
+　　 process either terminates or incurs a signal that would cause it to 
+　　 terminate (as determined from the child"s current signal disposition).
+ 　　 
+　　 意思应该是说跟踪某个进程时，如果发生fork()调用，则选择跟踪子进程
+ 　　 可以参考gdb的set follow-fork-mode设置
+ 　　 
+　　 -F 
+　　 attempt to follow vforks
+ 　　 (On SunOS 4.x, this is accomplished with some dynamic linking trickery.
+ 　　 On Linux, it requires some kernel functionality not yet in the 
+　　 standard kernel.) Otherwise, vforks will not be followed even if -f 
+　　 has been given.
+ 　　 
+　　 类似-f选项
+ 　　 
+　　 -ff 
+　　 如果-o file选项有效指定，则跟踪过程中新产生的其他相关进程的信息分别写
+ 　　 入file.pid，这里pid是各个进程号。
+ 　　 
+　　 -h 
+　　 显示帮助信息
+ 　　 
+　　 -i 
+　　 显示发生系统调用时的IP寄存器值
+ 　　 strace -p 14653 -i
+ 　　 
+　　 -o filename
+ 　　 指定保存strace输出信息的文件，默认使用标准错误输出stderr
+ 　　 
+　　 Use filename.pid if -ff is used. If the argument begins with `|" or 
+　　 with `!" then the rest of the argument is treated as a command and all
+ 　　 output is piped to it. This is convenient for piping the debugging 
+　　 output to a program without affecting the redirections of executed 
+　　 programs.
+ 　　 
+　　 -O overhead 
+　　 Set the overhead for tracing system calls to overhead microseconds.
+ 　　 This is useful for overriding the default heuristic for guessing how 
+　　 much time is spent in mere measuring when timing system calls using 
+　　 the -c option. The acuracy of the heuristic can be gauged by timing 
+　　 a given program run without tracing (using time(1)) and comparing 
+　　 the accumulated system call time to the total produced using -c.
+ 　　 
+　　 好象是用于确定哪些系统调用耗时多
+ 　　 
+　　 -p pid
+ 　　 
+　　 指定待跟踪的进程号，可以用Ctrl-C终止这种跟踪而被跟踪进程继续运行。可以
+ 　　 指定多达32个-p参数同时进行跟踪。
+ 　　 
+　　 比如 strace -ff -o output -p 14653 -p 14117
+ 　　 
+　　 -q
+ 　　 Suppress messages about attaching, detaching etc. This happens 
+　　 automatically when output is redirected to a file and the command is 
+　　 run directly instead of attaching.
+ 　　 
+　　 -r 
+　　 Print a relative timestamp upon entry to each system call. This 
+　　 records the time difference between the beginning of successive 
+　　 system calls.
+ 　　 
+　　 strace -p 14653 -i -r
+ 　　 
+　　 -s strsize
+ 　　 指定字符串最大显示长度，默认32。但文件名总是显示完整。
+ 　　 -S sortby
+ 　　 Sort the output of the histogram printed by the -c option by the 
+　　 specified critereon. Legal values are time, calls, name, and nothing
+ 　　 (default time).
+ 　　 
+　　 -t 
+　　 与-r选项类似，只不过-r采用相对时间戳，-t采用绝对时间戳(当前时钟)
+ 　　 
+　　 -tt 
+　　 与-t类似，绝对时间戳中包含微秒
+ 　　 
+　　 -ttt 
+　　 If given thrice, the time printed will include the microseconds and 
+　　 the leading portion will be printed as the number of seconds since 
+　　 the epoch.
+ 　　 
+　　 -T 
+　　 这个选项显示单个系统调用耗时
+ 　　 
+　　 -u username 
+　　 用指定用户的UID、GID以及辅助组身份运行待跟踪程序
+ 　　 
+　　 -v 
+　　 冗余显示模式
+ 　　 Print unabbreviated versions of environment, stat, termios, etc. calls.
+ 　　 These structures are very common in calls and so the default behavior 
+　　 displays a reasonable subset of structure members. Use this option to 
+　　 get all of the gory details.
+ 　　 
+　　 -V 
+　　 显示strace版本信息
+ 　　 
+　　 -x 以16进制字符串格式显示非ascii码，比如"\x08"，默认采用8进制，比如"\10"
+ 　　 
+　　 -xx 以16进制字符串格式显示所有字节
+ ＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝
+*** 应用
+ strace 命令是一种强大的工具，它能够显示所有由用户空间程序发出的系统调用。
+ 　　strace 显示这些调用的参数并返回符号形式的值。strace 从内核接收信息，而且不需要以任何特殊的方式来构建内核。
+ 　　下面记录几个常用 option . 
+　　1  -f -F选项告诉strace同时跟踪fork和vfork出来的进程
+ 　　2  -o xxx.txt   输出到某个文件。
+ 　　3  -e execve 只记录 execve 这类系统调用 
+　　-------------------------------------------------------------------------------------------------------------------------
+ 　　进程无法启动，软件运行速度突然变慢，程序的"SegmentFault"等等都是让每个Unix系统用户头痛的问题，
+ 　　本文通过三个实际案例演示如何使用truss、strace和ltrace这三个常用的调试工具来快速诊断软件的"疑难杂症"。 
+　　
+ 　　
+ 　　truss和strace用来跟踪一个进程的系统调用或信号产生的情况，而 ltrace用来跟踪进程调用库函数的情况。truss是早期为System V R4开发的调试程序，包括Aix、FreeBSD在内的大部分Unix系统都自带了这个工具；
+ 　　而strace最初是为SunOS系统编写的，ltrace最早出现在GNU/DebianLinux中。
+ 　　这两个工具现在也已被移植到了大部分Unix系统中，大多数Linux发行版都自带了strace和ltrace，而FreeBSD也可通过Ports安装它们。
+ 　　
+ 　　你不仅可以从命令行调试一个新开始的程序，也可以把truss、strace或ltrace绑定到一个已有的PID上来调试一个正在运行的程序。三个调试工具的基本使用方法大体相同，下面仅介绍三者共有，而且是最常用的三个命令行参数：
+ 　　
+ 　　-f ：除了跟踪当前进程外，还跟踪其子进程。
+ 　　-o file ：将输出信息写到文件file中，而不是显示到标准错误输出（stderr）。
+ 　　-p pid ：绑定到一个由pid对应的正在运行的进程。此参数常用来调试后台进程。
+ 　　
+ 　　  使用上述三个参数基本上就可以完成大多数调试任务了，下面举几个命令行例子：
+ 　　truss -o ls.truss ls -al： 跟踪ls -al的运行，将输出信息写到文件/tmp/ls.truss中。
+ 　　strace -f -o vim.strace vim： 跟踪vim及其子进程的运行，将输出信息写到文件vim.strace。
+ 　　ltrace -p 234： 跟踪一个pid为234的已经在运行的进程。
+ 　　
+ 　　  三个调试工具的输出结果格式也很相似，以strace为例：
+ 　　
+ 　　brk(0)                                  = 0x8062aa8
+ 　　brk(0x8063000)                          = 0x8063000
+ 　　mmap2(NULL, 4096, PROT_READ, MAP_PRIVATE, 3, 0x92f) = 0x40016000
+ 　　
+ 　　每一行都是一条系统调用，等号左边是系统调用的函数名及其参数，右边是该调用的返回值。 truss、strace和ltrace的工作原理大同小异，都是使用ptrace系统调用跟踪调试运行中的进程，详细原理不在本文讨论范围内，有兴趣可以参考它们的源代码。 
+　　举两个实例演示如何利用这三个调试工具诊断软件的"疑难杂症"：
+ 　　
+**** 　　案例一：运行clint出现Segment Fault错误
+ 　　
+ 　　操作系统：FreeBSD-5.2.1-release
+ 　　clint是一个C++静态源代码分析工具，通过Ports安装好之后，运行：
+ 　　
+ 　　# clint foo.cpp
+ 　　Segmentation fault (core dumped)
+ 　　  在Unix系统中遇见"Segmentation Fault"就像在MS Windows中弹出"非法操作"对话框一样令人讨厌。OK，我们用truss给clint"把把脉"：
+ 　　
+ 　　# truss -f -o clint.truss clint
+ 　　Segmentation fault (core dumped)
+ 　　# tail clint.truss
+ 　　  739: read(0x6,0x806f000,0x1000)               = 4096 (0x1000)
+ 　　  739: fstat(6,0xbfbfe4d0)                       = 0 (0x0)
+ 　　  739: fcntl(0x6,0x3,0x0)                        = 4 (0x4)
+ 　　  739: fcntl(0x6,0x4,0x0)                        = 0 (0x0)
+ 　　  739: close(6)                                    = 0 (0x0)
+ 　　  739: stat("/root/.clint/plugins",0xbfbfe680)   ERR#2 'No such file or directory'
+ 　　SIGNAL 11
+ 　　SIGNAL 11
+ 　　Process stopped because of:  16
+ 　　process exit, rval = 139
+ 　　我们用truss跟踪clint的系统调用执行情况，并把结果输出到文件clint.truss，然后用tail查看最后几行。
+ 　
+ 　注意看clint执行的最后一条系统调用（倒数第五行）：stat("/root/.clint/plugins",0xbfbfe680)
+ ERR#2 'No such file or
+ directory'，问题就出在这里：clint找不到目录"/root/.clint/plugins"，从而引发了段错误。怎样解决？很简单：
+ mkdir -p /root/.clint/plugins，不过这次运行clint还是会"Segmentation
+ Fault"9。继续用truss跟踪，发现clint还需要这个目录"/root/.clint/plugins/python"，建好这个目录后
+ clint终于能够正常运行了。 
+　　
+**** 案例二：vim启动速度明显变慢
+ 　　
+ 　　操作系统：FreeBSD-5.2.1-release
+ 　
+ 　vim版本为6.2.154，从命令行运行vim后，要等待近半分钟才能进入编辑界面，而且没有任何错误输出。仔细检查了.vimrc和所有的vim脚
+ 本都没有错误配置，在网上也找不到类似问题的解决办法，难不成要hacking source code？没有必要，用truss就能找到问题所在：
+ 　　
+ 　　# truss -f -D -o vim.truss vim
+ 　　
+ 　　这里-D参数的作用是：在每行输出前加上相对时间戳，即每执行一条系统调用所耗费的时间。我们只要关注哪些系统调用耗费的时间比较长就可以了，用less仔细查看输出文件vim.truss，很快就找到了疑点：
+ 　　
+ 　　735: 0.000021511 socket(0x2,0x1,0x0)       = 4 (0x4)
+ 　　735: 0.000014248 setsockopt(0x4,0x6,0x1,0xbfbfe3c8,0x4) = 0 (0x0)
+ 　　735: 0.000013688 setsockopt(0x4,0xffff,0x8,0xbfbfe2ec,0x4) = 0 (0x0)
+ 　　735: 0.000203657 connect(0x4,{ AF_INET 10.57.18.27:6000 },16) ERR#61 'Connection refused'
+ 　　735: 0.000017042 close(4)          = 0 (0x0)
+ 　　735: 1.009366553 nanosleep(0xbfbfe468,0xbfbfe460) = 0 (0x0)
+ 　　735: 0.000019556 socket(0x2,0x1,0x0)       = 4 (0x4)
+ 　　735: 0.000013409 setsockopt(0x4,0x6,0x1,0xbfbfe3c8,0x4) = 0 (0x0)
+ 　　735: 0.000013130 setsockopt(0x4,0xffff,0x8,0xbfbfe2ec,0x4) = 0 (0x0)
+ 　　735: 0.000272102 connect(0x4,{ AF_INET 10.57.18.27:6000 },16) ERR#61 'Connection refused'
+ 　　735: 0.000015924 close(4)          = 0 (0x0)
+ 　　735: 1.009338338 nanosleep(0xbfbfe468,0xbfbfe460) = 0 (0x0)
+ 　　
+ 　
+ 　vim试图连接10.57.18.27这台主机的6000端口（第四行的connect（）），连接失败后，睡眠一秒钟继续重试（第6行的
+ nanosleep（））。以上片断循环出现了十几次，每次都要耗费一秒多钟的时间，这就是vim明显变慢的原因。可是，你肯定会纳闷："vim怎么会无
+ 缘无故连接其它计算机的6000端口呢？"。问得好，那么请你回想一下6000是什么服务的端口？没错，就是X
+ Server。看来vim是要把输出定向到一个远程X
+ Server，那么Shell中肯定定义了DISPLAY变量，查看.cshrc，果然有这么一行：setenv DISPLAY
+ ${REMOTEHOST}:0，把它注释掉，再重新登录，问题就解决了。
+ 　　
+ 　　
+*** 　　案例三：用调试工具掌握软件的工作原理
+ 　　
+ 　　操作系统：Red Hat Linux 9.0
+ 　
+ 　用调试工具实时跟踪软件的运行情况不仅是诊断软件"疑难杂症"的有效的手段，也可帮助我们理清软件的"脉络"，即快速掌握软件的运行流程和工作原理，不
+ 失为一种学习源代码的辅助方法。下面这个案例展现了如何使用strace通过跟踪别的软件来"触发灵感"，从而解决软件开发中的难题的。
+ 　　大家都知道，在进程内打开一个文件，都有唯一一个文件描述符（fd：file descriptor）与这个文件对应。而本人在开发一个软件过程中遇到这样一个问题：
+ 　
+ 　已知一个fd，如何获取这个fd所对应文件的完整路径？不管是Linux、FreeBSD或是其它Unix系统都没有提供这样的API，怎么办呢？我们
+ 换个角度思考：Unix下有没有什么软件可以获取进程打开了哪些文件？如果你经验足够丰富，很容易想到lsof，使用它既可以知道进程打开了哪些文件，也
+ 可以了解一个文件被哪个进程打开。好，我们用一个小程序来试验一下lsof，看它是如何获取进程打开了哪些文件。lsof： 显示进程打开的文件。
+ 　　
+ 　　/* testlsof.c */
+ 　　#include #include #include #include #include 
+　　int main(void)
+ 　　{
+ 　　        open("/tmp/foo", O_CREAT|O_RDONLY);    /* 打开文件/tmp/foo */
+ 　　        sleep(1200);                                /* 睡眠1200秒，以便进行后续操作 */
+ 　　        return 0;
+ 　　}
+ 　　
+ 　　将testlsof放入后台运行，其pid为3125。命令lsof -p 3125查看进程3125打开了哪些文件，我们用strace跟踪lsof的运行，输出结果保存在lsof.strace中：
+ 　　
+ 　　# gcc testlsof.c -o testlsof
+ 　　# ./testlsof &
+ 　　[1] 3125
+ 　　# strace -o lsof.strace lsof -p 3125
+ 　　
+ 　　我们以"/tmp/foo"为关键字搜索输出文件lsof.strace，结果只有一条：
+ 　　
+ 　　
+ 　　# grep '/tmp/foo' lsof.strace
+ 　　readlink("/proc/3125/fd/3", "/tmp/foo", 4096) = 8
+ 　　
+ 　
+ 　原来lsof巧妙的利用了/proc/nnnn/fd/目录（nnnn为pid）：Linux内核会为每一个进程在/proc/建立一个以其pid为名
+ 的目录用来保存进程的相关信息，而其子目录fd保存的是该进程打开的所有文件的fd。目标离我们很近了。好，我们到/proc/3125/fd/看个究
+ 竟：
+ 　　
+ 　　# cd /proc/3125/fd/
+ 　　# ls -l
+ 　　total 0
+ 　　lrwx------    1 root     root           64 Nov  5 09:50 0 -> /dev/pts/0
+ 　　lrwx------    1 root     root           64 Nov  5 09:50 1 -> /dev/pts/0
+ 　　lrwx------    1 root     root           64 Nov  5 09:50 2 -> /dev/pts/0
+ 　　lr-x------    1 root     root           64 Nov  5 09:50 3 -> /tmp/foo
+ 　　# readlink /proc/3125/fd/3
+ 　　/tmp/foo
+ 　　
+ 　　答案已经很明显了：/proc/nnnn/fd/目录下的每一个fd文件都是符号链接，而此链接就指向被该进程打开的一个文件。我们只要用readlink()系统调用就可以获取某个fd对应的文件了，代码如下：
+ 　　
+ 　　
+ 　　#include #include #include #include #include #include 
+　　int get_pathname_from_fd(int fd, char pathname[], int n)
+ 　　{
+ 　　        char buf[1024];
+ 　　        pid_t  pid;
+ 　　        bzero(buf, 1024);
+ 　　        pid = getpid();
+ 　　        snprintf(buf, 1024, "/proc/%i/fd/%i", pid, fd);
+ 　　        return readlink(buf, pathname, n);
+ 　　}
+ 　　int main(void)
+ 　　{
+ 　　        int fd;
+ 　　        char pathname[4096];
+ 　　        bzero(pathname, 4096);
+ 　　        fd = open("/tmp/foo", O_CREAT|O_RDONLY);
+ 　　        get_pathname_from_fd(fd, pathname, 4096);
+ 　　        printf("fd=%d; pathname=%sn", fd, pathname);
+ 　　        return 0;
+ 　　}
+ 　　
+ 　
+ 　出于安全方面的考虑，在FreeBSD 5
+ 之后系统默认已经不再自动装载proc文件系统，因此，要想使用truss或strace跟踪程序，你必须手工装载proc文件系统：mount -t
+ procfs proc /proc；或者在/etc/fstab中加上一行：
+ 　　
+ 　　proc                   /proc           procfs  rw              0       0
+ （一）转自：
+ http://www.tianyablog.com/blogger/post_show.asp?blogid=289546&postid=5311333
+ （二）转自：http://www.tianyablog.com/blogger/post_show.asp?blogid=289546&postid=5311234
+                 
+                
+ 
+
+-f  process
+-tt timestamp
+-o filename
+strace exefile
+
+** process state, wait vs. waitpid
+*** about zombie
+zombie process is a child process exit before its parent process(eg. was spawned by fork)
+
+ 
+If you're a little bit familiar with C and UNIX programming environment, the following example might help you to understand what is a zombie process.
+
+
+#include <unistd.h>
+#include <stdlib.h>
+#include <stdio.h>
+
+int main() {
+    int pid;
+
+     /* let's create a child process */
+    pid = fork();
+    if (!pid) {
+         /* this is a child: dies immediately and becomes zombie */
+        exit(0);
+    }
+
+     /* parent process: just asks for the user input */
+     printf("Please, press enter after looking at the zombie process... %d",pid);
+     (void)getchar();
+}
+
+After compiling this program (gcc -o zombie zombie.c) and running it (./zombie), don't hurry to press enter. Run in the other terminal:
+
+$ ps aux | grep Z 
+USER  PID      STAT      COMMAND
+      1953      Z+         [zob] <defunct>
+
+But after parent's process exit, the zombie process will end also,
+If parent process wait for the child process, child process won't become zombie.
+like this waitpid(pid, NULL, 0);
+
+- See more at: http://www.linux.com/learn/answers/view/324-what-is-zombie-process#sthash.cBd4OOwF.dpuf
+
+*** about orphan process
+an orphan proces is a child process not terminated but his parenet terminated.
+Usually it will become a chold process of init.
+a daemon process is a typicall orphan process 
+
+So a child process and  parent process's runnning are very independant, Unless they use some wait or something.
+
+
+*** Overcoming hanging[edit]
+
+Note that nohupping backgrounded jobs is typically used to avoid terminating them when logging off from a remote SSH session. A different issue that often arises in this situation is that ssh is refusing to log off ("hangs"), since it refuses to lose any data from/to the background job(s).[6][7] This problem can also be overcome by redirecting all three I/O streams:
+
+$ nohup ./myprogram > foo.out 2> foo.err < /dev/null &
+Also note that a closing SSH session does not always send a HUP signal to depending processes. Among others, this depends on whether a pseudo-terminal was allocated or not.[8]
+
+
+Zombie: Processes routinely do things by "spawning" child processes and waiting for those child processes to complete. But here's the rub: "Okay, now that the child process has finished executing, how do I get its ending status? If the process is now 'dead and gone,' how do I know what happened to it?"
+
+The solution is: "it becomes a zombie." In other words, the child process is dead, but it is not quite yet gone. It won't disappear until the parent process collects its status. (And the entire reason for the "zombie" status is literally so that it is possible for the parent process to do that.)
+
+---
+
+Orphan: If a parent process dies, but its children have not, then those children are, literally, now "orphans." Linux has to put them somewhere, and what it does is to attach them temporarily as children of "process #1, init," which by definition cannot die. This makes it possible for them to be properly cleaned-up without creating a bunch of weird and messy special cases in the kernel's handling of processes.
+** the maximum memory which could be allocated in 32bit sytem
+*** virtual address space
+On x86 32-bit architecture, maximum addressable memory is 4GB=2^32.  This
+addressable space is known as "virtual address space" and those addresses are
+called "virtual addresses". Now to access physical memory, or more
+specifically, to access a physical address, a virtual address must go through
+the segmentation then paging system, known as the "mapping" process. 
+
+                         MMU
+     virtual/   +----------------------+
+        logical |  +----------------+  | logical is Intel terms
+        ------->|  | Segmented Unit |  |
+                |  +----------------+  |
+                |          | linear    | 
+                |  +----------------+  |
+                |  | Paging Unit    |  |
+                |  +----------------+  |
+                |          |           |
+                +----------|-----------+
+                           | physical
+                           |
+                           v
+
+
+In order to access *any* physical pages, that page *must* be in the process's
+page table - every process has its own page table. That is the base.
+Now, there are two "less obvious" details worth pointing out: first, even it
+is often said a process is "given" a unique 4GB virtual address space, it
+doesn't really mean that the process can do whatever it wants in that space:
+to access a paricular area inside that virtual space, it must ask kernel for a
+so-called "valid" memory area for it - the corresponding data structure
+defined in Linux is known as "vm_area_struct" or VMAs. You can check all VMAs
+associated with a process through "pmap" command on a process id.
+
+A second point is that even in theory, a process got the "potential" of
+accessing 4GB space, but say a user-space application makes use of libc, then
+libc should be mapped to the virtual space; the user-space application may
+also make use of syscalls, that means kernel will work on behalf of this
+process, so kernel image should also be mapped to process's virtual address
+space: and this mapping is better be permanent, given how often a process
+needs to switch to kernel mode. A temporary mapping scheme seems possible, but
+doesn't make much sense.
+
+To summarize, a 4GB virtual address space for a process needs to be split
+between kernel and user space program: therefore the well-known 3G/1G split.
+User space takes the 0-3GB, and kernel takes the 3GB-4GB.
+
+Thus, in the 3G/1G split, kernel has the virtual address space of 1GB.
+Remember that to access a physical address, you need a virtual address to
+start with, even for kernel. So if you don't do anything special, the 1GB
+virtual address effectively limits the physical space a kernel can access to
+1GB. Okay, maybe this is a third less obvious detail: kernel _needs_ to access
+*every* physical memory to make full use of it.
+
+*** how to find if processor is  32/64 bit
+**** uname
+ uname –m
+    This displays only the machine hardware name and indicates, as above, whether your system is 32-bit (“i686” or “i386”) or 64-bit (“x86_64”).
+
+**** file
+[root@TeamCI-136 tuorial]# file snmpdemoapp
+snmpdemoapp: ELF 32-bit LSB executable, Intel 80386, version 1 (SYSV), for GNU/Linux 2.6.9, dynamically linked (uses shared libs), not stripped
+
+**** getconf LONG_BIT
+getconf LONG_BIT command: This command check if the OS (kernel) is 32 bit or 64 bit.
+*** page table
+page table contain all entries to the physical memory page 
+physical memory page: 4k bytes,
+
+31 .........24|       23.......16|15............8|7............0|
+\----  -----------/\-----------------------/\-----------   ----/
+     \/10bits                  \/10bits                  \/12bits
+     |                          |                         |
+     |                          |                         |
+     |       page directory     |                         |    |-----|4k memory page
+     |      |--------------|    |                         |    |  .  |        
+     |      |      .       |    |       page table        |    |  .  | 
+     |      |      .       |    |      |--------------|   |    |  .  |
+     |      |--------------|    |      |    .         |   |    |-----|
+     |----->|32bit pd entry|-|  |      |    .         |   |    |     |
+            |--------------| |  |       ---------------   |--->|-----|
+            |      .       | |  |----> |32bitPT entry-|-|      |  .  |
+            |      .       | |         |--------------| |      |  .  |
+            |--------------| |         |      .       | |      |  .  |
+                             |         |      .       | |----->|-----|
+                             |-------->|--------------|
+
+*** testing code
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+ int main(int c, char** v)
+ {
+ int j = 0;
+ void *mem;
+ size_t maxMemMiB=1024*1024;
+ char ss[1024*1024] = {'a','b'};
+ for(j=1;j<4048;j++){
+
+  if ( !(mem=malloc(maxMemMiB))  )
+  {
+     printf("fail to allocate\n",j);
+     break;
+  }
+   else
+  {
+             printf("%d MB reserved alltogether succesfully at addr %p\n",j,mem);
+             memset(mem,0,maxMemMiB);
+###// memset is very import to let system actually allocate the memory space
+  }
+
+ }
+  int ccc=1234;
+  sleep(30);
+    printf("j addr is %p and c addr is %p and ccc adr is %p\n",&j,&c,&ccc);
+    printf("totally %d MB reserved alltogether succesfully\n",j);
+ }
+#####
+executing result:
+.....
+3052 MB reserved alltogether succesfully at addr 0xbfb05008
+3053 MB reserved alltogether succesfully at addr 0xbfc06008
+3054 MB reserved alltogether succesfully at addr 0xbfd07008
+3055 MB reserved alltogether succesfully at addr 0xbfe08008
+fail to allocate
+j addr is 0xbf7ffcc8 and c addr is 0xbf7ffcf0 and ccc adr is 0xbf6ffcc4
+totally 3056 MB reserved alltogether succesfully
+######free to check memory before/after sleep
+[guolili@cougar MME_SGSN_tester]$ free -m
+             total       used       free     shared    buffers     cached
+Mem:          3284       1467       1816          0         52       1222
+###only 1g memory free
+-/+ buffers/cache:        192       3091
+Swap:         7138        383       6754
+[guolili@cougar MME_SGSN_tester]$ free -m
+             total       used       free     shared    buffers     cached
+Mem:          3284       3183        100          0          0         40
+###only 100k memory left
+-/+ buffers/cache:       3142        141
+Swap:         7138        504       6633
+[guolili@cougar MME_SGSN_tester]$ fg
+############
+Buffer is just a normal memory on heap or stack managed by the OS and allocated perhaps using malloc. cache is a dedicated HW-memory that sits very close to the cpu so that you don't need to go out to external memory to fetch data for frequently used memory. The speed when accessing data through the cache is magnitudes faster than going out on RAM-memory. This is one of the reason that "cache-misses" and "cache-hits" is a vital optimization technique. If you can fit your data into the cache or minimize "cache-misses" by your program, you will have a highly optimized algorithm.
+
+
+Buffer is for storing file metadata (permissions, location, etc). Every memory page is kept track of here.
+Cache is for storing actual file contents
+
+Short answer: Cached is the size of the page cache. Buffers is the size of in-memory block I/O buffers. Cached matters; Buffers is largely irrelevant.
+
+Long answer: Cached is the size of the Linux page cache, minus the memory in the swap cache, which is represented by SwapCached (thus the total page cache size is Cached + SwapCached). Linux performs all file I/O through the page cache. Writes are implemented as simply marking as dirty the corresponding pages in the page cache; the flusher threads then periodically write back to disk any dirty pages. Reads are implemented by returning the data from the page cache; if the data is not yet in the cache, it is first populated. On a modern Linux system, Cached can easily be several gigabytes. It will shrink only in response to memory pressure. The system will purge the page cache along with swapping data out to disk to make available more memory as needed.
+
+Buffers are in-memory block I/O buffers. They are relatively short-lived. Prior to Linux kernel version 2.4, Linux had separate page and buffer caches. Since 2.4, the page and buffer cache are unified and Buffers is raw disk blocks not represented in the page cache—i.e., not file data. The Buffers metric is thus of minimal importance. On most systems, Buffers is often only tens of megabytes.
+
+
+$free -m
+               total       used       free     shared    buffers     cached
+  Mem:         14881      14813         68          0        262        883
+  -/+ buffers/cache:      13667       1213
+  Swap:         4095        240       3855
+
+Focusing on your situation,
+
+14813 (used memory) - 262 (buffered) - 883 (cached) = 13668 (used by applications).
+In the event an application needs more memory, it can be taken either from free memory or from cached/buffered, so:
+
+262 (buffered) + 883 (cached) + 68 (not used at all) = 1213 (available to applications)
+
+** signal
+Signals are software interrupts. Most nontrivial application programs need to deal with singals. Signal provide a way of handling  asynchronous events.
+
+a user at a terminal typing the interrupt key to stop a prg
+
+***  multiple signals arrive at one time
+If multiple signals arrive at one time, they couldn't be queued.
+and some of them could lost.
+this is the example:
+par.c -lpthread
+=============
+#include<pthread.h>
+#include<stdlib.h>
+#include<unistd.h>
+pthread_t tid[10];
+char cmd_str[100]= "kill -s 10  $(pidof sig1)";
+void* doSomeThing(void *arg)
+{
+    unsigned long i = 0,j =0,k=0;
+    unsigned int id = (unsigned int)pthread_self();
+
+  for (;j<5;j++){
+        printf("\n pid %d thread processing\n",id);
+        system(cmd_str);
+    }
+    for(i=0; i<(0xFFFFFFFF);i++);
+
+    return NULL;
+}
+
+int main(void)
+{
+    int i = 0;
+    int err;
+
+    while(i < 7)
+    {
+        err = pthread_create(&(tid[i]), NULL, &doSomeThing, NULL);
+        if (err != 0)
+            printf("\ncan't create thread :[%s]", strerror(err));
+        else
+            printf("\n Thread created successfully\n");
+        i++;
+     }
+     sleep(5);
+     return 0;
+}
+===========
+
+sig1.c
+===
+ void sig_hd(int signo)
+{
+  static j=0;
+  if (signo == SIGUSR1)
+      printf ("c receive SIGUSR1 %d\n", j++);
+  else if (signo == SIGUSR2)
+      printf ("c receive SIGUSR2");
+  else
+     printf("Other %d\n", signo);
+}
+int main(void)
+{
+   if(signal(SIGUSR1, sig_hd) == SIG_ERR  )
+      printf ("can't cathc SIGUSR1");
+
+   if(signal(SIGUSR2, sig_hd) == SIG_ERR  )
+      printf ("can't cathc SIGUSR2");
+   while(1)
+    sleep(1);
+   return 0;
+}
+
+======
+
+[liguo@localhost test-st]$ ./sig1
+c receive SIGUSR1 0
+c receive SIGUSR1 1
+c receive SIGUSR1 2
+c receive SIGUSR1 3
+c receive SIGUSR1 4
+c receive SIGUSR1 5
+c receive SIGUSR1 6
+c receive SIGUSR1 7
+c receive SIGUSR1 8
+c receive SIGUSR1 9
+c receive SIGUSR1 10
+c receive SIGUSR1 11
+c receive SIGUSR1 12
+c receive SIGUSR1 13
+c receive SIGUSR1 14
+c receive SIGUSR1 15
+c receive SIGUSR1 16
+c receive SIGUSR1 17
+c receive SIGUSR1 18
+c receive SIGUSR1 19
+c receive SIGUSR1 20
+c receive SIGUSR1 21
+c receive SIGUSR1 22
+c receive SIGUSR1 23
+c receive SIGUSR1 24
+c receive SIGUSR1 25
+c receive SIGUSR1 26
+c receive SIGUSR1 27
+c receive SIGUSR1 28
+c receive SIGUSR1 29
+c receive SIGUSR1 30
+---------------------------
+when par finished , sig1 only received 30 out of 5*7=35 sigusr1
+
+*** sigaction vs. signal
+the signal-handle function may have some problem when in the middle of  
+ 5 down vote accepted
+	
+
+As long as you use sigaction and not the problematic signal function to setup your signal handler, you can be sure (unless you specify otherwise) that your signal handler will not be interrupted by another occurrence of the signal it's handling. However it's possible if many child processes all die at once that you might not receive a signal for each. On each SIGCHLD, the normal procedure is to attempt to wait for children until your wait-family function says there are no children left to wait for. At this point, you can be sure that any further child termination will give you a new SIGCHLD.
+
+Also, since you're very restricted as to what functions you can use from a signal handler, you'd probably be better off just setting some sort of flag or otherwise notifying your main program loop that it should check for terminated children via one of the wait interfaces.
+
+And finally, yes, a SIGCHLD is delivered regardless of the reason the child terminated - including if it was killed by the parent.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

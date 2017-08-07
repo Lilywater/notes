@@ -1,0 +1,104 @@
+xxd -g 1 >/tmp/zz
+generated result
+[gll@TTCN9 .vim]$ cat /tmp/zz
+0000000: 3c 3f 78 6d 6c 20 76 65 72 73 69 6f 6e 3d 22 31  <?xml version="1
+0000010: 2e 30 22 20 65 6e 63 6f 64 69 6e 67 3d 22 55 54  .0" encoding="UT
+
+xxd -r  /tmp/zz
+<?xml version="1.0" encoding="UT
+
+
+or 
+[gll@TTCN9 .vim]$ cat /tmp/zz
+0000000: 3c 3f 78 6d 6c 20 76 65 72 73 69 6f 6e 3d 22 31  
+0000010: 2e 30 22 20 65 6e 63 6f 64 69 6e 67 3d 22 55 54  
+
+xxd -r  /tmp/zz
+<?xml version="1.0" encoding="UT
+
+
+
+1. convert hexstring to ascci string:
+convert model:
+echo -e "\x3C\x3F"
+<?
+
+[gll@TTCN9 .vim]$ echo "<?" |xxd -g 1
+0000000: 3c 3f 0a                                         <?.
+
+
+
+input: hexstring
+cat /tmp/ccc
+3C3F786D6C2076657273696F6E3D22312E302220656E636F64696E673D225554462D38223F3E0A3C53696D706C65436173653A697A6520786D6C6E733A7873693D22687474703A2F2F7777772E77332E6F72672F323030312F584D4C536368656D612D696E7374616E63652220786D6C6E733A53696D706C65436173653D22687474703A2F2F7777772E6578616D706C652E6F72672F53696D706C6543617365223E3C53696D706C65436173653A686561643E616E797468696E673C2F53696D706C65436173653A686561643E3C53696D706C65436173653A6D656D626572313E616E79207468696E673C2F53696D706C65436173653A6D656D626572313E3C53696D706C65436173653A6D656D626572323E736F6D657468696E673C2F53696D706C65436173653A6D656D626572323E3C53696D706C65436173653A6D656D626572332053696D706C65436173653A6261723D2235223E616E797468696E6720656C73653C2F53696D706C65436173653A6D656D626572333E3C2F53696D706C65436173653A697A653E0A00
+
+tool file he2s.awk
+BEGIN { FS="" }
+{
+  eve_two = 0;
+    for(i = 1; i <= NF; i++) {
+           if(eve_two == 0)
+            {
+               printf("\\x")
+            }
+            eve_two++
+      printf($i)
+            if(eve_two ==2)
+            {
+                eve_two =0;
+            }
+    }
+    printf("\n")
+}
+
+
+awk -f he2s.awk /tmp/ccc >/tmp/ddd  
+// add \x to every two chars in the /tmp/ccc
+like
+\x3C\x3F....
+$ cat /tmp/taa
+ 49 50 52 2f 31 2e 30 3b 55 64 70 54 63 70 49 6e
+ 64 3b 70 72 6f 74 6f 63 6f 6c 3a 74 63 70 3b 69
+ 6e 64 49 64 3a 63 6f 6e 6e 65 63 74 49 6e 64 3b
+ 6c 6f 63 61 6c 49 70 41 64 64 72 41 6e 64 50 6f
+ 72 74 3a 7b 31 30 2e 31 30 32 2e 34 33 2e 32 30
+ 33 40 36 30 36 36 30 7d 3b 73 75 74 49 70 41 64
+ 64 72 41 6e 64 50 6f 72 74 3a 7b 31 30 2e 31 30
+ 32 2e 34 33 2e 32 30 33 40 34 32 30 36 30 7d 3b
+
+
+
+
+output1:
+[gll@TTCN9 .vim]$ echo -e `cat /tmp/ddd`
+<?xml version="1.0" encoding="UTF-8"?>
+<SimpleCase:ize xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:SimpleCase="http://www.example.org/SimpleCase"><SimpleCase:head>anything</SimpleCase:head><SimpleCase:member1>any thing</SimpleCase:member1><SimpleCase:member2>something</SimpleCase:member2><SimpleCase:member3 SimpleCase:bar="5">anything else</SimpleCase:member3></SimpleCase:ize>
+
+output2:
+[gll@TTCN9 .vim]$ echo -e `cat /tmp/ddd` |xxd -g 1
+0000000: 3c 3f 78 6d 6c 20 76 65 72 73 69 6f 6e 3d 22 31  <?xml version="1
+0000010: 2e 30 22 20 65 6e 63 6f 64 69 6e 67 3d 22 55 54  .0" encoding="UT
+0000020: 46 2d 38 22 3f 3e 0a 3c 53 69 6d 70 6c 65 43 61  F-8"?>.<SimpleCa
+0000030: 73 65 3a 69 7a 65 20 78 6d 6c 6e 73 3a 78 73 69  se:ize xmlns:xsi
+0000040: 3d 22 68 74 74 70 3a 2f 2f 77 77 77 2e 77 33 2e  ="http://www.w3.
+0000050: 6f 72 67 2f 32 30 30 31 2f 58 4d 4c 53 63 68 65  org/2001/XMLSche
+0000060: 6d 61 2d 69 6e 73 74 61 6e 63 65 22 20 78 6d 6c  ma-instance" xml
+0000070: 6e 73 3a 53 69 6d 70 6c 65 43 61 73 65 3d 22 68  ns:SimpleCase="h
+0000080: 74 74 70 3a 2f 2f 77 77 77 2e 65 78 61 6d 70 6c  ttp://www.exampl
+0000090: 65 2e 6f 72 67 2f 53 69 6d 70 6c 65 43 61 73 65  e.org/SimpleCase
+00000a0: 22 3e 3c 53 69 6d 70 6c 65 43 61 73 65 3a 68 65  "><SimpleCase:he
+00000b0: 61 64 3e 61 6e 79 74 68 69 6e 67 3c 2f 53 69 6d  ad>anything</Sim
+00000c0: 70 6c 65 43 61 73 65 3a 68 65 61 64 3e 3c 53 69  pleCase:head><Si
+00000d0: 6d 70 6c 65 43 61 73 65 3a 6d 65 6d 62 65 72 31  mpleCase:member1
+00000e0: 3e 61 6e 79 20 74 68 69 6e 67 3c 2f 53 69 6d 70  >any thing</Simp
+00000f0: 6c 65 43 61 73 65 3a 6d 65 6d 62 65 72 31 3e 3c  leCase:member1><
+0000100: 53 69 6d 70 6c 65 43 61 73 65 3a 6d 65 6d 62 65  SimpleCase:membe
+0000110: 72 32 3e 73 6f 6d 65 74 68 69 6e 67 3c 2f 53 69  r2>something</Si
+0000120: 6d 70 6c 65 43 61 73 65 3a 6d 65 6d 62 65 72 32  mpleCase:member2
+0000130: 3e 3c 53 69 6d 70 6c 65 43 61 73 65 3a 6d 65 6d  ><SimpleCase:mem
+0000140: 62 65 72 33 20 53 69 6d 70 6c 65 43 61 73 65 3a  ber3 SimpleCase:
+0000150: 62 61 72 3d 22 35 22 3e 61 6e 79 74 68 69 6e 67  bar="5">anything
+0000160: 20 65 6c 73 65 3c 2f 53 69 6d 70 6c 65 43 61 73   else</SimpleCas
+0000170: 65 3a 6d 65 6d 62 65 72 33 3e 3c 2f 53 69 6d 70  e:member3></Simp
+0000180: 6c 65 43 61 73 65 3a 69 7a 65 3e 0a 00 0a        leCase:ize>...
+

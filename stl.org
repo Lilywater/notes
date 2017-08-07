@@ -1,0 +1,574 @@
+* contianer in STL
+** constainer category
+*** common category
+**** sequence container
+vector, string, deque, list
+
+**** associative container
+set,  multiset, map , multimap
+
+**** nonstarndard sequence container
+slip
+rope
+
+**** nonstandard associative constainer
+hash_set 
+hash_multiset 
+hash_map
+hash_multimap
+
+
+*** storage category
+**** continuous-memroy container(array)
+store their elements in one or more chunk of memory chunks(dynamically allocated)
+vector, string,  deque( random accesss the elements with index, but 
+insersion/deletion of elements in the middle of the contianer, it will make elements moved.)
+
+**** node-based container(list)
+store only a single element per chunk of memory(dynamically allocated)
+list, slist
+
+
+** tricks
+*** vector VS. array(c language)
+Widget w[maxNumWidgets]; //create an array of maxNumWidgets Widgets, default-constructing ecach one
+
+vector<Widget> vw;   // create a vector with zero Widget
+                     //  objects that will expand as needed
+vw.reserve(maxNumWidgets);  // enough space for maxNumWidgets Widgets without constructor them 
+
+*** call empty instead of size to check size() against zero
+if(container.size() == 0 )...
+is equivalent to writing
+if(c.empty())...
+
+empty is a constant-time operation for all containers, but for list , size takes linear time.
+why size() can't hold a variable which will be updated everytime the elements changed, but it take the time in insert/delete/splice operation.
+For exmaple, splice is a very common operation in your case, then splice of list is the constant time operation, but if you count the size when splice operate, that isn't a constant tiem operation.
+so, size will take linear time, and let splice alone with count.
+
+*** prefer range member functions to their single-element couterparts
+the easist way to make v1's contents be the same as the second half of v2's
+**** range member function
+v1.assign(v2.begin()+v2.size()/2, v2.end())   /*very good way*?
+
+****  for loop
+v1.clear();
+for ( const_iterator ci = v2.begin() + v2.size() / 2; ci != v2.end(); ++ci)
+   v1.push_back(*ci);
+
+these above two operation are the same efficiency, that's because vector is special, when adding
+elements in the end of vector won't make any elements move, and if the vector size is growing dynamically, if every 10 times you push_back
+an element will make the vector 2*size growing, then only one time insertion will save this to only one time growing..
+
+**** range construction
+contianer::container(InputIterator begin, Inputiterator end);
+
+**** range insertion
+void container::insert(iterator position, inputierator begin, inputiterator end);
+//replace the signle-element inersrts with range version, don't forget that some single-ele push_back, front_inserter or back_inserter
+
+**** rage erasure
+iterator container::erase(iterator begin, iterator end);
+
+**** Range assignment. 
+As I noted at the beginning of this Item, all standard sequence containers offer a range form of assign:
+void container::assign(lnputIterator begin, InputIterator end);
+
+
+*** vex parse of a function declaration VS. a object definetion initialized with a constructor function with parameter 
+class Widget{....};   // there is a default constructor defined here
+Widget w();           // this is a declares of function w with return type Widget.
+Widget w;             // this is a w object of class Widget initialized with default constructor
+
+but what if there's a constructor with parameter and a function declarion with paraemeter also?
+ifstream dataFile(" ints.dat");
+/*
+istream_iterator<int> dataBegin(dataFile);
+istream_iterator<int> dataEnd;
+list<int> data(dataBegin, dataEnd);     // input parameter are the interator.
+*/  equal to 
+list<int> data(istream_iterator<int>(dataFile), istream_iterator<int>());
+
+Brace yourself. This declares a function, data, whose return type is list<int>. The function data takes two parameters:
+􀂃 The first parameter is named dataFile(a formal parameter). It's type is istream_iterator<int>. The parentheses around dataFile are superfluous and are ignored.
+􀂃 The second parameter has no name. Its type is a pointer to function taking nothing and returning an istream_iterator<int>.
+
+list<int> data((istream_iterator<int>(dataFile)), istream_iterator<int>()); //to avoid the ambugious meaning, using a parentheses around it 
+to make it as a actual parameter instead of a formal parameter.
+
+*** when using container of newed pointers, delete the pointers before the container is destroyed
+**** solution 1, but not exception safe
+template<typename T>
+struct DeleteObject: // Item 40 describes why
+public unary_function<const T*, void> { //this inheritance is here
+void operator()(const T* ptr) const
+delete ptr;
+} };
+Now you can do this:
+void doSomething()
+{
+… // as before
+for_each(vwp.begin(), vwp.end(), DeleteObject<Widget>); }
+
+**** solution 2, using smart pointer(shared_ptr instead of auto_ptr)
+void doSomething()
+{
+typedef boost::shared_ ptr<Widget> SPW; //SPW = "shared_ptr
+// to Widget"
+vector<SPW> vwp;
+for (int i = 0; i < SOME_MAGIC_NUMBER; ++i)
+vwp.push_back(SPW new Widget);.....} // so when type shared_ptr out of the scope, it will release the memory automatically
+
+*** Never create containers of auto_ptrs
+bool widgetAPCompare(const auto_ptr<Widget>& lhs,
+const auto_ptr<Widget>& rhs) {
+return *lhs < *rhs; //for this example, assume that
+} // operator< exists for Widgets
+vector<auto_ptr<Widget> > widgets; // create a vector and then fill it
+//with auto_ptrs to Widgets; // remember that this should //not compile!
+sort(widgets.begin(), widgets.end(), // sort the vector
+widgetAPCompare);
+
+sort will copy the container's elements, so the elements in container may turn to NULL.
+
+*** choose carefully among erase option
+**** get rid of all the objects in c with a specific value
+***** contiguous-memory container(vector, deque, or string)
+c.erase(remove(c.begin(),c.end(),1963),  c.end() ); 
+***** list
+c.remove(1963);    // for a list, this is a most effective way
+***** associative container(set, multiset, map or multimap)
+no proper remove operation on associative container
+c.erase(1963)   // best way(log2n) for statndard associative container
+
+**** get rid of the ojectes in c with some condition
+bool badValue(int x);  // return whether x should be erased.
+***** contiguous-memory container(vector, string, deque) 
+c.erase(remove_if(c.begin(), c.end(), badValue), c.end())) // best way 
+***** list
+c.remove_if(badValue);
+***** associative container
+once c.erase(i) operation returns, iterator i will be invalided.
+
+AssocContainer<int> c;
+……
+for (AssocContainer<int>::iterator i = c.begin(); //the 3rd part of the for
+i != c.end(); // loop is empty; i is now
+/*nothing*/ ){ //incremented below
+if (badValue(*i)) c.erase(i++); //for bad values, pass the
+else ++i; //current i to erase and
+} // increment i as a side // effect; for good values, //just increment i
+
+**** get rid of the objects with some condition and also walk the value of the erasing value
+***** sequenc container
+invoking erase not only invalidates all iterators pointing to the erased element, it also invalidates all iterators beyond the erased element. In our case, that includes all iterators beyond i. It doesn't matter if we write i++, ++i,
+-----------------------------------------------------------------------------
+ofstream logFile; // log file to write to
+AssocContainer<int> c;
+…
+for (AssocContainer<int>::iterator i = c.begin(); // loop conditions are the
+i !=c.end();){ //same as before
+if (badValue(*i)){
+logFile << "Erasing " << *i <<'\n'; // write log file
+i = c.erase(i);  // 
+// instead of c.erase(i++); // erase element
+} else ++i; } 
+
+
+* Effetive CPP
+** prefer consts, enums, and inlines to #defines
+*** constant variable
+const double AspectRation = 1.653;
+const char * const authorName = "Scott Meyers";
+const std::string authorName("Scott Meyers");
+
+**** usage of constant varaible
+class GamePlayer {
+private: static const int NumTurns = 5; //illegal constant declaration
+int scores[NumTurns]; // use of constant };
+
+class GamePlayer {
+private: static const int NumTurns ; // constant declaration
+int scores[NumTurns]; // use of constant };
+const int NumTurns =5;  //initialization should be here
+
+**** using enum
+class GamePlayer {
+private:
+enum { NumTurns = 5 }; // “the enum hack” — makes
+// NumTurns a symbolic name for 5
+int scores[NumTurns]; // fine ...  };
+
+*** inline function to replace macro replacement of code
+#define CALL_WITH_MAX(a, b) f((a) > (b) ? (a) : (b))
+==========================================================
+template<typename T> // because we don’t
+inline void callWithMax(const T& a, const T& b) // know what T is, we
+{ // pass by reference-tof(
+a > b ? a : b); // const — see Item20
+}
+
+** constant
+*** constant related to pointers
+char *p;  // non-cosnt pointer/data
+const char *p ;  // non-const pointer ,const data
+char const *p ;  // non-const pointer ,const data
+char *const p ;  // const pointer, non-const data
+const char * const p ; // const pointer, const data;
+
+**** const iterator
+const vector<int>::iterator iter = vec.begin();  //iter acts like a T*const;
+*iter =10;  //ok;
+++iter;     //error! iter is const
+-----------------------------------------------------------------------------
+std::vector<int>::const_iterator cIter = // cIter acts like a const T*
+vec.begin();
+*cIter = 10; // error! *cIter is const
+++cIter; // fine, changes cIter
+
+*** const return value of a function
+class Rational{...};
+const Rational operator*(const Rational& lhs, const Rational& rhs);
+Rational a, b, c;
+(a * b) = c; // invoke operator= on the // result of a*b!
+
+*** const Member Functions
+**** The purpose of const on member functions is to identify which member functions may be invoked on const objects.
+const object can only invoke const member function,can not invoke non-const member function, 
+but non-const object could also invoke const member function.
+
+class CTextBlock {
+public:
+CTextBlock(const char *a)  {pText= new char[strlen(a)+1];  strcpy(pText, a);  }
+char& operator[](size_t position) const { return pText[position]; }
+char *pText;
+};
+int main()
+{
+  const CTextBlock ctb("Hello");
+   CTextBlock c2tb("messy");
+  cout<< "before" << ctb.pText << endl;
+  char * pc = &ctb[0];   // ctb const object could only invoke const member function
+  char * pc2 = &c2tb[0]; // non-const object could invok const member function and non-const member function.
+  *pc = 'J';
+  *pc2 = 'X';
+  cout << "after"<< c2tb.pText << endl;
+}
+**** only non-static  mutable variable could be changed in const member function
+in const member function, no non-static  member varialbe's value could be changed, unless it declared as mutable variable.
+void CTextBlock:: Text() const{ pText = null; } // error, since pText shouldn't be changed.
+unless like this:
+mutable char * pText;
+
+**** member functions differing only in their constness can be overloaded
+class TextBlock {
+public:
+const char& operator[](std::size_t position) const // operator[] for
+{ return text[position]; } // const objects
+char& operator[](std::size_t position) // operator[] for
+{ return text[position]; } // non-const objects
+private:
+std::string text;
+};
+TextBlock tb("Hello");
+std::cout << tb[0]; // calls non-const
+// TextBlock::operator[]
+const TextBlock ctb("World");
+std::cout << ctb[0]; // calls const TextBlock::operator[]
+void print(const TextBlock& ctb) // in this function, ctb is const
+{ std::cout << ctb[0]; // calls const TextBlock::operator[] ...  }
+
+**** avoid duplication in const and non-const Member Functions
+class TextBlock {
+public:
+const char& operator[](std::size_t position) const // same as before
+{ return text[position]; }
+char& operator[](std::size_t position) // now just calls const op[]
+{ return const_cast<char&>( // cast away const on // op[]’s return type;
+static_cast<const TextBlock&>(*this) // add const to *this’s type;
+[position] // call const version of op[]
+); } ...  };
+it's safe to cast a non-cosnt object into a const one
+
+
+** cpp initialization
+*** initialization list for constructor
+it will avoid assignment inside constructor function.
+it will initialize the base class firstly and its own member
+
+*** order of initialization
+the order of the initialization list is based on the declarition of the members.
+For example, base class initialization will always prior to its own members, no matter the order in the initialization list
+
+*** extern global object variable
+if you use a extern global object but you don't know when it will be initialized, it's risky to use it.
+extern FileSystem tfs;   // don't know when this will be initialized
+class Directory { // created by library client
+Directory::Directory( params )
+{
+std::size_t disks = tfs.numDisks(); // use the tfs object
+}
+for temporary files:
+Directory tempDir( params ); 
+
+**** Avoid initialization order problems across translation units by replacing non-local static objects with local static objects 
+class FileSystem { ... }; // as before
+FileSystem& tfs() // this replaces the tfs object; it could be
+{ // static in the FileSystem class
+static FileSystem fs; // define and initialize a local static object
+return fs; // return a reference to it
+}
+class Directory { ... }; // as before
+Directory::Directory( params ) // as before, except references to tfs are
+{ // now to tfs()
+...
+std::size_t disks = tfs().numDisks();
+...
+}
+Directory& tempDir() // this replaces the tempDir object; it
+{ // could be static in the Directory class
+static Directory td( params ); // define/initialize local static object
+return td; // return reference to it
+}
+
+*** default,copy constructor, assignmet, destructor would be generated by compiler
+if you don't want for example copy constructor generated by compiler to be used, you should declared it as private so that others
+can't invoke it and not implement them at all, even when the friend or member invoked it, the linker will complain also.
+------------------------
+class HomeForSale {
+private:
+HomeForSale(const HomeForSale&); // declarations only, no implementation of this function
+HomeForSale& operator=(const HomeForSale&); };
+
+**** another solution to avoid 
+class Uncopyable {
+protected: // allow construction
+Uncopyable() {} // and destruction of
+~Uncopyable() {} // derived objects...
+private:
+Uncopyable(const Uncopyable&); // ...but prevent copying
+Uncopyable& operator=(const Uncopyable&);
+};
+To keep HomeForSale objects from being copied, all we have to do now
+is inherit from Uncopyable:
+class HomeForSale: private Uncopyable { // class no longer
+... // declares copy ctor or
+};
+
+** destruction in CPP
+*** virtual destruction 
+**** Polymorphic base classes should declare virtual destructors. 
+If a class has any virtual functions, it should have a virtual destructor.
+
+****  Classes not designed to be base classes or not designed to be used polymorphically should not declare virtual destructors.
+since extra virtual function table pointer will take the extra size of the object.
+
+*** Prevent exceptions from leaving desturctor
+****  Destructors should never emit exceptions. 
+If functions called in a destructor may throw, the destructor should catch any exceptions, then swallow them or terminate the program.
+***** terminating the program
+DBConn::~DBConn()
+{
+try { db.close(); }
+catch (...) {
+make log entry that the call to close failed;
+std::abort();
+} }
+***** swallow the exception
+DBConn::~DBConn()
+{
+try { db.close(); }
+catch (...) {
+make log entry that the call to close failed;
+} }
+
+****  let the client handle exception 
+ If class clients need to be able to react to exceptions thrown during
+an operation, the class should provide a regular (i.e., non-destructor) function that performs the operation.
+class DBConn {
+public:
+void close() // new function for client use
+{
+db.close();
+closed = true;
+}
+~DBConn()
+{
+if (!closed) {
+try { // close the connection
+db.close(); // if the client didn’t
+}
+catch (...) { // if closing fails,
+make log entry that call to close failed; // note that and
+... // terminate or swallow
+} } }
+ private:
+DBConnection db;
+bool closed;
+};
+close should be invoked prior to ~DBConn(), so that client will deal with the exception not the destructor
+
+** Never call virtual functions during construction or destruction
+since the order of construction is that first base class member then derived class member
+                of desctruction is that first derived class member then bas class member
+if you invoke a derived virtual function in a base function, that's insane, since the derived class member havn't been initialized.
+
+** have assignment operators return a reference to *this
+One of the interesting things about assignments is that you can chain them together:
+int x, y, z;
+x = y = z = 15;
+class Widget {
+public:
+...
+Widget& operator=(const Widget& rhs) // the convention applies to
+{ // +=, -=, *=, etc.
+...
+return *this;
+}
+
+** handle assignment of self in operator =
+Widget& Widget::operator=(const Widget& rhs)
+{
+  if (this == rhs)  return *this;
+}
+
+** copy all part of an object
+copy constructor should also copy all the parts of base class's and all its own members.
+-------------------------------------------------------------------------------
+class PriorityCustomer: public Customer {
+*** copy constructor for base class
+PriorityCustomer::PriorityCustomer(const PriorityCustomer& rhs) : Customer(rhs), // invoke base class copy ctor
+
+*** assignment operator for base class
+PriorityCustomer& PriorityCustomer::operator=(const PriorityCustomer& rhs)
+{
+logCall("PriorityCustomer copy assignment operator");
+Customer::operator=(rhs); // assign base class parts
+priority = rhs.priority;
+return *this;
+}
+
+** using the same form in corresponding uses of new and delete
+std::string *stringArray = new std::string[100];
+..
+delete stringArray[];
+
+** store newed objects in smart pointers in standalone statements
+ProcessWidget(std::tr1::shared_ptr<Widget>(new Widget), priority()); 
+there will be three operations before function ProcessWidget invoked.
+new Widget,  priority() and shared_ptr()
+if compiler implement this in the above order, if priority() throw exception, then new Widget won't get a chance to be rleased.
+so write a standalone clause for this only one.
+-----------------------------------------------------
+std::tr1::shared_ptr<Widget> pw(new Widget); // store newed object // in a smart pointer in a // standalone statement
+processWidget(pw, priority()); // this call won’t leak
+
+** function retrun value and function actual parameter
+*** prefer pass-by-reference-to-const to pass-by-value as a function parameter
+void funct(classA obja)
+{
+  obja(actual parameter); // copy constructor of obja's initialization..
+                          // when function return, obja will be destructed by invoking destructor function  
+}                        so the pass-by-value cost would be both constructor/destructor and also the base class's constructor/destructor
+
+void funct(const classA& obja) // pass-by-reference-to-const could avoid this kind of problem
+✦ The rule doesn’t apply to built-in types and STL iterator and function object types. For them, pass-by-value is usually appropriate.
+
+*** don't try to return a reference when you must return an object
+Never return a pointer or reference to a local stack object, a reference to a heap-allocated object, or a pointer or reference to a local
+static object if there is a chance that more than one such object will be needed
+
+
+** prefer non-member non-friend functions to member functions
+Prefer non-member non-friend functions to member functions. Doing so increases encapsulation, packaging flexibility, and functional extensibility.
+
+** declare non-member functions when type conversions should apply to all parameters
+class Rational {
+public:
+Rational(int numerator = 0, // ctor is deliberately not explicit; int denominator = 1); // allows implicit int- ...
+const Rational operator*(const Rational& rhs) const;
+};
+result = oneHalf * 2; // fine
+result = 2 * oneHalf; // error!
+result = oneHalf * 2; // error! (with explicit ctor);
+// can’t convert 2 to Rational
+const Rational operator*(const Rational& lhs, // now a non-member
+const Rational& rhs) // function
+{
+return Rational(lhs.numerator() * rhs.numerator(),
+lhs.denominator() * rhs.denominator());
+}
+Rational oneFourth(1, 4);
+Rational result;
+result = oneFourth * 2; // fine
+result = 2 * oneFourth; // hooray, it works!
+This is certainly a happy ending to the tale, but there is a nagging
+
+*** consider support for a non-thrwoing swap
+**** a more effecient way to swap 
+using pointer to hide the details, thus only swap pointers, int type.
+-----------------------
+class WidgetImpl { // class for Widget data;
+private:
+int a, b, c; // possibly lots of data —
+std::vector<double> v; // expensive to copy!
+...
+};
+
+class Widget { // class using the pimpl idiom
+public:
+Widget(const Widget& rhs);
+Widget& operator=(const Widget& rhs) // to copy a Widget, copy its
+{ *pImpl = *(rhs.pImpl); // operator= in general, }
+void swap(Widget& rhs) {using std::swap; swap(pImpl, rhs.pImpl);//std's swap operation for pointers }
+private:
+WidgetImpl *pImpl; // ptr to object with this   Widget’s data }
+
+namespace WidgetStuff {
+template<typename T> // as before, including the swap
+class Widget { ... }; // member function
+...
+template<typename T> // non-member swap function;
+void swap(Widget<T>& a, Widget<T>& b) { a.swap(b); } }
+--------------------------------------
+
+client usage
+----------------------
+template<typename T> void doSomething(T& obj1, T& obj2)
+{
+swap(obj1, obj2); // which swap will this call, if T is Widget<T>, then the above one will be invoked 
+}
+
+but for the general purpose, 
+template<typename T> void doSomething(T& obj1, T& obj2)
+{ using std::swap; 
+  ... swap(obj1, obj2);  // if no specific swap for it, you could use std::swap
+
+** postpone variable definitions as long as possible
+*** postpone the varible definition in case of exception
+std::string encryptPassword()
+{
+  string encrpted;
+  ... may throw exectption
+  return encrypted;
+}
+
+// Approach A: define outside loop // Approach B: define inside loop
+Widget w;
+for (int i = 0; i < n; ++i)          { for (int i = 0; i < n; ++i) {
+w = some value dependent on i;        Widget w(some value dependent on i);
+... ...  } }
+
+Approach A: 1 consturctor + 1 destructor + n assginments
+Approach B: n constructors + n destructors
+
+** avoid returning "handles" to object internals
+return handles of internal data will make a disaster, it may dangle it, damage the encapsulating.
+It doesn’t matter whether the handle is a pointer, a reference, or an iterator. It doesn’t matter whether it’s qualified
+with const. It doesn’t matter whether the member function returning the handle is itself const. All that matters is that a handle is
+being returned, because once that’s being done, you run the risk that the handle will outlive the object it refers to.
+
+Sometimes you have to. For example, operator[]
+allows you to pluck individual elements out of strings and vectors, and
+these operator[]s work by returning references to the data in the containers

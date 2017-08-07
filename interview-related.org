@@ -1,0 +1,24 @@
+[[wo][Richard Stevens book list:
+tcp/ip illustration (volume 1 and volume 2)
+unix network programming(volume1: socket API)
+unix network programming(volume2: inter process communication)[进程间通信]
+Advanced Programming in the UNIX Environment
+高质量C++编程
+source code parckage:
+all tcp network programming source code:unpv13e(sock)
+sedip.tar.gz
+dsniff.tar.gz
+
+file:cplusplus.org
+file:design_pattern.org
+file:workinxinwei.org
+file:linux_dynamic_library_load.org
+file:algrithom.org
+file:assemble_language_deeper.org
+file:linuxnetworkrelated.org
+file:tcp-ip-illustrated.org
+file:interview-for-linux.org
+file:qt-related.org
+
+
+

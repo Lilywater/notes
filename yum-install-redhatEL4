@@ -1,0 +1,1951 @@
+ there's no yum installed on redhatEL4
+The rpm package to be prepared
+  
+in 32-bit system: (i386 meant for 32-bit)
+ftp rpmfind.net
+cd linux/dag/redhat/el4/en/i386/dag/RPMS
+ls sqlite*
+binary
+get sqlite.....rpm
+
+$rpm -ivh libsqlite-2.8.15-1.i386.rpm
+$rpm -ivh python-elementtree
+$rpm -ivh python-sqlite
+$rpm -ivh python-urlgrabber 
+$rpm -ivh yum-2.4.2-0.4.el4.rf.noarch.rpm
+
+wget ftp://rpmfind.net/linux/dag/redhat/el4/en/i386/dag/RPMS/python-elementtree-1.2.6-7.el4.rf.i386.rpm
+
+rpm -ivh *.rpm
+
+什么是RPM
+
+RPM的全称是：RedHat Package Manager     //红帽包管理工具
+
+如果Linux发行版本是redhat 、redflag 、centos 、fedora 、suse等或者衍生的版本，那么使用rpm进行软件管理最适合了。通过rpm可以来对软件进行安装、升级、查询、验证及卸载等。被rpm管理的软件包称之为“rpm包”，对于该软件包的文件名包含了很多有用信息，通常包含了软件包的名称、版本信息、操作系统信息、适应的硬件架构等等，比如：httpd-2.2.3-22.el5.i386.rpm 2.2.3 是软件的版本号，22是发行号，i386表示用于Intel x86平台
+
+安装RPM包
+
+rpm命令使用-i（表示安装）-v（显示安装过程）-h（使用#显示进度条）组合一起使用，比如说安装httpd-2.2.3-22.el5.i386.rpm该文件包：
+
+# rpm -ivh httpd-2.2.3-22.el5.i386.rpm
+warning: httpd-2.2.3-22.el5.i386.rpm: Header V3 DSA signature: NOKEY, key ID 37017186
+Preparing...                ########################################### [100%]
+   1:httpd                  ########################################### [100%]
+//可以看到该软件包安装成功，并且使用#显示安装过程
+
+--force选项与强制安装
+
+当安装软件包的时候，系统提示软件包已经安装，无法安装同版本软件的时候，有2种解决办法：一是先卸载软件包，然后重新安装；而是使用--force选项强制安装。如果某个已经安装的软件出现文件丢失或者损坏的情况，使用--force安装最好不过了。
+
+现在依旧采用上面的方法重新安装一遍httpd-2.2.3-22.el5.i386.rpm
+
+# rpm -ivh httpd-2.2.3-22.el5.i386.rpm
+warning: httpd-2.2.3-22.el5.i386.rpm: Header V3 DSA signature: NOKEY, key ID 37017186
+Preparing...                ########################################### [100%]
+        package httpd-2.2.3-22.el5.i386 is already installed
+//系统提示说该软件包已经安装了
+
+下面采用--force选项的方法强制安装：
+
+# rpm -ivh httpd-2.2.3-22.el5.i386.rpm --force
+warning: httpd-2.2.3-22.el5.i386.rpm: Header V3 DSA signature: NOKEY, key ID 37017186
+Preparing...                ########################################### [100%]
+   1:httpd                  ########################################### [100%]
+
+--nodeps选项与依赖性
+
+上面的方法使用--force可以强制覆盖安装，但是当软件包出现依赖关系的时候，--force也解决不了问题。rpm最大的不足就是包之间的依赖关系，比如要安装A包，提示说要先安装B包，找到B包安装又提示要先安装其他包。所以当实在无法解决依赖性的问题又必须安装软件包的时候，可以使用--nodeps加以解决，比如安装devhelp-devel-0.12-20.el5.i386.rpm
+
+# rpm -ivh devhelp-devel-0.12-20.el5.i386.rpm
+warning: devhelp-devel-0.12-20.el5.i386.rpm: Header V3 DSA signature: NOKEY, key ID 37017186
+error: Failed dependencies:
+        devhelp = 0.12 is needed by devhelp-devel-0.12-20.el5.i386
+        gnome-vfs2-devel >= 2.2.0 is needed by devhelp-devel-0.12-20.el5.i386
+        gtk2-devel >= 2.2.0 is needed by devhelp-devel-0.12-20.el5.i386
+        libdevhelp-1.so.0 is needed by devhelp-devel-0.12-20.el5.i386
+        libgnomeui-devel >= 2.2.0 is needed by devhelp-devel-0.12-20.el5.i386
+        libwnck-devel >= 2.10.0 is needed by devhelp-devel-0.12-20.el5.i386
+
+发现依赖包这么多，使用--nodeps忽略依赖包直接安装
+
+# rpm -ivh devhelp-devel-0.12-20.el5.i386.rpm --nodeps
+warning: devhelp-devel-0.12-20.el5.i386.rpm: Header V3 DSA signature: NOKEY, key ID 37017186
+Preparing...                ########################################### [100%]
+   1:devhelp-devel          ########################################### [100%]
+
+安装好了，当实际上该软件包的依赖没解决是无法正常使用的，所以最好把依赖关系解决
+
+批量安装或升级软件包 
+
+使用通配符*就可以进行批量的安装软件包，如安装telnet开头的软件包
+
+# rpm -ivh telnet-* --force
+warning: telnet-0.17-39.el5.i386.rpm: Header V3 DSA signature: NOKEY, key ID 37017186
+Preparing...                ########################################### [100%]
+   1:telnet-server          ########################################### [ 50%]
+   2:telnet                 ########################################### [100%]
+
+对于升级软件包则使用-U选项，表示有比已安装的软件包更高版本就升级安装，如果系统本没有这些软件包则安装之，若版本相同则不做处理
+ 
+查询rpm软件包
+
+rpm -qa 命令用于查询系统中已安装的软件包
+
+# rpm -qa //这么查询列出的软件包很多
+
+如果要具体查询某个软件包可以使用grep，比如查询是否安装了LinuxQQ：
+
+# rpm -qa |grep linuxqq
+linuxqq-v1.0.2-beta1    //可以看到已经安装了测试版QQ
+
+查询软件的相关信息，使用-i选项
+
+# rpm -qi linuxqq
+Name        : linuxqq                      Relocations: (not relocatable)
+Version     : v1.0.2                            Vendor: Tencent Inc.
+Release     : beta1                         Build Date: 2009年01月05日 星期一 01时31分44秒
+Install Date: 2010年09月29日 星期三 05时16分12秒      Build Host: localhost.localdomain
+Group       : Internet                      Source RPM: linuxqq-v1.0.2-beta1.src.rpm
+Size        : 6346491                          License: Commercial
+Signature   : (none)
+Packager    : @Home
+Summary     : QQ for Linux v1.0.2 Beta1
+Description :
+QQ - The most popular free instant messaging program in China.
+* Chat with more than 590,000,000 people all over the world.
+* Free to download or distribute absolutely.
+
+查询软件文件的安装位置，使用-l选项
+
+# rpm -ql linuxqq
+/usr
+/usr/bin
+/usr/bin/qq
+/usr/share
+/usr/share/applications
+/usr/share/applications/qq.desktop
+/usr/share/tencent
+/usr/share/tencent/qq
+/usr/share/tencent/qq/qq
+/usr/share/tencent/qq/qq.png
+/usr/share/tencent/qq/res.db
+
+查询文件归属，使用-f选项
+
+在rpm -qf 后面跟要查询的文件名，可以查询该文件属于哪个软件包。所以当某个文件丢失或者损坏的时候。就可以查询所属软件包，然后重新安装，即可恢复。
+
+# rpm -qf /usr/share/tencent    //假如此文件损坏了
+linuxqq-v1.0.2-beta1        //可以查询出所属的软件包是Linuxqq
+
+验证rpm软件包的完整性
+
+rpm命令可以使用-V选项对系统中已经安装的软件包进行验证，比如系统发生安全故障，对软件包进行验证是必不可少的事情，比如：
+
+# mv /usr/share/tencent/qq/qq /usr/share/tencent/qq/qq.backup        //把/usr/share/tencent/qq/qq重命名成备份文件
+# rpm -V linuxqq    //查询该文件包完整性
+missing     /usr/share/tencent/qq/qq    //显示丢失了/usr/share/tencent/qq/qq
+# mv /usr/share/tencent/qq/qq.backup /usr/share/tencent/qq/qq//恢复
+# rpm -V linuxqq   //查询该文件包完整性，无显示丢失文件
+
+卸载软件包
+
+使用-e选项来卸载软件包，rpm -e 软件名 （软件名可以包含版本信息，但不可以有rpm后缀）
+
+# rpm -e linuxqq
+# rpm -ql linuxqq
+package linuxqq is not installed     //卸载Linuxqq成功
+
+如果卸载软件包的时候遇到依赖关系的时候也可以使用--nodeps忽略依赖关系卸载
+
+管理rpm源码包
+
+对于一些软件包是以.src.rpm为扩展名的，这类软件包就是包含了源代码的rpm包，在安装的时候需要进行编译，步骤如下：
+
+执行rpm -i liusuping.src.rpm （假设软件包名为liusuping） 
+
+ cd /usr/src/redhat/SPECS/     //切换到该目录
+
+rpmbuild -bb liusuping.specs 或者 rpmbuild -bp liusuping.specs
+
+如果是如上的第一条命令，在/usr/src/redhat/RPMS/noarch/目录下生成一个新的rpm包，直接使用rpm -ivh xx.rpm 进行安装搞定；（推荐这种）
+
+如果是如上的第二条命令，在/usr/src/redhat/BUILD/software/目录下生成此软件包的源码包，可能通过脚本安装或编译源代码安装。
+
+==============================================
+
+RHEL4及Centos yum源配置 (2009-05-15 10:14) 
+分类： 服务器配置 
+
+一.Centos 
+ 
+yum 源配置
+#cd /etc/yum.repos.d
+#mv CentOS-Base.repo  CentOS-Base.repo.save
+#wget http://centos.ustc.edu.cn/CentOS-Base.repo.5
+#mv CentOS-Base.repo.5 CentOS-Base.repo
+ 
+ 
+
+新建一个dag.repo内容如下
+[dag]
+name=Dag RPM Repository for Red Hat Enterprise Linux
+baseurl=http://mirrors.ircam.fr/pub/dag/redhat/el$releasever/en/$basearch/dag
+http://rh-mirror.linux.iastate.edu/pub/dag/redhat/el$releasever/en/$basearch/dag
+http://wftp.tu-chemnitz.de/pub/linux/dag/redhat/el$releasever/en/$basearch/dag
+http://archive.cs.uu.nl/mirror/dag.wieers/redhat/el$releasever/en/$basearch/dag
+http://apt.sw.be/redhat/el$releasever/en/$basearch/dag
+http://mirror.cpsc.ucalgary.ca/mirror/dag/redhat/el$releasever/en/$basearch/dag
+http://rpmfind.net/linux/dag/redhat/el$releasever/en/$basearch/dag
+http://ftp.riken.jp/Linux/dag/redhat/el$releasever/en/$basearch/dag
+http://apt.sw.be/redhat/el$releasever/en/$basearch/dag
+enabled=1
+gpgcheck=1
+然后将如下代码保存为/etc/pki/rpm-gpg/RPM-GPG-KEY-dag(包括bengin和end)
+-----BEGIN PGP PUBLIC KEY BLOCK-----
+Version: GnuPG v1.2.1 (GNU/Linux)
+mQGiBD9JMT0RBAC9Q2B0AloUMTxaK73sD0cOu1MMdD8yuDagbMlDtUYA1aGeJVO6
+TV02JLGr67OBY+UkYuC1c3PUwmb3+jakZd5bW1L8E2L705wS0129xQOZPz6J+alF
+5rTzVkiefg8ch1yEcMayK20NdyOmhDGXQXNQS8OJFLTIC6bJs+7MZL83/wCg3cG3
+3q7MWHm3IpJb+6QKpB9YH58D/2WjPDK+7YIky/JbFBT4JPgTSBy611+bLqHA6PXq
+39tzY6un8KDznAMNtm+NAsr6FEG8PHe406+tbgd7tBkecz3HPX8nR5v0JtDT+gzN
+8fM3kAiAzjCHUAFWVAMAZLr5TXuoq4lGTTxvZbwTjZfyjCm7gIieCu8+qnPWh6hm
+30NgA/0ZyEHG6I4rOWqPks4vZuD+wlp5XL8moBXEKfEVOMh2MCNDRGnvVHu1P3eD
+oHOooVMt9sWrGcgxpYuupPNL4Uf6B6smiLlH6D4tEg+qCxC17zABI5572XJTJ170
+JklZJrPGtnkPrrKMamnN9MU4RjGmjh9JZPa7rKjZHyWP/z/CBrQ1RGFnIFdpZWVy
+cyAoRGFnIEFwdCBSZXBvc2l0b3J5IHYxLjApIDxkYWdAd2llZXJzLmNvbT6IWQQT
+EQIAGQUCP0kxPQQLBwMCAxUCAwMWAgECHgECF4AACgkQog5SFGuNeeYvDQCeKHST
+hIq/WzFBXtJOnQkJGSqAoHoAnRtsJVWYmzYKHqzkRx1qAzL18Sd0iEYEEBECAAYF
+Aj9JMWAACgkQoj2iXPqnmevnOACfRQaageMcESHVE1+RSuP3txPUvoEAoJAtOHon
+g+3SzVNSZLn/g7/Ljfw+uQENBD9JMT8QBACj1QzRptL6hbpWl5DdQ2T+3ekEjJGt
+llCwt4Mwt/yOHDhzLe8SzUNyYxTXUL4TPfFvVW9/j8WOkNGvffbs7g84k7a5h/+l
+IJTTlP9V9NruDt1dlrBe+mWF6eCY55OFHjb6nOIkcJwKxRd3nGlWnLsz0ce9Hjrg
+6lMrn0lPsMV6swADBQP9H42sss6mlqnJEFA97Fl3V9s+7UVJoAIA5uSVXxEOwVoh
+Vq7uECQRvWzif6tzOY+vHkUxOBRvD6oIU6tlmuG3WByKyA1d0MTqMr3eWieSYf/L
+n5VA9NuD7NwjFA1kLkoDwfSbsF51LppTMkUggzwgvwE46MB6yyuqAVI1kReAWw+I
+RgQYEQIABgUCP0kxPwAKCRCiDlIUa4155oktAKDAzm9QYbDpk6SrQhkSFy016BjE
+BACeJU1hpElFnUZCL4yKj4EuLnlo8kc=
+=mqUt
+-----END PGP PUBLIC KEY BLOCK-----
+ 
+#rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-dag
+ 
+这样就可以使用yum 升级了
+ 
+ 
+二.RHEL4
+ 
+1.yum源配置
+#wget http://centos.ustc.edu.cn/CentOS-Base.repo.5
+#mv CentOS-Base.repo.5 CentOS-Base.repo
+#vi CentOS-Base.repo
+：1,$s/$releasever/4/g                 ;将$releasever替换为4即可。
+==============================================
+
+RHEL4及Centos yum源配置 (2009-05-15 10:14) 
+分类： 服务器配置 
+
+一.Centos 
+ 
+yum 源配置
+#cd /etc/yum.repos.d
+#mv CentOS-Base.repo  CentOS-Base.repo.save
+#wget http://centos.ustc.edu.cn/CentOS-Base.repo.5
+#mv CentOS-Base.repo.5 CentOS-Base.repo
+ 
+ 
+
+新建一个dag.repo内容如下
+[dag]
+name=Dag RPM Repository for Red Hat Enterprise Linux
+baseurl=http://mirrors.ircam.fr/pub/dag/redhat/el$releasever/en/$basearch/dag
+http://rh-mirror.linux.iastate.edu/pub/dag/redhat/el$releasever/en/$basearch/dag
+http://wftp.tu-chemnitz.de/pub/linux/dag/redhat/el$releasever/en/$basearch/dag
+http://archive.cs.uu.nl/mirror/dag.wieers/redhat/el$releasever/en/$basearch/dag
+http://apt.sw.be/redhat/el$releasever/en/$basearch/dag
+http://mirror.cpsc.ucalgary.ca/mirror/dag/redhat/el$releasever/en/$basearch/dag
+http://rpmfind.net/linux/dag/redhat/el$releasever/en/$basearch/dag
+http://ftp.riken.jp/Linux/dag/redhat/el$releasever/en/$basearch/dag
+http://apt.sw.be/redhat/el$releasever/en/$basearch/dag
+enabled=1
+gpgcheck=1
+然后将如下代码保存为/etc/pki/rpm-gpg/RPM-GPG-KEY-dag(包括bengin和end)
+-----BEGIN PGP PUBLIC KEY BLOCK-----
+Version: GnuPG v1.2.1 (GNU/Linux)
+mQGiBD9JMT0RBAC9Q2B0AloUMTxaK73sD0cOu1MMdD8yuDagbMlDtUYA1aGeJVO6
+TV02JLGr67OBY+UkYuC1c3PUwmb3+jakZd5bW1L8E2L705wS0129xQOZPz6J+alF
+5rTzVkiefg8ch1yEcMayK20NdyOmhDGXQXNQS8OJFLTIC6bJs+7MZL83/wCg3cG3
+3q7MWHm3IpJb+6QKpB9YH58D/2WjPDK+7YIky/JbFBT4JPgTSBy611+bLqHA6PXq
+39tzY6un8KDznAMNtm+NAsr6FEG8PHe406+tbgd7tBkecz3HPX8nR5v0JtDT+gzN
+8fM3kAiAzjCHUAFWVAMAZLr5TXuoq4lGTTxvZbwTjZfyjCm7gIieCu8+qnPWh6hm
+30NgA/0ZyEHG6I4rOWqPks4vZuD+wlp5XL8moBXEKfEVOMh2MCNDRGnvVHu1P3eD
+oHOooVMt9sWrGcgxpYuupPNL4Uf6B6smiLlH6D4tEg+qCxC17zABI5572XJTJ170
+JklZJrPGtnkPrrKMamnN9MU4RjGmjh9JZPa7rKjZHyWP/z/CBrQ1RGFnIFdpZWVy
+cyAoRGFnIEFwdCBSZXBvc2l0b3J5IHYxLjApIDxkYWdAd2llZXJzLmNvbT6IWQQT
+EQIAGQUCP0kxPQQLBwMCAxUCAwMWAgECHgECF4AACgkQog5SFGuNeeYvDQCeKHST
+hIq/WzFBXtJOnQkJGSqAoHoAnRtsJVWYmzYKHqzkRx1qAzL18Sd0iEYEEBECAAYF
+Aj9JMWAACgkQoj2iXPqnmevnOACfRQaageMcESHVE1+RSuP3txPUvoEAoJAtOHon
+g+3SzVNSZLn/g7/Ljfw+uQENBD9JMT8QBACj1QzRptL6hbpWl5DdQ2T+3ekEjJGt
+llCwt4Mwt/yOHDhzLe8SzUNyYxTXUL4TPfFvVW9/j8WOkNGvffbs7g84k7a5h/+l
+IJTTlP9V9NruDt1dlrBe+mWF6eCY55OFHjb6nOIkcJwKxRd3nGlWnLsz0ce9Hjrg
+6lMrn0lPsMV6swADBQP9H42sss6mlqnJEFA97Fl3V9s+7UVJoAIA5uSVXxEOwVoh
+Vq7uECQRvWzif6tzOY+vHkUxOBRvD6oIU6tlmuG3WByKyA1d0MTqMr3eWieSYf/L
+n5VA9NuD7NwjFA1kLkoDwfSbsF51LppTMkUggzwgvwE46MB6yyuqAVI1kReAWw+I
+RgQYEQIABgUCP0kxPwAKCRCiDlIUa4155oktAKDAzm9QYbDpk6SrQhkSFy016BjE
+BACeJU1hpElFnUZCL4yKj4EuLnlo8kc=
+=mqUt
+-----END PGP PUBLIC KEY BLOCK-----
+ 
+#rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-dag
+ 
+这样就可以使用yum 升级了
+ 
+ 
+二.RHEL4
+ 
+1.yum源配置
+#wget http://centos.ustc.edu.cn/CentOS-Base.repo.5
+#mv CentOS-Base.repo.5 CentOS-Base.repo
+#vi CentOS-Base.repo
+：1,$s/$releasever/4/g                 ;将$releasever替换为4即可。
+ 
+2.运行update: 
+
+yum update 
+
+
+3.升级： 
+
+yum upgrade 
+
+
+3.安装其它软件，例如： 
+
+yum install ipvsadm
+e
+内容如下
+[dag]
+name=Dag RPM Repository for Red Hat Enterprise Linux
+baseurl=http://mirrors.ircam.fr/pub/dag/redhat/el$releasever/en/$basearch/dag
+http://rh-mirror.linux.iastate.edu/pub/dag/redhat/el$releasever/en/$basearch/daghttp://wftp.tu-chemnitz.de/pub/linux/dag/redhat/el$releasever/en/$basearch/dag
+http://archive.cs.uu.nl/mirror/dag.wieers/redhat/el$releasever/en/$basearch/dag
+http://apt.sw.be/redhat/el$releasever/en/$basearch/dag
+http://mirror.cpsc.ucalgary.ca/mirror/dag/redhat/el$releasever/en/$basearch/dag
+http://rpmfind.net/linux/dag/redhat/el$releasever/en/$basearch/dag
+http://ftp.riken.jp/Linux/dag/redhat/el$releasever/en/$basearch/dag
+http://apt.sw.be/redhat/el$releasever/en/$basearch/dag
+enabled=1
+gpgcheck=1
+
+
+2.运行update: 
+
+yum update 
+
+
+3.升级： 
+
+yum upgrade 
+
+
+3.安装其它软件，例如： 
+
+yum install ipvsadm
+=====================
+
+SSH Secure Shell Client 使用SSH远程登录时，vim不会显示语法高亮！解决办法如下: 
+1.在/etc/profile里加上export TERM=dtterm 
+2.设置用户目录（就是登陆是的用户）下.vimrc（或者修改/etc/vimrc，所有用户有效）。执行以下语句可以显示语法高亮。 
+    :syntax enable 
+  :source $VIMRUNTIME/syntax/php.vim 
+
+=====
+if there's no package management to use, 
+we can download source code for example vim, we can use ./configue --enable-multibyte(for chinese)
+make && make install
+
+sed 's#\(.*function[[:space:]]\+\)\([^[:space:]]\+\)\([[:space:]]*(\)#\2  \1\2\3#'
+erep   -e  "^[[:space:]]*function[[:space:]]*[^[:space:]]\+[[:space:]]*("  *.ttcn |sed 's#\(.*\):\(.*\)#\1\  /^\2\$\/;"  f#'    |  sed 's#\(.*function[[:space:]]\+\)\([^[:space:]]\+\)\([[:space:]]*(\)#\2  \1\2\3#'
+set -x
+
+#####################get the definition of function,type and template for ttcn files
+grep -nH -r  -e  "^[[:space:]]*function[[:space:]]*[^[:space:]]\+[[:space:]]*("   --include=*.ttcn ~/ttcn/MME_SGSN_tester/  >~/ttcn/MME_SGSN_tester/tags_ttcn
+  
+grep -r -nH -e  "^[[:space:]]*template[[:space:]]\+[^[:space:]]\+[[:space:]]\+[^[:space:]]\+[[:space:]]*("  --include=*.ttcn  ~/ttcn/MME_SGSN_tester/  >~/ttcn/MME_SGSN_tester/tags_ttcn_type
+grep -r -nH -e "^[[:space:]]*type[[:space:]]\+[^[:space:]]\+[[:space:]]\+[^[:space:]]\+" --include=*.ttcn  ~/ttcn/MME_SGSN_tester/ >~/ttcn/MME_SGSN_tester/tags_ttcn_temp
+################################################
+
+make -f MakefileCutTime SCOPE=verify -j3 auto_gen > 111
+make -f MakefileCutTime clean 
+ifconfig: command not found
+dhclient  reconnect dhcp server
+whereis ifconfig
+ifconfig eth0 down             then      ifconfig eth0 up
+/etc/init.d/network restart  
+service network restart
+
+
+ddd --args MMETester -t3tclog-hide string -t3tclog-suppress message_decode_failure -t3rt "-parfile ../run/default/TesterModPar.par -parfile ../run/default/Verification.par -par TesterModPars.mp_test_case_name \"tc_BssgpSndcpSnData\" -file ../run/default/TesterConfig.txt" -t3tclog-dir ../run/log/ "$@" 2> ../run/log/Error.log | tee  ../run/log/run.log
+
+ddd -d <source-search-dir> --args <exe> <exeparm>
+
+dir /home/liguo/ttcn/TBPT/protocols/traffica/traffica1/codec/src:/home/liguo/ttcn/ttcn3libs/codec/EapTabCodecs/src
+dir ~/ttcn/ttcn3libs/codec/EAPcodecAPI/TauT3/src
+b TrafficaCustomCodecs.c:DecodeTrafficaBCDTIMEStringValue
+/////(gdb) break EncodeTabStructuredTypes.c:63
+Breakpoint 3 at 0xa13c10d: file EncodeTabStructuredTypes.c, line 63.
+
+4       breakpoint     keep y   0x0a8dbec5 in invokeTabDecoder4Type at DecodeTabStructuredTypes.c:95
+        stop only if strtrcmp(EAPgetTypeNodeName(typeNode),"UEAMBRValue")==0
+
+(gdb) condition 3 strcmp(EAPgetTypeNodeName(typeNode),"CreateSessionResponse")==0
+(gdb) condition 6 strcmp(EAPgetTypeNodeName(typeNode),"GtpV2ErrorIeList")==0
+b LeDecodeTabStructuredTypes.c:95
+b DecodeTabStructuredTypes.c:94
+//invokeTabDecoder4Type
+b TrafficaCodecT3.c:DecodeTrafficaMsg
+getFixedStrLenEncoding
+call EAPgetTypeNodeName(typeNode)
+call EAPgetMsgSizeInBytes(encMsg)
+call EAPgetMsgSizeInbits(encMsg)
+set args 
+info stack/function/shared/threads/signals
+info function XXfunc
+info address xxfunc
+b invokeTabEncoder4Type
+
+EncodeTabEncodedListValue  childNum 17PgetTypeNodeName
+==================
+ ../run/default/Verification.par 
+the parameter can be modified in this file
+modulepar { octetstring mp_trafficaHexDump := '0320000c0000000000000082'O; }
+TrafficaCodecTestCases.mp_trafficaHexDump := '0320000c0000000000000082'O;
+
+testcase dir
+~/ttcn/MME_SGSN_tester/ttcn/base/<protocol>/           
+[liguo@localhost protocols]$ find  ~/ttcn/MME_SGSN_tester/ttcn/base -iname "traff*.ttcn"
+/home/liguo/ttcn/MME_SGSN_tester/ttcn/base/traffica/TrafficaTCVRecords.ttcn
+/home/liguo/ttcn/MME_SGSN_tester/ttcn/base/traffica/TrafficaCommonBehaviour.ttcn
+/home/liguo/ttcn/MME_SGSN_tester/ttcn/base/traffica/TrafficaCodecTestCases.ttcn
+/home/liguo/ttcn/MME_SGSN_tester/ttcn/base/traffica/TrafficaDefaults.ttcn
+/home/liguo/ttcn/MME_SGSN_tester/ttcn/base/traffica/TrafficaTestSystem.ttcn
+
+
+Message dir
+~/ttcn/MME_SGSN_tester/ttcn3libs/ttcn
+[liguo@localhost protocols]$ find ~/ttcn/MME_SGSN_tester/ttcn3libs/ttcn -iname "traff*.ttcn"
+/home/liguo/ttcn/MME_SGSN_tester/ttcn3libs/ttcn/Traffica.ttcn
+
+Codec dir
+~/ttcn/TBPT/protocols/<protocol>/
+[liguo@localhost protocols]$ find ~/ttcn/TBPT/protocols -iname "traffica*.c"
+/home/liguo/ttcn/TBPT/protocols/traffica/traffica1/codec/src/TrafficaCustomCodecs.c
+/home/liguo/ttcn/TBPT/protocols/traffica/traffica1/codec/src/TrafficaCodecT3.c
+/home/liguo/ttcn/TBPT/protocols/traffica/traffica1/codec/src/TrafficaCustomCompFcts.c
+
+
+=================
+the debugger of the tabc codec 
+frame#0 and frame#2 are in the same function, 
+break point hit to LeDecodeTabStructuredTypes.c:381 when the field of record in frame #2,
+decoded error
+So you can get the first layer of the record error in frame #2, the field iterator 
+the filed iterator in frame#0 is related to the filed iterator in frame #2
+
+(gdb) bt
+#0  LeDecodeTabEncodedRecordValue (encMsg=0xe41baa0, valueNode=0xe421d10, encLength=-1, valueMustBePresent=63 '?') at LeDecodeTabStructuredTypes.c:381
+#1  0x0a1284f1 in LeinvokeTabDecoder4Type (encMsg=0xe41baa0, valueNode=0xe421d10, encLength=-1, valueMustBePresent=63 '?') at LeDecodeTabStructuredTypes.c:101
+#2  0x0a128cc0 in LeDecodeTabEncodedRecordValue (encMsg=0xe41baa0, valueNode=0xe41c5a0, encLength=-1, valueMustBePresent=63 '?') at LeDecodeTabStructuredTypes.c:373
+#3  0x0a1284f1 in LeinvokeTabDecoder4Type (encMsg=0xe41baa0, valueNode=0xe41c5a0, encLength=-1, valueMustBePresent=63 '?') at LeDecodeTabStructuredTypes.c:101
+#4  0x0a128774 in LeDecodeTabEncodedUnionValue (encMsg=0xe41baa0, valueNode=0xe41c248, encLength=-1, valueMustBePresent=121 'y') at LeDecodeTabStructuredTypes.c:191
+#5  0x0a12851a in LeinvokeTabDecoder4Type (encMsg=0xe41baa0, valueNode=0xe41c248, encLength=-1, valueMustBePresent=121 'y') at LeDecodeTabStructuredTypes.c:107
+#6  0x0a128398 in LestartTabDecode (encMsg=0xe41baa0, expectedRootValueNode=0xe41c248) at LeDecodeTabStructuredTypes.c:61
+#7  0x09b084ec in DecodeTrafficaMsg (encoded_data=0x4a08780, type=0xc86b1a0, strategy=t3rt_temp_alloc_c, decoded_value=0x4a0877c, ctx=0x4a08a00) at TrafficaCodecT3.c:329
+#8  0x099698f9 in t3rt_decode ()
+#9  0x099b0905 in t3rt__port_try_receive_support ()
+#10 0x099b0f0d in t3rt_port_try_receive ()
+#11 0x08931b1a in t3cg_f_sendRawReceive_func ()
+#12 0x099784cb in t3rt_call_function ()
+#13 0x089394a5 in t3cg_tc_TrafficaRaw_testcase ()
+#14 0x0997ae43 in dispatch_start ()
+#15 0x0997934b in t3rt__dispatch_control_message ()
+#16 0x0996eb1f in t3rt_component_main ()
+#17 0x09a219a2 in ex_thread_main ()
+#18 0x009f7371 in start_thread () from /lib/tls/libpthread.so.0
+#19 0x0084c9be in clone () from /lib/tls/libc.so.6
+
+
+---------
+in the frame #4 to decode union value is the root layer of decoding, eg
+type union TrafficaMessage {
+      //HeartBeat       heartBeat,
+      HeartBeatReply  heartBeatReply,
+      MmeMmRtt        mmeMmRtt,
+      MmeHoRtt        mmeHoRtt,
+      MmeSmRtt        mmeSmRtt,
+
+      Rtt             rtt,
+      PdpRtt          pdpRtt,
+
+      RawTrafficaMsg  anyMsg
+      }
+
+    type octetstring RawTrafficaMsg;
+
+    type enumerated TrafficaReportId {
+      //e_heart_beat       (0),
+      e_rtt             (776),//0x308 5.1
+      e_pdp_rtt          (777), //0x309
+      e_heart_beat_reply (18177),//ReportId  0x4701
+      e_mme_mm_rtt       (18178),//0x4702 Report type = 1
+      e_mme_ho_rtt       (18179), //0x4703 Report type = 2
+      e_mme_sm_rtt       (18180)//0x4704 Report type = 3
+      // ... more coming when MME specific reports have been defined
+----------------
+every record has a TrafficaReportId as the first field in the record, so many will failed in the first one
+,if not failed in the first one, means the codec of that record error
+
+
+grep -r -nH  -w "a_CeaMsg_DRA_Relay" ~/ttcn/MME_SGSN_tester/ --include=*.ttcn |tee /tmp/fl
+vim --cmd "lg /tmp/fl" --cmd "lopen"
+
+set path+=~/ttcn/MME_SGSN_tester/ttcn3libs/ttcn
+###################
+make system
+make -f MakefileCutTime SCOPE=verify -j3 auto_gen 1>11 2>erlog
+grep -w Error /home/liguo/ttcn/MME_SGSN_tester/project/Erlog >/tmp/erl
+vim --cmd "set errorformat+=%f(%l)\ :\ column\ %c\ :\ %m" --cmd "cfile /tmp/erl"  --cmd "copen"
+
+########################################
+~/ttcn/MME_SGSN_tester/ttcn/base/system
+
+
+sed '/\/\*/{:a;N;/\*\//d;ba};s,//.*,,' 
+
+
+ echo "cc/*ete*/te" |sed   "s/\/\*.*\*\// /"
+[liguo@localhost ~]$ echo "t  ////test" |sed   "s/^\([^/]*\)\/.*$/\1/"
+t
+
+tr -d '\001'-'\011''\013''\014''\016'-'\037''\200'-'\377'
+^I '\011' 
+sed '/\/\/.*\/\*/d'
+ sed '/\/\/\*/d'
+sed '/\/\*/{:a;N; s#\/\*.*\*\/#\n#g ;ba}' /tmp/ex2
+sed -i 's/\/\/.*//' *.ttcn
+grep -w "Error" res > fl
+//read the file dynamically
+tail -f filename
+/makeScope.sh all 4
+/makeScope.sh verify 4
+
+====================
+
+--- MakefileCutTime     (revision 11689)
++++ MakefileCutTime     (working copy)
+@@ -281,7 +281,7 @@
+ LIBS_USER=\
+        crypto \
+        z
+-OTHER_USER_LIBS=\
++OTHER_USER_LIBS=  /opt/tools/openssl/lib/libcrypto.a\
+
+===================================================================
+--- Makefile    (revision 11689)
++++ Makefile    (working copy)
+@@ -247,7 +247,7 @@
+ LIBS_USER=\
+        crypto \
+        z
+-OTHER_USER_LIBS=\
++OTHER_USER_LIBS=  /opt/tools/openssl/lib/libcrypto.a \
+ #/home/abergpet/T3devel/MME/PetrinCore31Devel/openssl-0.9.8b/libcrypto.a
+ else
+ OTHER_USER_LIBS = \
+==========================================
+subMake.verify
+CODEC_TESTCASE_FILES=$(sort BssappCodecTestCases.ttcn CapMirrorTestCases.ttcn \
+                            CapTestCases.ttcn DiameterCodecTestCases3GPP.ttcn \
+                            GbCodecTestCases.ttcn GtpV2CodecTestCasesCore3.ttcn \
+                            GtpV2CodecTestCasesCore7.ttcn GtpV2CodecTestCases.ttcn \
+                            GtpV0CodecTestCases.ttcn GtpV1CodecTestCases.ttcn \
+                            Lip1CodecTestCases.ttcn Lip2CodecTestCases.ttcn \
+                            MapFunctions.ttcn MapMirrorTestCases.ttcn MapTestCases.ttcn \
+                            RanapTestCases.ttcn SgsapCodecTestCases.ttcn TrafficaCodecTestCases.ttcn \
+                            S1apTestCases SbcCodecTestCases CustomCodecTestCases.ttcn\
+
+========
+==============================
+
+
+
+++++++++
+ svn diff  -r 11579:11580  S1apTestCases.ttcn
+svn diff --help
+svn log filename
+##to get the revision
+svn log -v -r 11702:11703
+svn status -u <filename>
+[lili@localhost project]$ svn status -u ../ttcn3libs/ttcn/DiameterS6AVPTemplates.ttcn
+       *    11733   ../ttcn3libs/ttcn/DiameterS6AVPTemplates.ttcn
+Status against revision:  12589
+
+------------------------------------------------------------------------
+r11702 | j4lahti | 2012-04-17 21:12:35 +0800 (Tue, 17 Apr 2012) | 1 line
+Changed paths:
+   M /trunk/MME_SGSN_tester/ttcn/mme/testcases/Configuration_Management/NS_59_8_TAI_List_In_Inter_System_TAU_And_Attach.ttcn
+
+NS21 FT19 Updated documentation part
+------------------------------------------------------------------------
+r11703 | glili | 2012-04-18 09:55:55 +0800 (Wed, 18 Apr 2012) | 2 lines
+Changed paths:
+   M /trunk/MME_SGSN_tester/ttcn/base/gb/GbCodecTestCases.ttcn
+   M /trunk/MME_SGSN_tester/ttcn3libs/ttcn/BssgpTemplates.ttcn
+   M /trunk/MME_SGSN_tester/ttcn3libs/ttcn/BssgpTypes.ttcn
+
+add message BVC-BLOCK,BVC-BLOCKACK,BVC-UNBLOCK,BVC-UNBLOCKACK
+
+------------------------------------------------------------------------
+
+
+codec make
+ls ~/ttcn/MME_SGSN_tester/ttcn3libs/lib/linux-gcc/
+
+起VNC server的命令：ssh下运行vncserver -geometry 1200x950 
+vncconfig -nowin &         能够从windows往VNC里拷贝字串
+
+
+module parameter: means that this parameter can be read from a textfile without modifying any ttcn files and
+the default one(ttcn/MME_SGSN_tester/run/default/Verification.par) will cover the one defined in ttcn files, 
+ modulepar { octetstring mp_trafficaHexDump := '0320000c0000000000000082'O; }
+this mp_trafficaHexDump will be covered if there's an entry in the Verification.par
+like: TrafficaCodecTestCases.mp_trafficaHexDump := '04479a010100000004000000245432ff'O
+
+Raw Message is for testing the hexdump for the send msg, receive wil some normal message
+
+
+---------------------------------------------------------------
+code analyze for tab decode and encode
+EncodeTab....(RtsValueNode *valueNode, long encLength, RtsMsg* encMsg)
+/*the input parameter is valueNode in encoding process, the output is encMsg,
+  the value in valuenode has been put into the record type, like a tree, every node in a tree
+is a value node
+*/
+{
+        /* Code */
+  if (!EAPgetTypeNodeFromValueNode(valueNode, &typeNode)) {
+    return ENC_ERROR;
+  }
+
+  if ( !EAPgetNodeValue( valueNode, &pValueInfo ) ) return ENC_ERROR;
+  
+  childNum = EAPgetNumberOfChildren(valueNode);
+  for (fieldIterator=0;fieldIterator<childNum;fieldIterator++) {
+    
+     if (!EAPgetChildValueNode(valueNode, fieldIterator, &childValueNode)) {
+        return ENC_ERROR;
+        }
+
+        /*ret = invokeTabEncoder4Type( childValueNode, specLen, encMsg );*/
+
+  }
+}
+
+
+/*the input parameter is encMsg in decoding process, the output is the valuenode,
+  the value has been put into valuenode considering decode successfully , like a tree, every node in a tree
+is a value node
+*/
+decode_result DecodeTabEncodedRecordValue(  RtsMsg *encMsg,
+ RtsValueNode *valueNode, long encLength, char valueMustBePresent) {
+    if ( EAPgetTypeNodeKind( typeNode ) != EAP_RECORD_TYPE_KIND )
+    rewindPos = EAPgetMsgPosInBits( encMsg ); // save current posiiton for backup
+        /* iterate over all possible children */
+        childNum = EAPgetNumberOfTypeFields(typeNode);
+        for (fieldIterator=0; fieldIterator<childNum && ret == DEC_OK; fieldIterator++)
+        {
+
+          /* get child Node */
+                if (!EAPgetChildTypeNode(typeNode, fieldIterator, &childTypeNode))
+                if (!EAPcreateValueNodeFromTypeNode(&childValueNode, childTypeNode)) 
+  
+    EAPincrMsgPosInBits( encMsg, (long)intBitSize );
+            tmpInt64h = ntohll(*((__int64*) dataStr));
+            intValue = tmpInt64h; // needed if error during EAPsetNodeValue
+            valueInfo.value = (void*)(&tmpInt64h);
+            valueInfo.bitsize = 64;
+        }
+ (if ( !EAPsetNodeValue( expectedValueNode, &valueInfo ) ) 
+ ||
+   if (!EAPconnectValueNodes( childValueNode, valueNode, fieldIterator))) 
+}
+ --------------------------------------------------------------------------------------------
+http://www.3gpp.org/ftp/Specs/html-info/44064.htm
+----------------------------------------------------------------------------------------------
+if no header file error promped in TBPT, 
+then compile protocol/l3/rel8, then it will generate the header file
+ 
+
+ntsysv
+to start the network service like samba, sshd in redhat 
+
+
+
+* the -DEAO_DEBUG marcro defined
+/home/liguo/ttcn/ttcn3libs/codec/EAPcodecAPI/TauT3/src/Makefile
+CFLAGS += -DEAP_DEBUG
+there will be the log of codec process in run.log like:
+between two 
+-------------------------------------------------
+******* E R R O R ******* E R R O R ******* E R R O R ******* E R R O R *******
+[10:57:52.402][TrafficaTestSystem.TrafficaComp] ERROR EAPsetNodeValue: Received enumeration value '18180' is not defined in the expected enumeration type definition 'Traffica.MmeHoRtt_expl_reportId'
+[10:57:52.402][TrafficaTestSystem.TrafficaComp] File "TrafficaCodecTestCases.ttcn" line 112 function/altstep "f_sendRawReceive(...)"
+
+******* E R R O R ******* E R R O R ******* E R R O R ******* E R R O R *******
+
+NOTE: Successfully created the EAP value node of "MmeSmRtt" type in "Traffica" module!
+NOTE: Successfully created the EAP value node of "MmeSmRtt_expl_reportId" type in "Traffica" module!
+(hex/string): 0x0447 / "?G" - 2 Bytes
+NOTE: Successfully connected the EAP child value node of "MmeSmRtt_expl_reportId" type to field position 0 of its parent value node of "MmeSmRtt" type!
+NOTE: Successfully created the EAP value node of "UInt16" type in "Traffica" module!
+(hex/string): 0x9A01 / "??" - 2 Bytes
+NOTE: Successfully connected the EAP child value node of "UInt16" type to field position 1 of its parent value node of "MmeSmRtt" type!
+NOTE: Successfully created the EAP value node of "ReportInfo" type in "Traffica" module!
+NOTE: Successfully created the EAP value node of "UInt32" type in "Traffica" module!
+(hex/string): 0x02000000 / "????" - 4 Bytes
+NOTE: Successfully connected the EAP child value node of "UInt32" type to field position 0 of its parent value node of "ReportInfo" type!
+NOTE: Successfully created the EAP value node of "UInt32" type in "Traffica" module!
+.......................................................
+............................................
+.............................................
+******* E R R O R ******* E R R O R ******* E R R O R ******* E R R O R *******
+[10:57:52.403][TrafficaTestSystem.TrafficaComp] ERROR EAPgetEnumNameForNumber: Enumeration value '255' is not defined in the (parent type of) expected enumeration type definition 'Traffica.MmePacketDataGwControlPlaneTeidVersion'
+[10:57:52.403][TrafficaTestSystem.TrafficaComp] File "TrafficaCodecTestCases.ttcn" line 112 function/altstep "f_sendRawReceive(...)"
+
+******* E R R O R ******* E R R O R ******* E R R O R ******* E R R O R *******
+TrafficaCodecTestCases.ttcn (112):
+
+
+******* E R R O R ******* E R R O R ******* E R R O R ******* E R R O R *******
+
+[10:57:52.403][TrafficaTestSystem.TrafficaComp] ERROR EAPsetNodeValue: Received enumeration value '255' is not defined in the expected enumeration type definition 'Traffica.MmePacketDataGwControlPlaneTeidVersion'
+[10:57:52.403][TrafficaTestSystem.TrafficaComp] File "TrafficaCodecTestCases.ttcn" line 112 function/altstep "f_sendRawReceive(...)"
+
+******* E R R O R ******* E R R O R ******* E R R O R ******* E R R O R *******
+
+------------------------
+ the message  MmeSmRtt 's IE Traffica.MmePacketDataGwControlPlaneTeidVersion codec 
+
+
+* external function
+ external function startStack(in StackConf p_stackConf);
+in Makefile:
+DEFS += ...
+         EXT_FUNC_BYPASS_TRI_StackConfig_startStack\
+in *.c:
+StackConfig_startStack(.....)
+
+
+----------------------------------
+ataca
+meng xiangfei
+root ns104eva
+genkins:
+http://10.121.67.113:8080/view/publicview_NS22/ 
+[root@eNB-4 NS22]# pwd
+/home/admin1/TestToolInstallations/ttcn3/publicview/flexi_ns_ta/Testers/FlexiNS/NS22
+
+[root@eNB-4 NS22]# grep -r NS_9_0_0001 *
+TestCases/NS30_Proof_of_Concept/run_ttcn3.bat:pybot -A robot_arguments.txt -v WID:FT37 -v DNSENABLED:1 -v TESTENV:BGLR-ATCA-6 -t NS_9_0_0001* --loglevel debug 9_0_Successful_Attach_ttcn3.txt
+TestCases/NS30_Proof_of_Concept/run_ttcn3.sh:--test NS_9_0_0001* \
+TestCases/NS30_Proof_of_Concept/.svn/text-base/run_ttcn3.bat.svn-base:pybot -A robot_arguments.txt -v WID:FT37 -v DNSENABLED:1 -v TESTENV:BGLR-ATCA-6 -t NS_9_0_0001* --loglevel debug 9_0_Successful_Attach_ttcn3.txt
+TestCases/NS30_Proof_of_Concept/.svn/text-base/run_ttcn3.sh.svn-base:--test NS_9_0_0001* \
+
+9_0_Successful_Attach_ttcn3.txt is the testsuit name, add this testsuit
+------------------------------------------
+
+
+
+--------------------
+the sctp log and sctpremoteintcomp:
+sut serverport 
+file *.SctpRemoteIntComp-010.log
+i----------------------------------------------------------------------
+StackConfig.ttcn (861):
+[15:13:47.219][SctpRemoteIntComp:10]ss pt_iprCfg.send(CreateUdpTcpProfile:IpRouterPtApiTypes.CreateUdpTcpProfile) to SUT   @+0.218
+[15:13:47.219][SctpRemoteIntComp:10]vv Message: {
+[15:13:47.219][SctpRemoteIntComp:10]vv     protocol e_tcp(1)
+[15:13:47.219][SctpRemoteIntComp:10]vv     serverPort 60403
+...........
+DIAM_IF.ttcn (1229): [15:13:47.339][SctpRemoteIntComp:10]ss pt_rSctp.send(SCTP_UP_Prims:SCTP_Prims.SCTP_UP_Prims) to SUT   @+0.338
+[15:13:47.339][SctpRemoteIntComp:10]vv Message: {
+[15:13:47.339][SctpRemoteIntComp:10]vv     sctp_initialize {
+[15:13:47.339][SctpRemoteIntComp:10]vv         localPort 3869
+[15:13:47.339][SctpRemoteIntComp:10]vv         localAddressList {
+[15:13:47.339][SctpRemoteIntComp:10]vv         
+-----------------------------------------------------
+
+file stdout-3.log
+-------------
+PARAMETER(10): #DRVTASK_L4ROUTER_SUT_IP_ADDRESS = "10.121.122.99"
+PARAMETER(11): #DRVTASK_L4ROUTER_SUT_PORT_NUMBER = 60403
+......
+ source     : sctp.con_.1
+ destination: ipif
+ primitive  : ipif_data_send     to receiver's UP interface
+ src cepid  : 1
+ dest cepid : -
+ time       : 9.10.2012 15.14:32.218
+ parameters :
+ip: 10.121.122.99
+  frame contains following data:
+ (printing 28 bytes)
+ 0F 1D 0F 1C 0E EB 8A 89 67 29 82 56 05 00 00 10 ????????g)?V????
+ 00 01 00 0C 00 00 00 00 50 73 CE D8             ????????Ps??
+
+---------------------------------------------------------------
+the primitive "ipif_data_send" will send the data to the ip network to peer,
+so the source port is "0f 1d" which is 3869
+sctp header is source port, des port ,verification tag:
+05 means heartbeat ack
+
+in fact, in the mirror testcase, the stack will receive many data but it won't process, 
+for example, 
+------------
+ source     : ipif
+ destination: sctp
+ primitive  : ipif_data_ind     to receiver's DOWN interface
+ src cepid  : -
+ dest cepid : -
+ time       : 9.10.2012 15.14:32.212
+ parameters :
+
+Remote addr = 10.121.122.99 : 0
+Data Frame:
+ (printing 28 bytes)
+ 0F 1C 0F 1D 59 5D 03 B4 62 34 25 A9 04 00 00 10 ????Y]??b4%?????
+ 00 01 00 0C 00 00 00 00 50 73 CE D8             ????????Ps??
+
+----------------------------------
+04 means heartbeat,but it won't process it when the stack's local port is not 3869, but will be logged
+into the sctp log too.
+
+
+
+iprouter debug info
+diff -r src/MessageGroupConfiguration.cpp /home/guolili/ttcn/ttcn3libs/sa/iprouter/sa/src/MessageGroupConfiguration.cpp
+23,24c23,24
+<         noticeMsgVerbosityLevel(USER_NOTICES_ENABLED),
+<         //noticeMsgVerbosityLevel(ALL_NOTICES_ENABLED),
+---
+>         //noticeMsgVerbosityLevel(USER_NOTICES_ENABLED),
+>         noticeMsgVerbosityLevel(ALL_NOTICES_ENABLED),
+
+
+prouter_tri.c
+------------------------------------
+TriStatus triUnmap(const TriPortId *compPortId,
+                   const TriPortId *tsiPortId)
+{
+    return call_PTApi_triUnmap(getObjectPointer(), compPortId, tsiPortId);
+}
+triSend
+
+---------------------------------
+TcpProtocol.cpp:
+----
+1054 #ifdef IPR_DEBUG_ENDPOINT_LISTS
+....
+---
+
+
+The template error
+--
+ ERROR VAL0023: 'valueof' operation failed because template contains matching symbols.
+--------------
+in the send template, *(matching symbol) is not accepted
+
+get a raw message from ttcn log
+=============
+sed -i 's/\([^[:space:]]\+\)[[:space:]]\+\([^[:space:]]\+\)/\1 := \2/'
+sed -i 's/(.*)//'
+sed -i 's/<< omit >>/omit/'
+===============
+
+
+-------------------------------------------
+WARNING CMP0030: Premature component termination
+--------------------------------
+This may caused by the tcp connection shutdown between SUT and stack componet
+in run.log
+----------
+Exception: socket ...
+------------------
+in run.log
+----------
+
+
+----------------
+When sending some message out, but receiver hasn't received, maybe that's 
+because the port which has sent message has been disconnected from the 
+receiver's port
+So when send some message out, that requires more time before shutdown this
+interface
+So when send some message out, that requires more time before shutdown this
+interface
+----------------
+
+
+
+** a whole procedure for ttcn and stck of tcapsigtran
+1. connection between stacks and ttcn SUT
+in ttcn side, 
+--------------------------------
+[10:16:52.696][TcapMapComp:1]ss pt_iprCfg.send(CreateUdpTcpProfile:IpRouterPtApiTypes.CreateUdpTcpProfile) to SUT   @+0.053
+[10:16:52.696][TcapMapComp:1]vv Message: {
+[10:16:52.696][TcapMapComp:1]vv     protocol e_tcp(1)
+[10:16:52.696][TcapMapComp:1]vv     serverPort 62401
+[10:16:52.696][TcapMapComp:1]vv     localIpAddress "10.121.122.99"
+[10:16:52.696][TcapMapComp:1]vv     localPort << omit >>
+[10:16:52.696][TcapMapComp:1]vv     remoteStackSupport << omit >>
+[10:16:52.696][TcapMapComp:1]vv     sutAddress {
+[10:16:52.696][TcapMapComp:1]vv         ipAddress "10.121.122.99"
+[10:16:52.696][TcapMapComp:1]vv         portField 62301
+[10:16:52.696][TcapMapComp:1]vv     }
+[10:16:52.696][TcapMapComp:1]vv     portTypeKind e_messageBased(0)
+[10:16:52.696][TcapMapComp:1]vv     certFile << omit >>
+[10:16:52.696][TcapMapComp:1]vv     keyFile << omit >>
+[10:16:52.696][TcapMapComp:1]vv }
+--------------------------------------
+this severPort means the ttcn side sut worked as a server, and stack will connect to this port
+for tcp connection
+
+in stack side
+----------
+PARAMETER(11): #DRVTASK_L4ROUTER_SUT_PORT_NUMBER = 62401
+Cmd line arg count was : 2
+cmd arg #0 : ../bin/tcapsigtran
+cmd arg #1 : 1
+IPV4 USED
+
+Start connect TCP socket; Local (255.255.255.255:0) Remote (10.121.122.99:62401).
+------------------------------------------------------------------------------------
+here stack worked as a tcp client to connect the server
+
+
+2. the layer above sctp 
+in sgs or s1 or s6a, 
+the ttcn is the above layer of sctp
+So g_verificationflag is a symbole of a sctp client or server role.
+But in tcap, the upper layer of sctp is m3ua.
+The sctp client or server role is i configure file
+SCTP_ROLE CLIENT             
+
+The sctp communication up or lost is to m3ua in tcap case, in sgs case, ttcn will get that.
+m3ua will send a sctp_initialize prim to sctp firsly, not in ttcn side, in s1 case is INITIALIZE function
+When configured as a client, m3ua will send a sctp_associate to sctp to connect the peer for a
+sctp connection.
+After a four-hand shake, the sctp connectin established, m3ua will receive the sctp_communication_up
+prim, so it will send M3UA_UP to the peer.
+This will enclosed as data in sctp packet.
+When peer received the M3UA_UP packet, sctp layer will send SACK
+and M3ua will send M3UA_UP_ACK and 
+m3ua  state is ASP_INACTIVE  and send MEUA_NTFY to the peer
+When peer receive this UP_ACK, the state will from ASP_INACTIVE to ACTIVE, and send M3UA_ACTIVE to peer.
+
+
+
+
+
+
+
+Robot
+not ant
+set envir varib
+---
+BRANCH=branches/releases/NS30
+----
+execute shell
+---
+pybot $RUNMODE --pythonpath ./$BRANCH/PythonSource/trunk --outputdir ./flexi_ns_ta/Result -t NS_1195_2_0004* -v NSMON_DISABLED:1 --variable DO_CLEAN_BEFORE_MAKE:1 --variable TESTENV:$TARGET_NAME --variable WID:tau31 --debugfile debug.txt --loglevel DEBUG --name NS30 --reporttitle Report_-_$TARGET_NAME ./$BRANCH/Testers/FlexiNS/
+---------------
+/home/admin1/jenkins/workspace/eSmoke_ns30/branches/releases/NS30/Testers/FlexiNS/Config/IPC-ATCA-136.py
+
+TTCN3_CONFIG =
+'path' : 'tau31' : /home/admin1/TestToolInstallations/ttcn3/tau31/MME_SGSN_tester_fortang/MME_SGSN_tester
+
+----------------
+[admin1@TeamCI-136 NS30]$ svn info
+Path: .
+Working Copy Root Path: /home/admin1/jenkins/workspace/eSmoke_ns30
+URL: https://svne1.access.nokiasiemensnetworks.com/isource/svnroot/flexi_ns_ta/branches/releases/NS30
+Repository Root: https://svne1.access.nokiasiemensnetworks.com/isource/svnroot/flexi_ns_ta
+
+=========
+[admin1@TeamCI-136 NS30]$ pwd
+/home/admin1/jenkins/workspace/eSmoke_ns30/branches/releases/NS30
+	/home/admin1/jenkins/workspace/eSmoke_ns30/branches/releases/NS30/Testers/FlexiNS/NS22/TestCases/Configurable_SCTP_Parameters/1195_2_Configurable_SCTP_Parameters/1195_2_Configurable_SCTP_Parameters.txt
+
+
+
+* MME
+mme information MML command ZOH.. 
+http://131.207.241.30:8080/NED/NED?service=library&library=flexi_ns_rel_22_v2
+** Configuring the S6a interface
+
+1
+Configure the destination parameters (OHC).
+OHC:<destination host>:<unit>,[<unit pair | index>]:<interface type>,<role type>,<destination realm>,<offline parameters index>:<transfer path>;
+Example command:
+ZOHC:hss1.epc.mnc001.mcc001.3gppnetwork.org:IPDU,0:S6,C,epc.mnc001.mcc001.3gppnetwork.org,0:PATH;
+
+2
+Configure the transfer path IP address and transfer protocol (OHP).
+OHP:<destination host>:<connection index>,<path name number>,<protocol>:SP=<server IP>:[SP=<alternate server IP for SCTP>]:CP=<client IP>,[PORT=<client port>]:[CP=<alternate client IP for SCTP>];
+Example command:
+ZOHP:hss1.epc.mnc001.mcc001.3gppnetwork.org:1,1,SCTP:SP="10.200.1.220"::CP="10.102.250.6",PORT=2001;
+Each connection should use its own port. The range is 1024 to 65535, except 3868. Default value is 2001.
+
+3
+Set the origin host and origin realm FDQN for the network element (OHN).
+ZOHN:::[origin host],[origin realm];
+Example command:
+ZOHN:::mmec12.mmegi32768.mme.epc.mnc001.mcc001.3gppnetwork.org, mme.epc.mnc001.mcc001.3gppnetwork.org;
+Note
+Configuring a separate origin host for a connection is meant for multi-unit configurations, so that it is possible to configure an own host name per unit. Flexi NS - MME uses only one Diameter connectivity unit, IPDU. Howewer, if there is only one connection for a certain application, or multiple dedicated connections, it is possible to configure those connections to use a specific host name. The host name has to be the same for all connections for a certain application.
+ZOHN:[<destination index>:<connection index>]:[<origin host>];
+Example command:
+ZOHN:0:1:MMES6A.epc.mnc001.mcc001.3gppnetwork.org;
+
+4
+Connect to the HSS destination host (OHS).
+OHS:<destination host>:<connection index>:<operation>;
+The value of the operation parameter can be C or D: use value 'C' to connect and value 'D' to disconnect.
+Example command:
+ZOHS:hss1.epc.mnc001.mcc001.3gppnetwork.org:1:C;
+Note
+When a diameter peer connected to MME disconnects due to rebooting or transport failure, the MME tries to reconnect to the disconnected peer. In such cases, the MME tries infinitely until it re-establishes the connection. The timeout value for every retry is 30 seconds, which is defined as “TC timer” in RFC3588 (section 12).
+
+5
+Configure the SCTP parameters.
+
+1
+Interrogate current SCTP parameter sets (BIH).
+ZBIH:IF=DIA;
+You can also interrogate parameters of a specific Diameter connection:
+ZBIH:DI=<destination index>;
+To print out parameter values in a parameter set (for example, DIA default set for all Diameter interfaces):
+ZBIH:NAME=DIA_DEF:;
+
+2
+If needed, create a custom parameter set for the S6a interface (BIE).
+For example, to change DSCP value to 35, using the default parameter set as the source set:
+ZBIE:NAME=<custom parameter set name>:SRC=DIA_DEF:DSCP=35;
+
+3
+Associate the custom parameter set to the S6a interface (BIB).
+Associate the custom set to a specific Diameter connection using the DI parameter (for example, destination index 1). You can interrogate destination indexes using the OHI command.
+ZBIB:NAME=<custom parameter set name>:IF=DIA:DI=1;
+For further information, see SCTP configuration and Diameter SCTP parameters (DIA_DEF).
+
+
+
+
+6
+down vote
+I was already using MinTTY, and removing the newline in PS1 didn't help either. One piece of advice on this page did help. I executed this bash command:
+
+kill -WINCH $$
+In my case, running this once fixed the issue, even after logging out and back in. I'm not sure if this is always the case.
+
+share|improve this answer
+answered Mar 12 '13 at 5:25
+
+Josh P
+3932613
+ 	
+Judging by -WINCH, this signals the bash process that the terminal window was resized. So this should be done after each terminal window resize, I guess. –  ivan_pozdeev Sep 26 '13 at 23:18
+add comment
+
+Did you find this question interesting? Try our newsletter
+Sign up for our newsletter and get our top new questions delivered to your inbox (see an example).   
+up vote
+3
+down vote
+I had the same problem with MinTTY as well. The problem probably has something to do with the primary prompt (PS1).
+
+The solution for me was removing the last 'new line' character from PS1 (right before the '$' sign):
+
+user@host ~
+$ echo $PS1
+\[\e]0;\w\a\]\n\[\e[32m\]\u@\h \[\e[33m\]\w\[\e[0m\]\n\$
+
+user@host ~
+$ export PS1='\[\e]0;\w\a\]\n\[\e[32m\]\u@\h \[\e[33m\]\w\[\e[0m\]\$ '
+
+user@host ~ $
+see http://cygwin.com/ml/cygwin/2001-07/msg00140.html for reference.
+
+To make this change persistent, add export PS1='[\e]0;\w\a]\n[\e[32m]\u@\h [\e[33m]\w[\e[0m]\$ ' to your ~/.bashrc file.
+
+tcase tc_ListTest() runs on TrafficaComp system dummyTSI {
+
+var boolean b:=false;
+// template examples expecting for a record of value
+//var template IntSequence a_containsOneTwo := { *, 1, 2, * };
+var template IntSequence a_containsOneTwo := { omit, 1, 2, * };
+var template IntSequence a_4IntsWithOneTwo := { ?, 1, 2, ? };
+var IntSequence tt := {1,2};
+
+ tt :={omit,1,2}
+b := match( tt,  a_containsOneTwo); // b evaluates to true ,omit not allowed in the list
+ log(b);
+ tt :={omit,1,2}
+b := match( tt,  a_4IntsWithOneTwo); // b evaluates to true
+ log(b);
+// wrong order of 1 and 2
+/*
+b := match( { 2,1 }, a_containsOneTwo ); // b evaluates to false
+ log(b);
+b := match( { 3,1,2,1,2 }, a_containsOneTwo ); // b evaluates to true
+// 1,3 != 1,2
+ log(b);
+b := match( { 1,3,2 }, a_containsOneTwo ); // b evaluates to false,
+// 2,1 != 1,2
+ log(b);
+b := match( { 1,2,1,2 }, a_4IntsWithOneTwo ); // b evaluates to false,
+ log(b);*/
+
+/*
+tt :={1,1,2,2}
+b := match( tt, a_4IntsWithOneTwo ); // b evaluates to ture,
+ log(b);
+tt :={1,1,1,2,2}
+b := match(tt , a_4IntsWithOneTwo ); // b evaluates to false, the length of*/
+/*/ <<<<<<<< Expected a field of type IntSequence with
+[09:16:16.311][TrafficaTestSystem.TrafficaComp]vv 4 integer element(s)
+[09:16:16.311][TrafficaTestSystem.TrafficaComp]vv ========
+[09:16:16.311][TrafficaTestSystem.TrafficaComp]vv 5 integer element(s)
+*/
+ log(b);
+}
+
+================
+about ttcn codec
+How a message been decoded, it's not up to the port, it depend on the templateyou fill in receive(MSGTEMPLATE) function or the messagtype in receive(MSGTYPE:?)
+all up to the message type, and this message type should register the encode/decode function in the library, so they can be invoked.
+port just allow some kind message defined in the port to be in/out
+
+
+
+
+alt step and default alt step
+default alt step would be put behind the alt step
+but this kind of clause will be tranfer into alt step even you don't explicitly writting like that:
+
+timer t
+t.start();
+t.timeout;  // this will be tranfered to alt step
+pt.receive();  // this will be transfeted to alt step also
+
+
+=====================
+
+about mme
+1. import a utt generated ut case to eclipse:  build path, linked the generated case folder into your 
+SS_LNXmmeTrHandler/mmeTrHandler/target/generated-test-sources/utt
+
+2. stax-api.jar should not be used.
+
+3. mvn created class is in target/test-classes
+   eclipse generated class is in target/classes/
+4. run unit testcase pay attentin the package and directory to avoid class could not be found, if so , search all the unit testcases in configuration tab.
+
+5. manually build project, unchek "build automatically", click "clean", it will clean the project and build from scratch, this will generate the junittestcase
+
+6. block the main thread incase it will end other thread, 
+add scanner function in java sourcecode
+debug configuration:  check "keep junit running after a test run when debugging"
+
+7. compilation issue for maven: using cygwin sometimes some fiel access issue, using cmd.exe in windows to run maven command could avoid.
+or cygwin/etc/fstab
+add acl in that entry.
+http://stackoverflow.com/questions/4647752/cygwin-vim-windows-7-file-access-issue
+none /cygdrive cygdrive binary,posix=0,user 0 0,acl
+none /cygdrive cygdrive binary,posix=0,user,noacl 0 0 
+on Windows 8.
+$ cp -pdRx repository repository_40
+
+
+eclipse workspace setting save
+
+Lucky us. All eclipse settings are saved as a plain text in the workspace directory. So if you want to create new workspace, but preserve your settings, I have two answers for you:
+
+The short answer
+
+All settings are stored in the .metadata/.plugins/org.eclipse.core.runtime/.settings directory. I mean -- all relevant settings. If you look into .metadata/.plugins directory there are many more directories with settings, but they are too project specific. I've walked trough these configuration files one by one, believe me, nothing useful lies hidden there.
+
+So the short answer is: If you want to create a new eclipse workspace and preserve all your settings, simply copy the .metadata/.plugins/org.eclipse.core.runtime/.settings directory into your new workspace directory.
+
+Do not copy other directories! There are project specific settings and since your old projects are left in your old workspace, the copied settings would not be valid and you would get some nasty exceptions at eclipse startup.
+
+The long answer
+
+Let the code do the talk for me.
+
+I have created a (simple) shell script that automates new workspace creation. The downside is that it requires either a *nix shell or windows with cygwin. Nevertheless, you can always manually copy the .settings directory (see the short answer). The script has been tested by me, I and myself so it should work (most of the time).
+
+To use it, save it somewhere, make it executable (chmod +x new-workspace.sh) and run it either in interactive mode
+
+./new-workspace.sh -i
+
+where it will ask you the details, or with paths to your workspaces (the new workspace directory will be created for you, just specify the path)
+
+./new-workspace.sh old-workspace new-workspace 
+
+The script will create new workspace directory and copy the relevant settings from your old workspace.
+
+If it doesn't work for you, drop me a comment. Feel free to improve it.
+
+2.解决CPPU和MMDU里跑Junit不兼容错误org.objectweb.asm.ClassVisitor as super class
+1.
+关于Subshandler跑JUnit时报“objectweb.asm.ClassVisitor as super class"”的问题解决方法
+修改..\SS_LNXmmeComJavaLib\mmeKafkaProducerClientLib\pom.xml 文件，在easymock部分增加黄色部分
+Index: mmeKafkaProducerClientLib/pom.xml
+===================================================================
+--- mmeKafkaProducerClientLib/pom.xml   (版本 10075)
++++ mmeKafkaProducerClientLib/pom.xml   (工作副本)
+@@ -202,6 +202,16 @@
+             <artifactId>easymock</artifactId>
+             <version>3.3.1</version>
+             <scope>test</scope>
++            <exclusions>
++                <exclusion>
++                 <artifactId>cglib</artifactId>
++                 <groupId>cglib</groupId>
++                </exclusion>
++                <exclusion>
++                 <artifactId>asm</artifactId>
++                 <groupId>org.ow2.asm</groupId>
++                </exclusion>
++            </exclusions>
+         </dependency>
+         <dependency>
+             <groupId>com.esotericsoftware.yamlbeans</groupId>
+
+修改pom 文件之后，执行mvn eclipse:eclipse 命令重新生成conJavaLib的工程文件。
+然后重新刷新eclipse ，问题应该就搞定了。
+
+JRE:
+-javaagent:D:\userdata\glili\workspace\fns\NS17\SS_LNXmmeComJavaLib\mmeComJavaLib\target\lib\mmeTestLib-1.0-SNAPSHOT.jar
+
+**  start a new fns code for 40, but we have a working one for exam 15:
+
+cp -pdRx repository_15 repository_40
+cp <apach_avneinstalldir>/conf/settings_15.xml  <apach_avneinstalldir>/conf/settings_40.xml 
+cp eclipse's workspace dir  .metadata/.plugins/org.eclipse.core.runtime/.settings to new workspace dir, and replace variable 40 to 15.
+
+m2 setting in eclipse
+preference->maven-->user settings
+
+
+$ mvn test -Dtest=com.nsn.mme.common.communication.AbstractChannelTest
+
+
+** 
+${jutlib}  -Dutt_loglevel=6 -noverify
+
+
+** collision detection/resolvero
+ProceudreHandler.getProcedureForMessage()
+
+***  two procedure collision 
+CollisionHandler.resolveCollisionForOngoingProcedure(incoming, proc, collrs)
+   {resolver.resolveCollisionForOngoing()// this resolver is(ongoingproc)'s resolver
+     AttachCollisionREsolver.resolveCollisionForOngoing
+     AttachCollisionResolver.handleCollisionWithS1HandoverProcedureForOngoing
+     raisecontinueevent
+     "Procdure Result is success" then resolveIncoming
+    }
+
+   {CollisionHandler.resolveIncoming()
+   S1HoCollisionResolver.resolveCollisionForIncoming
+   S1HoCollisionResolver.resolveCollisionWithAttachProcedureForIncoming
+   S1HoCollisionResolver.rasiseTerminateEventForIncoming}
+
+
+**** Data structure:
+instance of CollisonResolutionArgument is generated by CollisionMatrix.resolveCollisionThroughMatrixForIncoming
+
+then CollisonResolutionArgument.resolution will be matrix result. if null
+using procedure's own collisionhandler.
+CollisionResolver is a CollisionHandler for corresponding procedure such asAttachCollisionResolver
+
+Evnetarg is one parar of raiseEvent(eventid, collisionArgs)
+which is type of CollisionResolutionArgument
+
+
+SGW relocation DNS checking:
+eps_subs_info_res_s.subs_info.sgw_hostname.name: this is the previous hostname
+and DNS check tac's corresponding SGW hostname, ip. and compare it with previous hostname and ip(this ip got by DNS also)
+
+
+
+
+
+*** subscriber read/write in CPPU procedure.
+Firstly, a subsriber will be created if no sub find in cache, it will be stored to TrCache using function  ifnotpresent.
+and in theory, every new procedure will create a new sub in cache and delete it after the procedure ended.
+but if there's other active procedure, the sub not be deleted.
+then, getSubscriber function in TrHandlerDmxMessageProcessor will get the sub, and it will be passed to procedure.
+sometimes, subscriber will be retrieved from cache using TEID when received some special message.
+
+And in the same time, two procedure maybe triggered, and they share the same sub from func getSubsriber(), For example,
+TauProcedure will begin, not to endstate, then extendedservicerequestprocedure triggered, in this procedure, subscriber changed, 
+so when TauProcedure end after extendedservicerequestprocedure end, subscriber also changed for TauProcedure.
+in ProcedureEndState of extendedservierequestProcedure TranscationCache::notifyComplete: 
++++++++++++++++++++++++++++++++++++++
+Subscriber is NOT removed from cache since procedure was not empty.Procedure is: [TauProcedure]
++++++++++++++++++++++++++++++++++++++
+since there still TauProcedure active, so not removed sub in cache.
++++++++++++++++++++++++++++++++++++++++++++++
+ TITLE : Creating a new Subscriber as Subscriber not in the cache 
++++++++++++++++++++++++++++++++++++++++++++++
+
+start a new proc
+-------------------------------
+getConsumableProcedure(msg,sub)
+getProcedureForMessage(msg,sub)
+private void processMessageEvent(Object msg) { // in Subscriber.java file
+		// get the active procedure for the message & run it
+		Procedure proc = null;
+		try {
+			proc = ProcedureHandler.instance()
+					.getProcedureForMessage(msg, this);.// this is subscriber
+---
+   private class MessageProcessingTransaction
+    implements ITransaction
+    {
+        Subscriber subscriber = null; 
+
+        public MessageProcessingTransaction(Subscriber subscriber)
+        {
+            this.subscriber = subscriber;
+        }
+    
+        @Override
+        public Void call()
+        {
+            try
+            {
+                subscriber.processEvent();
+            }
+-------------
+ public void onEvent( TrHCommunicatorDataEvent event ) throws Exception
+    {
+        Subscriber subscriber = null; 
+        try
+        {
+			if( Logger.isTraceEnabled() )
+            {
+                Logger.logTrace( "SubscriberMessageWorkHandler sequence "+event.getSequence() );
+            }
+            if( null != event.getMessage() && null != event.getSubscriber() )
+            {
+                ProcedureEvent procedureEvent = new ProcedureEvent( event.getMessage() );
+                subscriber = event.getSubscriber();
+                subscriber.addEvent( procedureEvent );
+                MessageProcessingTransaction itransaction = new MessageProcessingTransaction(subscriber);    
+-------------------------------------
+event.getSubscriber is dmxmsg get subscriber function:
+        event.setSubscriber( sub );
+in file TrHandlerDmxMessageProcessor.java
++++++++++++++++++
+Subscriber sub = getSubscriber(
+s1apMessage.getMessageHeader(), enbS1apId,
+				mmeS1apId);
+			if (MMEParameters.getInstance().getDisruptorEnabled() == 1) {
+				if (event != null) {
+				event.setSubscriber(sub); //this is s1apmessage
+							}
+
+
+
+
+*** subscriber cleanup when one cppu procedure end
+when in  ProcedureEndState, cleanup and complete function will be called if they are overrided by the procedure.
+
+in complete function:
+
+first Remove the procedure:
+=========================================================================
+Trying to remove: TauProcedure
+========================================================================
+then reset the subs 
+===========================
+Restting subscriber parameters
++++++++++++++++++++++++++++
+then remove subscriber from cache
+=================================
+TranscationCache::notifyComplete: Subscriber is removed from cache
++++++++++++++++++++++++++++++++++++
+
+
+/* code          */
+    public void notifyComplete( Procedure proc, Subscriber sub, boolean removeSubscriber,
+        boolean checkForOtherActiveProcs )
+    {
+        if( Logger.isTraceEnabled() )
+        {
+            Logger.logTrace( "Active procedures before removal: " + sub.getProceduresNameAsList() );
+            Logger.logTrace( "Trying to remove: " + proc );
+        }
+
+        MmduOverloadProtector.getInstance().releaseTicket( proc, false );
+
+        sub.removeProcedure( proc );
+        removeSequenceNumberEntryFromTable( sub, proc );
+
+       if( removeSubscriber )
+        {
+            sub.resetParameters( true );
+        }
+
+        if( Logger.isTraceEnabled() )
+        {
+            Logger.logTrace( "Active procedures after removal: " + sub.getProceduresNameAsList() );
+        }
+
+        Procedure parent = proc.getParent();
+
+        if( checkForOtherActiveProcs )
+        {
+            synchronized( sub )
+            {
+                if( !sub.hasActiveProcedures() )
+                {
+                    if( removeSubscriber )
+                    {
+                        removeAttachedSubscribersFromCache( sub, proc );
+
+                        if( Logger.isTraceEnabled() )
+                        {
+                            Logger.logTrace( "TranscationCache::notifyComplete: Subscriber is removed from cache." );
+                        }
+                    }
+
+
+Reset the subscriber:
+	public void resetParameters(boolean checkForProcedureCount) {
+		if (checkForProcedureCount) {
+			// linked subscriber are not checked when calculating active
+			// procedure count.
+			int activeProcedureCount = activeProcedures.size();
+			if (activeProcedureCount > 0) {
+				return;
+			}
+		}
+		if (Logger.isTraceEnabled()) {
+			TrHandlerLogMessage log = new TrHandlerLogMessage();
+			log.setSubscriberData(this);
+			log.setModule(this.getClass().getSimpleName());
+			log.setCategory(MessageCategory.PROCEDURE);
+			log.setUserText("Restting subscriber parameters.");
+			Logger.logTrace(log);
+		}
+
+
+** MMDU
+*** the entry of received a dmxmsg:
+received eps_attach_request dmxmsg:
+in file MMHandlerDmxMessageProcessor.java:
+++++++++++++++++++++++++++++++++++++++++++
+processSubscriber(DmxMsg dmxMsg, SubsTransaction txn, SubsCommunicatorDataEvent event) throws PersistenceException
+{
+   SubscriberIdentity id = getSubscriberIdentityFromMessage(dmxMsg);  //get subids from dmx message
+
+}
+++++++++++++++++++++++++++++++++++++++++++++++
+Thread [ThThreadPool-0] (Suspended (breakpoint at line 1917 in MMHandlerDmxMessageProcessor$DedicatedMessageProcessor))	
+	MMHandlerDmxMessageProcessor$DedicatedMessageProcessor.<init>(MMHandlerDmxMessageProcessor, DmxMsg, SubsTransaction, SubscriberIdentity) line: 1917	
+	MMHandlerDmxMessageProcessor.processSubscriber(DmxMsg, SubsTransaction, SubsCommunicatorDataEvent) line: 1832	
+	MMHandlerDmxMessageProcessor.processMessage(DmxMsg, SubsTransaction, SubsCommunicatorDataEvent) line: 1587	
+	MMHandlerDmxCommunicator$MessageProcessingTransaction.call() line: 658 //pass this as txn(MMHandlerDmxCommunicator$MessagProce
+ssingTransaction	
+	MMHandlerDmxCommunicator$MessageProcessingTransaction.call() line: 1	
+	Job.call() line: 44	
+	Job.call() line: 25	
+	ThreadPoolFutureTask(FutureTask<V>).run() line: 262	
+	ThThreadPool$ThreadPoolThread.run() line: 247	
+	ThThreadPool(ThreadPoolExecutor).runWorker(ThreadPoolExecutor$Worker) line: 1145	
+	ThreadPoolExecutor$Worker.run() line: 615	
+	ThThreadPoolThreadFactory$1(Thread).run() line: 745	
+	ThThreadPoolThreadFactory$1.run() line: 29	
+
+
+
+in file MMHandlerDmxMessageProcessor.java:
+call()
+{
+  try{
+   Subscriber sub = processSubscriber(dmxMsg,txn,id);
+private Subscriber processSubscriber(DmxMsg dmxMsg, SubsTransaction txn,
+			SubscriberIdentity id) throws PersistenceException {
+		Subscriber sub = getSubscriber(dmxMsg, txn, id);
+private Subscriber getSubscriber(DmxMsg msg, SubsTransaction txn,
+			SubscriberIdentity id) throws PersistenceException {
+		Subscriber sub = null;
+			log.setUserText("DMX message " + msg.getMessageName() + " received");
+  ...// if eps_attach_req
+    	MMHandler.instance().transactionProcessor().getPersistence().tcAddIfNotPresentAndRetrieveCached(sub);
+}
+
+*** transactionCache and  db in MMDU
+firstly cache.getsubscriberById(subid)
+if no then fetch subid in db : ISubscriber dbSub = dbManager.getDb().fetchSubscriber( subscriberId );
+if no then create a new subscbriber using:             ISubscriber newSub = SubscriberFactory.getSubscriber();
+then add this newSub to cache.
+
+if (fetchSubscriber) {
+				sub = MMHandler.instance().transactionProcessor()
+						.getPersistence().fetchSubscriber(id);}
+
+------------------------------
+  /**
+     * Fetch subscriber from database or cache. If subscriber is not in cache, fetch from database.
+     * If subscriber is not in database, creates new Subscriber instance with given identity.
+     * 
+     * @param subscriberId
+     *            identity of the subscriber to fetch
+     * @return fetched Subscriber object
+     * @throws PersistenceException
+     *             in case of DB problems or bad key
+     */
+    public Subscriber fetchSubscriber( SubscriberIdentity subscriberId ) throws PersistenceException
+    {
+        byte[] originalGuti = subscriberId.getGuti();
+        Subscriber s = convertToSubscriber( comJavaLibPersistence.fetchSubscriber( subscriberId ) );
+        if( Logger.isTraceEnabled() )
+        {
+            Logger.logTrace( "originalGuti From Msg :" + Converter.toHexString( originalGuti ) );
+            Logger.logTrace( "Guti From Fetched subscriber from DB :"
+                + Converter.toHexString( s.getIdentity().getGuti() ) );
+        }
+        //For the pronto PRPR061745: setting the GUTI value from DB for Forwarded
+        //message for future use
+        s.getIdentity().setOldGutiFromDb( s.getIdentity().getGuti() );
+        s.getIdentity().setNewGutiInUse( originalGuti );
+
+        return s;
+    }
+---------------------------------
+
+*** start a new procedure:
+com.nsn.mme.mmhandler.procedures.locationservices.LocationServicesMessageHandler.detectCollisionForLcsProcedure(Procedure)
+com.nsn.mme.mmhandler.processor.ProcedureHandler.getProcedureForMessage(DmxMsg, MessageQueue, Map<PdnConnection, Integer>, DmxMsg)
+com.nsn.mme.mmhandler.processor.ProcedureHandler.getProcedureForMessage(DmxMsg, MessageQueue, Map<Integer, Integer>)
+com.nsn.mme.mmhandler.processor.ProcedureHandler.getProcedureForMessage(DmxMsg, MessageQueue)
+com.nsn.mme.mmhandler.processor.ProcedureHandler.startProcedure(DmxMsg, MessageQueue)
+
+
+in ProcedureHandler.java:
+start collision for lcs procedure(Location service procedure)
+      boolean lcsOngoing = SlsLocationServiceCache.INSTANCE.isLcsProcedureOngoing( imsi );
+
+"Detect Collision For Lcs Procedure"
+detectCollision() 
+{
+   if no activeprocedure return;
+   if active procedure more than 1 then collision detected;
+}
+"collision detected between two procedures"
+   boolean collisionResolved = collisionHandler.resolveCollisionForOngoingProcedure();
+   {
+       Procedure ongoingProcedure = getOngoingProcedure();
+            CollisionResolver resolver = CollisionResolverFactory.getCollisionResolver( ongoingProcedure );//ongoingProc resolver
+           rcvdStatus = CollisionMatrix.resolveCollisionThroughMatrixForOngoing( ongoingProcedure,
+      /* Matrix first to check,no, then specific resolver of ongoingProcedure*/
+          return resolveCollisionForOngoingProcedure( ongoingProcedure, incomingProcedure, resolver );
+   }
+CollisionHandler.resolveCollisionForOngoingProcedure(incoming, proc, collrs)
+   {resolver.resolveCollisionForOngoing()// this resolver is(ongoingproc)'s resolver, TauCollisionResolver
+     TauColisinResolver.resolveCollisionForOngoing // n
+         resolveCollisionForOngoingNonSupported  //  no specific found, then default resolver called, 
+         ""Default collision for ongoing invoked""
+   }
+ .//ProcedureResultStatus.RESULT_SUCCESS
+                    .getStatus() == rcvdStatus.getOngoingProcedureResult().status()*/
+/* This method is used to resolve collision for incoming procedure. It is called when resolution
+     * for ongoing procedure is done. It will be called from last state of ongoing procedure if
+     * ongoing procedure needs to be terminated. If the ongoing procedure needs to continue then
+     * Collision Resolver gives the control back to CollisionHandler which in turn calls this method
+     * to start collision resolution for incoming procedure.*/
+   {CollisionHandler.resolveIncoming()
+   S1HoCollisionResolver.resolveCollisionForIncoming
+   S1HoCollisionResolver.resolveCollisionWithAttachProcedureForIncoming
+   S1HoCollisionResolver.rasiseTerminateEventForIncoming}
+
+**** collision resolve
+the order is as this: if no result
+First, check resolveCiollisionThroughMatrixForOngoing.
+then,  check the ongoing procedure's specific resolver,if no, then  default collision called
+--------------------- 
+then, check resolveCollisionThroughMatrixForIncoming
+then, check the incoming procedure's specific resolver, if no, then deault collision called.
+
+
+***** Matrix resolver:
+in file CollisionMatrix.java:
+    case DICO:
+      //Since the resolution is to drop incoming, raise collision argument to incoming procedure.
+    case COCI:
+      //Since the resolution is to continue ongoing followed by incoming procedure, ongoing procedure
+      //might have finished. Raise event to start incoming procedure with incoming message as argument.
+   case DOCI:
+      //Since the resolution is to terminate ongoing and continue incoming, ongoing procedure
+      //might have terminated. Raise event to start incoming procedure with incoming message as argument.
+    case DODI:
+      //Since the resolution is to drop ongoing and drop incoming, ongoing procedure
+      //might have terminated. Raise collision argument to incoming procedure.
+   case CB:
+        //Since the resolution is to continue both, Raise event to start incoming procedure with incoming message as
+        //argument.
+
+
+srvcc from EUTRAN to UTRAN Without PSHO
+Srvcc_3G_release Enable, UE release command is needed
+
+
+*** NSmml command to control every unit( using HIT to telnet into ATCA)
+firstly, telnet to OMU using SYSTEM SYSTEM
+then enter into other units such as IPDU, CPPU, MMDU
+
+10.102.43.200	IPC-ATCA-136	Linux virtual_host
+10.102.43.201	OMU	virtual_ATCA OMU IP
+10.102.43.202	IPDU-0	virtual_ATCA IPDU IP for SSH etc.
+10.102.43.203	TeamCI-136	Linux Jenkins + TTCN
+
+
+ZUSI:IPDU:;
+WORKING STATE OF UNITS
+ UNIT       PHYS STATE LOCATION              INFO
+ IPDU-0     0040 WO-EX                        -                            
+ IPDU-1     0041 SP-EX                       IDLE                          
+
+TOTAL OF 2     UNITS
+
+COMMAND EXECUTED
+ZDDS:IPDU,0;
+cli 
+MME CLI>    // shell command  like tcpdump to capture wireshark log
+clearsgwtable -gtplbs
+quit    //quit will quit the IPDU unit client
+
+
+ZWQO:CR;  // check the software version in ATCA, with Y in def colum, that is the current software version.
+
+
+*** state name is not complied with definition in fsmtransition
+when log show:
+ TITLE : InterNodeTauTargetUpdateLocationState state started
+this state name may not comply with the one in procedure file fsmtransition definition.
+the procedure's StateFactory.java file's function getStateById function will match this gap, for example:
+==================================================
+    public State getStateById( int stateId )
+    {
+        ProcedureState interNodeTauTargetProcedureState = ProcedureCommonState.getStateById( stateId,
+            interNodeTauProcedure );
+...
+       else if( stateId == InterNodeTauTargetState.InterNodeTauUpdateLocation.getId() )
+        {
+            interNodeTauTargetProcedureState = new InterNodeTauTargetUpdateLocationState( interNodeTauProcedure );
+        }
+===========================
+here log show 1588  TITLE : InterNodeTauTargetUpdateLocationState state started
+but the stateid is          InterNodeTauUpdateLocation
+---------------------
+In procedure transition definition:
+fsmTransition.defineTransition( InterNodeTauTargetState.InterNodeTauUpdateLocation.getId(), TrEvent.SubProcedureCompleted.id(), InterNodeTauTargetState.                             InterNodeTauTargetRejectState.getId(), TransitionCondition.and( isUpdateLocationFailed(), TransitionCondition.not( isEmergencyCase() ) ) );
+
+
+* apn configuration and real pdn connection table
+** in ula
+s6a_update_location_ans_s.s6a_ula.subscrb_data.apn_subs_data.apn_cnfg_prof.apn_conf .get( apnIndex ).service_selection
+//service_selection is the apn name
+ subscriber.getData().getHssSubscriptionData().getApnConfiguration().set( confIndex, apnCnfg );
+
+
+
+** ub forwardrelocationreq
+ byte[] apn = epsForwardRelocationReq
+                .getDmxField( Offsets2.eps_s10_fwd_relocation_req_s.subs_info.pdn_tbl.pdn_conn.get( index ).apn );
+//apn is the apn name
+subscriber.getData().getHssSubscriptionData().setApnConfiguration( apnConfigurationList );
+
+
+** get subscriber's HssSubscriptionData's apn configuration function:
+ : HssSubscriptionDataAvailability, isHssSubscriptionDataUnavailable(): HSS Subscription data available = false, size of APN configuration list = 1, context ID = 0, is non MME subscriber = false, is APN Configuration available = false
+
+
+* MMDU Procedure starting
+There are two ways to start a new procedure: 
+one is in ProcedureHandler.java canstart() condition.
+the other is in run as subprocedure in a procedure's state
+
+** started a new procedure in procedurehandler:
+if a dmx message and its subscriber is submitted to a queue, no active procedure consume it, then procedurehandler will deal it:
+****************
+    else if( S1HandoverProcedure.canStart( msg ) )
+            {
+                if( Logger.isTraceEnabled() )
+                {
+                    Logger.logTrace( "S1HO", "ProcedureHandler", "",
+                        "inside getConsumableProcedure for S1Handover Procedure", "", "" );
+                }
+                proc = S1HandoverProcedure.getS1HandoverProcedure( (Subscriber) procObject );
+                proc.setUniqueProcedureId( CollisionHandlerUtils.generateUniqueProcIdForS1HOProcedure( msg ) );
+                proc.setTransactionId( Converter.toLong( S1HandoverProcedureUtil.extractTransactionIdFromDmxMsg( msg ) ) );
+                proc.storeMessage( S1HandoverMessages.eps_s1_ho_required_s.id(), msg );
+            }
+***************
+
+============================================================================
+TITLE : Procedure Handler : Started new procedure (AttachProcedure)
+  DATA : ProcCode = MME_PROC_T_ATTACH_C
+         Message  = DmxMsg(eps_attach_req_s, proc : MME_PROC_T_ATTACH_C(1))
+============================================================================
+
+** started a new procedure in some state:
+***************
+public class S6AUpdateLocationSubProcedureStart
+    extends AttachProcedureState
+{
+   public void run()
+    {
+        Subscriber subscriber = getSubscriber();
+        attachProcedure().setIsUpdateLocationSent( true );
+        Procedure subProc = UpdateLocationProcedure.getNewUpdateLocationProcedure( subscriber );
+        subscriber.addProcedure( subProc );
+        ProcedureHandler.instance().startChildProcedure( subProc, null, attachProcedure() );
+    }
+*******************	
+no "Started new procedure" log out, but "TITLE : ProcedureStartState state started" this is called in the construction function of a procedure class.
+
+
+* DNS related in LTE
+get dns server ip from keyword "NsMml.Change Ipdu Dns Settings Cli"
+PRIMARY EXTERNAL DNS IP ADDRESS.......(PRIP)  10.91.204.250
+SECONDARY EXTERNAL DNS IP ADDRESS.....(SEIP)  10.91.204.250
+
+ssh into dns server from keyword:
+/var/named/chroot/vcs/<dnsServer10.102.191.4>/name.conf
+  
+from keyword "Change Cppu Sgw And Dns Settings "
+SEND* setparameter -tr DNSHomeDomainName frma302.3gppnetwork.org. 
+02:09:00.089 INFO setparameter -tr DNSHomeDomainName frma302.3gppnetwork.org.
+DNSHomeDomainName Parameter updated.
+
+in file name.conf match from the very end:
+zone "common.3gppnetwork.org" {
+        type master;
+        file "3gppnetwork.org.zone.common";
+};
+get file name from file field and this is 
+/var/named/chroot/vcs/<dnsServer10.102.191.4>/zone/g3ppnetwork.org.zone.common
+
+
+* IPDU select CPPU, CPPU select MMDU
+** IPDU select CPPU using mme-s1ap-id from s1ap message
+** CPPU select MMDU using TEID from GTP message
+
+
+* S1 message flow in between IPDU and CPPU
+
+             s1msg(req)                      decode asn message
+IPDU(S1LBS) ------------> CPPU(mmeS1Handler)--------------------> CPPU(Trhandler)
+                               
+             s1msg(resp)                     encode asn message  
+            <-----------                    <--------------------
+
+
+
+sharenet logs address:
+Server Ip:10.135.72.13
+Username:micts
+Pw:micts123
+10:59
+
+* bearer table and PDN table implemented in mme
+in mmdu: subscriber worked in an unit, it has:
+subscriber.getData().getActivePdnConnection()  // this is for all pdn connections
+ pdnConnection = subscriber.getData().getActivePdnConnection().get( index );
+activeBearerCount = (byte) pdnConnection.getEpsBearers().size();
+if( activeBearerCount > 0 )
+{
+    // Loop through all available bearers and add them to the epsBearerTbl byte[]
+    iter = pdnConnection.getEpsBearers().iterator();
+    int activeCount = 0;
+    while( iter.hasNext() )
+    {
+        EpsBearer bearer = iter.next();
+-----------------------------------------------------------------------
+Here bearer has all the info needed in  bearer_tbl in subs_info of dmx message
+
+
+
+
+* MML command instruction.
+m103691053:
+** check that all unit states are either WO-EX or SP-EX
+ZUSI;
+** enter into the units command
+REMOTE DEBUGGER SESSION COMMAND <DD_>
+ZDDS:IPDU,0;
+0040-$ neststat -a
+** exit the up level Z; or ctrl+D
+** cli cmmand  to check MMEParameter
+*** in commandline
+001A-$ cli getparameter -subs NAS_COUNT_THRESHOLD
+Result : ParameterName (NAS_COUNT_THRESHOLD) Value (100000
+
+*** in source code:
+*.ini file: NAS_COUNT_THRESHOLD = 16777116
+
+*** name convention in robot case and mme code
+**** robot case
+
+            cmd = 'cli setparameter -subs NAS_COUNT_THRESHOLD %s' % (nas_count_threshold)
+
+**** mme code
+==================================
+else if( IniParameterNames.NAS_COUNT_THRESHOLD.getId() == paramCode )
+            {
+                intParam.setValue( mmeParametersInstance.getNasCountThreshold() );
+            }
+---------------------------------------------------------
+ public int getNasCountThreshold()
+    {
+        return nasCountThreshold;
+    }
+
+**** this is a dealing with pdf to text containing extra bytes
+tr -dc "[:alnum:][:space:][:punct:]"
+
+
+**** s3 interface configured or not
+if s3 interface was configured, then gtpv2 message "echo request" will be sent in protocol layer automatically, not related to the cppu/mmdu logic
+So if SGSN received gtpv2 message which tester won't recognized, for SGSN is gn interfaced in tester side which receive gtpv1 message.
+ 
+
+
+solid db expired:  delete "*.db" and "*.log" files
+
+
+**** eclipse 
+1. Add M2_REPO Manually
+
+Define and add M2_REPO classpath variable manually into Eclipse IDE. Follow below steps :
+
+    Eclipse IDE, menu bar
+    Select Window > Preferences
+    Select Java > Build Path > Classpath Variables
+    Click on the new button > defined a new M2_REPO variable and point it to your local Maven repository
+    Done.
+
+2. Add M2_REPO Automatically – eclipse:configure-workspace
+
+Alternatively, you can define and add M2_REPO via Maven command “eclipse:configure-workspace“.
+Bash
+
+mvn -Declipse.workspace="your Eclipse Workspace" eclipse:configure-workspace
+
+See an example :
+Bash
+
+C:\>mvn -Declipse.workspace="C:\Users\mkyong\workspace" eclipse:configure-workspace
+[INFO] Scanning for projects...
+[INFO] Searching repository for plugin with prefix: 'eclipse'.
+[INFO] ------------------------------------------------------------------------
+[INFO] Building Maven Default Project
+[INFO]    task-segment: [eclipse:configure-workspace] (aggregator-style)
+[INFO] ------------------------------------------------------------------------
+[INFO] [eclipse:configure-workspace {execution: default-cli}]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESSFUL
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 1 second
+[INFO] Finished at: Thu Apr 14 20:45:17 SGT 2011
+[INFO] Final Memory: 9M/112M
+[INFO] ------------------------------------------------------------------------
+
+Done.
+
+Verify M2_REPO is Added
+Review classpath variable to verify that the M2_REPOis added into Eclipse IDE.
+
+*** loglevel in utt case running
+./pom.xml:554:                <additional.args>-Dutt_loglevel=6</additional.args>
+./src/test/java/com/nsn/mme/persistence/UTTBaseTest.java:89:        String logLevelStr = System.getProperty( "utt_loglevel" );
+./src/test/java/com/nsn/mme/utt/UttBaseSetup.java:119:        String logLevelStr = System.getProperty( "utt_loglevel" );
+
+** utt
+./UltimateTestingTool/ext/xml_files/utilities.xml 
+mmeparameter and  prfile setting in the xml files. 
+
+
+svn patch --dry-run TrH.path ./
+
+
+** mml command collection
+
+*** restarts a unit
+**** telnet into OMU using SYSTEM SYSTEM (HIT)
+KEYWORD: NsMml.Restart Unit ${unit}, C=DSK
+Start / End / Elapsed:	20160613 13:40:32.170 / 20160613 13:40:33.634 / 00:00:01.464
+13:40:33.633	INFO	*SEND* ZUSU:MCHU,0:C=DSK;	
+13:40:33.633	INFO	ZUSU:MCHU,0:C=DSK;
+
+**** check unit status
+ZUSI:MCHU,0:;
+
+****  check all the interface ip
+ZKAI:;
+ipdu 's s10 and s3 interface the same ip addr.
+
+**** create s3 interface
+ZKAC:;
+
+**** restart whole ATCA
+telnet will be done;
+USS:SYM:C=TOT,;
+
+
+**** only run a few testcases
+$ svn diff mmeTrHandler/pom.xml
+Index: mmeTrHandler/pom.xml
+===================================================================
+--- mmeTrHandler/pom.xml        (版本 25003)
++++ mmeTrHandler/pom.xml        (工作副本)
+@@ -293,7 +293,8 @@
+                                 <argument>-jar</argument>
+                                 <argument>${uttTrh.jar}</argument>
+                                 <argument>-convUTT2JUNIT</argument>
+-                                <argument>-s=${utt.source}</argument>
++                             <!--    <argument>-s=${utt.source}</argument>  -->
++                                <argument>-s=D:\userdata\glili\workspace\fns\NS17\SS_LNXmmeTrHandler\mmeTrHandler\src\test\resources\UTTWorkspace\TrHandler\TestCases\S1HO\Templates</argument>
+                                 <argument>-d=${utt.destination}</argument>
+                                 <argument>-t=${utt.datatype}</argument>
+                             </arguments>
+
+**** utt suite running
+$ mvn -Dtest=com.nsn.mme.utt.TestSuiteForUtt test
+
+**** skip running testing in mvn install
+mvn clean install -Dmaven.test.skip=true
+
+
+**** switch to other version
+ZWSD:STAT=BU;
+13:21
+
+BU就是ns17的

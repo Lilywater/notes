@@ -1,0 +1,912 @@
+emacs projects	-*- mode: org; -*-
+* qt 的 qobject组织形式
+QObjects以对象树组织它们自己。当你创建一个QObject以另一个对象作为其父对象时，这个QObject被加入到其父对象
+>的children()列表中，当父对象对被删除时，其子对象也会被删除。实践表明这种组织方式非常适合GUI对象的特点与需要。举例
+>来说，一个QShortcut(键盘快捷键)是其相关窗口的孩子，因此当用户关掉那个窗口时，这个快捷键也随之删除了。
+>
+>你也可以亲自删除孩子对象，这些子对象会与其父对象脱离关系。举例来说，当用移除了一个工具栏，它导致应用程序删除这个QToolBa
+>r 对象，这时这个工具栏的父对象QMainWindow察觉到了变化，会相应地重新配置其屏幕空间。
+>
+>
+>Best Regards!
+>
+>Peng Li (李鹏)
+>
+>
+>
+>-----Original Message-----
+>From: Kallunki Janne 
+>Sent: Friday, August 21, 2009 2:21 PM
+>
+>Cc: Li Peng
+>
+>
+>Hi,
+>
+>I dont't think all the new deletes are needed. QObjects 
+>automatically delete their children. For example:
+>
+>QMyWidget::QMyWidget(...):QMainWindow(...)
+>{
+>    QPushButton * button=new QPushButton(this); // QMainWindow 
+>added as a parent
+>    connect(...);
+>}
+>
+>
+>QMyWidget::QMyWidget(...):QMainWindow(...)
+>{
+>    button=new QPushButton(this);
+>    connect(...);
+>}
+>QMyWidget::~QMyWidget()
+>{
+>    // No need to delete button because it's deleted 
+>automatically when QMyWidget is deleted.
+>}
+>
+>I found that following objects are just like the example above:
+>m_faviconArea = new QLabel(this);
+>m_entryProgressFrame = new QFrame(this);
+>m_button = new QPushButton(*m_loadIcon, tr(""), this);
+>m_focusTimer = new QTimer(this);
+>m_gotoEntryLayout = new QStackedLayout(m_entryProgressFrame);
+>
+>Could you re-check your fix and avoid deletion of objects that 
+>are taken care of framework. Check other deletions too, not 
+>only the five mentioned above.
+>
+>
+>Br, Janne 
+> 
+* qt widget创建另外一个widget
+比如下例：
+class MainWindow:public QMainWindow
+{
+}
+void MainWindow::createDockWindows() {
+   
+    QDockWidget *wdock = new QDockWidget(tr("A.LVS"), this);
+	textEdit = new QTextEdit(this);
+    subWinR *swr1=new subWinR(textEdit);
+	wdock->setWidget(swr1);
+   	addDockWidget(Qt::RightDockWidgetArea,wdock);	
+  
+}
+##这里textEdit widget被嵌入wdock中，如果没有这句，那么textEdit也将出现在屏幕上
+
+void MainWindow::createDockWindows() {
+   
+ 
+	textEdit = new QTextEdit(this);
+   
+}
+这样textEdit会出现在屏幕上，因为有this指针传入，如果是
+textEdit = new QTextEdit();
+##则 textEdit不会出现在屏幕上。
+
+* QMainWindow的CentralArea
+QMainWindow::QMainWindow()
+{
+   createGUI();
+## 生成一个layout以及layout里的所有组建
+   QWidget * wg= new QWidget(this);
+   wg->setLayout(layout);
+## 把QWidget的layout设置成生成好的layout 
+  setCentralWidget(wg);
+#在QMainWindow中把 CentralWidget设置成wg
+}
+如果这里直接用setLayout函数，会使设置失败，因为QMainWindow一级那个set好layout了。
+自己只能重新设置CentralWidget的layout
+* qt 的信号，槽机制
+qt的slot and signal 提供了一套 qobject 对象之间的通信机制。signal是sneder，slot是
+receiver的。但是qt的signal实际上是一个函数，qt所有关于信号和槽之间的联系，是通过生成
+moc_**.cpp 文件实现的。 moc文件的生成需要在class 的声明第一行上Q_OBJECT 表示这个类
+是个qobject的子类，如果有connect机制，qmake会生成相应的makefile指明生成moc文件。
+
+。
+** 在用connect连接signal和slot的时候，如果有函数参数，不许要参数名。
+MyWin::MyWin(QWidget * parent):QMainWindow(parent)
+{
+   mybut = new QPushButton(this);
+   connect(mybut, SIGNAL(clicked()),this, SLOT(bu_click()));
+   connect(this, SIGNAL(emittest(int)),this, SLOT(test(int)));
+}
+
+MyWin::~MyWin()
+{
+}
+
+void MyWin::bu_click()
+{
+ qDebug()<< "this is a test clicked";
+emit emittest(5);
+}
+
+int MyWin::test(int num)
+{
+  qDebug()<< "this is a test clicked return and parameter"<< num;
+
+}
+
+** slot 既然是类的成员函数有没有public之分呢？没有。
+** slot和signal都是函数它们之间的参数的对应关系是怎样的。
+这两个问题要看moc文件得到解答
+****------------------------
+/****************************************************************************
+** Meta object code from reading C++ file 'MyWin.h'
+**
+** Created: Thu Oct 27 15:51:02 2011
+**      by: The Qt Meta Object Compiler version 62 (Qt 4.7.2)
+**
+** WARNING! All changes made in this file will be lost!
+*****************************************************************************/
+
+#include "MyWin.h"
+#if !defined(Q_MOC_OUTPUT_REVISION)
+#error "The header file 'MyWin.h' doesn't include <QObject>."
+#elif Q_MOC_OUTPUT_REVISION != 62
+#error "This file was generated using the moc from 4.7.2. It"
+#error "cannot be used with the include files from this version of Qt."
+#error "(The moc has changed too much.)"
+#endif
+
+QT_BEGIN_MOC_NAMESPACE
+static const uint qt_meta_data_MyWin[] = {
+
+ // content:
+       5,       // revision
+       0,       // classname
+       0,    0, // classinfo
+       3,   14, // methods
+       0,    0, // properties
+       0,    0, // enums/sets
+       0,    0, // constructors
+       0,       // flags
+       1,       // signalCount
+
+ // signals: signature, parameters, type, tag, flags
+      15,   11,    7,    6, 0x05,
+
+ // slots: signature, parameters, type, tag, flags
+      29,    6,    6,    6, 0x0a,
+      40,   11,    7,    6, 0x08,
+
+       0        // eod
+};
+
+static const char qt_meta_stringdata_MyWin[] = {
+    "MyWin\0\0int\0num\0emittest(int)\0bu_click()\0"
+    "test(int)\0"
+};
+
+const QMetaObject MyWin::staticMetaObject = {
+    { &QMainWindow::staticMetaObject, qt_meta_stringdata_MyWin,
+      qt_meta_data_MyWin, 0 }
+};
+
+#ifdef Q_NO_DATA_RELOCATION
+const QMetaObject &MyWin::getStaticMetaObject() { return staticMetaObject; }
+#endif //Q_NO_DATA_RELOCATION
+
+const QMetaObject *MyWin::metaObject() const
+{
+    return QObject::d_ptr->metaObject ? QObject::d_ptr->metaObject : &staticMetaObject;
+}
+
+void *MyWin::qt_metacast(const char *_clname)
+{
+    if (!_clname) return 0;
+    if (!strcmp(_clname, qt_meta_stringdata_MyWin))
+        return static_cast<void*>(const_cast< MyWin*>(this));
+    return QMainWindow::qt_metacast(_clname);
+}
+
+int MyWin::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
+{
+    _id = QMainWindow::qt_metacall(_c, _id, _a);
+    if (_id < 0)
+        return _id;
+    if (_c == QMetaObject::InvokeMetaMethod) {
+        switch (_id) {
+        case 0: { int _r = emittest((*reinterpret_cast< int(*)>(_a[1])));
+            if (_a[0]) *reinterpret_cast< int*>(_a[0]) = _r; }  break;
+        case 1: bu_click(); break;
+        case 2: { int _r = test((*reinterpret_cast< int(*)>(_a[1])));
+					3~
+            if (_a[0]) *reinterpret_cast< int*>(_a[0]) = _r; }  break;
+        default: ;
+        }
+        _id -= 3;
+    }
+    return _id;
+}
+
+// SIGNAL 0
+int MyWin::emittest(int _t1)
+{
+    int _t0;
+    void *_a[] = { const_cast<void*>(reinterpret_cast<const void*>(&_t0)), const_cast<void*>(reinterpret_cast<const void*>(&_t1)) };
+    QMetaObject::activate(this, &staticMetaObject, 0, _a);
+    return _t0;
+}
+QT_END_MOC_NAMESPACE
+*****-------------------------------------------------
+SIGNAL 的函数实现是在moc里的：signal是把参数传递给qt_meta_call,这时对应id，数组a[0]作为函数返回值输出
+，a[1]开始作为函数参数输入，所以，slot的参数一定要少于signal的参数，因为最终以函数方式调用的是slot函数。
+而如果slot函数有参数的话，是一定那个要传入参数才能调用成功的，但signal的参数可以有多个，slot函数不一定都要用。
+signal 函数不一定都要
+Qt extends the syntax of C++ with the extra keywords “slots”, “signals”, and “more”. 
+These are used together with the standard keywords “public”, “protected”, and “private”.
+
+
+* qt 中调用其他程序
+
+在qt中调用其他程序佣
+QProcess，但是调用之后会无法控制这个进程。无论是execute还是start，
+在linux可以佣 system("kill  `ps aux|grep firefox| awk '{print $2}' `");杀死该进程，比较暴力，不建议。
+
+qt程序置顶：QWidget *parent = 0, Qt::WindowFlags f=Qt::WindowStaysOnTopHint
+
+
+ 
+* qt 源代码的取得，用git
+
+* qt 源代码的编译
+
+** linux下，从configure开始
+configure有很多选项
+./configure -static -xplatform unsupported/qws/qnx-armv7-g++ -embedded armv7 -no-gfx-linuxfb
+ -no-mouse-linuxtp -no-kbd-tty -no-qt3support -qt-gfx-qnx -qt-mouse-qnx -qt-kbd-qnx -no-exceptions
+ -no-webkit 
+## 这是一个编译arm cpu上qnx OS上的qt库。
+## -no 表示不编译相应的模块
+## -static 表示静态库
+## unsupported/qws/qnx-armv7-g++ 这个是一个路径名，里面是交叉编译所需要的所有信息
+## -embedded 表示嵌入式 后根 cpu的型号
+
+------------------------------------
+## --help是一个寻求帮助的地方，默认不加参数的情况下是-no-opengl,如果需要opengl的支持，应该用-opengl选项
+li@ubuntu:/home/lily/qtwork/qt$ ./configure --help |grep -n -A 3 -B 3 opengl
+175-                         operating systems and compilers.
+176-    -graphicssystem <sys> Sets an alternate graphics system. Available options are:
+177-                           raster - Software rasterizer
+178:                           opengl - Rendering via OpenGL, Experimental!
+179-                           openvg - Rendering via OpenVG, Experimental!
+180-
+181-
+--
+303-                         GLX, which is the default. Note: For OpenGL ES, EGL
+304-                         is always used.
+305-
+306:    -no-opengl ......... Do not support OpenGL.
+307: +  -opengl <api> ...... Enable OpenGL support.
+308-                         With no parameter, this will auto-detect the "best"
+309-                         OpenGL API to use. If desktop OpenGL is available, it
+310-                    
+-------------------------------------------------------------------
+
+** qt程序运行指定路径
+
+# mount -t dos -o exe=all /dev/hd0t131  /mnt
+# cd /mnt
+# ls
+
+# ./animatedtiles
+ldd:FATAL: Could not load library libQtGui.so.4
+
+# export LD_LIBRARY_PATH=/mnt/QtEmbedded-4.8.0-arm/lib
+# ./animatedtiles
+ldd:FATAL: Could not load library libQtNetwork.so.4
+## 这是找不到qt的library， 需要增加LD——LIBRARY——PATH
+
+# ./animatedtiles
+ldd:FATAL: Could not load library libstdc++.so.6
+## 在相应目录下无法找到libstdc++，这在交叉编译环境下有，在安装qnx的sdk的目录下。
+-------------------------------------------------------
+li@ubuntu:/opt/qnx650/target/qnx6/armle-v7/lib$ ls
+crt1.o          libc.so          libm.so                libsnmp.so
+crtbegin.o      libc.so.3        libm.so.2              libsnmp.so.1
+crtend.o        libecpp-ne.so.4  libmudflap.so.0        libsocket.a
+crti.o          libecpp.so.4     libmudflap.so.0.0.0    libsocketS.a
+crtn.o          libetfs.a        libmudflapth.so.0      libsocket.so
+dll             libfont.a        libmudflapth.so.0.0.0  libsocket.so.3
+gcc             libfontS.a       libnbdrvr.a            libstdc++.so.6
+libasound.so    libfont.so       libnbdrvrS.a           libstdc++.so.6.0.13
+libasound.so.2  libfont.so.1     libpm.a                libusbdi.a
+libbessel.a     libhiddi.a       libpmS.a               libusbdiS.a
+libbessel.so    libhiddi.so      libpps.a               libusbdi.so
+libbessel.so.1  libhiddi.so.1    libppsS.a              libusbdi.so.2
+libc.a          libimg.a         libpps.so              libwlconfig.a
+libcam.so       libimgS.a        libpps.so.1            libwlconfigS.a
+libcam.so.2     libimg.so        libqnxterm.a           libwlconfig.so
+libcpp-ne.so.4  libimg.so.1      libshutdown.a          libwlconfig.so.1
+libcpp.so.4     libm.a           libsnmp.a              mcrt1.o
+libcS.a         libmS.a          libsnmpS.a             nto.link
+li@ubuntu:/opt/qnx650/target/qnx6/armle-v7/lib$ 
+-------------------------------------------------------------
+
+# ./animatedtiles
+Cannot create Qt for Embedded Linux data directory: /qtembedded-0
+Abort
+--------------------------------------------------------------
+bsp的/目录无法写，因为不是从磁盘mount上的，
+# mount
+/dev/ram0 on /qtembedded-0 type qnx4
+/dev/hd0t131 on /mnt type dos (fat32)
+/dev/hd0t12 on /fs/hd0 type dos (fat32)
+### 这里hd0是sd卡，但根目录始终不在sd卡上
+可以mount一个ram到根目录下的一个目录下
+------------------------------------------------------------
+# devb-ram cam quiet disk name=.ram@1 ram capacity=0,nodinit blk ramdisk=10m,cac
+he=0,vnode=256
+# dinit -q -h /dev/ram0
+# mount -t qnx4 /dev/ram0 /qtembedded-0
+----------------------------------------------------------------------
+# ./animatedtiles -qws
+QFontDatabase: Cannot find font directory /usr/local/Trolltech/QtEmbedded-4.8.0-
+arm/lib/fonts - is Qt installed correctly?
+Abort
+# export QT_QWS_FONTDIR=/mnt/QtEmbedded-4.8.0-arm/lib/fonts
+# ./animatedtiles -qws
+
+* qt多语言支持
+
+----------------------------------------------------
+Qt多语言支持版
+====================================================
+1)在程序里需要翻译的地方用tr()包装起来，如 QString str = tr("baidu");
+2)在.pro文件里加入一行 TRANSLATIONS=Language_Chn.ts
+3)用控制台执行命令：lupdate yourapp.pro 或调用ide编译.这样程序会将程序中使用tr的部分提取到ts文件中。
+4)打开 linguist 工具，编辑上面的ts文件，将每个源字符进行翻译，然后release一个Language_Chn.qm文件。
+5）在程序里调用下面代码即可完成界面语言的翻译：
+
+QTranslator * translator = new QTranslator();
+translator->load("Language_Chn");
+QApplication::instance()->installTranslator(translator);
+
+translator->load("Language_"+ QLocale::system().name()))// 根据系统所选的语言加载相应的语言。cn,为中文， en，为英文
+==========================================================
+
+[cpp] view plaincopyprint?
+01.//tqt.h   
+02.#ifndef TQT_H_   
+03.#define TQT_H_   
+04.  
+05.#include <QtGui>   
+06.#include <QtCore>   
+07.  
+08.//QT动态加载（运行时改变）语言的例子   
+09.class Dialog : public QDialog  
+10.{  
+11.    Q_OBJECT  
+12.private:  
+13.    QLabel *textLabel;  
+14.    QLabel *languageLabel;  
+15.    QComboBox *comboBox;  
+16.    QMap<QString, QString> translatorMap;  
+17.    QTranslator translator;  
+18.    //由翻译文件的文件名得到语言的名字   
+19.    QString LanguageName(const QString &name);  
+20.  
+21.public:  
+22.    Dialog(QDialog *parent = 0);  
+23.    ~Dialog();  
+24.    void SetLanguageCombo();  
+25.    //改变语言   
+26.    void ChangeLanguage(const QString &language);  
+27.    //语言加载完成名刷新界面   
+28.    void Reflush();  
+29.  
+30.    public slots:  
+31.        void ChooseLanguage(const QString &language);  
+32.};  
+33.  
+34.#endif   
+35.  
+36.  
+37.  
+38.//tqt.cpp   
+39.#include "tqt.h"   
+40.  
+41.Dialog::Dialog(QDialog *parent /* = 0 */)  
+42.{  
+43.    setWindowTitle( tr("English") );  
+44.    resize(200, 200);  
+45.  
+46.    textLabel = new QLabel(tr("I am Chinese"), this);  
+47.    languageLabel = new QLabel(tr("Language:"), this);  
+48.    comboBox = new QComboBox(this);  
+49.    QHBoxLayout *subLayout = new QHBoxLayout;  
+50.    subLayout->addWidget(languageLabel);  
+51.    subLayout->addWidget(comboBox);  
+52.    QVBoxLayout *layout = new QVBoxLayout;  
+53.    layout->addWidget(textLabel);  
+54.    layout->addLayout(subLayout);  
+55.    setLayout(layout);  
+56.    SetLanguageCombo();  
+57.    connect(comboBox, SIGNAL(activated(const QString&)),  
+58.        this, SLOT(ChooseLanguage(const QString&)));  
+59.}  
+60.  
+61.Dialog::~Dialog()  
+62.{  
+63.  
+64.}  
+65.  
+66.QString Dialog::LanguageName(const QString &name)  
+67.{  
+68.    QTranslator translator;  
+69.    translator.load(name);  
+70.    QString str = translator.translate("Dialog", "English");  
+71.    return str;  
+72.}  
+73.  
+74.void Dialog::SetLanguageCombo()  
+75.{  
+76.    comboBox->addItem("English");  
+77.    //所有语言包(*.qm)都放在"language"这个文件夹下   
+78.    QDir dir("language");  
+79.    QStringList fileNames = dir.entryList(QStringList("*.qm"),  
+80.        QDir::Files, QDir::Name);  
+81.    QString name;  
+82.  
+83.    QStringList::iterator iter = fileNames.begin();  
+84.    for(; iter!=fileNames.end(); ++iter)  
+85.    {  
+86.          
+87.        *iter = dir.filePath(*iter);  
+88.        name = *iter;  
+89.        name = LanguageName(*iter);  
+90.        translatorMap.insert(name, *iter);  
+91.        comboBox->addItem(name);  
+92.    }  
+93.}  
+94.  
+95.void Dialog::ChooseLanguage(const QString &language)  
+96.{  
+97.    int index = comboBox->currentIndex();  
+98.    ChangeLanguage(language);  
+99.}  
+100.  
+101.void Dialog::ChangeLanguage(const QString &language)  
+102.{  
+103.    if("English" == language)  
+104.        qApp->removeTranslator(&translator);  
+105.    else  
+106.    {  
+107.        QString fileName = translatorMap.value(language);  
+108.        translator.load(fileName);  
+109.        qApp->installTranslator(&translator);  
+110.    }  
+111.    Reflush();  
+112.}  
+113.  
+114.void Dialog::Reflush()  
+115.{  
+116.    setWindowTitle( tr("English") );  
+117.    textLabel->setText( tr("I am Chinese") );  
+118.    languageLabel->setText( tr("Language:") );  
+119.}  
+120.  
+121.  
+122.  
+123.//main.cpp   
+124.#include "tqt.h"   
+125.  
+126.int main(int argc, char **argv)  
+127.{  
+128.    QApplication app(argc, argv);  
+129.    Dialog *dialog = new Dialog;  
+130.    dialog->show();  
+131.    return app.exec();  
+132.}  
+//tqt.h
+#ifndef TQT_H_
+#define TQT_H_
+
+#include <QtGui>
+#include <QtCore>
+
+//QT动态加载（运行时改变）语言的例子
+class Dialog : public QDialog
+{
+	Q_OBJECT
+private:
+	QLabel *textLabel;
+	QLabel *languageLabel;
+	QComboBox *comboBox;
+	QMap<QString, QString> translatorMap;
+	QTranslator translator;
+	//由翻译文件的文件名得到语言的名字
+	QString LanguageName(const QString &name);
+
+public:
+	Dialog(QDialog *parent = 0);
+	~Dialog();
+	void SetLanguageCombo();
+	//改变语言
+	void ChangeLanguage(const QString &language);
+	//语言加载完成名刷新界面
+	void Reflush();
+
+	public slots:
+		void ChooseLanguage(const QString &language);
+};
+
+#endif
+
+
+
+//tqt.cpp
+#include "tqt.h"
+
+Dialog::Dialog(QDialog *parent /* = 0 */)
+{
+	setWindowTitle( tr("English") );
+	resize(200, 200);
+
+	textLabel = new QLabel(tr("I am Chinese"), this);
+	languageLabel = new QLabel(tr("Language:"), this);
+	comboBox = new QComboBox(this);
+	QHBoxLayout *subLayout = new QHBoxLayout;
+	subLayout->addWidget(languageLabel);
+	subLayout->addWidget(comboBox);
+	QVBoxLayout *layout = new QVBoxLayout;
+	layout->addWidget(textLabel);
+	layout->addLayout(subLayout);
+	setLayout(layout);
+	SetLanguageCombo();
+	connect(comboBox, SIGNAL(activated(const QString&)),
+		this, SLOT(ChooseLanguage(const QString&)));
+}
+
+Dialog::~Dialog()
+{
+
+}
+
+QString Dialog::LanguageName(const QString &name)
+{
+	QTranslator translator;
+	translator.load(name);
+	QString str = translator.translate("Dialog", "English");
+	return str;
+}
+
+void Dialog::SetLanguageCombo()
+{
+	comboBox->addItem("English");
+	//所有语言包(*.qm)都放在"language"这个文件夹下
+	QDir dir("language");
+	QStringList fileNames = dir.entryList(QStringList("*.qm"),
+		QDir::Files, QDir::Name);
+	QString name;
+
+	QStringList::iterator iter = fileNames.begin();
+	for(; iter!=fileNames.end(); ++iter)
+	{
+		
+		*iter = dir.filePath(*iter);
+		name = *iter;
+		name = LanguageName(*iter);
+		translatorMap.insert(name, *iter);
+		comboBox->addItem(name);
+	}
+}
+
+void Dialog::ChooseLanguage(const QString &language)
+{
+	int index = comboBox->currentIndex();
+	ChangeLanguage(language);
+}
+
+void Dialog::ChangeLanguage(const QString &language)
+{
+	if("English" == language)
+		qApp->removeTranslator(&translator);
+	else
+	{
+		QString fileName = translatorMap.value(language);
+		translator.load(fileName);
+		qApp->installTranslator(&translator);
+	}
+	Reflush();
+}
+
+void Dialog::Reflush()
+{
+	setWindowTitle( tr("English") );
+	textLabel->setText( tr("I am Chinese") );
+	languageLabel->setText( tr("Language:") );
+}
+
+
+
+//main.cpp
+#include "tqt.h"
+
+int main(int argc, char **argv)
+{
+	QApplication app(argc, argv);
+	Dialog *dialog = new Dialog;
+	dialog->show();
+	return app.exec();
+}
+
+
+*  qt 无边框窗口
+
+http://www.xycode.org/?p=138
+
+QApplication::setStyle("cleanlooks");
+QApplication a(argc, argv);
+login w;
+w.setWindowTitle("ClientLogin");
+w.setWindowOpacity(1);
+w.setWindowFlags(Qt::FramelessWindowHint);
+w.setAttribute(Qt::WA_TranslucentBackground);
+w.show();
+w.move(200,100);
+return a.exec();
+}
+关键的语句，就是其中的
+
+w.setWindowOpacity(1);
+
+w.setWindowFlags(Qt::FramelessWindowHint);
+
+w.setAttribute(Qt::WA_TranslucentBackground);
+
+这些语句，不知道什么意思就摁下F1，或者直接查阅帮助文档……
+
+对窗体无边框的设置要写在main里面，这样所有派生的子窗口，QDialog,QWidget都可继承，
+
+很好规划和管理，方便统一美化设计。
+
+以工程中一个聊天窗口为例，先用PS制作一个窗体的背景图片，注意存为png格式，这是透明的关键。
+
+不会使PS，可以找些PNG资源图片。
+
+我的PNG透明背景图为：
+
+
+* DBus 编程
+
+
+zxx@gll-bac:~$ dbus-send --system --print-reply --type=method_call --dest="org.freedesktop.DBus" /org/freedesktop/DBus org.freedesktop.DBus.ListNames
+method return sender=org.freedesktop.DBus -> dest=:1.58 reply_serial=2
+   array [
+      string "org.freedesktop.DBus"
+      string ":1.7"
+      string ":1.8"
+      string ":1.9"
+      string "org.freedesktop.NetworkManager"
+      string "org.freedesktop.ModemManager"
+      string "com.ubuntu.Upstart"
+      string "org.freedesktop.RealtimeKit1"
+      string ":1.40"
+      string ":1.41"
+      string ":1.20"
+      string "org.freedesktop.PolicyKit1"
+      string ":1.42"
+      string ":1.43"
+      string ":1.44"
+      string ":1.22"
+      string ":1.45"
+      string ":1.23"
+      string "org.freedesktop.NetworkManagerSystemSettings"
+      string ":1.24"
+      string ":1.48"
+      string "com.redhat.NewPrinterNotification"
+      string ":1.49"
+      string "fi.epitest.hostap.WPASupplicant"
+      string ":1.28"
+      string ":1.29"
+      string "org.gnome.DisplayManager"
+      string "org.freedesktop.ConsoleKit"
+      string "org.freedesktop.UDisks"
+      string "org.freedesktop.Hal"
+============\
+service --status-all
+
+hal 
+https://wiki.archlinux.org/index.php/HAL
+HAL (Hardware Abstraction Layer) is a daemon that allows desktop applications to readily access hardware information, to locate and use such hardware regardless of bus or device type. In this way a desktop GUI can present all resources to its user in a seamless and uniform manner. 
+==================================
+To debug for hald can't start
+sudo /usr/sbin/hald --daemon=no --verbose=yes
+ps aux|grep hald
+zxx@gll-bac:~$ dbus-send --system --print-reply --type=method_call --dest="org.freedesktop.DBus" /org/freedesktop/DBus org.freedesktop.DBus.ListNames
+see if  "org.freedesktop.Hal" exist
+
+ dbus-send --system --print-reply --dest=org.freedesktop.Hal /org/freedesktop/Hal/Manager org.freedesktop.Hal.Manager.GetAllDevices
+
+==========================================
+Get signal whne usb plug in
+zxx@gll-bac:~$ dbus-monitor --system 
+
+signal sender=:1.23 -> dest=(null destination) serial=35 path=/org/freedesktop/Hal/Manager; interface=org.freedesktop.Hal.Manager; member=DeviceAdded
+   string "/org/freedesktop/Hal/devices/usb_device_fca_8004_34C31986DE0F9F53750E4B8E348982C775D8B886"
+signal sender=:1.23 -> dest=(null destination) serial=36 path=/org/freedesktop/Hal/Manager; interface=org.freedesktop.Hal.Manager; member=DeviceAdded
+   string "/org/freedesktop/Hal/devices/usb_device_fca_8004_34C31986DE0F9F53750E4B8E348982C775D8B886_if1"
+signal sender=:1.23 -> dest=(null destination) serial=37 path=/org/freedesktop/Hal/Manager; interface=org.freedesktop.Hal.Manager; member=DeviceAdded
+   string "/org/freedesktop/Hal/devices/usb_device_fca_8004_34C31986DE0F9F53750E4B8E348982C775D8B886_if1_scsi_host"
+signal sender=:1.23 -> dest=(null destination) serial=38 path=/org/freedesktop/Hal/Manager; interface=org.freedesktop.Hal.Manager; member=DeviceAdded
+   string "/org/freedesktop/Hal/devices/usb_device_fca_8004_34C31986DE0F9F53750E4B8E348982C775D8B886_if0"
+signal sender=:1.23 -> dest=(null destination) serial=39 path=/org/freedesktop/Hal/Manager; interface=org.freedesktop.Hal.Manager; member=DeviceAdded
+   string "/org/freedesktop/Hal/devices/usb_device_fca_8004_34C31986DE0F9F53750E4B8E348982C775D8B886_if1_scsi_host_0"
+signal sender=:1.23 -> dest=(null destination) serial=40 path=/org/freedesktop/Hal/Manager; interface=org.freedesktop.Hal.Manager; member=DeviceAdded
+   string "/org/freedesktop/Hal/devices/usb_device_fca_8004_34C31986DE0F9F53750E4B8E348982C775D8B886_if1_scsi_host_0_scsi_device_lun0"
+signal sender=:1.23 -> dest=(null destination) serial=41 path=/org/freedesktop/Hal/Manager; interface=org.freedesktop.Hal.Manager; member=DeviceAdded
+   string "/org/freedesktop/Hal/devices/usb_device_fca_8004_34C31986DE0F9F53750E4B8E348982C775D8B886_if1_scsi_host_0_scsi_device_lun0_scsi_generic"
+signal sender=:1.42 -> dest=(null destination) serial=109 path=/org/freedesktop/UDisks; interface=org.freedesktop.UDisks; member=DeviceAdded
+   object path "/org/freedesktop/UDisks/devices/sdc"
+signal sender=:1.42 -> dest=(null destination) serial=116 path=/org/freedesktop/UDisks; interface=org.freedesktop.UDisks; member=DeviceJobChanged
+   object path "/org/freedesktop/UDisks/devices/sdc"
+   boolean true
+   string "FilesystemMount"
+   uint32 1000
+   boolean false
+   double -1
+signal sender=:1.42 -> dest=(null destination) serial=117 path=/org/freedesktop/UDisks/devices/sdc; interface=org.freedesktop.UDisks.Device; member=JobChanged
+   boolean true
+   string "FilesystemMount"
+   uint32 1000
+   boolean false
+   double -1
+signal sender=org.freedesktop.DBus -> dest=(null destination) serial=7 path=/org/freedesktop/DBus; interface=org.freedesktop.DBus; member=NameOwnerChanged
+   string ":1.311"
+   string ""
+   string ":1.311"
+signal sender=:1.23 -> dest=(null destination) serial=42 path=/org/freedesktop/Hal/Manager; interface=org.freedesktop.Hal.Manager; member=DeviceAdded
+   string "/org/freedesktop/Hal/devices/storage_serial_RIM_BlackBerry_SD_34C31986DE0F9F53750E4B8E348982C775D8B886_0_0"
+signal sender=:1.23 -> dest=(null destination) serial=43 path=/org/freedesktop/Hal/devices/storage_serial_RIM_BlackBerry_SD_34C31986DE0F9F53750E4B8E348982C775D8B886_0_0; interface=org.freedesktop.Hal.Device; member=PropertyModified
+   int32 1
+   array [
+      struct {
+         string "info.interfaces"
+         boolean false
+         boolean true
+      }
+   ]
+signal sender=:1.42 -> dest=(null destination) serial=118 path=/org/freedesktop/UDisks/devices/sdc; interface=org.freedesktop.UDisks.Device; member=Changed
+signal sender=:1.42 -> dest=(null destination) serial=119 path=/org/freedesktop/UDisks; interface=org.freedesktop.UDisks; member=DeviceChanged
+   object path "/org/freedesktop/UDisks/devices/sdc"
+signal sender=:1.42 -> dest=(null destination) serial=125 path=/org/freedesktop/UDisks/devices/sdc; interface=org.freedesktop.UDisks.Device; member=Changed
+signal sender=:1.42 -> dest=(null destination) serial=126 path=/org/freedesktop/UDisks; interface=org.freedesktop.UDisks; member=DeviceChanged
+   object path "/org/freedesktop/UDisks/devices/sdc"
+signal sender=:1.42 -> dest=(null destination) serial=128 path=/org/freedesktop/UDisks; interface=org.freedesktop.UDisks; member=DeviceJobChanged
+   object path "/org/freedesktop/UDisks/devices/sdc"
+   boolean false
+   string ""
+   uint32 0
+   boolean false
+   double -1
+signal sender=:1.42 -> dest=(null destination) serial=129 path=/org/freedesktop/UDisks/devices/sdc; interface=org.freedesktop.UDisks.Device; member=JobChanged
+   boolean false
+   string ""
+   uint32 0
+   boolean false
+   double -1
+signal sender=:1.23 -> dest=(null destination) serial=44 path=/org/freedesktop/Hal/Manager; interface=org.freedesktop.Hal.Manager; member=DeviceAdded
+   string "/org/freedesktop/Hal/devices/volume_uuid_28C9_8252"
+signal sender=:1.42 -> dest=(null destination) serial=134 path=/org/freedesktop/UDisks/devices/sdc; interface=org.freedesktop.UDisks.Device; member=Changed
+signal sender=:1.42 -> dest=(null destination) serial=135 path=/org/freedesktop/UDisks; interface=org.freedesktop.UDisks; member=DeviceChanged
+   object path "/org/freedesktop/UDisks/devices/sdc"
+^C
+===========================================================
+usb device inserted.
+
+
+
+http://comments.gmane.org/gmane.comp.freedesktop.dbus/11389
+How to send signals to dbus
+
+zxx@gll-bac:~$ dbus-monitor --system >dbsme.txt &
+[1] 18044
+zxx@gll-bac:~$ cat dbsme.txt 
+signal sender=org.freedesktop.DBus -> dest=:1.317 serial=2 path=/org/freedesktop/DBus; interface=org.freedesktop.DBus; member=NameAcquired
+   string ":1.317"
+zxx@gll-bac:~$ cat dbsme.txt 
+signal sender=org.freedesktop.DBus -> dest=:1.317 serial=2 path=/org/freedesktop/DBus; interface=org.freedesktop.DBus; member=NameAcquired
+   string ":1.317"
+signal sender=org.freedesktop.DBus -> dest=(null destination) serial=7 path=/org/freedesktop/DBus; interface=org.freedesktop.DBus; member=NameOwnerChanged
+   string ":1.318"
+   string ""
+   string ":1.318"
+signal sender=:1.318 -> dest=(null destination) serial=2 path=/org/freedesktop/Hal/Manager; interface=org.freedesktop.Hal.Manager; member=DeviceAdded
+signal sender=org.freedesktop.DBus -> dest=(null destination) serial=8 path=/org/freedesktop/DBus; interface=org.freedesktop.DBus; member=NameOwnerChanged
+   string ":1.318"
+   string ":1.318"
+   string ""
+-----------------------------
+send a message manually:
+=============
+zxx@gll-bac:~$ dbus-send --system --type=signal --dest=org.freedesktop.Hal /org/freedesktop/Hal/Manager org.freedesktop.Hal.Manager.DeviceAdded
+zxx@gll-bac:~$ dbus-send --system --type=signal /org/freedesktop/Hal/Manager org.freedesktop.Hal.Manager.DeviceAdded
+======================================
+a good book to introduce dbus, good tutorial
+https://idlebox.net/2011/apidocs/emacs-23.3.zip/dbus/dbus_toc.html#SEC_Contents
+
+
+////////////////////////////////////////////////////////
+
+http://blog.csdn.net/jackiewell/article/details/6425460
+
+工具2：qdbus
+该工具是基于Qt的一个命令行工具。用法如下
+
+qdbus [--system] [--literal] [servicename] [path] [method] [args]
+
+servicename the service to connect to (e.g., org.freedesktop.DBus)
+path the path to the object (e.g., /)
+method the method to call, with or without the interface
+args arguments to pass to the call
+
+有两个参数
+
+--system 连接到system-bus(dbus有两种bus,一种是session-bus,一种是system-bus,不加参数默认连接到session-bus.)
+--literal 打印原始返回信息
+
+* 如果qdbus命令不带任何参数，将会列出在dbus上所有的service.
+• 假如参数里只有service的名字，那么qdbus会列出所有的对象路径.
+
+
+
+* 如果qdbus命令给出了service的名字和对应的对象路径,则该路径上的方法,信号和可用的属性都会被列出来．
+
+qdbus 用法举例
+列出session bus的所有service
+
+$ qdbus
+
+列出system bus的所有service
+
+$ qdbus --system
+
+列出com.nokia.meego-im-uiserver service上所有路径
+
+$ qdbus com.nokia.meego-im-uiserver
+
+列出com.nokia.meego-im-uiserver service上某一路径里可用的方法
+
+$ qdbus com.nokia.meego-im-uiserver /org/maemo/duiinputmethodserver1
+
+调用指定service,指定路径上的某个方法。
+
+$ qdbus com.nokia.meego-im-uiserver /org/maemo/duiinputmethodserver1 org.maemo.duiinputmethodserver1.showInputMethod
+
+///examples:
+zxx@gll-bac:~$ sudo qdbus --system org.freedesktop.Hal
+/
+/org
+/org/freedesktop
+/org/freedesktop/Hal
+/org/freedesktop/Hal/Manager
+/org/freedesktop/Hal/devices
+/org/freedesktop/Hal/devices/computer
+/org/freedesktop/Hal/devices/volume_uuid_c19af616_a261_4649_96ea_6cc0de79e792
+...
+
+sudo qdbus --system org.freedesktop.Hal /org/freedesktop/Hal/Manager
+method QString org.freedesktop.DBus.Introspectable.Introspect()
+method void org.freedesktop.Hal.Manager.AcquireGlobalInterfaceLock(QString interface_name, bool exclusive)
+method void org.freedesktop.Hal.Manager.CommitToGdl(QString temporary_udi, QString global_udi)
+signal void org.freedesktop.Hal.Manager.DeviceAdded(QString udi)
+method bool org.freedesktop.Hal.Manager.DeviceExists(QString udi)
+signal void org.freedesktop.Hal.Manager.DeviceRemoved(QString udi)
+method QStringList org.freedesktop.Hal.Manager.FindDeviceByCapability(QString capability)
+method QStringList org.freedesktop.Hal.Manager.FindDeviceStringMatch(QString key, QString value)
+
+
+zxx@gll-bac:~$ sudo qdbus --system org.freedesktop.Hal /org/freedesktop/Hal/Manager org.freedesktop.Hal.Manager.GetAllDevices
+/org/freedesktop/Hal/devices/computer
+/org/freedesktop/Hal/devices/volume_uuid_c19af616_a261_4649_96ea_6cc0de79e792
+/org/freedesktop/Hal/devices/volume_part2_size_1024
+/org/freedesktop/Hal/devices/volume_uuid_dba1edf3_398d_4979_aa00_4edcfe318bb0
+/org/freedesktop/Hal/devices/storage_model_VMware_Virtual_S
+/org/freedesktop/Hal/devices/storage_model_DVD__RW_DH_16A6S
+.....
+
+

@@ -1,0 +1,17 @@
+dpkg 相关用法
+
+dpkg -S file——这个文件属于哪个已安装软件包。 （反向查询）
+dpkg -L package——列出软件包中的所有文件。 
+
+ -l, --list package-name-pattern...
+                  List packages matching given pattern.
+              -s, --status package-name...
+                  Report status of specified package.
+              -L, --listfiles package-name...
+                  List files installed to your system from package-name.
+              -S, --search filename-search-pattern...
+                  Search for a filename from installed packages.
+dpkg -c package
+ 
+dpkg -c debname ---列出deb包里的文件内容
+

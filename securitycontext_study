@@ -1,0 +1,163 @@
+fault forum: https://share.int.net.nokia.com/thread/103825?start=0&tstart=0
+NS4.0.1.0 B-Class NA05813427 (Flexi NS MME)inter MME handover failure
+basic message flow:
+ATCA as a target MME in inter MME TAU from source MME1
+and then acting as a source mme when handover to MME2
+
+
+ENB                                   MME(ATCA)                                sMME                                     SGW                                     HSS
+|                                       |                                       |                                       |                                       |
+|                                       |                                       |                                       |                                       |
+|-------------------------------------->|                                       |                                       |                                       |
+| - Uplink NAS Transport (Tracking Area |                                       |                                       |                                       |
+|Update Request)                        |                                       |                                       |                                       |
+|                                       |                                       |                                       |                                       |
+|                                       |                                       |                                       |                                       |
+|                                       |-------------------------------------->|                                       |                                       |
+|                                       | - Context Request                     |                                       |                                       |
+|                                       |                                       |                                       |                                       |
+|                                       |<--------------------------------------|                                       |                                       |
+|                                       | - Context Response                    |                                       |                                       |
+|                                       |                                       |                                       |                                       |
+|                                       |-------------------------------------->|                                       |                                       |
+|                                       | - Context Acknowledge                 |                                       |                                       |
+|                                       |                                       |                                       |                                       |
+|                                       |------------------------------------------------------------------------------>|                                       |
+|                                       | - Modify Bearer Request                                                       |                                       |
+|                                       |                                       |                                       |                                       |
+|                                       |<------------------------------------------------------------------------------|                                       |
+|                                       | - Modify Bearer Response                                                      |                                       |
+|                                       |                                       |                                       |                                       |
+                                       |                                       |                                       |                                       |
+|<--------------------------------------|                                       |                                       |                                       |
+| - Initial Context Setup Request (Track|                                       |                                       |                                       |
+|ing Area Update Accept)                |                                       |                                       |                                       |
+|                                       |                                       |                                       |                                       |
+|                                       |                                       |                                       |                                       |
+|-------------------------------------->|                                       |                                       |                                       |
+| - Initial Context Setup Response      |                                       |                                       |                                       |
+|                                       |                                       |                                       |                                       |
+|-------------------------------------->|                                       |                                       |                                       |
+| - Uplink NAS Transport (Tracking Area |                                       |                                       |                                       |
+|Update Complete)                       |                                       |                                       |                                       |
+|                                       |                                       |                                       |                                       |
+|                                       |                                       |                                       |                                       |
+|                                       |                                       |                                       |                                       |
+|-------------------------------------->|                                       |                                       |                                       |
+| - Handover Required                   |                                       |                                       |                                       |
+|                                       |                                       |                                       |                                       |
+|                                       |                                       |                                       |                                       |
+|                                       |---------------------------------------------------------------------------------------------------------------------->|
+|                                       | - Forward Location Request                                                                                             |
+|                                       |                                       |                                       |                                       |
+|
+
+when CPPU generate the AS key when sending ICSR message in InterNodeTauTargetMmduResponseState in file:
+ 979         // generate and stores AS security keys in subscriber cache
+ 980         keyGenerator.updateAsKeys( currSecContext );
+ 981         currSecContext.setNcc( (byte) ONE );
+ 982         if( procedure instanceof InterNodeTauTargetProcedure )
+fns/NS16.5/SS_LNXmmeTrHandler/mmeTrHandler/src/main/java/com/nsn/mme/transactionHandler/procedures/common/BaseMmduResponseState.java
+But after that MMDU not store that in DB, so when MMDU send eps_s10_fwd_relocation_req_s  to CPPU and CPPU will send forwordRelocationRequset message, this key is not available, 
+so no NH and NCC field in MMcontext.
+
+when to store the NHH, NCC value, when tau procedure is complete.
+so eps_tau_complete_s sent from CPPU to MMDU is the best chance to store this:
+$ svn diff -r 19233:19234
+Index: InterNodeTauTargetCompleteState.java
+===================================================================
+--- InterNodeTauTargetCompleteState.java        (版本 19233)
++++ InterNodeTauTargetCompleteState.java        (版本 19234)
+@@ -401,6 +401,9 @@
+         {
+             Logger.logTrace( "InterNodeTauTargetCompleteState: setSubscriberData()" );
+         }
++        // NA05813427 start
++        extractAndStoreAsKeys();
++        // NA05813427 end
+         readUeRadioCapability();
+         readSgwCFTeid();
+         updateSgwHostName();
+@@ -418,7 +421,42 @@
+             Helper.setAttachTimeAndDate( getProcedure(), subscriber );
+         }
+     }
++
++    // NA05813427
++    /**
++     * Extract As Keys from message and store to subscriber if eps_tau_complete_s message returned
++     * MME_ERR_T_SUCCESS_C.
++     *
++     */
++    private void extractAndStoreAsKeys()
++    {
++        if( Logger.isTraceEnabled() )
++        {
++            Logger.logTrace( "InterNodeTauTargetComplete: extractAndStoreAsKeys()" );
++        }
+
++        int isValid = Converter.toInt( epsTauComplete.getDmxField( Offsets2.eps_tau_complete_s.eps_as_keys.nh.valid ) );
++        if( isValid != 0 ) //update only if valid
++        {
++            subscriber.getData().getActiveSecurityContextObject()
++                .setAsKeys( epsTauComplete.getDmxField( Offsets2.eps_tau_complete_s.eps_as_keys ) );
++
++            if( Logger.isTraceEnabled() )
++            {
++                Logger.logTrace( "InterNodeTauTargetComplete: extractAndStoreAsKeys(): AS keys updated." );
++            }
++        }
++        else
++        {
++            if( Logger.isTraceEnabled() )
++            {
++                Logger.logTrace( "InterNodeTauTargetComplete: extractAndStoreAsKeys(): As keys not updated. NH.Valid: " + isValid );
++            }
++        }
++
++    }
++
++
+
+
+
+in NAS spec 24301
+=================================================================================================
+Upon receipt of a TRACKING AREA UPDATE REQUEST message including a GPRS ciphering key sequence
+number IE, if the MME does not have the valid current EPS security context indicated by the UE, the MME shall either:
+- indicate the use of the new mapped EPS security context to the UE by setting the type of security context flag in
+the NAS key set identifier IE to "mapped security context" and the KSI value related to the security context of
+the source system; or
+- set the KSI value "000" in the NAS key set identifier IE if the MME sets EIA0 and EEA0 as the selected NAS
+security algorithms for a UE that has a PDN connection for emergency bearer services.
+
+
+EPS AS security context: the cryptographic keys at AS level with their identifiers, the Next Hop parameter NH, the
+Next Hop Chaining Counter parameter NCC used for next hop access key derivation, the identifiers of the selected AS
+level cryptographic algorithms, counters used for replay protection and SCG Counter used as freshness input into SKeNB
+derivations. Note that the EPS AS security context only exists when cryptographically protected radio bearers are
+established and is otherwise void.
+NOTE 2: NH and NCC need to be stored also at the MME during connected mode.
+
+==============================
+
+[TS33401]
+7.2.6.2 Establishment of keys for cryptographically protected radio bearers
+The procedure the UE uses to establish cryptographic protection for radio bearers is initiated by an (extended) NAS
+Service Request message or TAU Request message with the active flag set from the UE to the MME. The MME may
+initiate the procedure to establish cryptographic protection for radio bearers when the "active flag" is not set in the TAU
+request and there is pending downlink UP data or pending downlink signalling.
+Upon receipt of the NAS message, if the MME does not require a NAS SMC procedure before initiating the S1-AP
+procedure INITIAL CONTEXT SETUP, the MME shall derive key KeNB as specified in subclause A.3 using the NAS
+COUNT [9] corresponding to the NAS message and the KASME of the current EPS NAS security context. The MME
+shall further initialize the value of the Next hop Chaining Counter (NCC) to zero. The MME shall further derive a next
+hop parameter NH as specified in subclause A.4 using the newly derived KeNB and the KASME as basis for the derivation.
+The MME shall further set the the value of the Next hop Chaining Counter (NCC) to one. This fresh {NH, NCC=1}
+pair shall be stored in the MME and shall be used for the next forward security key derivation. The MME shall
+communicate the KeNB to the serving eNB in the S1-AP procedure INITIAL CONTEXT SETUP. The UE shall derive
+the KeNB from the KASME of the current EPS NAS security context.
+
+7.2.8.1.1
+As NH parameters are only computable by the UE and the MME, it is arranged so that NH parameters are provided to
+eNBs from the MME in such a way that forward security can be achieved.
+

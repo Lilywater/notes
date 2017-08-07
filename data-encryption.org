@@ -1,0 +1,83 @@
+* Cryptography: OverView
+
+** Authentication:
+This means that before sending and receiving data using the system, the receiver and sender identity should be verified.
+Secrecy or Confidentiality: Usually this function (feature) is how most people identify a secure system. It means that only the authenticated people are able to interpret the message (date) content and no one else.
+** Integrity: 
+Integrity means that the content of the communicated data is assured to be free from any type of modification between the end points (sender and receiver). The basic form of integrity is packet check sum in IPv4 packets.
+** Non-Repudiation: 
+This function implies that neither the sender nor the receiver can falsely deny that they have sent a certain message.
+** Service Reliability and Availability:
+Since secure systems usually get attacked by intruders, which may affect their availability and type of service to their users. Such systems should provide a way to grant their users the quality of service they expect.
+
+* Block Ciphers and Stream Ciphers
+
+One of the main categorization methods for encryption techniques commonly used is based on the form of the input data they operate on. The two types are Block Cipher and Stream Cipher. This section discusses the main features in the two types, operation mode, and compares between them in terms of security and performance.
+
+** Block Cipher
+
+Before starting to describe the key characteristics of block cipher, the definition of cipher word must be presented. "A cipher is an algorithm for performing encryption (reverse is decryption) "[Wikipedia-BC].
+
+In this method data is encrypted and decrypted if data is in from of blocks. In its simplest mode, you divide the plain text into blocks which are then fed into the cipher system to produce blocks of cipher text.
+
+ECB(Electronic Codebook Mode) is the basic form of clock cipher where data blocks are encrypted directly to generate its correspondent ciphered blocks (shown in Fig. 2). More discussion about modes of operations will be discussed later.
+
+** Stream Ciphers
+
+n unit in stream cipher encryption technique. For example, if the key stream generator produces a series of zeros, the outputted ciphered stream will be identical to the original plain text. Figure 3 shows the operation of the simple mode in stream cipher. 
+
+
+* Compared Algorithms
+DES: (Data Encryption Standard), was the first encryption standard to be recommended by NIST (National Institute of Standards and Technology). It is based on the IBM proposed algorithm called Lucifer. DES became a standard in 1974 [TropSoft] . Since that time, many attacks and methods recorded that exploit the weaknesses of DES, which made it an insecure block cipher.
+
+3DES: As an enhancement of DES, the3DES (Triple DES) encryption standard was proposed. In this standard the encryption method is similar to the one in original DES but applied 3 times to increase the encryption level. But it is a known fact that 3DES is slower than other block cipher methods.
+
+AES: (Advanced Encryption Standard), is the new encryption standard recommended by NIST to replace DES. Rijndael (pronounced Rain Doll) algorithm was selected in 1997 after a competition to select the best encryption standard. Brute force attack is the only effective attack known against it, in which the attacker tries to test all the characters combinations to unlock the encryption. Both AES and DES are block ciphers.
+
+Blowfish: It is one of the most common public domain encryption algorithms provided by Bruce Schneier - one of the world's leading cryptologists, and the president of Counterpane Systems, a consulting firm specializing in cryptography and computer security.
+
+Blowfish is a variable length key, 64-bit block cipher. The Blowfish algorithm was first introduced in 1993.This algorithm can be optimized in hardware applications though it's mostly used in software applications. Though it suffers from weak keys problem, no attack is known to be successful against [BRUCE1996][Nadeem2005].
+
+* Symmetric and Asymmetric encryptions
+**  Symmetric Encryption
+ In this type of encryption, the sender and the receiver agree on a secret (shared) key. Then they use this secret key to encrypt and decrypt their sent messages. Fig. 4 shows the process of symmetric cryptography. Node A and B first agree on the encryption technique to be used in encryption and decryption of communicated data. Then they agree on the secret key that both of them will use in this connection. After the encryption setup finishes, node A starts sending its data encrypted with the shared key, on the other side node B uses the same key to decrypt the encrypted messages.
+
+ The main concern behind symmetric encryption is how to share the secret key securely between the two peers. If the key gets known for any reason, the whole system collapses. The key management for this type of encryption is troublesome, especially if a unique secret key is used for each peer-to-peer connection, then the total number of secret keys to be saved and managed for n-nodes will be n(n-1)/2 [Edney2003] .
+
+*** Diffie–Hellman key exchange
+Traditionally, secure encrypted communication between two parties required that they first exchange keys by some secure physical channel, such as paper key lists transported by a trusted courier. 
+------------------------------------------------------------------------------------------
+|        Alice                   |   Bob                       | EveDrop                 |
+---------------------------------------------------------------|-------------------------|        
+| Alice Known          | Unknown | Bob Know n         | Unkown | EveDrop known | Unknown |
+| p = 23 ,g=5          |         | p=23,g=5           |        | p=23,g=5      |         |
+| a = 6                | b       | b =15              | a      |               | a,b     |
+| A = g^a mod p        |         | B=g^b mod p        |        |               |         |
+| A = 5^6 mod 23 = 8   |         | B=5^15 mod 23 =19  |        |               |         |
+| B = 19               |         | A=8                |        | A,B           |         |
+| s = B^a mod p        |         | s=A^b mod p        |        |               |         |
+| s = 19^6 mod 23 = 2  |         | s=8^15mod 23= 2    |        |               |         |
+| s = 2                |         | s=2                |        |               | s       |
+------------------------------------------------------------------------------------------
+
+here, ^ means  multiplicative group means "^" in math
+Alice and Bob exchage p,g vaule in the network, then Alic and Bob generate its own a,b respectly. And using p,g,a/b calulate a value A/B
+then exchage A B value with each other in the nework, finally Alice Bob using B/A, a/b and p to caculate s. s is the final key using to encrpt.
+in this case, EveDrop only get p,g A,B, can't get a,b and s through network interception, but Alic and Bob could generate the same key although they don't know each other's a/b.
+So the case is Alice not know b, Bot not know a, but they could generate the same value s eventually using their a/b and B/A.
+
+There are two Key points here:
+s could be genearted by a,B and b,A to the same value;  (g^a mod p)^ b mod p  = (g^b mod p) ^ a mod p
+known A and B couldn't let EveDrop know what is a and b easily.(mod is a good way for A,B[ g^a mod p] diguise of a,b 
+
+
+
+
+** Asymmetric Encryption
+ Asymmetric encryption is the other type of encryption where two keys are used. To explain more, what Key1 can encrypt only Key2 can decrypt, and vice versa. It is also known as Public Key Cryptography (PKC), because users tend to use two keys: public key, which is known to the public, and private key which is known only to the user. Figure 5 below illustrates the use of the two keys between node A and node B. After agreeing on the type of encryption to be used in the connection, node B sends its public key to node A. Node A uses the received public key to encrypt its messages. Then when the encrypted messages arrive, node B uses its private key to decrypt them.
+
+ This capability surmounts the symmetric encryption problem of managing secret keys. But on the other hand, this unique feature of public key encryption makes it mathematically more prone to attacks. Moreover, asymmetric encryption techniques are almost 1000 times slower than symmetric techniques, because they require more computational processing power[Edney2003] [ Hardjono2005] .
+
+ To get the benefits of both methods, a hybrid technique is usually used. In this technique, asymmetric encryption is used to exchange the secret key, symmetric encryption is then used to transfer data between sender and receiver.
+
+

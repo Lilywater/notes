@@ -1,0 +1,251 @@
+* OTN Transport Provisioning 
+** OTN Line Subsystem block
+2*OUT2 framer      2*ODTU12 mux/demux
+16*OTU1/ODU1 Framer   ODU1/OTU1 selection  16*ODTU01 mux/demux
+4*ODUk(8ch)Framer     ODUk crosspoint(odu0 to odu01mux or odu12mux)     
+
+
+
+** OTU1/2 framer configuration
+hyPhy20gSonetLnSfpDataPathCfg  (SFP port(16), which OTU1Frmaer(16)) ##since sfp port could only through otu1 framer
+
+*** OTU1 framer 
+hyPhy20gOtu1SysDataPathCfg     otu1framer(0-15)   datasrc: CBRB
+hyPhy20gOtu1LineDataPathCfg    otu1framer(0-15)   datasrc: odut12mux 0/1  timeslot 0-4    9means not configured using hyPhyFlexMuxLOChnlProv
+
+hyPhy20gOtu1LineDataPathCfg: configures the bidirectional line side data path for an OTU1 Framer Slice
+slice - OTU1 Framer instance: 0 to 7 - OTU1 Framer 0 to 7 0 to 15 - OTU1 Framer 0 to 15 (HyPHY 20Gflex)
+source - Date source for OTU1 Framer
+0 - ODTU12 Multiplexer 0 timeslot 0
+1 - ODTU12 Multiplexer 0 timeslot 1
+2 - ODTU12 Multiplexer 0 timeslot 2
+3 - ODTU12 Multiplexer 0 timeslot 3
+4 - ODTU12 Multiplexer 1 timeslot 0
+5 - ODTU12 Multiplexer 1 timeslot 1
+6 - ODTU12 Multiplexer 1 timeslot 2
+7 - ODTU12 Multiplexer 1 timeslot 3
+8 - SONET_LINE (from SFP SERDES)
+9 - not configured (HyPHY 20Gflex) use hyPhyFlexMuxLOChnlProv, hyPhyFlexDemuxLOChnlProv, and hyPhyFlexOtu1XBarCfg
+
+
+hyPhy20gOtu1SysDataPathCfg
+slice - OTU1 Framer instance:
+[0-7] - OTU1 Framers 0-7
+[8-15] - OTU1 Framers 8-15 (HyPHY 20Gflex)
+source - Operation Mode of OTU1 Framer slice
+0 - CBRB
+1 - CBR2G5 from SONET subsystem
+2 - ODU1 (HyPHY 20Gflex)
+
+
+
+
+**  Mux/Demux configuration of odtu12 or odtu01
+*** High order mux channle configuration
+api hyPhyFlexMuxHOChnlProv is for both odtu12 and odtu01
+Page 142 of hyphy20gflex_dm.pdf figure 19
+channel-id : 0-7 for odtu01 slice0
+             8-9  for odtu12 slice0-1
+             10-17 for odt01 slice 1
+
+*** Low order mux channel configuration
+api hyPhyFlexMuxLOChnlProv is for both odtu12 and odtu01
+Page 142 of hyphy20gflex_dm.pdf figure 20
+channel-id:  0-7  for odtu12 slice0
+             8-15 for odtu12 slice1
+             16-31 for odtu01 slice0
+             32-47 for odtu01 slice1
+
+tributary_slot_mask - Bit mask of which tributary slots to use.  valid range: 0x1-0xff 2^n, n is slot number
+lo_odu_type - Low Order ODU rate.  0 - ODU1 6 - ODUFLEX_CBR 7 - ODUFLEX_GFP 8 - ODU0
+mapping_mode - Mapping mode of the Low Order ODU channel.  See eHYPHY_FLEX_MAPPING_MODE.  0 - AMP 1 - GMP
+tributary_port - 
+0 - use the low order mux port + 1
+1-8 - use the indicated tributary port this tributary_port determines the MSI_VAL for each tributary slot:
+for payload type 0x21, the msi value is 0x80 + (tributary_port - 1)
+for payload type 0x20, the msi value is just (tributary_port - 1)
+
+** oduk crosspoint in OTN
+hyPhyFlexOdukXBarCfg()
+mux_id - 0 - 7 odtu01 mux
+         8 - 9 odu2 mux
+         10 - 17 odtu01 mux
+mux_port - If mux_id is an ODU2 mux, valid values are 0 - 7
+           If mux_id is an ODTU01 mux, value values are 0 - 1
+oduk_framer - 0 - 3
+oduk_port - 0 - 7
+enable - 0 disable, 1 enable
+
+** otu1/odu1 selection
+hyPhyFlexOtu1XBarCfg:  This functions connects an odu2 multiplexer Low Order port to the indicated otu1 framer.
+odu2_mux_id - 0 - 1
+odu2_port - 0 - 7
+otu1_framer - 0 - 15
+enable - 0 disable, 1 enable
+
+
+* CBRB cross connect provisioning
+VCAT Interface <-> ODU0 ODUKPP [0..7]<-> CBRB <-> ODU0 OTN Line framer [0..7]
+
+** CBRB connection
+hyPhyFlexCbrbReaderSrcChnlCfg   ## it connect ODU0 ODUKpp and ODUO OTN Line framer
+This function specifies the CBRB writer channel to be associated with a CBRB reader FIFO.
+rdChnl - Read channel to be configured
+HYPHY FLEX Device:
+- HYPHY_FLEX operation mode:
+0-7: 1st OTN ODU0/Flex framer 0-7
+8-15: 2nd OTN ODU0/Flex framer 0-7
+16-23: 3rd OTN ODU0/Flex framer 0-7
+24-31: 4th OTN ODU0/Flex framer 0-7
+32-39: 1st ODUKPP ODU0/Flex framer 0-7
+40-47: 2nd ODUKPP ODU0/Flex framer 0-7
+48-63: 1st-16th OTN ODU1 framers
+64-71: 1st-8th ODUKPP ODU1 framers
+72-73: 1st-2th OTN ODU2 framers
+74-75: 1st-2th ODUKPP ODU2 framers
+wrChnlIntf - Interface associated with write channel:
+0 - OTN or ODUKPP subsystems
+1 - CBRI #0
+2 - CBRI #1
+wrChnl - write channel id
+HYPHY FLEX device:
+- HYPHY_FLEX operating mode:
+0-7: 1st OTN ODU0/Flex framer 0-7
+8-15: 2nd OTN ODU0/Flex framer 0-7
+16-23: 3rd OTN ODU0/Flex framer 0-7
+24-31: 4th OTN ODU0/Flex framer 0-7
+32-39: 1st ODUKPP ODU0/Flex framer 0-7
+40-47: 2nd ODUKPP ODU0/Flex framer 0-7
+48-63: 1st-16th OTN ODU1 framers
+64-71: 1st-8th ODUKPP ODU1 framers
+72-73: 1st-2th OTN ODU2 framers
+74-75: 1st-2th ODUKPP ODU2 framers
+
+
+
+
+** ODUKPP Subsystem
+2*ODU2 Framer                    \
+                                  ODU12PP   OdukppDeviceInit     hyPhy20gOdukppOdu1DataPathCfg  lineIF:   odu1slice 0-7 sysIf:    VCAT interface 0 port0-3       VCAT interface 1 port 0-3
+8*ODU1 Framer                    /
+2*ODU0(8 channel) Framer         -ODUKPP    OdukppOdukDeviceInit hyPhyFlexOdukppOdukDataPathCfg channel ID: 0-7 channel numbers of ODU0 framer 0 8-15 of framer 1 slotNum :  the number of timeslots for the channel   
+for ODU2/ODU1 Framer, there's channel mapping for lineIF side and sysIF(VCAT interface) to configure, but for odu0, it is a hard connection, just enable the channel is enough 
+
+hyPhy20gOdukppOdu1DataPathCfg  lineIF:   odu1slice 0-7 sysIf:    VCAT interface 0 port0-3       VCAT interface 1 port 0-3
+hyPhyFlexOdukppOdukDataPathCfg channel ID: 0-7 channel numbers of ODU0 framer 0 8-15 of framer 1 slotNum :  the number of timeslots for the channel   
+
+* SFP client Provisioning
+SFP Port [0..7] <-> CPB ID [0..7] <-> GFP CPB ID [19..26] <-> GFP Group ID [0..7] <-> ODU0Slice0 framer [0-7]
+                                                                                \    /
+                                                                                 \  /
+                                                                                 VcatOtnOdu0LinkCfg
+** CPB port mapping           
+LS Slice CH 0---CH 15
+HS Slice CH 17/18
+GFP Slice A CH 19-82
+GFP Slice B CH 83-146
+hyPhy20gCpbChnlProv  #wrChnlId=[0..7], primRdChnlId=[19..26]
+
+** GFP  GroupID and cpbid connection
+*** for Gfp Odu0 case
+hyPhyFlexGfpOdukTranspChRxInit #odukType=0, OdukNum=0..7, grpId=0..7,rate=1250, pktSize=200, cnBitMode=0, bitRateTolerance=100ppm, cnLimitEn=1, zoneCentEn = 1.
+hyPhyFlexGfpOdu0TranspChTxAdd
+slice - 0 - Slice 'A' - 1 - Slice 'B'
+otu0Num - 0-7
+cpbId - CPBID of the channel being added - valid values are 0x0 - 0x3F (0-63)
+grpId - VCAT group ID to assign this channel to - valid values are 0x0 - 0x3F (0-63)
+
+*** for  Gfp Odu1 case
+hyPhy20gGfpOtu1TranspChRxAdd    ### Enables a CPBID to VCAT GID mapping within the OTNMD
+slice - 0 - Slice 'A' - 1 - Slice 'B'
+otu1Num - Specifies which of the 4 OTU1 links in the OTNMD to configure - valid values are 0-3 This number should match with the remapped Slice ID which is configured on OTU1 slice 0-3 in VCAT.
+cpbId - CPBID of the channel being added - valid values are 0x0 - 0x3F (0-63)
+grpId - VCAT group ID to assign this channel to - valid values are 0x0 - 0x3F (0-63)
+
+
+** VCAT
+*** Receive OTN VCAT Processor(RVCPO)
+RVCPO receives OTU, ODU, OPU overhead and OPU payload from the ODUkPP. it provide the data to OTNMA or RXDP.
+OTU2, 4xOTU1, and mixed mode of up to 8 ODU0
+is configured to OTU2 mode, there is only 1 logical OTU2 slice. The slice ID is 0.
+When RVCPO_FLEX is configured to 4xOTU1 mode, there are total 4 logical slices. The four slices
+are identified by slice ID 0~3. When RVCPO_FLEX is configured to mixed mode, there are total 8
+logical ODU0 slices. The 8 slices are identified by slice ID 0~7
+
+*** VCAT configuration diagram
+                                 hyPhy20gVcatLcasOtnModeCfg
+                                      /      \
+                                     /        \ 
+                                   otu2       mixedmode    
+                                               /      \
+                                              /        \ 
+                                           ODU0        OTU1
+                                           /             \
+                                          /            hyPhyFlexVcatOtnOdu1LinkMode             
+                                         /               /      |         \
+          hyPhyFlexVcatOtnOdu0LinkCfg         VCAT    ODU1     OTU1TS     
+ TVCPOslice 0/1   odu0Slice [0-7]   grpid              |
+                                                       |
+                                                   hyPhy20gVcatLcasOtnOtu1Odu1ModeGrpCfg  
+                                                 slice - - 0 - path 'A' (TVCPO_0, RVCPO_0) - 1 - path 'B' (TVCPO_1, RVCPO_1)
+                                                 otu1Num - Selects which OTU1 within the TVCPO/RVCPO to configure - valid values are 0-3
+                                                 grpId - Indicates the GID group number assigned to the 'grouping'.  - valid values are 0x0 - 0x3F (0-63)
+                                                 dataSrc - Selects the source for data for this grouping.
+                                                 - 0 - Transparently mapped data (using OTNMA / OTNMD) - 1 - GFP Mapped data
+
+
+* GFP function Block
+The GFP subsystem packages packet traffic and transparent traffic so that it can be sent over o OTN network. It can process up to 64 channels of Frame-based Generic
+Framing Procedure(GFP-F), Transparent Generic Framing Procedure(GFP-T). Mapping/demapping,  filtering, performance monitoring and scheduling of GFP frames.
+GFP is a slave to request mechanism controlled by the VCAT Subsystem. Requests are issued for one of 64 "VCAT Group ID's"(GID).and yields four
+bytes of data after a fixed latency.
+
+** two blocks of GFP
+*** R/TXGFPT
+TXGFPT is primarily responsible for forming GFP-T frames for GID's configured for Transparent GFP. The TXGFPT fills in the Payload Length Indication (PLI) at the beginning of the frame,
+add PLI CRC, Payload Header, Optional Extension Header and Optional Payload FEC
+The 64 channel Receive GFP_T block process up to 64 independent channels of GFP_T encapsulated client frames at an aggregate data rate of up to..
+
+*** OTNMA(mapper) /OTNMD(demapper)
+The OTN Mapper(OTNMA) maps incoming paketized client data into the OPUk payload area of an ODUk frame.
+OTNMA supports Asynchronous(AMP/GMP)& Synchronous(BMP) mapping. 
+In Asynchronous, VCAT is the master that control the rate of data transmission, OTMMA frame synchronizes to VCAT's frame alignment.
+In Synchronous mapping, OTNMA is the master, VCAT frames align to OTNMA frame.
+
+** confgiuration of GFP
+hyPhyFlexGfpOdukTranspChRxInit------Initializes and configures a client channel for GMP mapping
+slice - 0 - Slice 'A' - 1 - Slice 'B'
+odukType - 0 - ODU0 - 1 - ODU1 - 2 - ODU2
+odukNum - Specifies which link in the OTNMD to configure.  Valid values are 0-7
+grpId - Specifies which VCAT group ID to assign this channel to.  - Valid values are 0x0 - 0x3F (0-63)
+rate - The client bit rate in kbps.
+pktSize - Configures the nominal packet size to use for the OTNMD. This value should match the value used by the LSCI/HSCI.
+
+
+hyPhyFlexGfpOdukTranspSliceTTTEnable(struct file *fileHndl, UINT4 slice,
+slice - 0 - Slice 'A' - 1 - Slice 'B'
+odukType - ODUk type being processed 0 - ODU0 1 - ODU1 2 - ODU2
+odukNum - Specifies which oduk link in the OTNMA / OTNMD to configure:
+- If odukType is 0(ODU0), valid values are 0-7
+- If odukType is 1(ODU1), valid values are 0-7
+- If odukType is 2(ODU2), valid value is 0
+cpbId - CPBID of the added channel.  - Valid values are 0x0 - 0x3F (0-63)
+grpId - VCAT group ID to assign this channel to.  - Valid values are 0x0 - 0x3F (0-63)
+enable - 0 - Disable slice TTT - 1 - Enable slice TTT
+** channel Identifiers (CID)
+CID's are unique only within a VCAT group, so there's a one-to-one mapping of the GID+CID withe
+the CPB Channel Number, the CID is passed through a linear extension header.
+
+** channel Multiplexing
+The GFP Subsystem multiplexing of the 64 Central Packet Buffer channel in each direction into up to 64 VCAT Groups(GID's);
+the channels are seleted by the round-robin scheduler. TXGFPT only switches channels at the end of the GFP frame.
+
+A programmable scheduler provides one-to-one or oneto-
+many mapping between GID's and 64 channel buffers in the Central Packet Buffer (CPB) subsystem
+
+
+
+
+
+
+

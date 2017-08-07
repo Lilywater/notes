@@ -1,0 +1,257 @@
+*python regex learning
+
+https://pythex.org/
+--------------
+
+Special characters
+\	escape special characters
+.	matches any character
+^	matches beginning of string
+$	matches end of string
+[5b-d]	matches any chars '5', 'b', 'c' or 'd'
+[^a-c6]	matches any char except 'a', 'b', 'c' or '6'
+R|S	matches either regex R or regex S
+()	creates a capture group and indicates precedence
+Quantifiers
+*	0 or more (append ? for non-greedy)
++	1 or more (append ? for non-greedy)
+?	0 or 1 (append ? for non-greedy)
+{m}	exactly mm occurrences
+{m, n}	from m to n. m defaults to 0, n to infinity
+{m, n}?	from m to n, as few as possible
+Special sequences
+\A	start of string
+\b	matches empty string at word boundary (between \wand \W)
+\B	matches empty string not at word boundary
+\d	digit
+\D	non-digit
+\s	whitespace: [ \t\n\r\f\v]
+\S	non-whitespace
+\w	alphanumeric: [0-9a-zA-Z_]
+\W	non-alphanumeric
+\Z	end of string
+\g<id>	matches a previously defined group
+Special sequences
+(?iLmsux)	matches empty string, sets re.X flags
+(?:...)	non-capturing version of regular parentheses
+(?P...)	matches whatever matched previously named group
+(?P=)	digit
+(?#...)	a comment; ignored
+(?=...)	lookahead assertion: matches without consuming
+(?!...)	negative lookahead assertion
+(?<=...)	lookbehind assertion: matches if preceded
+(?<!...)	negative lookbehind assertion
+(?(id)yes|no)	match 'yes' if group 'id' matched, else 'no'
+
+
+
+
+
+  below.  If the ordinary character is not on the list, then the
+    resulting RE will match the second character.
+        \number  Matches the contents of the group of the same number.
+        \A       Matches only at the start of the string.
+        \Z       Matches only at the end of the string.
+        \b       Matches the empty string, but only at the start or end of a wor
+d.
+        \B       Matches the empty string, but not at the start or end of a word
+.
+        \d       Matches any decimal digit; equivalent to the set [0-9].
+        \D       Matches any non-digit character; equivalent to the set [^0-9].
+        \s       Matches any whitespace character; equivalent to [ \t\n\r\f\v].
+        \S       Matches any non-whitespace character; equiv. to [^ \t\n\r\f\v].
+        \w       Matches any alphanumeric character; equivalent to [a-zA-Z0-9_].
+                 With LOCALE, it will match the set [0-9_] plus characters defin
+ed
+                 as letters for the current locale.
+        \W       Matches the complement of \w.
+        \\       Matches a literal backslash.
+
+    This module exports the following functions:
+        match    Match a regular expression pattern to the beginning of a string
+.
+        search   Search a string for the presence of a pattern.
+        sub      Substitute occurrences of a pattern found in a string.
+        subn     Same as sub, but also return the number of substitutions made.
+        split    Split a string by the occurrences of a pattern.
+        findall  Find all occurrences of a pattern in a string.
+        finditer Return an iterator yielding a match object for each match.
+        compile  Compile a pattern into a RegexObject.
+        purge    Clear the regular expression cache.
+        escape   Backslash all non-alphanumerics in a string.
+
+    Some of the functions in this module takes flags as optional parameters:
+        I  IGNORECASE  Perform case-insensitive matching.
+        L  LOCALE      Make \w, \W, \b, \B, dependent on the current locale.
+        M  MULTILINE   "^" matches the beginning of lines (after a newline)
+                       as well as the string.
+                       "$" matches the end of lines (before a newline) as well
+                       as the end of the string.
+        S  DOTALL      "." matches any character at all, including the newline.
+        X  VERBOSE     Ignore whitespace and comments for nicer looking RE's.(this also means that [ \t\n\r\f\v] will be ignored including \n;
+
+        U  UNICODE     Make \w, \W, \b, \B, dependent on the Unicode locale.
+
+
+** in compile pattern: r"""
+//this mean a new line
+//this mean a new line
+   """  
+
+>>> word="""abc
+... def
+... ghi"""
+>>> print word
+abc
+def
+ghi
+
+>>> pa=re.compile(r""".*abc
+... .*def""")
+>>> m=re.search(pa,word)
+>>> print m.group()
+abc
+def
+
+>>> pa=re.compile(r"""
+... .*abc
+... .*def""")
+>>> m=re.search(pa,word)
+>>> print m.group()
+  File "<stdin>", line 1, in <module>
+AttributeError: 'NoneType' object has no attribute 'group'
+### a new line before abc line's pattern not match.
+
+
+** VERBOSE
+>>> pa=re.compile(r"""
+... .*abc
+... .*def""",re.VERBOSE)
+>>> m=re.search(pa,word)
+>>> print m.group()
+>>> NONE
+
+>>> pa=re.compile(r"""   ##this line will lost it's meaing, no line here
+... .*abc\n              ##\n is import here for using VERBOSE the  newline in """ will be ignore also  
+... .*def""",re.VERBOSE)
+>>> m=re.search(pa,word)
+>>> print m.group()
+abc
+def
+>>>
+
+** DOTALL
+>>> pa=re.compile(r"""
+... .*abc
+... .*def""",re.VERBOSE|re.DOTALL)
+>>> m=re.search(pa,word)
+>>> print m.group()
+abc
+def
+>>>
+
+---------------
+
+execution start:
+>>> print word
+
+ bac
+ def
+ hif
+
+>>> pa=re.compile(r""".*bac
+... .*def""",re.VERBOSE)
+>>> m=re.search(pa,word)
+>>> print m.group()
+NONE
+
+
+** DOTALL
+>>> print word
+
+ bac
+ def
+ hif
+
+>>> pa=re.compile(r".*bac")
+>>> m=re.search(pa,word)
+>>> print m.group()
+ bac
+>>> pa=re.compile(r".*bac",DOTALL)
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+NameError: name 'DOTALL' is not defined
+>>> pa=re.compile(r".*bac",re.DOTALL)
+>>> m=re.search(pa,word)
+>>> print m.group()
+
+ bac
+
+** MULTIPLELINE
+## it only effet symbol "^"/"$" 's meaning
+##in default means the beginnig of the string which need to be searched of.
+*** in singline line
+string="abc def ghi"
+>>> print string
+abc def ghi
+>>> m=re.search("^abc$",string)
+>>> print m.group()
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+AttributeError: 'NoneType' object has no attribute 'group'
+>>> m=re.search("^abc def ghi$",string)
+>>> print m.group()
+abc def ghi
+
+*** multiple line
+##if the word to be searched is  multiple line, ^/$ means the begin/end of the wohle search world indefault, if you mean every single line in multiple line, use re.M option.
+>>> print str2
+abd def
+ghi
+
+>>> m=re.search("^abd def$",str2,re.M)
+>>> print m.group()
+abd def
+>>>
+
+##without re.M, $ means the endof the str2
+>>> m=re.search("^abd def$",str2)
+>>> print m.group()
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+AttributeError: 'NoneType' object has no attribute 'group'
+
+
+
+
+
+>>> print word
+abc
+def
+ghi
+>>>
+
+>>> pa=re.compile(r"""abc
+... def""")
+>>> m=re.search(pa,word)
+>>> print m.group()
+abc
+def
+>>> pa=re.compile(r"""^abc$
+... ^def$""", re.M)
+>>> m=re.search(pa,word)
+>>> print m.group()
+abc
+def
+
+
+
+
+
+## ^/$ means the begin/end of the whole "word='^abc\ndef\nghi$'"   with MULTIPLELINE option
+>>> pa=re.compile(r"""^abc\ndef$""",re.M)
+>>> m=re.search(pa,word)
+>>> print m.group()
+abc
+def
+

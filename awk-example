@@ -1,0 +1,561 @@
+awk 使用例子
+
+awk [ -F re] [parameter...] ['prog'] [-f progfile][in_file...]
+-F 分隔符
+parameter: 变量赋值
+'prog': awk的程序语句段。这个语句段必须用单拓号：'和'括起，以防被shell解释。这个程序语句段的标准形式为：
+
+'pattern {action}'
+
+1.各种pattern
+pattern参数可以是egrep正则表达式中的任何一个，它可以使用语法/re/再加上一些样式匹配技巧构成。与sed类似，你也可以使用","分开两样式以选择某个范围。
+/pattern/   //a regular expression
+$awk '/sun/{print}' mydoc
+
+
+/pattern1/,/pattern2/    //lines between two patterns
+eg.显示文本文件myfile中第七行到第十五行中以字符%分隔的第一字段，第三字段和第七字段：
+awk -F % 'NR==7,NR==15 {printf $1 $3 $7}'
+
+$awk '/[Ss]un/,/[Mm]oon/ {print}' myfile
+它将显示第一个匹配Sun或sun的行与第一个匹配Moon或moon的行之间的行，并显示到标准输出上。
+
+relation expression
+$awk 'length($0)>80 {print NR}' myfile
+//myfile中所有超过80个字符的行号，在这里，用$0表示整个记录（行），同时，内置变量NR不使用标志符'$'。
+
+
+BEGIN 处理之前
+END     处理之后
+awk 'BEGIN { print "the total is:";sum=0}{ sum += $1 }; END { print sum }' aa
+
+
+
+2 Built-in Variables
+FIELDWIDTHS   A white-space separated list of fieldwidths.  When set, gawk parses the input  into  fields  of  fixed   width, instead of using the value of the FS variable as the field separator.
+  NF          The number of fields in the current input record.
+   NR          The total number of input records seen so far.
+
+
+
+who -u | awk '{printf("%s正在执行%s\n",$2,$1)}'
+
+$awk '{printf"%03d%s\n",NR,$1}' myfile    //例:显示文件myfile中的行号和第3字段
+在此描述您的新便笺。
+
+
+高级用法
+NR和FNR的区别
+# awk '{print NR,$0}' file1 file2
+1 a b c d
+2 a b d c
+3 a c b d
+4 a c d b
+5 a d c b
+6 a d b c
+7 aa bb cc dd
+8 aa bb dd cc
+9 aa cc bb dd
+10 aa cc dd bb
+11 aa dd bb cc
+12 aa dd cc bb
+# awk '{print FNR,$0}' file1 file2
+1 a b c d
+2 a b d c
+3 a c b d
+4 a c d b
+5 a d c b
+6 a d b c
+1 aa bb cc dd
+2 aa bb dd cc
+3 aa cc bb dd
+4 aa cc dd bb
+5 aa dd bb cc
+6 aa dd cc bb
+所以在处理两个文件时可以很容易区分出是第一个文件还是第二个文件，
+NR==FNR,第一个文件，
+NR>FNR，第二个文件，
+ARGIND 表示文件参数的个数
+
+
+
+
+eg1 两个文件之间的赋值：
+文件 shadow:
+s2002408030068:ab
+s2002408032819:cd
+s2002408032823:ef
+
+文件passwd: 
+s2002408030068:x:
+s2002408032819:x: 
+s2002408032823:x:
+
+用shadow文件中的密文部分替换passwd中的"x",生一个新passwd文件
+
+awk 'BEGIN{OFS=FS=":"} NR==FNR{a[$1]=$2}NR>FNR{$2=a[$1];print}' shadow passwd
+awk  'BEGIN{OFS=FS=":"}  ARGIND==1{a[$1]=$2}ARGIND>1{$2=a[$1];print}'  shadow passwd
+NR==FNR,第一个文件shadow，以$1为下标，将$2的值赋给数组a
+NR>FNR，第二个文件passwd，将文件shadow$2的值赋值给文件passwd
+
+引用：2、 
+cat file1: 
+0011AAA 200.00 20050321 
+0012BBB 300.00 20050621 
+0013DDD 400.00 20050622 
+0014FFF 500.00 20050401 
+
+cat file2: 
+I0011  11111 
+I0012  22222 
+I0014  55555 
+I0013  66666 
+
+规则：比较 file1的1-4字符 和 file2的2-5 字符，如果相同，将file2 的第二列 与 file1 合并 file3 
+ 
+0011AAA 200.00 20050321 11111 
+0012BBB 300.00 20050621 22222 
+0013DDD 400.00 20050622 66666 
+0014FFF 500.00 20050401 55555 
+
+awk  'NR==FNR{a[substr($1,2,5)]=$2}NR>FNR&&a[b=substr($1,1,4)]{print $0, a}' file2 file1 >file3
+
+
+
+awk数组
+awk 'BEGIN{info="it is a test";split(info,tA," ");for(k in tA){print k,tA[k];}}'
+4 test
+1 it
+2 is
+3 a
+zxx@zxx-desktop:/tmp/scs$  awk 'BEGIN{info="it is a test";tlen=split(info,tA," ");for(k=1;k<=tlen;k++){print k,tA[k];}}'1 it
+2 is
+3 a
+4 test
+
+    [chengmo@localhost ~]$ awk 'BEGIN{info="it is a test";lens=split(info,tA," ");print length(tA),lens;}'
+    4 4
+
+    length返回字符串以及数组长度，split进行分割字符串为数组，也会返回分割得到数组长度。
+
+     
+
+    (asort使用）:
+
+    [chengmo@localhost ~]$ awk 'BEGIN{info="it is a test";split(info,tA," ");print asort(tA);}'
+    4
+
+    asort对数组进行排序，返回数组长度。
+
+    * 判断键值存在以及删除键值： 
+
+    一个错误的判断方法：
+
+    [chengmo@localhost ~]$ awk 'BEGIN{tB["a"]="a1";tB["b"]="b1";if(tB["c"]!="1"){print "no found";};for(k in tB){print k,tB[k];}}'
+    no found
+    a a1
+    b b1
+    c
+
+     
+
+    以上出现奇怪问题，tB[“c”]没有定义，但是循环时候，发现已经存在该键值，它的值为空，这里需要注意，awk数组是关联数组，只要通过数组引用它的key，就会自动创建改序列.
+
+     
+
+    正确判断方法：
+
+    [chengmo@localhost ~]$ awk 'BEGIN{tB["a"]="a1";tB["b"]="b1";if( "c" in tB){print "ok";};for(k in tB){print k,tB[k];}}' 
+    a a1
+    b b1
+
+    if(key in array) 通过这种方法判断数组中是否包含”key”键值。
+
+     
+
+    删除键值：
+
+    [chengmo@localhost ~]$ awk 'BEGIN{tB["a"]="a1";tB["b"]="b1";delete tB["a"];for(k in tB){print k,tB[k];}}'                    
+    b b1
+
+     
+
+    delete array[key]可以删除，对应数组key的，序列值。
+
+ 
+
+三、二维数组使用(多维数组使用）
+
+    awk的多维数组在本质上是一维数组，更确切一点，awk在存储上并不支持多维数组。awk提供了逻辑上模拟二维数组的访问方式。例 如，array[2,4] = 1这样的访问是允许的。awk使用一个特殊的字符串SUBSEP (\034)作为分割字段，在上面的例子中，关联数组array存储的键值实际上是2\0344。
+
+     
+
+    类似一维数组的成员测试，多维数组可以使用 if ( (i,j) in array)这样的语法，但是下标必须放置在圆括号中。
+    类似一维数组的循环访问，多维数组使用 for ( item in array )这样的语法遍历数组。与一维数组不同的是，多维数组必须使用split()函数来访问单独的下标分量。split ( item, subscr, SUBSEP)
+
+     
+
+    [chengmo@localhost ~]$ awk 'BEGIN{
+
+    for(i=1;i<=9;i++)
+    {
+      for(j=1;j<=9;j++) 
+      {
+    tarr[i,j]=i*j;
+    print i,"*",j,"=",tarr[i,j];
+      }
+    }
+    }'
+    1 * 1 = 1
+    1 * 2 = 2
+    1 * 3 = 3
+    1 * 4 = 4
+    1 * 5 = 5
+    1 * 6 = 6
+
+    ……
+
+    可以通过array[k,k2]引用获得数组内容.
+
+     
+
+    方法二：
+
+    [chengmo@localhost ~]$ awk 'BEGIN{
+    for(i=1;i<=9;i++)
+    {
+      for(j=1;j<=9;j++) 
+      {
+    tarr[i,j]=i*j;
+      }
+    }
+    for(m in tarr)             
+    {
+
+    split(m,tarr2,SUBSEP);
+    print tarr2[1],"*",tarr2[2],"=",tarr[m];
+    }
+    }'
+/////////////////////////////////////////////////////
+testcase
+///*1 one line comment but with /*
+//*2 this is the same with above /*3
+this is //this "//" is not working */
+that /*in*/ this /*out*/ end /* all in one line */
+/*4
+tres
+/*
+this partcially added
+*/
+///////////////////////////////////////////////
+awk -f a.awk /tmp/ex3
+
+a.awk  
+#########to remove all the comments in C++
+
+
+BEGIN { FS="" }  
+#  !(ignore_line && $NF == "//") && !ignore_line-- {  
+{  
+  ignore_line = 0;  
+    for(i = 1; i <= NF; i++) {  
+        if (ignore_block) {  
+            if ($i $(i+1) == "*/") {  
+                ignore_block = 0  
+                i++ # remove '*'   
+            }  
+            continue  
+        }  
+        if (!ignore_block && $i $(i+1) == "/*") {  
+            ignore_block = 1  
+            i++ # remove '/'   
+            continue  
+        }  
+        if (!ignore_block && $i $(i+1) == "//") {
+             ignore_line = 1
+             i++
+             continue
+        }  
+         if (ignore_block || ignore_line)    
+           continue
+     printf($i)  
+    }  
+    printf("\n")  
+}  
+
+  
+######################################
+
+
+example to process(including all the conditions):
+#########
+///*1 one line comment but with /*
+//*2 this is the same with above
+/*3
+peach
+//kiwi "//" is not working */
+apriot /*in*/ banana /*out*/ apple
+/* all in one line */
+/*4
+tres
+/*
+this partcially added
+*/
+//this is another
+3
+ret=a/b;
+ot
+/*
+ERER
+/*dfef
+/*faint!!!
+*/
+
+
+#########
+about the non printing character, this will affect sed tool,
+but awk won't be affected, it's very nice
+tr -s '\011' " "
+############
+sed can only locate consecutive two character in greedy  mode, when in 
+the maximum pattern match, it will fail out.
+
+
+* awk 使用例子
+
+awk [ -F re] [parameter...] ['prog'] [-f progfile][in_file...]
+-F 分隔符
+parameter: 变量赋值
+'prog': awk的程序语句段。这个语句段必须用单拓号：'和'括起，以防被shell解释。这个程序语句段的标准形式为：
+
+'pattern {action}'
+
+1.各种pattern
+pattern参数可以是egrep正则表达式中的任何一个，它可以使用语法/re/再加上一些样式匹配技巧构成。与sed类似，你也可以使用","分开两样式以选择某个范围。
+/pattern/   //a regular expression
+$awk '/sun/{print}' mydoc
+
+
+/pattern1/,/pattern2/    //lines between two patterns
+eg.显示文本文件myfile中第七行到第十五行中以字符%分隔的第一字段，第三字段和第七字段：
+awk -F % 'NR==7,NR==15 {printf $1 $3 $7}'
+
+$awk '/[Ss]un/,/[Mm]oon/ {print}' myfile
+它将显示第一个匹配Sun或sun的行与第一个匹配Moon或moon的行之间的行，并显示到标准输出上。
+
+relation expression
+$awk 'length($0)>80 {print NR}' myfile
+//myfile中所有超过80个字符的行号，在这里，用$0表示整个记录（行），同时，内置变量NR不使用标志符'$'。
+
+
+BEGIN 处理之前
+END     处理之后
+awk 'BEGIN { print "the total is:";sum=0}{ sum += $1 }; END { print sum }' aa
+
+
+
+2 Built-in Variables
+FIELDWIDTHS   A white-space separated list of fieldwidths.  When set, gawk parses the input  into  fields  of  fixed   width, instead of using the value of the FS variable as the field separator.
+  NF          The number of fields in the current input record.
+   NR          The total number of input records seen so far.
+
+
+
+who -u | awk '{printf("%s正在执行%s\n",$2,$1)}'
+
+$awk '{printf"%03d%s\n",NR,$1}' myfile    //例:显示文件myfile中的行号和第3字段
+在此描述您的新便笺。
+
+
+高级用法
+NR和FNR的区别
+# awk '{print NR,$0}' file1 file2
+1 a b c d
+2 a b d c
+3 a c b d
+4 a c d b
+5 a d c b
+6 a d b c
+7 aa bb cc dd
+8 aa bb dd cc
+9 aa cc bb dd
+10 aa cc dd bb
+11 aa dd bb cc
+12 aa dd cc bb
+# awk '{print FNR,$0}' file1 file2
+1 a b c d
+2 a b d c
+3 a c b d
+4 a c d b
+5 a d c b
+6 a d b c
+1 aa bb cc dd
+2 aa bb dd cc
+3 aa cc bb dd
+4 aa cc dd bb
+5 aa dd bb cc
+6 aa dd cc bb
+所以在处理两个文件时可以很容易区分出是第一个文件还是第二个文件，
+NR==FNR,第一个文件，
+NR>FNR，第二个文件，
+ARGIND 表示文件参数的个数
+
+
+
+
+eg1 两个文件之间的赋值：
+文件 shadow:
+s2002408030068:ab
+s2002408032819:cd
+s2002408032823:ef
+
+文件passwd: 
+s2002408030068:x:
+s2002408032819:x: 
+s2002408032823:x:
+
+用shadow文件中的密文部分替换passwd中的"x",生一个新passwd文件
+
+awk 'BEGIN{OFS=FS=":"} NR==FNR{a[$1]=$2}NR>FNR{$2=a[$1];print}' shadow passwd
+awk  'BEGIN{OFS=FS=":"}  ARGIND==1{a[$1]=$2}ARGIND>1{$2=a[$1];print}'  shadow passwd
+NR==FNR,第一个文件shadow，以$1为下标，将$2的值赋给数组a
+NR>FNR，第二个文件passwd，将文件shadow$2的值赋值给文件passwd
+
+引用：2、 
+cat file1: 
+0011AAA 200.00 20050321 
+0012BBB 300.00 20050621 
+0013DDD 400.00 20050622 
+0014FFF 500.00 20050401 
+
+cat file2: 
+I0011  11111 
+I0012  22222 
+I0014  55555 
+I0013  66666 
+
+规则：比较 file1的1-4字符 和 file2的2-5 字符，如果相同，将file2 的第二列 与 file1 合并 file3 
+ 
+0011AAA 200.00 20050321 11111 
+0012BBB 300.00 20050621 22222 
+0013DDD 400.00 20050622 66666 
+0014FFF 500.00 20050401 55555 
+
+awk  'NR==FNR{a[substr($1,2,5)]=$2}NR>FNR&&a[b=substr($1,1,4)]{print $0, a}' file2 file1 >file3
+
+
+
+awk数组
+awk 'BEGIN{info="it is a test";split(info,tA," ");for(k in tA){print k,tA[k];}}'
+4 test
+1 it
+2 is
+3 a
+zxx@zxx-desktop:/tmp/scs$  awk 'BEGIN{info="it is a test";tlen=split(info,tA," ");for(k=1;k<=tlen;k++){print k,tA[k];}}'1 it
+2 is
+3 a
+4 test
+
+    [chengmo@localhost ~]$ awk 'BEGIN{info="it is a test";lens=split(info,tA," ");print length(tA),lens;}'
+    4 4
+
+    length返回字符串以及数组长度，split进行分割字符串为数组，也会返回分割得到数组长度。
+
+     
+
+    (asort使用）:
+
+    [chengmo@localhost ~]$ awk 'BEGIN{info="it is a test";split(info,tA," ");print asort(tA);}'
+    4
+
+    asort对数组进行排序，返回数组长度。
+
+    * 判断键值存在以及删除键值： 
+
+    一个错误的判断方法：
+
+    [chengmo@localhost ~]$ awk 'BEGIN{tB["a"]="a1";tB["b"]="b1";if(tB["c"]!="1"){print "no found";};for(k in tB){print k,tB[k];}}'
+    no found
+    a a1
+    b b1
+    c
+
+     
+
+    以上出现奇怪问题，tB[“c”]没有定义，但是循环时候，发现已经存在该键值，它的值为空，这里需要注意，awk数组是关联数组，只要通过数组引用它的key，就会自动创建改序列.
+
+     
+
+    正确判断方法：
+
+    [chengmo@localhost ~]$ awk 'BEGIN{tB["a"]="a1";tB["b"]="b1";if( "c" in tB){print "ok";};for(k in tB){print k,tB[k];}}' 
+    a a1
+    b b1
+
+    if(key in array) 通过这种方法判断数组中是否包含”key”键值。
+
+     
+
+    删除键值：
+
+    [chengmo@localhost ~]$ awk 'BEGIN{tB["a"]="a1";tB["b"]="b1";delete tB["a"];for(k in tB){print k,tB[k];}}'                    
+    b b1
+
+     
+
+    delete array[key]可以删除，对应数组key的，序列值。
+
+ 
+
+三、二维数组使用(多维数组使用）
+
+    awk的多维数组在本质上是一维数组，更确切一点，awk在存储上并不支持多维数组。awk提供了逻辑上模拟二维数组的访问方式。例 如，array[2,4] = 1这样的访问是允许的。awk使用一个特殊的字符串SUBSEP (\034)作为分割字段，在上面的例子中，关联数组array存储的键值实际上是2\0344。
+
+     
+
+    类似一维数组的成员测试，多维数组可以使用 if ( (i,j) in array)这样的语法，但是下标必须放置在圆括号中。
+    类似一维数组的循环访问，多维数组使用 for ( item in array )这样的语法遍历数组。与一维数组不同的是，多维数组必须使用split()函数来访问单独的下标分量。split ( item, subscr, SUBSEP)
+
+     
+
+    [chengmo@localhost ~]$ awk 'BEGIN{
+
+    for(i=1;i<=9;i++)
+    {
+      for(j=1;j<=9;j++) 
+      {
+    tarr[i,j]=i*j;
+    print i,"*",j,"=",tarr[i,j];
+      }
+    }
+    }'
+    1 * 1 = 1
+    1 * 2 = 2
+    1 * 3 = 3
+    1 * 4 = 4
+    1 * 5 = 5
+    1 * 6 = 6
+
+    ……
+
+    可以通过array[k,k2]引用获得数组内容.
+
+     
+
+    方法二：
+
+    [chengmo@localhost ~]$ awk 'BEGIN{
+    for(i=1;i<=9;i++)
+    {
+      for(j=1;j<=9;j++) 
+      {
+    tarr[i,j]=i*j;
+      }
+    }
+    for(m in tarr)             
+    {
+
+    split(m,tarr2,SUBSEP);
+    print tarr2[1],"*",tarr2[2],"=",tarr[m];
+    }
+    }'

@@ -1,0 +1,1009 @@
+* java run and compilation enviroment
+** general
+add "%CLASSPATH%" in windows env variavble with ";." at the end of it:
+C:\Users\glili>echo "%CLASSPATH%"
+"C:\Program Files\IBM\solidDB\solidDB6.5\jdbc\SolidDriver2.0.jar;C:\Program File
+s\Java\junit-4.10.jar;."
+
+in cygwin
+[admin1@TeamCI-136 jtest]$ echo $PATH
+/usr/jdk1.7.0/bin:/
+
+
+[admin1@TeamCI-136 jtest]$ java -version
+java version "1.6.0_31"
+Java(TM) SE Runtime Environment (build 1.6.0_31-b04)
+Java HotSpot(TM) Server VM (build 20.6-b01, mixed mode)
+[admin1@TeamCI-136 jtest]$ javac -version
+javac 1.6.0_31
+[admin1@TeamCI-136 jtest]$
+
+[admin1@TeamCI-136 jtest]$ cat main.java
+import java.io.*;
+
+class HelloWorld
+{
+    public static void main(String[] args)
+    {
+        System.out.println("Hello World!");
+    }
+}
+[admin1@TeamCI-136 jtest]$javac main.java
+this will generate HellowWorld.class
+[admin1@TeamCI-136 jtest]$ ls
+HelloWorld.class  main.java
+[admin1@TeamCI-136 jtest]$ cat main.java
+import java.io.*;
+
+class HelloWorld
+{
+    public static void main(String[] args)
+    {
+        System.out.println("Hello World!");
+    }
+}
+[admin1@TeamCI-136 jtest]$ java -cp . HelloWorld
+Hello World!
+[admin1@TeamCI-136 jtest]$
+
+jdk is used for debugging
+
+** JUnit env setup
+multiple classpath concantenate with":" in linux but ";" in windows
+*** compile
+TestJunit.java
+-----------------
+import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+public class TestJunit{
+  @Test
+  public void testAdd(){
+    String str="OK";
+    assertEquals("OK",str);
+  }
+  @Test
+  public void testSub(){
+    String str="KO";
+    assertEquals("OK",str);
+  }
+
+}
+-----------------
+$ javac JunitTest.java
+
+*** run
+**** run a test class 
+$ java  org.junit.runner.JUnitCore  JunitTest
+**** run a method in a specific class
+$ java org.junit.runner.JUnitCore TestJunit.testAdd
+JUnit version 4.10
+Could not find class: TestJunit.testAdd
+
+Time: 0.002
+
+OK (0 tests)
+
+** Jar files
+Jar Files
+
+A Jar file is essentially a collection of files (mostly archives of java classes) in one file, similar to a ZIP file. A Jar file facilitates the packaging of applications into one file. In addition to the Java class files and resources, a Jar file can contain a META-INF directory. The most important file in this directory is manifest.mf. It is used to define extension and package related data. The Main-Class: classname in the manifest file specifies the class that gets executed first.
+To compile a Java file and include a Jar file, enter the following command line:
+
+   javac -classpath jar-file java-file
+
+For multiple JAR files, separate the jar-files with semicolons, as follows:
+
+   javac -classpath jar-file1;jar-file2;jar-file3 java-file
+
+Some rules to note:
+
+    On UNIX systems use a colon instead of a semicolon.
+    If jar-file is not in the current directory, remember to specify the path to the jar-file.
+
+To include a Jar file when running a compiled java file, enter the following command:
+
+   java -classpath jar-file class-file
+
+*** Creating Jar Files
+
+To create a Jar file, enter the following command:
+
+   jar cf jar-file input-files
+
+For example, if you want to make a C.jar with A.class and B.class, enter the following command:
+
+   jar cf C.jar A.class B.class
+
+*** Running A Jar File
+
+To run a Jar file at the command line, enter the following command:
+
+   java -jar jar-file 
+
+When using a GUI, you can also simply double click the Jar file icon.
+Compiling A Jar File
+
+
+* maven for java project managment
+** generate a mavaen project from scratch
+*** command to generate the whole direc structure and pom file
+mvn archetype:generate -DgroupId=com.mycompany.app -DartifactId=my-app -DarchetypeArtifactId=maven-archetype-quickstart -DinteractiveMode=false
+
+*** generated dir and pom
+cd my-app
+    my-app
+    |-- pom.xml
+    `-- src
+        |-- main
+        |   `-- java
+        |       `-- com
+        |           `-- mycompany
+        |               `-- app
+        |                   `-- App.java
+        `-- test
+            `-- java
+                `-- com
+                    `-- mycompany
+                        `-- app
+                            `-- AppTest.java
+
+pom
+-----
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+ 
+  <groupId>com.mycompany.app</groupId>
+  <artifactId>my-app</artifactId>
+  <version>1.0-SNAPSHOT</version>
+  <packaging>jar</packaging>
+ 
+  <name>Maven Quick Start Archetype</name>
+  <url>http://maven.apache.org</url>
+ 
+  <dependencies>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.8.2</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+-------------
+
+*** build the project
+mvn package
+
+Unlike the first command executed (archetype:generate) you may notice the second is simply a single word - package. Rather than a goal, this is a phase. A phase is a step in the build lifecycle, which is an ordered sequence of phases. When a phase is given, Maven will execute every phase in the sequence up to and including the one defined. For example, if we execute the compile phase, the phases that actually get executed are:
+
+    validate
+    generate-sources
+    process-sources
+    generate-resources
+    process-resources
+    compile
+
+You may test the newly compiled and packaged JAR with the following command:
+
+    java -cp target/my-app-1.0-SNAPSHOT.jar com.mycompany.app.App
+
+Which will print the quintessential:
+
+    Hello World!
+
+
+*** Running Maven Tools
+Maven Phases
+
+Although hardly a comprehensive list, these are the most common default lifecycle phases executed.
+
+    validate: validate the project is correct and all necessary information is available
+    compile: compile the source code of the project
+    test: test the compiled source code using a suitable unit testing framework. These tests should not require the code be packaged or deployed
+    package: take the compiled code and package it in its distributable format, such as a JAR.
+    integration-test: process and deploy the package if necessary into an environment where integration tests can be run
+    verify: run any checks to verify the package is valid and meets quality criteria
+    install: install the package into the local repository, for use as a dependency in other projects locally
+    deploy: done in an integration or release environment, copies the final package to the remote repository for sharing with other developers and projects.
+
+There are two other Maven lifecycles of note beyond the default list above. They are
+
+    clean: cleans up artifacts created by prior builds
+
+    site: generates site documentation for this project
+
+Phases are actually mapped to underlying goals. The specific goals executed per phase is dependant upon the packaging type of the project. For example, package executes jar:jar if the project type is a JAR, and war:war if the project type is - you guessed it - a WAR.
+
+An interesting thing to note is that phases and goals may be executed in sequence.
+
+    mvn clean dependency:copy-dependencies package
+
+This command will clean the project, copy dependencies, and package the project (executing all phases up to package, of course).
+Generating the Site
+
+    mvn site
+
+This phase generates a site based upon information on the project's pom. You can look at the documentation generated under target/site.
+
+** mvn  test
+*** Running a Single Test
+
+During development, you may run a single test class repeatedly. To run this through Maven, set the test property to a specific test case.
+
+mvn -Dtest=TestCircle test
+
+The value for the test parameter is the name of the test class (without the extension; we'll strip off the extension if you accidentally provide one).
+
+You may also use patterns to run a number of tests:
+
+mvn -Dtest=TestCi*le test
+
+And you may use multiple names/patterns, separated by commas:
+
+mvn -Dtest=TestSquare,TestCi*le test
+
+
+*** Running a Set of Methods in a Single Test Class
+
+As of Surefire 2.7.3, you can also run only a subset of the tests in a test class.
+
+NOTE : This feature is supported only for Junit 4.x and TestNG.
+
+You must use the following syntax:
+
+mvn -Dtest=TestCircle#mytest test
+
+You can use patterns too
+
+mvn -Dtest=TestCircle#test* test
+
+As of Surefire 2.12.1, you can select multiple methods (JUnit 4.x only at this time; patches welcome!):
+
+mvn -Dtest=TestCircle#testOne+testTwo test
+
+** mvn increamental comiplation
+Maven supports building subsets of multi module projects using the command line arguments -pl, -am and -amd to specify modules to build, also build dependencies and also build dependents, respectively. It will also only compile changed source files in any given module (not really a Maven feature so much as a javac feature).
+
+https://maven-incremental-build.java.net/site/usage.html
+
+* options 
+** javaagent option
+7/24/2006
+The -javaagent: Option
+The -javaagent: is introduced in JDK 5, and it may be late to talk about any new features in JDK 5, while JDK 6 is just around the corner. I started to use it recently but at first couldn't find any good documentation on this option.
+
+java -help shows a brief message:
+
+?
+1
+2
+-javaagent:<jarpath>[=<options>]
+load Java programming language agent, see java.lang.instrument
+JDK tools doc page doesn't give much more info. The official one is at the Javadoc page for java.lang.instrument, as suggested by java -help
+
+Here is my quick summary with comments:
+
+The name is misleading, since the word agent usually suggests something working remotely and separately from the primary entity. But it turns out the java agent as used in -javaagent: is much simpler than that.
+
+How to write a java agent? Just implement this method:
+?
+1
+public static void premain(String agentArgs, Instrumentation inst);
+2. Agent classes must be packaged in jar file format whose META-INF/MANIFEST.MF contains at least one additional attribute: Premain-Class. An example of MANIFEST.MF:
+?
+1
+2
+3
+Manifest-Version: 1.0
+Premain-Class: javahowto.JavaAgent
+Created-By: 1.6.0_06 (Sun Microsystems Inc.)
+Once you have the custom MANIFEST.MF file, run jar command with cvfm option to create the agent jar:
+?
+1
+2
+/projects/Hello/build/classes $
+jar cvfm ../../myagent.jar ../../mymanifest.mf javahowto/MyAgent.class
+3. All these agent jars are automatically appended to the classpath. So no need to add them to classpath, unless you want to reorder classpath elements.
+
+4. One java application may have any number of agents by using -javaagent: option any number of times. Agents are invoked in the same order as specified in options.
+
+5. Each agent may also take String-valued args. I guess that's the reason why we have to use this option multiple times for multiple agents. Otherwise, we could've just done something like: -javaagent agent1.jar:agent2.jar, which is incorrect.
+
+6. It's convenient for java application integration. Now I can enhance/modify the behavior of an application without changing its source code.
+
+7. JavaEE 5 has many similar construts, such as interceptors in EJB 3, and EntityListener in Java Persistence API. In JavaEE, they are managed by some sort of containers, so their semantics is much richer than javaagent.
+
+** -XX option
+-XX:MaxPermSize= size is used to specify the size of the permanent generation memory. See   3.1.2 Detail Message: PermGen space .
+-XX:MaxPermSize=1024m
+*** Detail Message: PermGen space
+The detail message PermGen space indicates that the permanent generation is full. The permanent generation is the area of the heap where class and method objects are stored. If an application loads a very large number of classes, then the size of the permanent generation might need to be increased using the -XX:MaxPermSize option.
+
+Interned java.lang.String objects are also stored in the permanent generation. The java.lang.String class maintains a pool of strings. When the intern method is invoked, the method checks the pool to see if an equal string is already in the pool. If there is, then the intern method returns it; otherwise it adds the string to the pool. In more precise terms, the java.lang.String.intern method is used to obtain the canonical representation of the string; the result is a reference to the same class instance that would be returned if that string appeared as a literal. If an application interns a huge number of strings, the permanent generation might need to be increased from its default setting.
+
+When this kind of error occurs, the text String.intern or ClassLoader.defineClass might appear near the top of the stack trace that is printed.
+
+The jmap -permgen command prints statistics for the objects in the permanent generation, including information about internalized String instances. See    2.7.4 Getting Information on the Permanent Generation.
+
+** -X option
+$ java -X
+    -Xmixed           mixed mode execution (default)
+    -Xint             interpreted mode execution only
+    -Xbootclasspath:<directories and zip/jar files separated by ;>
+                      set search path for bootstrap classes and resources
+    -Xbootclasspath/a:<directories and zip/jar files separated by ;>
+                      append to end of bootstrap class path
+    -Xbootclasspath/p:<directories and zip/jar files separated by ;>
+                      prepend in front of bootstrap class path
+    -Xdiag            show additional diagnostic messages
+    -Xnoclassgc       disable class garbage collection
+    -Xincgc           enable incremental garbage collection
+    -Xloggc:<file>    log GC status to a file with time stamps
+    -Xbatch           disable background compilation
+    -Xms<size>        set initial Java heap size
+    -Xmx<size>        set maximum Java heap size
+
+
+* java language itself
+** java variavble initialization
+ int[] data = new int[] {0,0,0};
+ // this is equal to int[] data=new int[];
+ // java will initialize them to 0 for you.
+
+ int[] data = new int[] {3,4,5};
+
+** Primitive and object
+*** int VS. Integer
+object: Integer a = new Integer(100);
+primitive: int a = 1000;
+** Arrays in Java
+A java array is guaranteed to be initialized and can't be acessed outside of its range. The range checking comes at the price of haveing a samll amount of memory
+overhead on each arrays as well as verifying the index at run time.
+** garbage collector( You never need to destroy an object)
+there's no destruction function for java class, for java will recollet the memory automatically when the scope is not available for the object.
+but we still nedd to recollect other resources such as a handle of the file...etc.
+finalize function could for this, the will be invoked before the garbage collector.
+
+*** scoping
+You cannot do the following, even though it is legal in C and C++:
+{
+int x = 12;
+{
+Everything Is an Object 45
+int x = 96; // Illegal
+}
+}
+The compiler will announce that the variable x has already been defined
+
+**** scope of objects
+String s = new String("a string");
+} // End of scope
+the reference s vanishes at the end of the scope. However, the String object that was pointing to is still occupying memory. In this bit of code, there is 
+no way to access the object after the end of the scope, because the only reference to it is out of scope. In later chapters you’ll see how 
+the reference to the object can be passed around and duplicated during the course of a program.
+
+** function parameter passing
+if the type is primitive, the value. if the type is a object which has been created by new, then it's the value of that object's address.
+class Employee
+{
+  public Employee(String n, double s)
+  {
+    name = n;
+    salary =s;
+  }
+ 
+  public void TripleSal()
+ {
+   salary = 3 * salary;
+  }
+ 
+  public static void Swapemploy(Employee e1, Employee e2)
+ {
+     Employee et;
+     et = e1;
+    e1 = e2;
+    e2= et;
+
+  }
+  public static void Tripleemploy(Employee e)
+ {
+   e.TripleSal();
+  }
+  public static void TripleVal(int a)
+ {
+   a = 3 * a;
+  }
+  public static void main(String[] args) 
+  {
+    Employee e =new Employee("Harry",500);
+// java has no pointer, new a object then object is in a heap.
+    System.out.println(e.name + "sal is : " + e. salary);
+    e.TripleSal();
+    System.out.println(e.name + "sal is : " + e. salary);
+    int inta =3;
+    TripleVal(inta);
+// the parameter is a value pass, not reference pass, // this TripleVal has no effect to inta
+
+    System.out.println( "static triple value is : " +inta);
+    Employee e1 =new Employee("Alias",300);
+    Employee e2 =new Employee("Bob",50);
+    Employee et =new Employee("Temp",5);
+
+
+   Tripleemploy(e2);
+    System.out.println( "e2 sal is " + e2.salary); // e2's salary will be trippled for e2 is the address of the object e2.
+
+    Swapemploy(e1,e2);
+    System.out.println(e1.name + "of e1 " + "e2 name is " + e2.name); // no use, e1 and e2 name not swapped.
+   /*because e1 is the address value, but e1 as a parameter it self could not be changed by passing it for a function parameter  */
+
+
+ /*   et = e1;
+    e1 = e2;
+    e2= et;   // this will work, for e1 and e2 mean the address of the object
+    System.out.println(e1.name + "of e1 " + "e2 name is " + e2.name);
+*/
+/*    e1=e2; 
+    System.out.println(e1.name + "of e1 ");
+    e2.name="Nobody";
+    System.out.println(e1.name + "of e1 " + "e2 name is " + e2.name);
+*/
+  }
+ public String name;
+ public double salary;
+}
+
+
+
+
+
+
+** package
+a package may include many classes, which is a java compiled file *.class
+import java.util.*;
+import java.wql.*;
+*** import a class in different package/direcotry
+in this case the class which has been imported shuold be public class:
+./m1/Emp2.java
+===============
+package m2;
+public class Emp2{
+================
+
+./Te.java
+============
+import m1.*;
+import m2.*;
+public class Te
+{
+ public static void main(String[] args)
+  {
+       Emp em = new Emp("Rose Geroge",3000);
+=================
+
+*** static import
+import static java.lang.System.*;
+out.println("Goodle"); //system.out 
+exit(0); // System.exit
+
+*** put a class into a package
+===========
+package com.horstmann.corejava;
+ public class Employee
+{}
+===============
+if no package in the beginning, it will be put into a default package,
+the directory structure will be like this : /com/horstmann/corejava/Employee.class
+
+
+*** -classpath
+java -classpath /..../ *.java
+
+** inheritance (extend a class)
+the father of a subclass called super in java.
+all the extend are very similar to class/object of  C++
+Difference is that, in default, java's function in a class is a "virtual" function like in C++
+in default the inheritance is a "public inheritance" in C++, no "private and protected inheritance"
+
+*** polymorphism
+
+So the same function(same name, return value, parameter) will be overrided by the subclass's automatically.
+on the contrary, if you don't want a function be overrided by the subclass, you could defined it as final;
+This is the example
+====================================
+import java.util.*;
+
+public class ManagerTest
+{
+ public static void main(String[] args)
+ {
+     Manager boss = new Manager("Carl Cracker",9000 );
+    
+     Employee em = new Employee("Rose Geroge",3000);
+     Employee[] staff = new Employee[2];
+     staff[0] = boss;
+     staff[1] = em;
+     for(Employee e: staff)
+     {
+        System.out.println( "e2 sal is " + e.samefunction());
+        System.out.println( "e2 sal is " + e.onefunction());
+        System.out.println( "========== " );
+     }
+  }
+}
+
+
+class Employee
+{
+ public Employee(String n, double s)
+ {
+   name = n;
+   salary = s;
+ }
+ public  double  samefunction()
+// if defined like
+// public final double  samefunction()
+// there'd be  compilation error here
+ {
+   System.out.println( "super's samefunction");
+   return salary;
+  }
+ public double  onefunction()
+ {
+   System.out.println( "super's onefunction");
+   return salary;
+  }
+
+ public String name;
+ public double salary;
+}
+
+
+class Manager extends Employee
+{
+  public Manager(String n, double s)
+  {
+    super(n,s);
+    bonus =0;
+  }
+ public double  samefunction()
+ {
+   System.out.println( "Manager's samefunction");
+   return salary;
+  }
+
+
+ public double bonus;
+}
+======================================
+
+
+the result is :
+-----
+glili@5CG4381FZ2 /cygdrive/d/userdata/glili/Work/jtest
+$ java ManagerTest
+Manager's samefunction
+e2 sal is 9000.0
+super's onefunction
+e2 sal is 9000.0
+==========
+super's samefunction
+e2 sal is 3000.0
+super's onefunction
+e2 sal is 3000.0
+==========
+-----------
+
+*** Abstarct Methods and Classes
+An abstract class is a class that is declared abstract—it may or may not include abstract methods. Abstract classes cannot be instantiated, but they can be subclassed.
+
+An abstract method is a method that is declared without an implementation (without braces, and followed by a semicolon), like this:
+
+abstract void moveTo(double deltaX, double deltaY);
+
+If a class includes abstract methods, then the class itself must be declared abstract, as in:
+
+public abstract class GraphicObject {
+   // declare fields
+   // declare nonabstract methods
+   abstract void draw();
+}
+
+When an abstract class is subclassed, the subclass usually provides implementations for all of the abstract methods in its parent class. However, if it does not, then the subclass must 
+also be declared abstract.
+Note: Methods in an interface (see the Interfaces section) that are not declared as default or static are implicitly abstract, so the abstract modifier 
+is not used with interface methods. (It can be used, but it is unnecessary.)
+
+**** Abstract Classes Compared to Interfaces
+
+Abstract classes are similar to interfaces. You cannot instantiate them, and they may contain a mix of methods declared with or without an implementation.
+However, with abstract classes, you can declare fields that are not static and final, and define public, protected, and private concrete methods. 
+With interfaces, all fields are automatically public, static, and final, and all methods that you declare or define (as default methods) are public.
+In addition, you can extend only one class, whether or not it is abstract, whereas you can implement any number of interfaces.
+
+Which should you use, abstract classes or interfaces?
+
+    Consider using abstract classes if any of these statements apply to your situation:
+        You want to share code among several closely related classes.
+        You expect that classes that extend your abstract class have many common methods or fields, or require access modifiers other than public (such as protected and private).
+        You want to declare non-static or non-final fields. This enables you to define methods that can access and modify the state of the object to which they belong.
+    Consider using interfaces if any of these statements apply to your situation:
+        You expect that unrelated classes would implement your interface. For example, the interfaces Comparable and Cloneable are implemented by many unrelated classes.
+        You want to specify the behavior of a particular data type, but not concerned about who implements its behavior.
+        You want to take advantage of multiple inheritance of type.
+
+An example of an abstract class in the JDK is AbstractMap, which is part of the Collections Framework. Its subclasses (which include HashMap, TreeMap, and ConcurrentHashMap) share many methods (including get, put, isEmpty, containsKey, and containsValue) that AbstractMap defines.
+
+An example of a class in the JDK that implements several interfaces is HashMap, which implements the interfaces Serializable, Cloneable, and Map<K, V>. By reading this list of interfaces, you can infer that an instance of HashMap (regardless of the developer or company who implemented the class) can be cloned, is serializable (which means that it can be converted into a byte stream; see the section Serializable Objects), and has the functionality of a map. In addition, the Map<K, V> interface has been enhanced with many default methods such as merge and forEach that older classes that have implemented this interface do not have to define.
+
+Note that many software libraries use both abstract classes and interfaces; the HashMap class implements several interfaces and also extends the abstract class AbstractMap.
+
+**** An Abstract Class Example
+
+In an object-oriented drawing application, you can draw circles, rectangles, lines, Bezier curves, and many other graphic objects. These objects all have certain states (for example: position, orientation, line color, fill color) and behaviors (for example: moveTo, rotate, resize, draw) in common. Some of these states and behaviors are the same for all graphic objects (for example: position, fill color, and moveTo). Others require different implementations (for example, resize or draw). All GraphicObjects must be able to draw or resize themselves; they just differ in how they do it. This is a perfect situation for an abstract superclass. You can take advantage of the similarities and declare all the graphic objects to inherit from the same abstract parent object (for example, GraphicObject) as shown in the following figure.
+Classes Rectangle, Line, Bezier, and Circle Inherit from GraphicObject
+
+Classes Rectangle, Line, Bezier, and Circle Inherit from GraphicObject
+
+First, you declare an abstract class, GraphicObject, to provide member variables and methods that are wholly shared by all subclasses, such as the current position and the moveTo method. GraphicObject also declares abstract methods for methods, such as draw or resize, that need to be implemented by all subclasses but must be implemented in different ways. The GraphicObject class can look something like this:
+
+abstract class GraphicObject {
+    int x, y;
+    ...
+    void moveTo(int newX, int newY) {
+        ...
+    }
+    abstract void draw();
+    abstract void resize();
+}
+
+Each nonabstract subclass of GraphicObject, such as Circle and Rectangle, must provide implementations for the draw and resize methods:
+
+class Circle extends GraphicObject {
+    void draw() {
+        ...
+    }
+    void resize() {
+        ...
+    }
+}
+class Rectangle extends GraphicObject {
+    void draw() {
+        ...
+    }
+    void resize() {
+        ...
+    }
+}
+
+**** When an Abstract Class Implements an Interface
+
+In the section on Interfaces, it was noted that a class that implements an interface must implement all of the interface's methods. It is possible, however, to define a class that does not implement all of the interface's methods, provided that the class is declared to be abstract. For example,
+
+abstract class X implements Y {
+  // implements all but one method of Y
+}
+
+class XX extends X {
+  // implements the remaining method in Y
+}
+
+In this case, class X must be abstract because it does not fully implement Y, but class XX does, in fact, implement Y.
+
+**** Class Members
+
+An abstract class may have static fields and static methods. You can use these static members with a class reference (for example, AbstractClass.staticMethod()) as you would with any other class.
+ooooooooooooooooooo
+
+*** Class (create object dynamically from a className or an existing object)
+   Class cl= e1.getClass();
+    System.out.println("e1 is a  class " + cl.getName() ); //Employee class
+    try{
+    Employee e3=(Employee)cl.newInstance();                // newInstance will create a new obj using the Class 
+    System.out.println(e3.name + "sal is : " + e3.salary);
+    }
+    catch (Exeption excep)
+    {
+       e2.printStackTrace();
+     }
+     try{
+       String className="Employee";
+       Class cl2= Class.forName(className);              // get the Class name by a String "Employee"
+       System.out.println("classnmae is " + cl2.getName() );
+      }catch(ClassNotFoundException e1234){
+        System.out.println("Excepton!!!!");
+        System.exit(1);
+     }
+
+
+
+*** final keyword
+final could for a class, a function or the variable of the class.
+if for class, means this class could not be extended.
+if for variable, means that the value of these variables couldn't be changed after the construction function.
+if for function, means it couldn't be overrided by the same function in the subclass.
+
+*** static keyword
+
+**** static variable
+static members belong to the class instead of a specific instance.
+
+It means that only one instance of a static field exists[1] even if you create a million instances of the class or you don't create any. It will be shared by all instances.
+
+**** static method
+Since static methods also do not belong to a specific instance, they can't refer to instance members.
+static members can only refer to static members. Instance members can, of course access static members.
+Side note: Of course, static members can access instance members through an object reference.
+[1]: Depending on the runtime characteristics, it can be one per ClassLoader or AppDomain or thread, but that is beside the point.
+
+**** static block
+ Is used to initialize the static data member.
+ It is executed before main method at the time of classloading.
+
+public class MyProcedure {
+    protected static FSMTransitionDefinition fsmTransition = null;
+    private FSMEngine fsm;    // create the FSM engine
+    static  /* in FSM design pattern, Transition is the same for every different instance, and State and fsmengine are different for different instatce*/
+    {
+        fsmTransition = new FSMTransitionDefinition();   /*static variable initialization. */
+        defineTransitions();                            /*only static method could access static variable fmTranstion*/
+    }
+    
+    public MyProcedure() {
+   ..
+    private static void defineTransitions() {
+        fsmTransition.defineTransition(MyStates.Start.getId(), MyEvents.EventA.getId(), MyStates.StateA.getId());
+ 
+
+
+** class Object (all class's super class)
+Every class in java is extended from class Object 
+class Employee{}
+means class Employee extends Object
+
+only primitives like int, is not Object, but Integer is an Object.
+So we could use a obj of class Object to refer to any object.
+Object obj= new Employee("Huddson fort",5000);
+it means void * in c++.
+
+*** equals function in Object
+so every subclass could override Object's equals function
+======
+class Employee
+{
+...
+  public boolean equals(Object otherObj)
+  {
+     if (this == otherObject) return true;
+     if (otherObj == null) return false;
+     if(getClass() != otherObj.getClass())// getClass is the type of this class
+       return false;
+     // real work herer
+     Employee other = (Employee) otherObj;
+     return name.equals(other.name) && salary == other.salary ;
+  }
+}
+---------------------------
+
+a subclass 's equal should envoke super class's equal firstly.
+==============
+class Manager extends Emplyee
+{
+...
+  public boolean equals(Object otherObjet)
+  {
+    if(!super.equals(otherObject)) return false;
+    Mangager other=(Manger) otherObj;
+    return bonus == otherObj.bonus;
+    
+  }
+
+}
+
+*** HashCode function in Object
+hash code is from a object, it is the address of this object, same object have the same hashcode.
+
+
+*** toString function in Object
+most of toString will get classnaem[field1="", field2="".....]
+
+** multiple inheritance
+in java no multiple inheritance, you could extend only one class, but you could implements many interfaces.
+*** interfaces
+interface is a java Class without any fields, only function.
+*** clone ( copy constructor) (implements Cloneable)
+if a class has implements  Cloneable wi wil lhave function clone.
+the default clone is just a shallow copy, if there's a object pointer in the fields, you need to implement your own custome one:
+======================================
+import java.util.Date;
+import java.util.GregorianCalendar;
+
+public class Employee implements Cloneable
+{
+   private String name;
+   private double salary;
+   private Date hireDay;
+
+   public Employee(String n, double s)
+   {
+      name = n;
+      salary = s;
+      hireDay = new Date();
+   }
+
+   public Employee clone() throws CloneNotSupportedException
+   {
+      // call Object.clone()
+      Employee cloned = (Employee) super.clone();
+
+      // clone mutable fields your self or there will be cloned.hireDay= hireDay. 
+      cloned.hireDay = (Date) hireDay.clone();
+
+      return cloned;
+   }
+   public void setHireDay(int year, int month, int day)
+   {
+      Date newHireDay = new GregorianCalendar(year, month - 1, day).getTime();
+      
+      // Example of instance field mutation
+      hireDay.setTime(newHireDay.getTime());
+   }
+
+   public void raiseSalary(double byPercent)
+   {
+      double raise = salary * byPercent / 100;
+      salary += raise;
+   }
+
+   public String toString()
+   {
+      return "Employee[name=" + name + ",salary=" + salary + ",hireDay=" + hireDay + "]";
+   }
+
+===================================================================
+
+
+====================
+ class CloneTest
+{
+   public static void main(String[] args)
+   {
+      try
+      {
+         Employee original = new Employee("John Q. Public", 50000);
+         original.setHireDay(2000, 1, 1);
+         Employee copy = original.clone();
+         copy.raiseSalary(10);
+         copy.setHireDay(2002, 12, 31);
+         System.out.println("original=" + original); // for there's a toString function
+         System.out.println("copy=" + copy);
+      }
+      catch (CloneNotSupportedException e)
+      {
+         e.printStackTrace();
+      }
+   }
+}
+==========================
+
+*** Comparable interface
+----------------------------
+public class Employee implements Comparable<Employee>
+{
+   private String name;
+   private double salary;
+
+   public Employee(String n, double s)
+   {
+      name = n;
+      salary = s;
+   }
+
+   public String getName()
+   {
+      return name;
+   }
+
+   public double getSalary()
+   {
+      return salary;
+   }
+
+   public void raiseSalary(double byPercent)
+   {
+      double raise = salary * byPercent / 100;
+      salary += raise;
+   }
+   /**
+    * Compares employees by salary
+    * @param other another Employee object
+    * @return a negative value if this employee has a lower salary than
+    * otherObject, 0 if the salaries are the same, a positive value otherwise
+    */
+   public int compareTo(Employee other)
+   {
+      return Double.compare(salary, other.salary);
+   }
+}
+---------------------
+
+public class EmployeeSortTest
+{
+   public static void main(String[] args)
+   {
+      Employee[] staff = new Employee[3];
+
+      staff[0] = new Employee("Harry Hacker", 35000);
+      staff[1] = new Employee("Carl Cracker", 75000);
+      staff[2] = new Employee("Tony Tester", 38000);
+
+      Arrays.sort(staff); // sort need compareTo function
+
+      // print out information about all Employee objects
+      for (Employee e : staff)
+         System.out.println("name=" + e.getName() + ",salary=" + e.getSalary());
+   }
+}
+~
+
+
+* java tools 
+java -cp . -agentlib:hprof=file=snapshot.hprof,format=b OL
+** java visulvm
+** jar (list all the class files in jar file )
+jar tvf *.jar
+
+* eclipse settings 
+** debugging skill
+*** 'Null pointer exception' handling
+try{
+ code (nested to other code, and there's null pointer exception)
+
+}
+catch(Exception e)
+{
+//no code to print out this exception in the terminal
+//then you will miss it, even such error occured, you may unaware of it
+//but if this Exception not catched by your code,
+//there will be null pointer exception error printed out in terminal
+}
+
+when you get those code, how to debug?
+Use “Java Exception Breakpoint” feature to track your exceptions more easily. For example, your program might be throwing a NullPointerException or FileNotFoundException andi
+you want to track it down.  Rather than go to the line of code and set a breakpoint, you can specify that the debugger should always stop when the exception occurs.
+(when you found your result is not expected, try this one to narrow down if any null pointer exception )
+
+*** When stepping into class instantiation, eclipse debugger goes to native code
+perference->java->debug->step filtering
+java.lang.* 
+filter this package, debug will go straight forward to constructor.
+
+*** setp into specific function
+ctrl + F5 when cursor is in the function name
+run menu--> step into selection menu
+
+*** watch point for class fields
+you can toggle a wath point for class fields,
+when the field is read/write, it will stop 
+***  break point (suspend thread/ suspend VM)
+if your thread is interruppting by other threads execution, using suspned VM
+in breakpoint view
+or Under Preferences->Java->Debug you can make "Suspend VM" the default option.
+   
+*** watch point for only an instance
+http://stackoverflow.com/questions/7030616/how-do-you-set-instance-breakpoints-in-eclipse
+
+watchpoint breakpoint setting will be listed in the BreakPoints view
+right clicked the breakpoint, properties to set filtering: instance watch
+
+*** show java command when eclipse run the case
+in Debug view, when it ended,
+<terminated> org.eclipse.jdt.internal.junit.runner.RemoteTestRunner at localhost
+:1016
+right cliked this entry, then properties popped:
+whole commandLine and Enviroment showing.
+
+
+
+
+*** 

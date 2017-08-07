@@ -1,0 +1,909 @@
+* UML elaborate
+http://justsee.iteye.com/blog/808799
+
+** 设计模式中继承(Inheritance)和组合（Composition）
+
+Make sure inheritance models the is-a relationship  that inheritance should be used only when a subclass is-a superclass.
+an Apple likely is-a Fruit, so I would be inclined to use inheritance.
+
+An important question to ask yourself when you think you have an is-a relationship is whether that is-a relationship will be constant throughout the lifetime of the application 
+and, with luck, the lifecycle of the code. For example, you might think that an Employee is-a Person, when really Employee represents a role that a Person plays part of the time.
+What if the person becomes unemployed? What if the person is both an Employee and a Supervisor? Such impermanent is-a relationships should usually be modelled with composition.
+
+*** Inheritance diagram
+|--------|                     |----------|
+|child   | generalization    |\|super     |
+|        |-------------------|/|          |
+---------|                     ------------
+
+
+*** Inheritance VS. Composition  Usage
+Don't use inheritance just to get code reuse
+If all you really want is to reuse code and there is no is-a relationship in sight, use composition.
+Don't use inheritance just to get at polymorphism 
+If all you really want is polymorphism, but there is no natural is-a relationship, use composition with interfaces. 
+
+In the composition approach, the subclass becomes the "front-end class," and the superclass becomes the "back-end class." With inheritance, a subclass automatically 
+inherits an implemenation of any non-private superclass method that it doesn't override. With composition, by contrast, the front-end class must explicitly invoke a 
+corresponding method in the back-end class from its own implementation of the method. This explicit call is sometimes called "forwarding" or "delegating" the method 
+invocation to the back-end object.
+
+** 设计模式中关联，聚合
+关联、聚合(Aggregation)以及组合(Composition)的区别？ 
+
+涉及到UML中的一些概念：关联是表示两个类的一般性联系，比如“学生”和“老师”就是一种关联关系；聚合表示has-a的关系，是一种相对松散的关系，
+聚合类不需要对被聚合类负责，
+*** Aggregation
+如下图所示，用空的菱形表示聚合关系： 
+|--------|           |----------|
+|Battery |/ has    /\|SmartPhone|
+|        |---------\/|          |
+---------|\          ------------
+
+when smartPhone disappear, the Battery is still a Battery
+
+从实现的角度讲，聚合可以表示为: 
+class Battery {...} class SmartPhone { Battery* a; .....} 
+
+*** Composition
+而组合表示contains-a的关系，关联性强于聚合：组合类与被组合类有相同的生命周期，组合类要对被组合类负责，采用实心的菱形表示组合关系： 
+实现的形式是: 
+
+|--------|                |----------|
+|Camera  |/play as  a   /\|SmartPhone|
+|        |-------- -----\/|          |
+---------|\                ------------
+
+class Camera{...} class SmartPhone{ Camera ca; ...} 
+
+** A real example of UML diagram
+                          _____________
+__________                | Room      |
+|Drawable |               |+++++++++++|
+|++++++++++               |-x:int     |
+|+redraw()|/|_____________|-y:int     |
+|+hide()  |\|             |+++++++++++|
+-----------               |+remove()  | 
+                          |
+          ____________1/\ |___________|
+         |             \/           /\
+         |                          \/
+         |                           |1 
+         |                           |
+         |                           |0..*
+     0..*|                          _|_______________
+     _______________                | Structure     |
+     |Furniture     |               |+++++++++++++++|
+     |+++++++++++++++               |-load():boolean|
+     |-height:double|               |               |
+     |-width: double|               |+++++++++++++++|
+     ----------------               |+Load()        | 
+        /\                          -----------------
+       /__\                               /\ 
+        |                                /__\
+        |                                 |
+        |                                 |
+     |----------------|             |-----------------|     
+     |  Couch         |             |      Window     |   
+     |+++++++++++++++ |             +++++++++++++++++++       
+     |-type:String    |             |-opacity:double  |       
+     |-material:String|             |_________________|        
+     |++++++++++++++++|                      
+     |+numSeats():int |                       
+     ------------------                           
+
+* 设计模式之-----状态机
+http://www.codeproject.com/Articles/38962/State-Design-Pattern
+在一个事物对于不同的输入（触发条件）会达到不同的输出（状态）。
+假设有不同的状态，每个状态于状态之间存在着转化关系，A->D->B->C , B和C之间可以相互转换。
+注意这里状态A是初始状态，不能够循环后又回到A。
+      evnt1
+     A----->D
+           |event2
+           |
+           \  
+           B<------>C
+              evnet3
+** C++ implementation
+要抽象出状态之间的转换可以用动作B.toStateA()表示，表示从B到A的动作，这时状态变成A。
+理论上的设计要使每种状态之间都能够相互转换，那么每种状态都要有转换动作toStateB， toStateC， toStateD,toStateA.
+分别到达BCDA这四种状态。但是如果A.stateA()表示什么呢？表示其他状态转换到状态A的动作,这里就是状态A的初始化工作，也就是构造
+函数里面调用。
+，但是设计上必须有。A.stateB, A.stateC, A.stateD
+表示A到B，C，D这三个状态的动作。
+这就是这个设计的雏形。显而易见，这四个状态应该是同一种类。
+public interface IState
+{
+  toStateA();
+  toStateB();
+  toStateC();
+  toStateD();
+};
+public class State  //这个是一个接口类，管理所有的IState，并且 函数和IState 的一致，调用相应状态的动作即可。
+{
+  public IState *_ista;
+  public  State() { _ista = new A(this); }  //A 是初始状态，所以只需要剩下三个函数，因为一旦状态机启动，再也不会到A。
+  public void toStateB() {_ista->toStateB();}
+  public void toStateC() {_ista->toStateC();}
+  public void toStateD() {_ista->toStateD();}
+};//这里State和IState之间是交叉引用的，各自保有对方的指针
+class A:public IState
+{
+  A(State *st) {_state = st; this.toStateA();}
+ private readonly State* _state;
+public:
+  toStateA() { cout << "do something needed to be done when enter into this state A";   }
+######A.toStateA()是个初始化函数，同理，B.toStateB,C.toStateC, D.toStateD,都是初始化
+##函数，为保持函数的一致性，本来初始化工作在构造函数内。 
+ toStateB() {cout << "error,no such state change"; }
+  toStateC() {cout << "error,no such state chagne";}
+ toStateD() { _state._ista= new D(_state);} 
+######每个istate保有state的指针，这个指针又能找到相应的istate，得到状态
+}
+class B:public IState
+{
+  B(State *st) {_state= st; this.toStateB();}
+  private readonly State* _state;
+ public:
+  toStateA() {cout <<"error, can't go to initial state A";}
+  toStateB() {cout << "do some initailization";} 
+  toStateC() {_state->ista= new C(_state);}
+  toStateD() {cout << "error,no such state change.";}
+}
+class C:public IState
+{
+  C(State *st) {_state= st; this.toStateC();}
+  private readonly State* _state;
+ public:
+  toStateA() {cout <<"error, can't go to initial state A";}
+  toStateB()  {_state->ista= new B(_state);}
+  toStateC() {cout << "do some initailization";} 
+  toStateD() {cout <<"error,no such state change";}
+}
+
+class D:public IState
+{
+  D(State *st) {_state= st; this.toStateD();}
+  private readonly State* _state;
+ public:
+  toStateA() {cout << "error, can't go to initial state A";}
+  toStateB()  {_state->ista= new B(_state);}
+  toStateC() {cout <<"error,no such state change";} 
+  toStateD() {cout << "do some initailizatio for D";}
+}
+
+** Java implementation
+FSM
+          evnt1   evn4
+ START----->D-------->A
+           |           |
+           |evnt2      |
+           \          \/
+           B<------>END
+              evnet3
+
+abstract a general FSM engine,it will be created in START state,
+then FSM is polling for the events coming, if some event coming meet this graph, then the state will be jump to D if evnt1 was triggered.
+So FSM need two functional area, one is transition(which define this graph by an array of such (fromStateid, toStateid, evntid ) [only ids] 
+other one is STATE(the object of STATE by id), State could be created by its id dynamically.
+
+public class FSMEngine
+{
+  private final FSMTransitionDefinition transitions;
+  private final FSMStateFactory stateFactory;
+  private State startState;
+  private State currentState;
+   
+  public FSMEngine(FSMTransitionDefinition transitions, FSMStateFactory stateFactory)
+    {
+        this.transitions = transitions;
+        this.stateFactory = stateFactory;
+    }
+  private State stateById(int stateId)
+  {
+      return stateFactory.getStateById(stateId);
+  }
+
+  private void transitionToState(State nextState)
+  {
+     currentState = nextState;
+     currentState.run();
+  }
+ 
+  public void start()
+  {
+    startState=stateById(transitions.getStartStateId());  // stateFactorty could return a instance of the State by stateid
+    transitionToState(startState);
+  }
+ public void sendEvent(int eventId, Object eventArgs)   // public action called by other class, sendEvent to this FSMEngine.
+  {
+     Transition transition = transitions.fetchTransition(currentState, eventId, eventArgs, this);
+     transitionToState( stateFactory.getStateById(trans.to));
+  }
+}
+
+*** transitions
+// support one state to multiple state, state D could to A or B, so need ArrayList to store multiple transition.
+class TransitionMatcher
+{
+   ArrayList<Transition> transitions = new ArrayList<Transition>();
+   public TransitionMatcher()
+   {
+   }
+   public void addTransition(Transition transition)
+   {
+      transitions.add(transition);
+   }
+   public List<Transition> getTransitions()
+   {
+    return transitions;
+   }
+    public Transition matchTransition( State currentState, int eventId, Object eventArgs, FSMEngine engine )
+    {
+        for( Transition transition : transitions )
+        {
+            if( transition.accept( currentState, eventId, eventArgs, engine ) )
+            {
+                return transition;
+            }
+        }
+        return null;
+    }
+
+}
+public class FSMTransitionDefinition
+{
+    private HashMap<Integer, TransitionMatcher> transitionsMap = new HashMap<Integer,TransitionMatcher>();
+    private ArrayList<Transition> transitions = new ArrayList<Transition>(32);
+    private int startStateId = 0;   //here startStateId is 0, which is defined later accordingly
+    
+    public void setStartStateId(int id)
+    {
+        this.startStateId = id;
+    }
+    public int getStartStateId()
+    {
+       return startStateId;
+    }
+    public void defineTransition( int fromStateId, int eventId, int toStateId )
+    {
+        Transition transition = new Transition();
+        transition.from = fromStateId;
+        transition.to = toStateId;
+        transition.eventId = eventId;
+        //        transitions.add( transition );
+
+        TransitionMatcher trMatcher = transitionsMap.get( fromStateId );
+        if( null == trMatcher )
+        {
+            trMatcher = new TransitionMatcher();
+            transitionsMap.put( fromStateId, trMatcher );
+        }
+        trMatcher.addTransition( transition );
+
+    }
+    public Transition fetchTransition(State currentState, int eventId, Object eventArgs, FSMEngine engine)
+    {
+      TransitionMatcher trMatcher = transitionsMap.get(currentState.getId());
+      if(null != trMatcher)
+      {
+         return trMatcher.matchTransition(currentState, eventId, eventArgs, engine);
+      }
+      return null;
+
+    }    
+    class Transition
+    {
+        public int from = State.Null;
+        public int to = State.Null;
+        public int eventId;
+        public boolean accept( State fromState, int eventId, Object eventArgs, FSMEngine engine )
+        {
+            if( this.eventId == eventId )
+            {
+               return true;
+            }
+            return false;
+        }
+    }
+}
+
+***  Factory dynamically create a class by name or id in java
+Enumerate class is a good choice here.
+public class MyStateFactory extends FSMStateFactory {
+    public State getStateById( int stateId )
+    {
+        switch( stateId )
+        {
+            case 0:
+                return new Start();
+
+            case 1:
+                return new Error();
+
+            case 2:
+                return new End();
+            
+            case 3:
+                return new StateA();
+
+       }
+        return null;
+    }
+
+}
+
+public enum MyStates {
+        Start( 0 ), Error(1), End(2), StateA( 3 );
+    private final int id;
+    MyStates(int id)
+    {
+        this.id = id;
+    }
+    public int getId()
+    {
+        return this.id;
+    }
+}
+
+public abstract class State
+{
+  private final int id = -1;
+  public static final int Null = -1;
+  public int getId()
+  {
+     return id;
+   }
+  public abstract void run() throws Exception;
+}
+
+public class Start extends State {
+    public void run() throws Exception {
+        System.out.println("Start");
+        }
+    public int getId()
+    {
+        return MyStates.Start.getId();
+    }
+}
+
+public class End extends State {
+    public void run() throws Exception {
+        System.out.println("End");
+        }
+    public int getId()
+    {
+        return MyStates.End.getId();
+    }
+}
+
+
+*** Test code
+
+import com.nsn.mme.fsm.FSMEngine;
+import com.nsn.mme.fsm.FSMStateFactory;
+import com.nsn.mme.fsm.FSMTransitionDefinition;
+
+public class MyProcedure {
+    protected static FSMTransitionDefinition fsmTransition = null;
+    private FSMEngine fsm;    // create the FSM engine
+    static
+    {
+        fsmTransition = new FSMTransitionDefinition();
+        defineTransitions();
+    }
+    
+    public MyProcedure() {
+        MyStateFactory factory = new MyStateFactory();
+        fsm = new FSMEngine( fsmTransition, new FSMStateFactory( factory ) );
+        fsm.start();
+    }
+
+    private static void defineTransitions() {
+        fsmTransition.defineTransition(MyStates.Start.getId(), MyEvents.EventA.getId(), MyStates.StateA.getId());
+        fsmTransition.defineTransition(MyStates.StateA.getId(), MyEvents.EventB.getId(), MyStates.StateB.getId());
+        fsmTransition.defineTransition(MyStates.StateB.getId(), MyEvents.EventC.getId(), MyStates.StateC.getId());
+        fsmTransition.defineTransition(MyStates.StateB.getId(), MyEvents.EventD.getId(), MyStates.StateD.getId());
+        fsmTransition.defineTransition(MyStates.StateD.getId(), MyEvents.EventF.getId(), MyStates.End.getId());
+    }
+    public void raiseEvent(MyEvents event, Object eventArgs) {
+        fsm.sendEvent(event.getId(), eventArgs);
+    }
+    
+}
+
+
+* factory pattern  用类名动态生成类对象（工厂模式）
+** java implementation
+
+CarType.java will hold the types of car and will provide car types to all other classes
+package designPatterns.creational.factory;
+ 
+public enum CarType {
+    SMALL, SEDAN, LUXURY
+}
+
+Car.java is parent class of all car instances and it will also contain the common logic applicable in car making of all types.
+package designPatterns.creational.factory;
+ 
+public abstract class Car {
+ 
+    public Car(CarType model) {
+        this.model = model;
+        arrangeParts();
+    }
+ 
+    private void arrangeParts() {
+        // Do one time processing here
+    }
+ 
+    // Do subclass level processing in this method
+    protected abstract void construct();
+ 
+    private CarType model = null;
+ 
+    public CarType getModel() {
+        return model;
+    }
+ 
+    public void setModel(CarType model) {
+        this.model = model;
+    }
+}
+
+LuxuryCar.java is concrete implementation of car type LUXURY
+package designPatterns.creational.factory;
+ 
+public class LuxuryCar extends Car {
+ 
+    LuxuryCar() {
+        super(CarType.LUXURY);
+        construct();
+    }
+ 
+    @Override
+    protected void construct() {
+        System.out.println("Building luxury car");
+        // add accessories
+    }
+}
+
+SmallCar.java is concrete implementation of car type SMALL
+package designPatterns.creational.factory;
+ 
+public class SmallCar extends Car {
+ 
+    SmallCar() {
+        super(CarType.SMALL);
+        construct();
+    }
+ 
+    @Override
+    protected void construct() {
+        System.out.println("Building small car");
+        // add accessories
+    }
+}
+
+SedanCar.java is concrete implementation of car type SEDAN
+package designPatterns.creational.factory;
+ 
+public class SedanCar extends Car {
+ 
+    SedanCar() {
+        super(CarType.SEDAN);
+        construct();
+    }
+ 
+    @Override
+    protected void construct() {
+        System.out.println("Building sedan car");
+        // add accessories
+    }
+}
+
+CarFactory.java is our main class implemented using factory pattern. It instantiates a car instance only after determining its type.
+package designPatterns.creational.factory;
+ 
+public class CarFactory {
+    public static Car buildCar(CarType model) {
+        Car car = null;
+        switch (model) {
+        case SMALL:
+            car = new SmallCar();
+            break;
+ 
+        case SEDAN:
+            car = new SedanCar();
+            break;
+ 
+        case LUXURY:
+            car = new LuxuryCar();
+            break;
+ 
+        default:
+            // throw some exception
+            break;
+        }
+        return car;
+    }
+}
+
+In TestFactoryPattern.java, we will test our factory code. Lets run this class.
+package designPatterns.creational.factory;
+ 
+public class TestFactoryPattern {
+    public static void main(String[] args) {
+        System.out.println(CarFactory.buildCar(CarType.SMALL));
+        System.out.println(CarFactory.buildCar(CarType.SEDAN));
+        System.out.println(CarFactory.buildCar(CarType.LUXURY));
+    }
+}
+ 
+Output:
+ 
+Building small car
+designPatterns.creational.factory.SmallCar@7c230be4
+Building sedan car
+designPatterns.creational.factory.SedanCar@60e1e567
+Building luxury car
+designPatterns.creational.factory.LuxuryCar@e9bfee2
+
+As you can see, factory is able to return any type of car instance it is requested for. It will help us in making any kind of changes in car making process without even touching the composing classes i.e. classes using CarFactory.
+
+** 源代码
+CObject.h
+================================
+#define REGISTERCLASS(CLASS) static const bool NoUse_b_##CLASS = \
+CWObject::Register(#CLASS,(CWObject *(*)())&CLASS::createInstance)
+#define CREATEINSTANCE(CLASS) static CLASS *createInstance() { return new CLASS; }
+
+#include <iostream>
+
+#include <string>
+
+#include <map>
+
+class CWObject;
+
+typedef CWObject *(*FactoryFunction)();
+
+class CWObject
+
+{
+
+public:
+
+CWObject();
+
+virtual ~CWObject();
+
+public:
+
+static bool Register(std::string ClassName,FactoryFunction instanceFunction);
+
+static CWObject *getInstance(std::string ClassName);
+
+private:
+
+static std::map<std::string,FactoryFunction> m_FactoryFunctions;
+
+};
+===========================================
+CObject.cpp
+
+#include "CWObjec.h"
+
+std::map<std::string,FactoryFunction> CWObject::m_FactoryFunctions;
+
+CWObject::CWObject()
+{
+}
+CWObject::~CWObject()
+{
+}
+
+bool CWObject::Register(std::string ClassName,FactoryFunction instanceFunction)
+{
+// if(m_FactoryFunctions[ClassName])
+// {
+// return false;
+// }
+m_FactoryFunctions[ClassName] = instanceFunction;
+return true;
+}
+
+CWObject *CWObject::getInstance(std::string ClassName)
+{
+if (m_FactoryFunctions[ClassName]) {
+return m_FactoryFunctions[ClassName]();
+}
+return NULL;
+
+===================================
+CShape.cpp
+#include "CShape.h"
+
+CWShape::CWShape()
+{
+}
+CWShape::~CWShape()
+{
+}
+//CWCircle
+
+REGISTERCLASS(CWCircle);
+
+CWCircle::CWCircle()
+{
+}
+
+CWCircle::~CWCircle()
+{
+}
+
+void CWCircle::Draw()
+{
+std::cout << "Draw -> CWCircle" << std::endl;
+}
+
+//CWTriangle
+
+REGISTERCLASS(CWTriangle);
+
+CWTriangle::CWTriangle()
+{
+}
+
+CWTriangle::~CWTriangle()
+{
+}
+
+void CWTriangle::Draw()
+{
+std::cout << "Draw -> CWTriangle" << std::endl;
+}
+===============================
+CShape.h
+
+#include "CWObjec.h"
+
+class CWShape : public CWObject
+{
+public:
+CWShape();
+virtual ~CWShape();
+public:
+virtual void Draw() = 0;
+};
+class CWCircle : public CWShape
+{
+public:
+CWCircle();
+virtual ~CWCircle();
+public:
+CREATEINSTANCE(CWCircle)
+public:
+virtual void Draw();
+};
+
+class CWTriangle : public CWShape
+{
+public:
+CWTriangle();
+virtual ~CWTriangle();
+public:
+CREATEINSTANCE(CWTriangle);
+public:
+virtual void Draw();
+};
+=================================================
+main.cpp
+
+#include <iostream>
+#include <map>
+#include <string>
+#include "CShape.h"
+void DrawShape(char *className);
+int main()
+{
+DrawShape("CWCircle");
+DrawShape("CWTriangle");
+return 0;
+}
+
+void DrawShape(char *className)
+{
+CWShape *pShape;
+pShape = (CWShape*)CWObject::getInstance(className);
+if (NULL == pShape) {
+std::cout << "can't find the product in the factory" << std::endl;
+}
+else {
+pShape->Draw();
+delete pShape;
+}
+}
+
+** 运行结果
+lily@willow:~/libtest/createbystring$ ./out
+Draw -> CWCircle
+Draw -> CWTriangle
+
+
+
+* 设计模式之Singleton(单态)
+设计模式之Singleton(单态)
+
+板桥里人 http://www.jdon.com 2002/05/07
+
+单态定义:
+Singleton模式主要作用是保证在Java应用程序中，一个类Class只有一个实例存在。
+
+
+在很多操作中，比如建立目录 数据库连接都需要这样的单线程操作。
+
+还有, singleton能够被状态化; 这样，多个单态类在一起就可以作为一个状态仓库一样向外提供服务，比如，你要论坛中的帖子计数器，每次
+浏览一次需要计数，单态类能否保持住这个计数，并且能synchronize的安全自动加1，如果你要把这个数字永久保存到数据库，你可以在不
+修改单态接口的情况下方便的做到。
+
+另外方面，Singleton也能够被无状态化。提供工具性质的功能，
+
+Singleton模式就为我们提供了这样实现的可能。使用Singleton的好处还在于可以节省内存，因为它限制了实例的个数，有利于Java垃圾回收（garbage collection）。
+
+我们常常看到工厂模式中类装入器(class loader)中也用Singleton模式实现的,因为被装入的类实际也属于资源。
+
+
+
+ 
+
+第二种形式:
+
+public class Singleton {
+　　public:
+ static synchronized Singleton* getInstance() {
+ (instance==null)
+　　　　instance＝new Singleton();
+　　return instance; 　
+　}　　
+private:
+ Singleton()   {.. }
+ static Singleton* instance ;
+
+}
+
+static Singleton* Singleton::instance = NULL ;
+ 
+
+使用Singleton.getInstance()可以访问单态类。
+
+上面第二中形式是lazy initialization，也就是说第一次调用时初始Singleton，以后就不用再生成了。
+
+注意到lazy initialization形式中的synchronized，这个synchronized很重要，如果没有synchronized，那么使用getInstance()是有可能得到多个Singleton实例。关于lazy initialization的Singleton有很多涉及double-checked locking (DCL)的讨论，有兴趣者进一步研究。
+
+一般认为第一种形式要更加安全些。
+
+使用Singleton注意事项：
+有时在某些情况下，使用Singleton并不能达到Singleton的目的，如有多个Singleton对象同时被不同的类装入器装载；在EJB这样的分布式系统中使用也要注意这种情况，因为EJB是跨服务器，跨JVM的。
+
+我们以SUN公司的宠物店源码(Pet Store 1.3.1)的ServiceLocator为例稍微分析一下：
+
+在Pet Store中ServiceLocator有两种，一个是EJB目录下；一个是WEB目录下，我们检查这两个ServiceLocator会发现内容差不多，都是提供EJB的查询定位服务，可是为什么要分开呢？仔细研究对这两种ServiceLocator才发现区别：在WEB中的 ServiceLocator的采取Singleton模式，ServiceLocator属于资源定位，理所当然应该使用Singleton模式。但是在EJB中，Singleton模式已经失去作用，所以ServiceLocator才分成两种，一种面向WEB服务的，一种是面向EJB服务的。
+
+Singleton模式看起来简单，使用方法也很方便，但是真正用好，是非常不容易，需要对Java的类 线程 内存等概念有相当的了解。
+
+总之：如果你的应用基于容器，那么Singleton模式少用或者不用，可以使用相关替代技术
+
+*  Thread Pool
+this source code is from java.util.concurrent.ThreadPoolExecutor package
+ JDK version 1.7
+
+Basic framework is that ThreadPollExecutor manage all the threads in the threadpool, and the thread is started dynamically when a task is add to the workQueue,
+when a task is add to the workQueue, there're less than corePoolSize threads, always start a thread and execute the task in that thread,
+if more than corePollSize threads already exists in the pool, just add the task to the workQueue and waiting for existing threads to execute it when they are available
+(thread run function will loop to get Task from the taskQueue when on task is finished) 
+the work thread could exit when too much time left since it didn't get any task.(set a timer ,when timeout, exit the thread execution funtion)
+
+This dynamically configured thread pool is very good to use, no too much more threads will be wasted, or no thread is available for more tasks.
+
+class ThreadPoolExecutor
+{
+    private final HashSet<Worker> workers = new HashSet<Worker>();
+    // this will manage all the threads in the Threadpool
+    private final BlockingQueue<Runnable> workQueue;
+    // this is the task queue for all the threads in the Threadpool
+   
+    private final class Worker
+        extends AbstractQueuedSynchronizer
+        implements Runnable
+    {
+         /** Thread this worker is running in.  Null if factory fails. */
+        final Thread thread;
+        /** Initial task to run.  Possibly null. */
+        Runnable firstTask;
+        /** Per-thread task counter */
+        volatile long completedTasks;
+
+        /**
+         * Creates with given first task and thread from ThreadFactory.
+         * @param firstTask the first task (null if none)
+         */
+        Worker(Runnable firstTask) {
+            setState(-1); // inhibit interrupts until runWorker
+            this.firstTask = firstTask;
+            this.thread = getThreadFactory().newThread(this);
+        }
+
+        /** this is the function the thread will do basically a loop
+        to gettask from taskqueue to execute*/
+        public void run() {
+            runWorker(this);
+        }
+     /* while loop to getTask and execute it*/  
+       final void runWorker(Worker w) {
+       Runnable task = w.firstTask;
+        w.firstTask = null;
+        w.unlock(); // allow interrupts
+        boolean completedAbruptly = true;
+        try {
+            while (task != null || (task = getTask()) != null) { //if task is null then getTask from the task Queue, if not ,run the task
+       //         w.lock();
+                  try {
+                        task.run();
+                    } catch (RuntimeException x) {
+ 
+         }
+       }
+
+      getTask()
+      {
+                try {
+                Runnable r = timed ?
+                    workQueue.poll(keepAliveTime, TimeUnit.NANOSECONDS) :
+                    workQueue.take();}
+                return task;
+     }
+
+    public void execute(Runnable command) {
+   {
+            int c = ctl.get();
+        if (workerCountOf(c) < corePoolSize) {
+            if (addWorker(command, true))     // when there aren't too much theads, new a thread with the command to be executed in that thread
+                return;
+            c = ctl.get();
+        }
+          if (isRunning(c) && workQueue.offer(command)) { // if threadpool is running and add the command to the workQueue successfully
+            int recheck = ctl.get();
+            if (! isRunning(recheck) && remove(command))
+                reject(command);
+            else if (workerCountOf(recheck) == 0)
+                addWorker(null, false);                  // just start a new thread, but not with any specific task running
+   }
+   
+     private boolean addWorker(Runnable firstTask, boolean core) {
+        boolean workerStarted = false;
+        boolean workerAdded = false;
+        Worker w = null;
+        try {
+            final ReentrantLock mainLock = this.mainLock;
+            w = new Worker(firstTask);
+            final Thread t = w.thread;
+            if (t != null) {
+                mainLock.lock();
+                try {
+                       workers.add(w);   //manage all threads in threadpool in workers
+                       workerAdded = true;
+                    }
+                } finally {
+                    mainLock.unlock();
+                }
+                if (workerAdded) {
+                    t.start();  // when a thread start, then the  run() function will be executed
+                    workerStarted = true;
+                }
+            }
+        }        return workerStarted;
+    }
+}
+*  
+*  

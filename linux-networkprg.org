@@ -1,0 +1,1308 @@
+
+* 基本UDP套接口编程
+本文出自:http://sunsland.top263.net 作者: (2001-10-23 10:00:00)
+
+概述
+
+UDP
+无连接的 connectionless不可靠的 unreliable数据报协议 datagram
+
+应用：DNS, NFS, SNMP, ICQ
+
+TCP
+面向连接的 connection-oriented可靠的 reliable字节流协议 byte stream
+
+UDP 客户-服务器程序的套接口函数
+
+recvfrom 和 sendto 函数
+
+#include <sys/socket.h>
+ssize_t recvfrom(int sockfd, void *buff, size nbytes, int flags, struct sockaddr *from, socklen_t *addrlen);
+
+sockfd: 描述字
+
+buff: 指向输入缓冲器的指针
+
+nbytes: 读字节大小
+
+flag: 标志：0
+
+from :对方协议地址
+
+addrlen: 对方协议地址长度
+
+函数返回值: 读入数据的长度,可以为0.
+
+ssize_t sendto(int sockfd, void *buff, size nbytes, int flags, const struct sockaddr *to, socklen_t *addrlen);
+
+TCP的字节流输入输出函数：
+ssize_t readn(int sockfd, void *buff, size nbytes) ; 
+ssize_t writen (int sockfd, void *buff, size nbytes);
+
+UDP回射服务器程序
+
+//服务器main主程序
+
+#include	"unp.h"
+Int main(int argc, char **argv)
+{
+int	sockfd; //定义套接字
+struct sockaddr_in servaddr, cliaddr; //IPv4套接口地址定义
+sockfd = Socket(AF_INET, SOCK_DGRAM, 0); //建立UDP套接字
+bzero(&servaddr, sizeof(servaddr)); //地址结构清零
+servaddr.sin_family = AF_INET; //IPv4协议
+servaddr.sin_addr.s_addr = htonl(INADDR_ANY);//内核指定地址
+servaddr.sin_port = htons(SERV_PORT); //9877 端口
+/*分配协议地址,绑定端口*/
+Bind(sockfd, (SA *) &servaddr, sizeof(servaddr)); 
+/* 回射子程序*/
+dg_echo(sockfd, (SA *) &cliaddr, sizeof(cliaddr));
+}
+回射子程序:
+
+include	"unp.h"
+void dg_echo(int sockfd, SA *pcliaddr, socklen_t clilen)
+{
+int	n; //读入字节数
+socklen_t len; //协议地址长度, 没有这个参数用 clilen也可以
+char	mesg[MAXLINE];
+for ( ; ; ) {
+len = clilen;
+/* 读入一行 */
+n = Recvfrom(sockfd, mesg, MAXLINE, 0, pcliaddr, &len);
+/* 回射到对方套接口 */
+Sendto(sockfd, mesg, n, 0, pcliaddr, len);
+}
+}
+
+UDP回射客户程序
+
+//客户 main主程序
+
+include	"unp.h"
+int main(int argc, char **argv) //命令行的第二个参数代表服务器地址
+{	int	sockfd; //套接字
+struct sockaddr_in	servaddr; //服务器地址结构
+/* 必须在命令行指定服务器地址*/
+if (argc != 2) err_quit("usage: udpcli <IPaddress>");
+bzero(&servaddr, sizeof(servaddr)); //地址结构清零
+servaddr.sin_family = AF_INET; //IPv4
+servaddr.sin_port = htons(SERV_PORT); //9877端口
+/*网络字节序的IP地址*/
+Inet_pton(AF_INET, argv[1], &servaddr.sin_addr); 
+/*建立UPD套接口*/
+sockfd = Socket(AF_INET, SOCK_DGRAM, 0);
+/*回射客户端子程序, stdin 为标准输入:键盘*/
+dg_cli(stdin, sockfd, (SA *) &servaddr, sizeof(servaddr));
+exit(0); //子程序结束后退出程序
+}
+
+//客户端回射子程序
+
+#include	"unp.h"
+void dg_cli(FILE *fp, int sockfd, const SA *pservaddr, socklen_t servlen)
+{
+int	n; //读入字节数
+char	sendline[MAXLINE], recvline[MAXLINE + 1]; // 1:结束标志占用
+/* 从键盘读入一行 */
+while (Fgets(sendline, MAXLINE, fp) != NULL) { //如果不是^D结束
+/* 将读入行发送到服务器套接口*/
+Sendto(sockfd, sendline, strlen(sendline), 0, pservaddr, servlen);
+/*从读入回射,读入字节数为n, 不关心从何处读入
+n = Recvfrom(sockfd, recvline, MAXLINE, 0, NULL, NULL);
+recvline[n] = 0; /* recvline字符串的结束标志*/
+Fputs(recvline, stdout); //输出到标准输出:显示器
+} //while循环结束:直到从键盘读入结束符^D为止
+}
+
+验证收到的响应
+
+void dg_cli(FILE *fp, int sockfd, const SA *pservaddr, socklen_t servlen)
+{
+int	 n; socklen_t	 len;
+char	 sendline[MAXLINE], recvline[MAXLINE + 1];
+struct sockaddr	*preply_addr; //对方 (回应)地址指针
+preply_addr = Malloc(servlen); //分配地址结构
+while (Fgets(sendline, MAXLINE, fp) != NULL) {
+Sendto(sockfd, sendline, strlen(sendline), 0, pservaddr, servlen);
+len = servlen; 
+/* 读入一行,并获得对方的套接口地址*/
+n = Recvfrom(sockfd, recvline, MAXLINE, 0, preply_addr, &len);
+/*对方套接口地址长度和指定服务器地址长度不相同*/
+/*或套接口地址结构也不相同时,*/
+if (len != servlen || memcmp(pservaddr, preply_addr, len) != 0) {
+printf(“reply from %s (ignored)\n”, //忽略回射行,并输出对方地址
+Sock_ntop(preply_addr, len) ); 
+continue; //下一轮循环
+}
+recvline[n] = 0;	/* null terminate */
+Fputs(recvline, stdout);
+}
+}
+服务器进程未运行
+
+回射服务器-客户端程序执行的基本步骤：
+
+——启动服务器
+——启动客户程序
+
+服务器没有启动，客户端没有回射行,一直等待
+
+用tcpdump观察数据包 tcpdump icmp or arp or port 9877
+
+有ARP请求和应答:端口不可达 port ... unreachable
+
+异步错误:由sendto 引起的ICMP错误, 而sendto本身并不返回该错误
+
+用已连接套接口才能返回到UDP套接口，需要调用connect.
+
+
+UDP调用CONNECT
+
+在末连接UDP套接口上给两个数据报调用函数sendto导致内核执行下列六步：
+
+
+1.连接套接口；
+2.输出第一个数据报
+3.断开套接口连接；
+4.连接套接口，
+5.输出第二个数据报；
+6.断开套接口连接
+
+已连接套接口发送两个数据报的导致内核执行如下步骤；
+
+
+1.连接套接口；
+2.输出第一个数据报；
+3.输出第二个数据报。
+
+对同一套接口发送时，耗时减少1/3
+
+dg_cli 函数（修订版）
+
+调用connect 函数(有ICMP错误返回)
+用read和write代替sendto 和 recvform
+
+/* 调用connect函数的UDP 回射客户子程序*/
+
+void 
+dg_cli(FILE *fp, int sockfd, const SA *pservaddr, socklen_t servlen)
+{
+int	n;
+char	sendline[MAXLINE], recvline[MAXLINE + 1];
+/* 与对方建立连接 */
+Connect(sockfd, (SA *) pservaddr, servlen);
+
+while (Fgets(sendline, MAXLINE, fp) != NULL) {
+Write(sockfd, sendline, strlen(sendline));
+n = Read(sockfd, recvline, MAXLINE);
+recvline[n] = 0;	/* null terminate */
+Fputs(recvline, stdout);
+}
+}
+
+UPD缺乏流量控制
+
+UDP没有流量控制，它是不可靠的。
+
+如果UDP发送方比UDP接收方运行速度快， 可能导致接收缓冲区满而造成数据报丢失。
+
+对服务器或客户来说，并没有给出任何指示说这些数据报已丢失。
+
+UDP套接口缓冲区
+
+由UDP给特定套接口排队的UDP数据报数目受限于套接口接收缓冲区的大小。
+
+用SO_RCVBUF套接口选项改变此值，可以改善数据报丢失的情况，但并不能从根本
+
+上解决问题。
+
+/*增大套接口接收队列大小的函数*/
+
+static void recvfrom_int(int); //内部函数
+static int	count;
+void dg_echo(int sockfd, SA *pcliaddr, socklen_t clilen){
+int	n; socklen_t len;
+char	mesg[MAXLINE];
+Signal(SIGINT, recvfrom_int);
+n = 240 * 1024;
+Setsockopt(sockfd, SOL_SOCKET, SO_RCVBUF, &n, sizeof(n));
+for ( ; ; ) {
+len = clilen;
+Recvfrom(sockfd, mesg, MAXLINE, 0, pcliaddr, &len);
+count++;
+}
+}
+static void recvfrom_int(int signo) {
+printf("\nreceived %d datagrams\n", count);
+exit(0);
+}
+
+UDP中外出接口的确定
+
+已连接UDP套接口可用来确定用于待定目标的外出接口。
+
+内核选择本地IP地址(假设进程并没有调用bind以明确地指派它)。
+
+这个本地IP地址是通过给目的IP地址按索路由表，然后使用结果接口的主IP地址而选定的。
+例程:
+
+int main(int argc, char **argv)
+{
+int	sockfd;
+socklen_t	 len;
+struct sockaddr_in	cliaddr, servaddr;
+if (argc != 2) err_quit("usage: udpcli <IPaddress>");
+sockfd = Socket(AF_INET, SOCK_DGRAM, 0);
+bzero(&servaddr, sizeof(servaddr));
+servaddr.sin_family = AF_INET;
+servaddr.sin_port = htons(SERV_PORT);
+Inet_pton(AF_INET, argv[1], &servaddr.sin_addr);
+Connect(sockfd, (SA *) &servaddr, sizeof(servaddr));
+len = sizeof(cliaddr);
+Getsockname(sockfd, (SA *) &cliaddr, &len);
+printf("local address %s\n", Sock_ntop((SA *) &cliaddr, len));
+exit(0);
+}
+
+--------------------------
+//udp cli.c
+
+
+ #include<stdio.h>
+ #include<stdlib.h>
+ #include<string.h>
+ #include<errno.h>
+
+
+ #include<sys/types.h>
+ #include<sys/socket.h>
+ #include<unistd.h>//close()
+ #include<netinet/in.h>//struct sockaddr_in
+ #include<arpa/inet.h>//inet_ntoa
+
+#define MAXLINE 100
+#define SERV_PORT 9877
+#define SA  struct sockaddr 
+
+void dg_cli(FILE *fp, int sockfd, const SA *pservaddr, socklen_t servlen)
+{
+int	 n; socklen_t	 len;
+char	 sendline[MAXLINE], recvline[MAXLINE + 1];
+struct sockaddr_in	reply_addr; //?? (??)????
+//struct sockaddr	*preply_addr; //?? (??)????
+//preply_addr = Malloc(servlen); //??????
+while (fgets(sendline, MAXLINE, fp) != NULL) {
+sendto(sockfd, sendline, strlen(sendline), 0, pservaddr, servlen);
+len = servlen; 
+n = recvfrom(sockfd, recvline, MAXLINE, 0, (SA *)&reply_addr, &len);
+//if (len != servlen || memcmp(pservaddr, preply_addr, len) != 0) {
+
+//getsockname(sockfd, (SA *) &reply_addr, &len);
+ printf("get %d bytes a new client,ip:%s and port is %d\n",n,inet_ntoa(reply_addr.sin_addr), ntohs(reply_addr.sin_port));
+//printf("reply from %s (ignored)\n", sock_ntop(preply_addr, len) ); 
+//continue; 
+//}
+recvline[n] = 0;	/* null terminate */
+fputs(recvline, stdout);
+}
+}
+
+int main(int argc, char **argv)
+{
+int	sockfd;
+unsigned int	 len;
+struct sockaddr_in	cliaddr, servaddr;
+if (argc != 2)// err_quit("usage: udpcli <IPaddress>");
+{
+printf("usage: udpcli <IPaddress>\n");
+exit(1);
+}
+sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+//bzero(&servaddr, sizeof(servaddr));
+memset(&servaddr, 0,sizeof(servaddr)); 
+servaddr.sin_family = AF_INET;
+servaddr.sin_port = htons(SERV_PORT);
+inet_pton(AF_INET, argv[1], &servaddr.sin_addr);
+/*connect(sockfd, (SA *) &servaddr, sizeof(servaddr));
+len = sizeof(cliaddr);
+getsockname(sockfd, (SA *) &cliaddr, &len);
+ printf("accept a new client,ip:%s and port is %d\n",inet_ntoa(cliaddr.sin_addr), ntohs(cliaddr.sin_port));
+exit(0);*/
+dg_cli(stdin, sockfd, (SA *) &servaddr, sizeof(servaddr));
+}
+-----------------------
+
+
+
+
+-----------------
+//udp serv.c
+#define SERV_PORT 9877
+#define INADDR_ANY "127.0.0.1"
+#include <sys/socket.h>	
+ #include<stdio.h>
+ #include<stdlib.h>
+ #include<string.h>
+ #include<errno.h>
+
+
+ #include<sys/types.h>
+ #include<sys/socket.h>
+ #include<unistd.h>//close()
+ #include<netinet/in.h>//struct sockaddr_in
+ #include<arpa/inet.h>//inet_ntoa
+#define SA  struct sockaddr 
+#define MAXLINE 100
+void dg_echo(int sockfd, SA *pcliaddr, socklen_t clilen)
+{
+int	n; //
+socklen_t len; //,  clilen
+char	mesg[MAXLINE];
+struct sockaddr_in caddr; //IPv4
+for ( ; ; ) {
+len = clilen;
+/*  */
+n = recvfrom(sockfd, mesg, MAXLINE, 0, (SA*)&caddr, &len);
+ printf("get %d bytes a new client,ip:%s and port is %d\n",n,inet_ntoa(caddr.sin_addr), ntohs(caddr.sin_port));
+//printf("receive from %d bytes the the peer \n",n);
+/*  */
+//sendto(sockfd, mesg, n, 0, pcliaddr, len);
+sendto(sockfd, mesg, n, 0,(SA *) &caddr, len);
+printf("send %d bytes the the peer \n",n);
+}
+}
+int main(int argc, char **argv)
+{
+int	sockfd; //
+struct sockaddr_in servaddr, cliaddr; //IPv4
+sockfd = socket(AF_INET, SOCK_DGRAM, 0); //UDP
+bzero(&servaddr, sizeof(servaddr)); //
+servaddr.sin_family = AF_INET; //IPv4
+servaddr.sin_addr.s_addr = htonl(INADDR_ANY);//
+servaddr.sin_port = htons(SERV_PORT); //9877 
+/*,*/
+bind(sockfd, (SA *) &servaddr, sizeof(servaddr)); 
+/* */
+dg_echo(sockfd, (SA *) &cliaddr, sizeof(cliaddr));
+}
+
+
+
+
+-----------------
+
+
+
+
+
+
+
+
+
+* basic tcp  programming 
+-----------------
+//tcp serv.c
+
+ #include<stdio.h>
+ #include<stdlib.h>
+ #include<string.h>
+ #include<errno.h>
+ 
+ 
+ #include<sys/types.h>
+ #include<sys/socket.h>
+ #include<unistd.h>//close()
+ #include<netinet/in.h>//struct sockaddr_in
+ #include<arpa/inet.h>//inet_ntoa
+ #define  QUEUE_LINE  12
+ #define  SOURCE_PORT 8003
+ 
+ #define  SOURCE_IP_ADDRESS "127.0.0.1"
+ 
+ void process_info(int s)
+ {
+         int recv_num;
+         int send_num;
+         char recv_buf[50];
+         char send_buf[50];
+         int count = 0;
+                  char *pn =0x222;
+         while(count++ <30){
+        // while(1){
+                 printf("begin recv count: %d\n",count);
+                 recv_num = recv(s,recv_buf,sizeof(recv_buf),0);
+                 if(recv_num <0){
+                         perror("recv");
+                         exit(1);
+                 } else {
+                         recv_buf[recv_num] = '\0';
+                         printf("recv sucessful:%s\n",recv_buf);
+                 }
+                 sprintf(send_buf,"recv %d numbers bytes\n",recv_num);
+                 printf("begin send count %d\n",count);
+                 send_num = send(s,send_buf,sizeof(send_buf),0);
+                 if (send_num < 0){
+                         perror("sned");
+                         exit(1);
+                 } else {
+                         printf("send sucess\n");
+                 }
+                 //printf("hello, world, %s",pn);//for the coredump
+
+         }
+ }
+ int main()
+ {
+         int sock_fd,conn_fd;
+         int client_len;
+         pid_t pid;
+         struct sockaddr_in addr_serv,addr_client;
+         struct sockaddr_in cliaddr, cliaddrc;//服务器端地址
+         socklen_t len = (socklen_t)sizeof(cliaddr);  
+         sock_fd = socket(AF_INET,SOCK_STREAM,0);
+         if(sock_fd < 0){
+                 perror("socket");
+                 exit(1);
+         } else {
+                 printf("sock sucessful\n");
+         }
+         //初始化服务器端地址
+         memset(&addr_serv,0,sizeof(addr_serv));
+         addr_serv.sin_family = AF_INET;
+         addr_serv.sin_port = htons(SOURCE_PORT);
+         addr_serv.sin_addr.s_addr =inet_addr(SOURCE_IP_ADDRESS);
+         client_len = sizeof(struct sockaddr_in);
+         if(bind(sock_fd,(struct sockaddr *)&addr_serv,sizeof(struct sockaddr_in))<0){
+                 perror("bind");
+                 exit(1);
+         } else {
+                 printf("bind sucess\n");
+         }
+         if (listen(sock_fd,QUEUE_LINE) < 0){
+                 perror("listen");
+                 exit(1);
+         } else {
+                 printf("listen sucessful\n");
+         }
+         while(1){
+                  printf("begin accept:\n");
+                  conn_fd = accept(sock_fd,(struct sockaddr *)&addr_client,&client_len);
+
+                  if(conn_fd < 0){
+                         perror("accept");
+                         exit(1);
+                  }
+                  printf("accept a new client,ip:%s and port is %d\n",inet_ntoa(addr_client.sin_addr), ntohs(addr_client.sin_port));
+       getsockname(sock_fd, (struct sockaddr *) &cliaddr, &len);
+        printf("get sockname of sock_fd is ip:%s and port is %d\n",inet_ntoa(cliaddr.sin_addr), ntohs(cliaddr.sin_port));
+       getsockname(conn_fd, (struct sockaddr *) &cliaddrc, &len);
+        printf("get sockname of conn_fd is ip:%s and port is %d\n",inet_ntoa(cliaddr.sin_addr), ntohs(cliaddr.sin_port));
+                  pid = fork();
+                  if(0 == pid){         //子进程
+                         close(sock_fd);//在子进程中关闭服务器的侦听
+                         process_info(conn_fd);//处理信息
+                  } else {
+                         close(conn_fd);//在父进程中关闭客户端的连接
+                  }
+                // close(sock_fd);//在子进程中关闭服务器的侦听
+                // process_info(conn_fd);//
+               //  close(conn_fd);
+         }
+ 
+ }
+
+-------------
+
+
+
+
+-----------------
+//tcp cli.c
+ #include<stdio.h>
+ #include<string.h>
+ #include<stdlib.h>
+ #include<errno.h>
+ 
+ #include<sys/types.h>
+ #include<sys/socket.h>
+ #include<unistd.h>//close()
+ #include<netinet/in.h>//struct sockaddr_in
+ #include<arpa/inet.h>//inet_ntoa
+ 
+ #define DEST_PORT 8003
+ #define DEST_IP_ADDRESS "127.0.0.1"
+ 
+ /*客户端的处理过程*/
+ void process_info(int s)
+ {
+         int send_num;
+         int recv_num;
+         char send_buf[]="tigerjibo";
+         char recv_buf[50];
+         int count = 0;
+//        while(count++ < 30){
+           while(1){
+                 printf("begin send count %d\n,count",count);
+                 send_num = send(s,send_buf,sizeof(send_buf),0);
+                 if (send_num < 0){
+                         perror("send");
+                         exit(1);
+                 } else {
+                         printf("send sucess:%s\n",send_buf);
+                 }
+                 printf("begin recv coudnt %d:\n",count);
+                 recv_num = recv(s,recv_buf,sizeof(recv_buf),0);
+                 if(recv_num < 0){
+                         perror("recv");
+                         exit(1);
+                 } else {
+                         recv_buf[recv_num]='\0';
+                         printf("recv sucess:%s\n",recv_buf);
+                 }
+        //         sleep(10);
+         }
+ }
+ int main(int argc,char *argv[])
+ {
+         int sock_fd;
+         struct sockaddr_in addr_serv, cliaddr;//服务器端地址
+         socklen_t len = (socklen_t)sizeof(cliaddr);  
+         sock_fd = socket(AF_INET,SOCK_STREAM,0);
+         if(sock_fd < 0){
+                 perror("sock");
+                 exit(1);
+         } else {
+                 printf("sock sucessful:\n");
+         }
+         memset(&addr_serv,0,sizeof(addr_serv));
+         addr_serv.sin_family = AF_INET;
+         addr_serv.sin_port =  htons(DEST_PORT);
+         addr_serv.sin_addr.s_addr = inet_addr(DEST_IP_ADDRESS);
+        if( connect(sock_fd,(struct sockaddr *)&addr_serv,sizeof(struct sockaddr)) < 0){
+                 perror("connect");
+                 printf("connect (%d)\n",errno);
+                 exit(1);
+        } else {
+                 printf("connect sucessful\n");
+        }
+       
+       getsockname(sock_fd, (struct sockaddr *) &cliaddr, &len);
+        printf("accept a new client,ip:%s and port is %d\n",inet_ntoa(cliaddr.sin_addr), ntohs(cliaddr.sin_port));
+         process_info(sock_fd);
+        // close(sock_fd);
+         // shutdown(sock_fd,0);
+ }
+
+
+-------------------
+tcpdump get data to pcap file, then analyzed by wireshark
+----tcpdump can catch all kinds of packets in the interface eth0 or lo, including sctp etc,
+but it may not analyze some kind of protocol other than tcp/ip protocols.
+
+tcpdump -i eth0 -c 100 -s 0 -w /home/data.pcap
+
+Tcpdump使用方法
+（1）第一种是关于类型的关键字主要包括host，net，port
+例如： host 210.27.48.2，指明 210.27.48.2是一台主机，net 202.0.0.0 指明 202.0.0.0是一个网络地址，port 23 指明端口号是23。如果没有指定类型，缺省的类型是host.
+ 
+（2）第二种是确定传输方向的关键字主要包括src , dst ,dst or src, dst and src 
+这些关键字指明了传输的方向，例如：src 210.27.48.2，指明ip包中源地址是210.27.48.2 , dst net 202.0.0.0 指明目的网络地址是202.0.0.0。如果没有指明方向关键字，则缺省是src or dst关键字。
+（3）第三种是协议的关键字，主要包括fddi，ip，arp，rarp，tcp，udp等类型。
+Fddi指明是在FDDI(分布式光纤数据接口网络)上的特定的网络协议，实际上它是"ether"的别名，fddi和ether具有类似的源地址和目的地址，所以可以将fddi协议包当作ether的包进行处理和分析。其他的几个关键字就是指明了监听的包的协议内容。如果没有指定任何协议，则tcpdump将会监听所有协议的信息包。
+ 
+除了这三种类型的关键字之外，其他重要的关键字如下：gateway, broadcast,less,greater,还有三种逻辑运算，取非运算是'not ' ，'! '，与运算是'and'，'&&';或运算 是'or'，'││'；这些关键字可以组合起来构成强大的组合条件来满足人们的需要，下面举几个例子来说明。普通情况下，直接启动tcpdump将监视第一个网络界面上所有流过的数据包。
+ 
+A. tcpdump –i eth0 –c 10
+使用-i参数指定tcpdump监听的网络界面，这在计算机具有多个网络界面时非常有用，
+使用-c参数指定要监听的数据包数量，
+使用-w参数指定将监听到的数据包写入文件中保存
+ 
+B.想要截获主机172.16.14.107和主机172.16.14.27或172.16.14.99的通信，使用命令：（在命令行中使用括号时，一定要用’\’
+tcpdump host 172.16.14.107 and \ (172.16.14.27or172.16.14.99 \)
+ 
+C.如果想要获取主机172.16.14.107除了和主机172.16.14.27之外所有主机通信的ip包，使用命令：
+tcpdump ip host 172.16.14.107 and ! 172.16.14.27
+
+D.如果想要获取主机172.16.14.107接收或发出的telnet包，使用如下命令：
+tcpdump tcp port 23 and host 172.16.14.107
+
+E.对本机的udp 123 端口进行监视 （123 为ntp的服务端口）
+tcpdump udp port 123
+
+F.系统将只对名为hostname的主机的通信数据包进行监视。主机名可以是本地主机，也可以是网络上的任何一台计算机。下面的命令可以读取主机hostname发送的所有数据： 
+tcpdump -i eth0 src host hostname
+
+G.下面的命令可以监视所有送到主机hostname的数据包： 
+tcpdump -i eth0 dst host hostname
+#src表示源，即发送
+#dst表示目的地，即接收
+H.我们还可以监视通过指定网关的数据包： 
+tcpdump -i eth0 gateway Gatewayname
+
+I.如果你还想监视编址到指定端口的TCP或UDP数据包，那么执行以下命令： 
+tcpdump -i eth0 host hostname and port 80
+
+J.如果想要获取主机172.16.14.107接收或发出的telnet包，使用如下命令：
+tcpdump tcp port 23 and  host 172.16.14.107
+ 
+K. 如果我们只需要列出送到80端口的数据包，用dst port 80；如果我们只希望看到返回80端口的数据包，用src port 80。 
+tcpdump –i eth0 host hostname and dst port 80  目的端口是80
+或者
+tcpdump –i eth0 host hostname and src port 80  源端口是80
+80端口一般是提供http的服务的主机
+ 
+tcpdump -i lo ip host ipaddr and sctp port 60081
+tcpdump -i eth0 -S tcp
+get the absolute number of the tcp sequence
+-------------------------
+12:20:48.451835 IP 10.121.122.152.5913 > ww2002778.ap.tieto.com.2343: P 3384314078:3384315110(1032) ack 1794704668 win 16094
+12:20:48.451835 IP ww2002778.ap.tieto.com.2343 > 10.121.122.152.5913: P 1794704668:1794704678(10) ack 3384315110 win 64503
+12:20:48.453107 IP 10.121.122.152.5913 > ww2002778.ap.tieto.com.2343: . ack 1794704678 win 16094
+12:20:48.493205 IP 10.121.122.99.5906 > ww2002778.ap.tieto.com.1194: P 2651663235:2651664267(1032) ack 976134333 win 52560
+---------------------------------------------------
+[liguo@walnut ~]$ sudo tcpdump -vv -xx  -i  eth0  "len = 52" and udp
+tcpdump: listening on eth0, link-type EN10MB (Ethernet), capture size 96 bytes
+15:01:52.711651 IP (tos 0x0, ttl   1, id 33836, offset 0, flags [none], proto 17, length: 38) 10.121.122.79.32830 > 10.121.122.99.33435: [udp sum ok] UDP, length 10
+        0x0000:  1803 73e5 8a43 000c 2940 cc9c 0800 4500  ..s..C..)@....E.
+        0x0010:  0026 842c 0000 0111 2bf7 0a79 7a4f 0a79  .&.,....+..yzO.y
+        0x0020:  7a63 803e 829b 0012 5c1d 0101 e000 2f51  zc.>....\...../Q
+        0x0030:  7cdb 0a00                                |
+=============================================================================
+If you want to get the packet size of a whole packet, use this -xx option to print the data link layer
+
+UDP, length 10 means teh data in UDP is 10,
+and the whole IP packet is 38, and the enthernet header is 6(dst MAC) + 6(src MAc) +4(0x0800) type ip
+so all packet is 38+6+6+4 =52
+
+
+proto [ expr : size ]
+size  is  optional and  indicates  the number of bytes in the field of interest; it can be either one, two, or  four,  and  defaults  to  one
+ip[16] >= 224 means  the 16th byte of the ip packet, it is the first byte of the destination ip addr  
+
+tcpdump -i eth0 "ip[16] <224" it wil get all the packets not  multciast packets
+tcpdump -i eth0 -c 100 -s 0 -w /home/data.pcap
+tcpdump输出格式
+总的的输出格式为：系统时间 来源主机.端口 > 目标主机.端口 数据包参数
+the data.pcap file can be analyzed by wireshark directly 
+
+if want get the hexstring, you should use -X to get the hexstring
+and wireshark had a batch tool "text2pcap" to convert the hexstring to pcap
+so that wireshark can analyze that.
+
+
+//this -X from ip layer 
+ot@walnut network-scripts]# tcpdump -s 0  -i lo -X
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on lo, link-type EN10MB (Ethernet), capture size 65535 bytes
+18:22:54.146796 IP 10.121.122.61.57113 > 10.121.122.61.29118: sctp
+        0x0000:  4500 0044 4d5f 0000 ff84 646a 0a79 7a3d  E..DM_....dj.yz=
+        0x0010:  0a79 7a3d df19 71be 0000 0000 6877 e926  .yz=..q.....hw.&
+        0x0020:  0100 0024 58b5 e16d 0010 0000 0004 0004  ...$X..m........
+        0x0030:  27db 9e48 000c 0006 0005 0000 8000 0004  '..H............
+        0x0040:  c000 0004                                ....
+18:22:54.238124 IP 10.121.122.61 > 10.121.122.61: icmp 76: 10.121.122.61 protocol 132 unreachable
+        0x0000:  45c0 0060 8516 0000 4001 eb5a 0a79 7a3d  E..`....@..Z.yz=
+        0x0010:  0a79 7a3d 0302 18e4 0000 0000 4500 0044  .yz=........E..D
+        0x0020:  4d5f 0000 ff84 646a 0a79 7a3d 0a79 7a3d  M_....dj.yz=.yz=
+        0x0030:  df19 71be 0000 0000 6877 e926 0100 0024  ..q.....hw.&...$
+        0x0040:  58b5 e16d 0010 0000 0004 0004 27db 9e48  X..m........'..H
+        0x0050:  000c 0006 0005 0000 8000 0004 c000 0004  ................
+
+2 packets captured
+4 packets received by filter
+0 packets dropped by kernel
+
+
+//-XX from the first layer
+[root@walnut network-scripts]# tcpdump -s 0  -i lo -XX
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on lo, link-type EN10MB (Ethernet), capture size 65535 bytes
+18:26:30.472469 IP 10.121.122.61.57113 > 10.121.122.61.29118: sctp
+        0x0000:  0000 0000 0000 0000 0000 0000 0800 4500  ..............E.
+        0x0010:  0044 64d2 0000 ff84 4cf7 0a79 7a3d 0a79  .Dd.....L..yz=.y
+        0x0020:  7a3d df19 71be 0000 0000 6877 e926 0100  z=..q.....hw.&..
+        0x0030:  0024 58b5 e16d 0010 0000 0004 0004 27db  .$X..m........'.
+        0x0040:  9e48 000c 0006 0005 0000 8000 0004 c000  .H..............
+        0x0050:  0004                                     ..
+18:26:30.502193 IP 10.121.122.61 > 10.121.122.61: icmp 76: 10.121.122.61 protocol 132 unreachable
+        0x0000:  0000 0000 0000 0000 0000 0000 0800 45c0  ..............E.
+        0x0010:  0060 8518 0000 4001 eb58 0a79 7a3d 0a79  .`....@..X.yz=.y
+        0x0020:  7a3d 0302 18e4 0000 0000 4500 0044 64d2  z=........E..Dd.
+        0x0030:  0000 ff84 4cf7 0a79 7a3d 0a79 7a3d df19  ....L..yz=.yz=..
+        0x0040:  71be 0000 0000 6877 e926 0100 0024 58b5  q.....hw.&...$X.
+        0x0050:  e16d 0010 0000 0004 0004 27db 9e48 000c  .m........'..H..
+        0x0060:  0006 0005 0000 8000 0004 c000 0004       ..............
+
+2 packets captured
+4 packets received by filter
+0 packets dropped by kernel
+[root@walnut network-scripts]#
+
+tcpdump -i any 
+will capture all packets in the network card in the host.
+but the data link layer protocol won't be ethernet, but "linux cooked capture"
+So if care about the second layer (data link layer), you should be tcpdump -i eth0 and tcpdump -i lo
+in different terminals.
+if you care about the second layerJ(data link layer) using tcpdump -e to display the mac addr.
+------
+[gll@localhost ~]$ sudo tcpdump -en -i eth0 tcp port 9877
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on eth0, link-type EN10MB (Ethernet), capture size 65535 bytes
+15:44:08.809781 18:03:73:e4:81:3c > 9c:4e:20:d4:b4:47, ethertype IPv4 (0x0800), length 74: 10.121.122.125.54607 > 10.121.122.152.9877: Flags [S], seq 3533309882, win 5840, options [mss 1460,sackOK,TS val 827086714 ecr 0,nop,wscale 6], length 0
+15:44:08.810463 9c:4e:20:d4:b4:47 > 18:03:73:e4:81:3c, ethertype IPv4 (0x0800), length 74: 10.121.122.152.9877 > 10.121.122.125.54607: Flags [S.], seq 3136825095, ack 3533309883, win 5792, options [mss 1460,sackOK,TS val 827110205 ecr 827086714,nop,wscale 6], length 0
+15:44:08.810494 18:03:73:e4:81:3c > 9c:4e:20:d4:b4:47, ethertype IPv4 (0x0800), length 66: 10.121.122.125.54607 > 10.121.122.152.9877: Flags [.], ack 1, win 92, options [nop,nop,TS val 827086715 ecr 827110205], length 0
+--------
+
+
+**  write() read()  function for socket
+in tcp socket, read/write behaves a little different form the file system
+read/write return bytes maybe lesss than it requested, that's the tcp socket feature, for there's not that many byte could be read or wirte .
+
+** bind()
+bind() could both used in server and client
+     server                                cli
+      |fds=socket()                         |fdc=socket(AF_INET,SOCK_STREAM, 0)
+      |                                     |bind(fdc, addr(cliip:cliport))   #this is optional for client unless you want to specify the ip and port of client itself
+      |bind(fds, &addr(srvip:srvport),sizeo |connect(fdc, &addr(srvip:srvport))  
+      |                                     |
+      |listen(fds,)
+      |fdc= accept(fds, addr_client)
+      |
+      |childprocess: fdc
+
+server could not filter the client addr/port, generally server's host will use iptables to filter those.
+so sometimes cli need to specify the ip/port to reach the server and not be filtered
+
+** listen(int sockfd, int backlog)
+backlog is the sum of size of incompleted queue + completed queue
+in kernel, there're two queues for listening socket :
+incomplete connection queue : receive SYN from client
+completed connection queue: receive ACK of SYN sent by server
+
+    client                           server
+       |                                |
+       |    SYN J                       |
+      +|------------------------------->|incomplete queue
+       |                                |
+    RTT|   SYN K, ACK J+1               |
+      +|<-------------------------------|++
+connect|                                |RTT
+ return|                                |
+       |  ACK K+1                       |
+       |------------------------------->|++
+                                        completed queue, accept return
+
+
+
+* multiple connections handling
+** iterative server
+    while (1)
+    {
+        accept()
+	read()....
+    }
+
+** concurrent server
+listenfd=scoket()
+bind(listenfd,)
+listen(listenfd,)
+signal(SIGCHLD, sig_chld)  //avoid zombie
+for (;;) {
+   connfd= accept(listen,);
+   if ((pid= for())== 0){
+      close(listenfd);   //child close listenfd
+      read(connfd);....
+      close(connfd);   // child close connfd will send FIN
+      exit(0);
+      }
+      close(connfd);  //pareent closed,won't send FIN, for tow reference in kernel
+}
+
+
+void sig_chld(int signo)
+{
+   pit_t pid; int stat;
+   pid = wait(&stat);
+   printf("child %d terminated", pid);
+}
+*** check status of the process
+[admin1@TeamCI-136 tt]$ ps -t pts/4 -o ppid,pid,state,tname,command,wchan
+ PPID   PID   S TTY      COMMAND        WCHAN
+ 12036 12038  S pts/4    bash           wait               #all in sleep, all wait 
+ 12038 15179  S pts/4    ./tcpserv01    wait_for_connect   #ppid is bash,run on shell, waiting for new SYN  
+ 15179 15277  S pts/4    ./tcpserv01    tcp_data_wait      #ppid is  child of bash,   waiting for data arriving 
+ 12038 15277  S pts/4    ./tcpcli01     read_chan          #ppid is bash, run on shell, waiting for terminal input
+
+*** when child terminate, parent will get a signal SIGCHID
+if no process of this SIGCHILD, in default, it will be ignored, so child will be in zombie
+[admin1@TeamCI-136 tt]$ ps -t pts/4 -o ppid,pid,state,tname,command,wchan
+ PPID   PID   S TTY      COMMAND           WCHAN
+ 12036 12038  S pts/4    bash              wait               
+ 12038 15179  S pts/4    ./tcpserv01       wait_for_connect   
+ 15179 15277  Z pts/4    [tcpserv01<defun  do_exit            
+
+**** why there's zombie
+The goal for this zombie is to maintain the info of the child process so that parent process could check it sometime.
+the info including pid, exit status and cpu, memory usage..etc.
+
+**** how to handle this zomibe process
+zombie process will assume kernel space, and our process resource will burn out.
+whenever fork a process, need to wait them to avoid it become zombie
+
+*** wait vs. waitpid
+wait() supspends execution of the current process until one of its children terminates, it is equivalent to:
+waitpid(-1,&status,0);
+
+
+wait will wait any process id, waitpid wait specified pid, 
+if multiple child process end at the same time , that wait will only close one process, others will become zombie also.
+
+sig_child(int signo)
+{
+  pid_t pid; int stat;
+  // waitpid(): on success, returns the process ID of the child whose state has changed; on error,
+ //   -1 is returned; if WNOHANG was specified and no child(ren) specified by pid has  yet  changed
+ //    state, then 0 is returned.
+
+  while( (pid=waitpid(-1,&stat,WNOHANG)) > 0 )
+     printf("child %d terminated\n",pid);
+}      
+this function will multiple end child process all get waited in a loop, and the condition end is if all terminated child get waited. but wait has no such function, for waitpid has more options to do this.
+
+
+
+** getsockname (return the addresss of the peer side)
+getsockname(sock_fd, (struct sockaddr *) &cliaddr, &len);
+       printf("accept a new client,ip:%s and port is %d\n",inet_ntoa(cliaddr.sin_addr), ntohs(cliaddr.sin_port));
+        
+
+
+
+* multiple io handling
+** I/O model
+all sockets file descriptor is kind of file descriptor. So they are also I/O modle.
+
+*** blocking I/O
+receivefrom  will not return until get some data, and when waiting, process will be get into sleep.
+
+*** non-bloking I/O
+receivefrom it will be non-blocked, whatever there's data, it will return
+
+*** I/O multiplexing
+select could handle multiplexing I/O, but didn't use fork to get multiple process, but we can see, if in the I/O handling operation, there's some blocking,
+will block the serverprocess to accept more new connections. so multiple process also needed in the client processing. when read something from client, we
+wirte something to server part, we could another process to handle this.
+**** select()  and  pselect()  allow  a  program  to  monitor  multiple file descriptors, waiting until one or more of the file
+descriptors become "ready" for some class of I/O operation (e.g., input possible).  A file descriptor is considered  ready
+if it is possible to perform the corresponding I/O operation (e.g., read(2)) without blocking.
+
+with this, a process could manange multiple I/O events for multjiple file descriptors.
+
+int select(int nfds, fd_set *readfds, fd_set *writefds,
+                  fd_set *exceptfds, struct timeval *timeout);
+
+//nfds is the maximum file descriptor value in those three sets, return value is how many descriptors are ready.
+
+source for server
+==============
+ Bind(listenfd, (SA *) &servaddr, sizeof(servaddr));
+
+        Listen(listenfd, LISTENQ);
+        fd_set allset, rset;
+
+        maxfd = listenfd;                       /* initialize */
+        maxi = -1;                                      /* index into client[] array */
+        for (i = 0; i < FD_SETSIZE; i++)
+                client[i] = -1;                 /* -1 indicates available entry */
+        FD_ZERO(&allset);
+        FD_SET(listenfd, &allset);  // select limited on FD_SETSIZE(1024)
+
+        Bind(listenfd, (SA *) &servaddr, sizeof(servaddr));
+        Listen(listenfd, LISTENQ);
+        maxfd = listenfd;                       /* initialize */
+        maxi = -1;                                      /* index into client[] array */
+        for (i = 0; i < FD_SETSIZE; i++)
+                client[i] = -1;                 /* -1 indicates available entry */
+        FD_ZERO(&allset);
+        FD_SET(listenfd, &allset);
+
+        for ( ; ; ) {
+                rset = allset;          /* structure assignment */
+                nready = Select(maxfd+1, &rset, NULL, NULL, NULL);
+             // loop from 0 to maxi(maximum index of client)
+                if (FD_ISSET(listenfd, &rset)) {        /* new client connection */
+                        clilen = sizeof(cliaddr);
+                        connfd = Accept(listenfd, (SA *) &cliaddr, &clilen);
+#ifdef  NOTDEF
+                        printf("new client: %s, port %d\n",
+                                        Inet_ntop(AF_INET, &cliaddr.sin_addr, 4, NULL),
+                                        ntohs(cliaddr.sin_port));
+#endif
+
+                        for (i = 0; i < FD_SETSIZE; i++)
+                                if (client[i] < 0) {
+                                        client[i] = connfd;     /* save descriptor */
+                                        break;
+                                }
+                        if (i == FD_SETSIZE)
+                                err_quit("too many clients");
+
+                        FD_SET(connfd, &allset);        /* add new descriptor to set */
+                        if (connfd > maxfd)
+                                maxfd = connfd;                 /* for select */
+                        if (i > maxi)
+                                maxi = i;                               /* max index in client[] array */
+
+                        if (--nready <= 0)
+                                continue;                               /* no more readable descriptors */
+                }
+
+                for (i = 0; i <= maxi; i++) {   /* check all clients for data */
+                        if ( (sockfd = client[i]) < 0)
+                                continue;
+                        if (FD_ISSET(sockfd, &rset)) {
+                                if ( (n = Read(sockfd, buf, MAXLINE)) == 0) {
+                                                /*4connection closed by client */
+                                        Close(sockfd);
+                                        FD_CLR(sockfd, &allset);
+                                        client[i] = -1;
+                                } else
+                                        Writen(sockfd, buf, n);
+
+                                if (--nready <= 0)
+                                        break;                          /* no more readable descriptors */
+                        }
+                }
+        }
+}
+  
++++++++++++
+
+**** poll usage
+ 
+int poll(struct pollfd *fds, nfds_t nfds, int timeout);
+
+DESCRIPTION
+       poll() performs a similar task to select(2): it waits for one of a set of file descriptors to become ready to perform I/O.
+
+       The set of file descriptors to be monitored is specified in the fds argument, which is an array of nfds structures of  the
+       following form:
+
+           struct pollfd {
+               int   fd;         /* file descriptor */
+               short events;     /* requested events */
+               short revents;    /* returned events */
+           };
+======================
+	Bind(listenfd, (SA *) &servaddr, sizeof(servaddr));
+
+	Listen(listenfd, LISTENQ);
+
+	client[0].fd = listenfd;
+	client[0].events = POLLRDNORM;
+	for (i = 1; i < OPEN_MAX; i++) //OPEN_MAX is the limited of poll
+		client[i].fd = -1;		/* -1 indicates available entry */
+	maxi = 0;					/* max index into client[] array */
+	for ( ; ; ) {
+		nready = Poll(client, maxi+1, INFTIM);
+               // no maxfd needed by poll, not like select,
+		// when some fd is ready , you need to navigator all the array client[] to check if the fd is ready for some event
+		// when using epooll, you don't need  to go through all the events array, for the  ready fd will be put in the begging of the events array, not 
+		// the order when you add them into events.
+
+		if (client[0].revents & POLLRDNORM) {	/* new client connection */
+			clilen = sizeof(cliaddr);
+			connfd = Accept(listenfd, (SA *) &cliaddr, &clilen);
+#ifdef	NOTDEF
+			printf("new client: %s\n", Sock_ntop((SA *) &cliaddr, clilen));
+#endif
+
+			for (i = 1; i < OPEN_MAX; i++)
+				if (client[i].fd < 0) {
+					client[i].fd = connfd;	/* save descriptor */
+					break;
+				}
+			if (i == OPEN_MAX)
+				err_quit("too many clients");
+
+			client[i].events = POLLRDNORM;
+			if (i > maxi)
+				maxi = i;				/* max index in client[] array */
+
+			if (--nready <= 0)
+				continue;				/* no more readable descriptors */
+		}
+
+		for (i = 1; i <= maxi; i++) {	/* check all clients for data */
+			if ( (sockfd = client[i].fd) < 0)
+				continue;
+			if (client[i].revents & (POLLRDNORM | POLLERR)) {
+				if ( (n = read(sockfd, buf, MAXLINE)) < 0) {
+					if (errno == ECONNRESET) {
+							/*4connection reset by client */
+#ifdef	NOTDEF
+						printf("client[%d] aborted connection\n", i);
+#endif
+						Close(sockfd);
+						client[i].fd = -1;
+					} else
+						err_sys("read error");
+				} else if (n == 0) {
+						/*4connection closed by client */
+#ifdef	NOTDEF
+					printf("client[%d] closed connection\n", i);
+#endif
+					Close(sockfd);
+					client[i].fd = -1;
+				} else
+					Writen(sockfd, buf, n);
+
+				if (--nready <= 0)
+					break;				/* no more readable descriptors */
+			}
+		}
+	}
+}
+/* end fig02 */
+
+
+**** difference between poll(epoll) and select
+In fact it's based on the implementation of the kernel:
+from the usage, select based on bitmask of filedescriptor.
+read: 0,1,2........maxfd
+write:0,1,2........maxfd
+error:0,1,2........maxfd
+max fd is needed by select 
+
+poll based on the fildescriptor, events pair in an array.
+	client[0].fd = listenfd;
+	client[0].events = POLLRDNORM;
+no max fd is needed by poll	
+
+The select() call has you create three bitmasks to mark which sockets and file descriptors you want to watch for reading, writing, and errors, and then the operating system marks which ones in fact have had some kind of activity; poll() has you create a list of descriptor IDs, and the operating system marks each of them with the kind of event that occurred.
+
+The select() method is rather clunky and inefficient.
+
+    There are typically more than a thousand potential file descriptors available to a process. If a long-running process has only a few descriptors open, but at least one of them has been assigned a high number, then the bitmask passed to select() has to be large enough to accomodate that highest descriptor — so whole ranges of hundreds of bits will be unset that the operating system has to loop across on every select() call just to discover that they are unset.
+
+    Once select() returns, the caller has to loop over all three bitmasks to determine what events took place. In very many typical applications only one or two file descriptors will get new traffic at any given moment, yet all three bitmasks must be read all the way to the end to discover which descriptors those are.
+
+    Because the operating system signals you about activity by rewriting the bitmasks, they are ruined and are no longer marked with the list of file descriptors you want to listen to. You either have to rebuild the whole bitmask from some other list that you keep in memory, or you have to keep a duplicate copy of each bitmask and memcpy() the block of data over on top of the ruined bitmasks after each select() call.
+
+So the poll() approach works much better because you can keep re-using the same data structure.
+
+**** epoll usage
+int main (int argc, char *argv[])
+{
+  int sfd, s;
+  int efd;
+  struct epoll_event event;
+  struct epoll_event *events;
+
+  sfd = create_and_bind (argv[1]);
+  if (sfd == -1) abort ();
+  s = make_socket_non_blocking (sfd);
+  if (s == -1) abort ();
+  s = listen (sfd, SOMAXCONN);
+  if (s == -1) abort ();
+  
+  efd = epoll_create1 (0);  // create a epoll file descriptor
+  if (efd == -1) { perror ("epoll_create"); abort (); }
+  event.data.fd = sfd;
+  event.events = EPOLLIN | EPOLLET;
+  s = epoll_ctl (efd, EPOLL_CTL_ADD, sfd, &event);// add event(sfd, epollin)to efd
+  if (s == -1) { perror ("epoll_ctl"); abort (); } 
+
+  /* Buffer where events are returned */
+  events = calloc (MAXEVENTS, sizeof event);  // MAXEVENTS is the limited fd which epoll could do
+  while (1)
+    {
+      int n, i;
+      n = epoll_wait (efd, events, MAXEVENTS, -1); // when epoll_ctrl add event it only add it into efd, epoll_wait will write some file descp into events instead
+   // only need to poll the first n of events better than poll, poll need to for loop all the poll array in order which has been added by index  
+   // so epoll is more efficient when poll the fd event
+      for (i = 0; i < n; i++)
+	{
+	  if ((events[i].events & EPOLLERR) ||
+              (events[i].events & EPOLLHUP) ||
+              (!(events[i].events & EPOLLIN)))
+	    {
+	      fprintf (stderr, "epoll error\n");
+	      close (events[i].data.fd);
+	      continue;
+	    }
+
+	  else if (sfd == events[i].data.fd)
+	    {
+              /* We have a notification on the listening socket, which
+                 means one or more incoming connections. */
+              while (1)
+                {
+                  struct sockaddr in_addr;
+                  socklen_t in_len;
+                  int infd;
+                  char hbuf[NI_MAXHOST], sbuf[NI_MAXSERV];
+
+                  in_len = sizeof in_addr;
+                  infd = accept (sfd, &in_addr, &in_len);
+                  if (infd == -1)
+                    {
+                      if ((errno == EAGAIN) ||
+                          (errno == EWOULDBLOCK))
+                        {
+                          break;
+                        }
+                      else
+                        {
+                          perror ("accept");
+                          break;
+                        }
+                    }
+
+                  s = getnameinfo (&in_addr, in_len,
+                                   hbuf, sizeof hbuf,
+                                   sbuf, sizeof sbuf,
+                                   NI_NUMERICHOST | NI_NUMERICSERV);
+                  if (s == 0)
+                    {
+                      printf("Accepted connection on descriptor %d "
+                             "(host=%s, port=%s)\n", infd, hbuf, sbuf);
+                    }
+
+                  /* Make the incoming socket non-blocking and add it to the
+                     list of fds to monitor. */
+                  s = make_socket_non_blocking (infd);
+                  if (s == -1)
+                    abort ();
+
+                  event.data.fd = infd;
+                  event.events = EPOLLIN | EPOLLET;
+                  s = epoll_ctl (efd, EPOLL_CTL_ADD, infd, &event); // add another file in efd
+                  if (s == -1)
+                    {
+                      perror ("epoll_ctl");
+                      abort ();
+                    }
+                }
+              continue;
+            }
+          else
+            {
+              /* We have data on the fd waiting to be read. Read and
+                 display it. We must read whatever data is available
+                 completely, as we are running in edge-triggered mode
+                 and won't get a notification again for the same
+                 data. */
+              int done = 0;
+
+              while (1)
+                {
+                  ssize_t count;
+                  char buf[512];
+
+                  count = read (events[i].data.fd, buf, sizeof buf);
+                  if (count == -1)
+                    {
+                      /* If errno == EAGAIN, that means we have read all
+                         data. So go back to the main loop. */
+                      if (errno != EAGAIN)
+                        {
+                          perror ("read");
+                          done = 1;
+                        }
+                      break;
+                    }
+                  else if (count == 0)
+                    {
+                      /* End of file. The remote has closed the
+                         connection. */
+                      done = 1;
+                      break;
+                    }
+
+                  /* Write the buffer to standard output */
+                  s = write (1, buf, count);
+                  if (s == -1)
+                    {
+                      perror ("write");
+                      abort ();
+                    }
+                }
+
+              if (done)
+                {
+                  printf ("Closed connection on descriptor %d\n",
+                          events[i].data.fd);
+
+                  /* Closing the descriptor will make epoll remove it
+                     from the set of descriptors which are monitored. */
+                  close (events[i].data.fd);
+                }
+            }
+        }
+    }
+
+
+***** epoll vs. poll
+In fact, poll() has inspired yet another mechanism in modern Linux kernels: epoll() which improves even more upon the mechanism to allow yet another leap in scalability, as today's servers often want to handle tens of thousands of connections at once. This is a good introduction to the effort:
+
+**** singal driving model
+sigaction will register a signal to do I/O handling
+
+** shutdown vs. close to socket descriptor
+a. close will close the socket, when the reference to it is 0,
+shutdown will trigger the tcp shutdown procedure immediately whatever the reference number is.
+b. close will termiante read/write two direction data. tcp is double duplex, so half_close is allowed.shutdown could have parameter to speicfy how to close the connection
+
+int shutdown(int sockfd, int howto);
+DESCRIPTION
+       The  shutdown()  call  causes all or part of a full-duplex connection on the socket associated with s to be shut down.  If
+       how is SHUT_RD, further receptions will be disallowed.  If how is SHUT_WR, further transmissions will be  disallowed.   If
+       how is SHUT_RDWR, further receptions and transmissions will be disallowed.
+ 
+** connection pool/ threads, processes pool
+server will have much pressure when there are thousands of connections coming.
+So create a process/thread pool will make it's more easier to handle many connection requests.
+child process will accept the connection with pthred_lock/pthread_unlock.
+=======
+main.c
+main()
+{
+    listenfd= listen()
+     for (i=0; i<nthreads; i++)
+       pthread_create(..., &thread_main ,(void *)i);
+     for (;;)
+         pause();
+}
+void * thread_main(void *arg)
+{
+      for(;;)
+      {
+         pthread_mutex_lock;
+	 connfd=accept(listenfd,...)
+         pthread_mutex_unlock;
+	 web_child(connfd); //process the request
+      }
+      
+}
+
+* RST received connection, but process still write to the sockfd
+if server exit abnormally, then it will send RST to client
+linxu% tcpcli1 127.0.0.1
+hi there   //input
+hi there    // echo from server
+            // kill `pidof tcpserv1`
+byte      //input in client, this will triger wirte to a RST received connection in client,
+Broken pip  //output from shell
+
+
+
+
+* UDP vs. TCP
+** UDP support multiplecast and broadcast.
+if a prgram supporting multiplecast and broadcst, UDP is a must.
+
+** UDP has no link establishment and shutdown
+udp nedd two packets to  exchange a request and answer
+tcp need 20 packetts(including connection established and shutdown)

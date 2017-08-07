@@ -1,0 +1,825 @@
+* 汇编的内存段
+
+BSS段：在采用段式内存管理的架构中，BSS段（bss segment）通常是指用来存放程序中未初始化的全局变量的一块内存区域。BSS是英文Block Started by Symbol的简称。BSS段属于静态内存分配。
+
+数据段：在采用段式内存管理的架构中，数据段（data segment）通常是指用来存放程序中已初始化的全局变量的一块内存区域。数据段属于静态内存分配。
+
+代码段：在采用段式内存管理的架构中，代码段（code segment / text segment）通常是指用来存放程序执行代码的一块内存区域。这部分区域的大小在程序运行前就已经确定，并且内存区域通常属于只读, 某些架构也允许代码段为可写，即允许自修改程序。 在代码段中，也有可能包含一些只读的常数变量，例如字符串常量等。
+
+堆栈又称堆栈（stack）在计算机科学中，是一种特殊的链表形式的数据结构，它的特殊之处在于只能允许在链表的一端（称为栈顶，英文为top）进行添加和删除操作。另外堆栈数据结构的实现也可以通过数组来完成。
+
+严格来说堆是指Heap，程序运行时供程序员来支配的一段内存。
+而栈Stack,多指函数调用时候参数的相互传递存在的内存区域。
+
+由于堆栈数据结构只允许在一端进行操作，因而按照先进后出（LIFO-Last In First Out）的原理工作。
+
+堆栈数据结构支持两种基本操作：压栈（push）和弹栈（pop）：
+
+   1. 压栈（入栈）：将对象或者数据压入栈中，更新栈顶指针，使其指向最后入栈的对象或数据。
+   2. 弹栈（出栈）：返回栈顶指向的对象或数据，并从栈中删除该对象或数据，更新栈顶。
+
+
+* 基本汇编指令
+  1)IA32的栈是用来存放临时数据，而且是LIFO，即后进先出的。栈的增长方向是从高地址向低地址增长，按字节为单位编址。
+    2) EBP是栈基址的指针，永远指向栈底（高地址），ESP是栈指针，永远指向栈顶（低地址）。
+    3) PUSH一个long型数据时，以字节为单位将数据压入栈，从高到低按字节依次将数据存入ESP-1、ESP-2、ESP-3、ESP-4的地址单元。
+    4) POP一个long型数据，过程与PUSH相反，依次将ESP-4、ESP-3、ESP-2、ESP-1从栈内弹出，放入一个32位寄存器。
+    5) CALL指令用来调用一个函数或过程，此时，下一条指令地址会被压入堆栈，以备返回时能恢复执行下条指令。
+    6) RET指令用来从一个函数或过程返回，之前CALL保存的下条指令地址会从栈内弹出到EIP寄存器中，程序转到CALL之前下条指令处执行
+    7) ENTER是建立当前函数的栈框架，即相当于以下两条指令：
+        pushl   %ebp
+        movl    %esp,%ebp
+    8) LEAVE是释放当前函数或者过程的栈框架，即相当于以下两条指令：
+        movl ebp esp 
+        popl  ebp
+
+# 把这层的ebp传给esp（上一层的esp位置），本层的ebp就是上层的esp
+# 因为在函数入口处会把上层函数的esp的值赋值给本层ebp
+# 所以每两帧函数的调用栈之间有一个联系就是ebp，ebp是本层的栈底，也是上层函数的栈顶
+
+    如果反汇编一个函数，很多时候会在函数进入和返回处，发现有类似如下形式的汇编语句： 
+        
+  pushl   %ebp            ; ebp寄存器内容压栈，即保存main函数的上级调用函数的栈基地址
+  movl    %esp,%ebp       ; esp值赋给ebp，设置 main函数的栈基址
+  ...........             ; 以上两条指令相当于 enter 0,0
+  ...........
+  call f1  (push eip)     ; push current eip value to stack
+  leave  (movl ebp esp; popl ebp); 将ebp值赋给esp，pop先前栈内的上级函数栈的基地址给ebp，恢复原栈基址
+
+  ret                     ; main函数返回，回到上级调用pop current stack value to eip
+
+    这些语句就是用来创建和释放一个函数或者过程的栈框架的。
+    原来编译器会自动在函数入口和出口处插入创建和释放栈框架的语句。
+    函数被调用时：
+    1) EIP/EBP成为新函数栈的边界
+    函数被调用时，返回时的EIP首先被压入堆栈；创建栈框架时，上级函数栈的EBP被压入堆栈，与EIP一道行成新函数栈框架的边界
+    2) EBP成为栈框架指针SFP，用来指示新函数栈的边界
+    栈框架建立后，EBP指向的栈的内容就是上一级函数栈的EBP，可以想象，通过EBP就可以把层层调用函数的栈都回朔遍历一遍，调试器就是利用这个特性实现 backtrace功能的
+    3) ESP总是作为栈指针指向栈顶，用来分配栈空间
+    栈分配空间给函数局部变量时的语句通常就是给ESP减去一个常数值，例如，分配一个整型数据就是 ESP-4
+    4) 函数的参数传递和局部变量访问可以通过SFP即EBP来实现 
+    由于栈框架指针永远指向当前函数的栈基地址，参数和局部变量访问通常为如下形式：
+        +xx(%ebp)         ; 函数入口参数的的访问
+        -xx(%ebp)           ; 函数局部变量访问
+     5） esp用来压栈函数参数时用            
+     6） esp和ebp标记一个frame stack，并且下一层的ebp就是上一层的esp，这也是函数能够返回的重要原因。
+
+** gdb c file in asm
+
+file tac.c
+===
+int f1(int p1,int p2 )
+{
+int f1_v1=2;
+int f1_v2=4;
+ int g = p1 + p2 + f1_v1 + f1_v2;
+  return g; //for return value, just put var g's value in eax, no extra stack space using
+}
+main()
+{
+  int m_v1 =9;
+  int m_v2 =3;
+  int m_v3 =  f1(m_v1,m_v2);
+
+// 3 local var m_v1, m_v2, m_v3, and 2 f1 function parameter of temp var, 5 overall, and one for ebp, 28/4=7
+}
+
+===
+gcc -S tac.c
+as -o tas.o -gstabs tas.s
+gcc -o tas -Wall tas.o
+gdb tas
+list
+-----------
+5       f1:
+6               pushl   %ebp          *push ebp, esp -= 4;  
+7               movl    %esp, %ebp    * make f1 bottom stack frame to be esp which is main's escp value 
+8               subl    $16, %esp     * 4 int for stack size, 3 local variable and one for ebp value
+9               movl    $2, -12(%ebp) * assign value for local var using ebp-
+10              movl    $4, -8(%ebp)
+11              movl    12(%ebp), %edxa *get function value from ebp+
+12              movl    8(%ebp), %eax
+13              addl    %edx, %eax
+14              addl    -12(%ebp), %eax
+15              addl    -8(%ebp), %eax
+16              movl    %eax, -4(%ebp)  * assinge value to var g
+17              movl    -4(%ebp), %eax  * this is for return value, always in eax register
+18              leave                   *movl %ebp, %esp; popl %ebp;
+                                        * ebp = %esp ; esp +=4 
+19              ret                     * popl %eip
+20              .size   f1, .-f1
+21      .globl main
+22              .type   main, @function
+23      main:
+24              leal    4(%esp), %ecx
+25              andl    $-16, %esp
+26              pushl   -4(%ecx)
+27              pushl   %ebp
+28              movl    %esp, %ebp  /* stat to make a new frame for main function*/
+29              pushl   %ecx            
+30              subl    $28, %esp   /*28 is the satck frame size for this main function*/
+31              movl    $9, -16(%ebp)
+32              movl    $3, -12(%ebp)
+33    movl    -12(%ebp), %eax   |  get the function parameter
+34    movl    %eax, 4(%esp)     |  into the stack,the last para of function first in stack
+35    movl    -16(%ebp), %eax   |  meaning it gets the higher address.
+36     movl    %eax, (%esp)     | Put the parameter in stack using esp value,while the local via using ebp 
+37              call    f1                | push eip 
+38              movl    %eax, -8(%ebp)
+39              addl    $28, %esp
+40              popl    %ecx
+41              popl    %ebp
+42              leal    -4(%ecx), %esp
+43              ret
+---------------------------------
+
+
+stack:
+lower address 
++----------------------------+----> esp for f1
+| f1_v1       
++-----------------------------+      |ebp - to access local var
+| f1_v2   
++-----------------------------+ 
+| f1_v3 
++-----------------------------+  
+| EBP (main函数的EBP)          |
++-----------------------------+----> ebp for f1 
+ EIP (main 函数下一条指令的返回地址)      
+-----------------------------+ --------
+| Arg0 of f1函数 |                       ebp+ to access the function parameter
+-----------------------------+ ------> esp for main 
+| ....           |                       
+| Argn of f1 函数|                  using  esp of main to push these function parameter 
++-----------------------------+      call f1
+|m_v1        |
+|m_v2        |
+|m_v3        |                 
++------------------------------
+|.........
+|
+|-----------------------------+---> ebp for main
+high adress
+
+
+
+** gdb a c file
+(gdb) disassemble main
+
+
+* 用gdb和objdump反汇编可执行程序
+** 静态反汇编命令
+objdump --disassemble --show-raw-insn dum
+
+** 动态反汇编
+(gdb) disassemble functioname
+(gdb) display /i $pc
+## 显示汇编指令
+(gdb) b main
+Breakpoint 1 at 0x80483a8: file dum.c, line 25.
+(gdb) r
+Starting program: /home/lily/libtest/dum 
+Breakpoint 1, main () at dum.c:25
+25		int p1=3;
+1: x/i $pc
+=> 0x80483a8 <main+6>:	movl   $0x3,-0x4(%ebp)
+(gdb) si
+26		int p2 =9;
+1: x/i $pc
+=> 0x80483af <main+13>:	movl   $0x9,-0x8(%ebp)
+(gdb) i r esp ebp eip
+esp            0xbffff220	0xbffff220
+ebp            0xbffff238	0xbffff238
+eip            0x80483af	0x80483af <main+13>
+##info  registers 显示寄存器的值
+(gdb) x /4xw 0xbffff220
+0xbffff220:	0x0015ed35	0x0011ea50	0x080483db	0x0028bff4
+## 产看堆栈的值，
+
+*反汇编一个函数
+disass func_name
+
+
+*反汇编一段内存地址, 第1个参数是起始地址，第2个是终止地址
+disassemble 0×0 0×10
+
+
+*info line 命令来映射一个源码行到程序地址,
+
+然后使用命令disassemble显示一个地址范围的机器指令。
+
+
+例1. 查看main函数从哪里开始
+
+(gdb) info line main
+Line 34 of “rank.c” starts at address 0×804847f
+   and ends at 0×8048493 .
+
+例2. 
+(gdb) info line *0×804847f
+Line 34 of “rank.c” starts at address 0×804847f
+   and ends at 0×8048493 .
+
+
+info line会修改 x/i 命令的默认的起始地址
+
+
+*disassemble 
+
+不带参数，默认的反汇编范围是 所选择帧的pc附近的函数
+单个参数, 就是pc, 当然也可以是函数名，因为函数名 也是一个 地址; 这样范围就是该pc附近的函数
+两个参数，就是内存地址范围
+
+
+*set disassembly-flavor intel  
+
+将汇编指令格式 设置为intel格式，默认是att
+(gdb) show disassembly-flavor
+The disassembly flavor is “att”.
+
+
+*使用x查看反汇编指令
+x/3i $pc
+显示pc开始的3条指令
+
+* x86 汇编语言学习手记 
+http://www.chinaunix.net/jh/23/440197.html
+
+
+* objdump  ellobrated
+1. objdump -S -d tcpcli01  //get the disassemble source code of a elf file
+=========================================
+tcpcli01:     file format elf32-i386
+
+Disassembly of section .init:
+...
+
+
+        str_cli(stdin, sockfd);         /* do it all */
+ 8048de0:       a1 d4 ad 04 08          mov    0x804add4,%eax
+ 8048de5:       89 5c 24 04             mov    %ebx,0x4(%esp)
+ 8048de9:       89 04 24                mov    %eax,(%esp)
+ 8048dec:       e8 df 01 00 00          call   8048fd0 <str_cli>
+,,,
+
+
+08048fd0 <str_cli>:
+#include        "unp.h"
+
+void
+str_cli(FILE *fp, int sockfd)
+{
+ 8048fd0:       55                      push   %ebp
+ 8048fd1:       89 e5                   mov    %esp,%ebp
+ 8048fd3:       57                      push   %edi
+ 8048fd4:       56                      push   %esi
+ 8048fd5:       53                      push   %ebx
+ 8048fd6:       81 ec 0c 10 00 00       sub    $0x100c,%esp
+....
+-----------------------------------------------------
+============================
+
+2.get line_number from the addr  
+[liguo@walnut tcpcliserv]$ addr2line   0x8048fd0 -e  tcpcli01
+/home/liguo/unpv13e/lib/str_cli.c:5
+
+3. get all the section info
+readelf --sections tcpcli01
+-----------
+[liguo@walnut tcpcliserv]$ readelf --sections a.out
+There are 36 section headers, starting at offset 0x7890:
+
+Section Headers:
+  [Nr] Name              Type            Addr     Off    Size   ES Flg Lk Inf Al
+  [ 0]                   NULL            00000000 000000 000000 00      0   0  0
+  [ 1] .interp           PROGBITS        08048114 000114 000013 00   A  0   0  1
+  [ 2] .note.ABI-tag     NOTE            08048128 000128 000020 00   A  0   0  4
+  [ 3] .hash             HASH            08048148 000148 00015c 04   A  4   0  4
+  [ 4] .dynsym           DYNSYM          080482a4 0002a4 000300 10   A  5   1  4
+  [ 5] .dynstr           STRTAB          080485a4 0005a4 0001d6 00   A  0   0  1
+  [ 6] .gnu.version      VERSYM          0804877a 00077a 000060 02   A  4   0  2
+  [ 7] .gnu.version_r    VERNEED         080487dc 0007dc 000060 00   A  5   2  4
+  [ 8] .rel.dyn          REL             0804883c 00083c 000020 08   A  4   0  4
+  [ 9] .rel.plt          REL             0804885c 00085c 000148 08   A  4  11  4
+  [10] .init             PROGBITS        080489a4 0009a4 000017 00  AX  0   0  4
+  [11] .plt              PROGBITS        080489bc 0009bc 0002a0 04  AX  0   0  4
+  [12] .text             PROGBITS        08048c60 000c60 000dcc 00  AX  0   0 16
+  [13] .fini             PROGBITS        08049a2c 001a2c 00001a 00  AX  0   0  4
+  [14] .rodata           PROGBITS        08049a48 001a48 0001df 00   A  0   0  4
+  [15] .eh_frame         PROGBITS        08049c28 001c28 000004 00   A  0   0  4
+  [16] .ctors            PROGBITS        0804ac2c 001c2c 000008 00  WA  0   0  4
+  [17] .dtors            PROGBITS        0804ac34 001c34 000008 00  WA  0   0  4
+  [18] .jcr              PROGBITS        0804ac3c 001c3c 000004 00  WA  0   0  4
+  [19] .dynamic          DYNAMIC         0804ac40 001c40 0000d0 08  WA  5   0  4
+  [20] .got              PROGBITS        0804ad10 001d10 000004 04  WA  0   0  4
+  [21] .got.plt          PROGBITS        0804ad14 001d14 0000b0 04  WA  0   0  4
+  [22] .data             PROGBITS        0804adc4 001dc4 000008 00  WA  0   0  4
+  [23] .bss              NOBITS          0804adcc 001dcc 000018 00  WA  0   0  4
+  [24] .comment          PROGBITS        00000000 001dcc 000129 00      0   0  1
+  [25] .debug_aranges    PROGBITS        00000000 001ef5 0000e0 00      0   0  1
+  [26] .debug_pubnames   PROGBITS        00000000 001fd5 00023c 00      0   0  1
+  [27] .debug_info       PROGBITS        00000000 002211 0023c5 00      0   0  1
+  [28] .debug_abbrev     PROGBITS        00000000 0045d6 0008d0 00      0   0  1
+  [29] .debug_line       PROGBITS        00000000 004ea6 0006b6 00      0   0  1
+  [30] .debug_frame      PROGBITS        00000000 00555c 00048c 00      0   0  4
+  [31] .debug_str        PROGBITS        00000000 0059e8 000664 01  MS  0   0  1
+  [32] .debug_loc        PROGBITS        00000000 00604c 001703 00      0   0  1
+  [33] .shstrtab         STRTAB          00000000 00774f 00013f 00      0   0  1
+  [34] .symtab           SYMTAB          00000000 007e30 000a30 10     35  58  4
+  [35] .strtab           STRTAB          00000000 008860 0006da 00      0   0  1
+Key to Flags:
+  W (write), A (alloc), X (execute), M (merge), S (strings)
+  I (info), L (link order), G (group), x (unknown)
+  O (extra OS processing required) o (OS specific), p (processor specific)
+
+---------------------------------------------
+ 
+strip -d a.out could remove all .debug_* sections. so addr2line won't work any more
+strip -s will remove symtab and strtab, so nm can't read the symblol from the elf files.
+even strip a elf file, grep could also find the function it called like printf
+strip test
+nm test |grep printf
+grep printf test 
+binary will match
+
+4. dump all debug info
+readelf --debug-dump a.out  
+readelf -wl a.out
+
+
+5. grep -oba str_cli tcpcli01
+
+
+
+** sections in a object file
+file t.c
+--------------------
+#include <stdio.h>
+char uninit[262144];
+
+char globinit[20]="abcdefg";
+main()
+{
+char b[131072];
+  printf("may you a good holiday!\n");
+}
+-------------------------
+
+
+objdump -D <elffile>   >TC
+
+Disassembly of section .rodata:
+
+0000000000400670 <_IO_stdin_used>:    (gdb) p  (char*)0x400674
+                                        $5 = 0x400674 "may you a good holiday!"
+  400670:       01 00                   
+  400672:       02 00                   
+  400674:       6d                    may you a good holiday  
+  400675:       61                      
+  400676:       79 20                   
+  400678:       79 6f                   
+  40067a:       75 20                   
+  40067c:       61                     
+  40067d:       20 67 6f               
+
+Disassembly of section .data:
+
+0000000000601030 <__data_start>:
+        ...
+
+0000000000601038 <__dso_handle>:
+        ...
+
+0000000000601040 <globinit>:            (gdb) p &globinit[0]
+                                        $1 = 0x601040 <globinit> "abcdefg"
+
+  601040:       61                      (bad)
+  601041:       62                      (bad)
+  601042:       63 64 65 66             movslq 0x66(%rbp,%riz,2),%esp
+  601046:       67 00 00                add    %al,(%eax)
+//"abcdefg"
+Disassembly of section .bss:
+
+0000000000601060 <completed.6744>:
+        ...
+
+0000000000601080 <uninit>:                (gdb) p &uninit[0]
+                                          $6 = 0x601080 <uninit> ""
+
+        ...
+//uninit no initialized data
+
+bss is for uninitialized global data.
+data is for initialized global data.
+rodata is for the constant strings anywhere(not globally)
+in elf bss not allocate size for it, but data do allocate size for it.
+注意,in the elf/exe files：
+
+l          bss段（未手动初始化的数据）并不给该段的数据分配空间，只是记录数据所需空间的大小。
+
+l          data（已手动初始化的数据）段则为数据分配空间，数据保存在目标文件中。
+
+l          DATA段包含经过初始化的全局变量以及它们的值。
+
+l          BSS段的大小从可执行文件中得到，然后链接器得到这个大小的内存块，紧跟在数据段后面。当这个内存区进入程序的地址空间后全部清零。包含DATA和BSS段的整个区段此时通常称为数据区。
+
+
+When this elf is loaded really into the memory for executing
+======================
+(gdb) b main
+Breakpoint 1 at 0x400597: file t.c, line 23.
+(gdb) p &globinit[0]
+$1 = 0x601040 <globinit> "abcdefg"
+(gdb) x/20cb 0x400670
+0x400670 <_IO_stdin_used>:      1 '\001'        0 '\000'        2 '\002'        0 '\000'        10
+7 'a'   121 'y' 32 ' '
+0x400678:       121 'y' 111 'o' 117 'u' 32 ' '  97 'a'  32 ' '  103 'g' 111 'o'
+0x400680:       111 'o' 100 'd' 32 ' '  104 'h'
+========================
+an elf file including 
+.text .data .bss .rodata 
+and their address, as we saw the address is the same in gdb and objdump of these sections.
+
+
+
+* what's the memory like when a process is loaded
+example tm.c(this file allocate memory from heap on and on until no more memory availalbe)
+--------------------
+char initglo[512*1024]={11};
+main()
+{
+//  char initloc[512*1024*1024]={11};
+  int j=0;
+  char *p =0;
+  for(j=0; j<4048; j++)
+  {
+   if(!(p=malloc(1024*1024)))
+    {
+     break;
+    }
+   else
+   {
+ //    memset(p,0,1024*1024);
+    printf("%d MB resev suc\n",j);
+    }
+  }
+   sleep(30);
+}
+-------------------------
+
+...
+2916M resev suc
+
+In a running process, there are four section: data(.data,.bss,.rodata), text, stack, heap.
+sudo pmap -x `pidof tm.c`
+
+maps file in /proc/pid/maps, this /proc/pid exists when the process is running
+(copy it out when program sleep)
+------------------------------
+00097000-00299000 rw-p 00097000 00:00 0 
+00299000-002ae000 r-xp 00000000 08:02 178143     /lib/ld-2.3.4.so
+002ae000-002af000 r--p 00015000 08:02 178143     /lib/ld-2.3.4.so
+002af000-002b0000 rw-p 00016000 08:02 178143     /lib/ld-2.3.4.so
+002b2000-003d6000 r-xp 00000000 08:02 178118     /lib/tls/libc-2.3.4.so
+003d6000-003d7000 r--p 00124000 08:02 178118     /lib/tls/libc-2.3.4.so
+003d7000-003da000 rw-p 00125000 08:02 178118     /lib/tls/libc-2.3.4.so
+003da000-003dc000 rw-p 003da000 00:00 0 
+004cd000-08048000 rw-p 004cd000 00:00 0 
+08048000-08049000 r-xp 00000000 08:02 42401798   /home/guolili/test/tm
+08049000-0804a000 rw-p 00000000 08:02 42401798   /home/guolili/test/tm
+08112000-9b63f000 rw-p 08112000 00:00 0          [heap]
+9b657000-9b659000 rw-p 9b657000 00:00 0 
+9b659000-9b65a000 r-xp 9b659000 00:00 0          [vdso]
+9b65a000-9f99d000 rw-p 9b65a000 00:00 0 
+9f9f5000-bf9f8000 rw-p 9fffc000 00:00 0          [stack]
+bf9f8000-bfffe000 rw-p bf9f8000 00:00 0 
+--------------------------------
+tm is in  08048000-08049000  08049000-0804a000, means all tm dump is in here including data
+and text.
+But heap and stack info is not clear until the file is getting loaded.
+in the very above is the library loading, in fact they are only one piece in the real memory
+and these are mapped to our proces address space.
+
+----------------
+0         |system libray...
+1         | 
+2         | 
+..        | 
+          |real elf file mapping  
+          |....
+0811200   |--------------------------------- 
+          |heap    | 
+          |       \|/
+          |          ---------bf9f7ff4 
+          |            a2[0]
+          |         --------- bf9f7ff8
+          |            a2[1]
+          |       /|\-------- bf9f7ffd
+          |stack   |   a1
+bf9f8000------------------------------------
+
+int a1 and a2[2] are in stack but a1 is defined before a2
+ &a1 is bf97ffd, &a2 is  bf97ff4
+
+heap is growing upwards(to the address++), but stack is growing downward(address --)
+in a system which meory is more than 4G, then the limit of a 32 bit system's address
+space is 4G in theory, but here heap from 0811200 to bf9f8000, there are only about 3g. 
+where the rest of 1g, from c0000000 to ffffffff?
+That's reserved for the OS kernel space, in linux, its 1g, but in windows 2g. 
+
+
+So when stack is large, the heap will be smaller. (they share the 3g space)
+remove this comment//  char initloc[512*1024*1024]={11};
+the initloc will be in stack space,
+so the result of suc resev for heap is 
+2410MB reserv suc
+
+
+** heap maximum
+ 0810c000=======================================
+                 /|\
+                  |   
+ b7f0c000 ------------------------------------ 
+          |heap    | 
+          |       \|/
+          |                            
+ b7f12000====================  126M total from heap to stack originally
+          |                   
+ bfe89000 -------------------------------------
+
+
+[admin1@TeamCI-136 MME_SGSN_tester]$ pmap -x 18406
+18406:   ./testmem
+Address   Kbytes     RSS   Dirty Mode   Mapping
+008b4000       4       4       4 rw---  ld-2.5.so
+008b7000    1360     164       0 r-x--  libc-2.5.so
+00a0b000       4       0       0 -----  libc-2.5.so
+00a0c000       8       8       8 r----  libc-2.5.so
+00a0e000       4       4       4 rw---  libc-2.5.so
+00a0f000      12       8       8 rw---    [ anon ]
+08048000       4       4       0 r-x--  testmem
+08049000       4       4       4 rw---  testmem
+b7eff000       8       8       8 rw---    [ anon ]
+b7f13000       4       0       0 rw---    [ anon ]
+bfe89000      84      12      12 rw---    [ stack ]
+-------- ------- ------- ------- -------
+total kB    1612       -       -       -
+[admin1@TeamCI-136 MME_SGSN_tester]$ pmap -x 18406
+18406:   ./testmem
+Address   Kbytes     RSS   Dirty Mode   Mapping
+00033000    8224      32      32 rw---    [ anon ]
+0083b000       4       4       0 r-x--    [ anon ]
+00898000     108      88       0 r-x--  ld-2.5.so
+008b3000       4       4       4 r----  ld-2.5.so
+008b4000       4       4       4 rw---  ld-2.5.so
+008b7000    1360     260       0 r-x--  libc-2.5.so
+00a0b000       4       0       0 -----  libc-2.5.so
+00a0c000       8       8       8 r----  libc-2.5.so
+00a0e000       4       4       4 rw---  libc-2.5.so
+00a0f000      12      12      12 rw---    [ anon ]
+00ad3000  120276     468     468 rw---    [ anon ]
+08048000       4       4       0 r-x--  testmem
+08049000       4       4       4 rw---  testmem
+0810c000 2881492   11220   11220 rw---    [ anon ]
+b7f12000  129536     512     512 rw---    [ anon ]
+bfe89000      84      12      12 rw---    [ stack ]
+bfe9e000    1028       4       4 rw---    [ anon ]
+-------- ------- ------- ------- -------
+total kB 3142156       -       -       -
+
+
+
+** stack overflow issue
+stack minimum size is 84k.
+stack maximum limit is configured using "ulimit -s"
+[admin1@TeamCI-136 newenv]$ ulimit -s
+10240
+
+====================
+#include <stdio.h>
+int main()
+{
+  int j=0,k;
+  char *p =0;
+  scanf("put to begin %d\n",k);
+  constack();
+}
+void constack()
+{
+  char cc[1024*1024];
+  static int d =0;
+   int k=0;
+    printf("%d MB resev suc \n",d++);
+   sleep(5);
+   constack();
+}
+--------------
+output:
+[admin1@TeamCI-136 newenv]$ ./teststk
+0 MB resev suc
+1 MB resev suc
+2 MB resev suc
+3 MB resev suc
+4 MB resev suc
+5 MB resev suc
+6 MB resev suc
+7 MB resev suc
+8 MB resev suc
+9 MB resev suc
+10 MB resev suc
+Segmentation fault   // this means stack overflow
+
+===================
+ b7f0c000  |--------------------------------- 
+          |heap    | 
+          |       \|/
+          |                            
+ bf15b000==============================  124M total from heap to stack originally
+          |       /|\
+          |stack   |  10M 
+ bfb48000 ------------------------------------
+
+
+[admin1@TeamCI-136 MME_SGSN_tester]$ pmap 17923
+00898000    108K r-x--  /lib/ld-2.5.so
+008b3000      4K r----  /lib/ld-2.5.so
+008b4000      4K rw---  /lib/ld-2.5.so
+008b7000   1360K r-x--  /lib/libc-2.5.so
+00a0b000      4K -----  /lib/libc-2.5.so
+00a0c000      8K r----  /lib/libc-2.5.so
+00a0e000      4K rw---  /lib/libc-2.5.so
+00a0f000     12K rw---    [ anon ]
+08048000      4K r-x--  /home/admin1/TestToolInstallations/ttcn3/glili/newenv/teststk
+08049000      4K rw---  /home/admin1/TestToolInstallations/ttcn3/glili/newenv/teststk
+b7f0c000      8K rw---    [ anon ]
+b7f20000      4K rw---    [ anon ]
+bfb48000     84K rw---    [ stack ]
+ total     1612K
+ =================================================
+ [admin1@TeamCI-136 MME_SGSN_tester]$ pmap 17923
+ 17923:   ./teststk
+ 00749000      4K r-x--    [ anon ]
+ 00898000    108K r-x--  /lib/ld-2.5.so
+ 008b3000      4K r----  /lib/ld-2.5.so
+ 008b4000      4K rw---  /lib/ld-2.5.so
+ 008b7000   1360K r-x--  /lib/libc-2.5.so
+ 00a0b000      4K -----  /lib/libc-2.5.so
+ 00a0c000      8K r----  /lib/libc-2.5.so
+ 00a0e000      4K rw---  /lib/libc-2.5.so
+ 00a0f000     12K rw---    [ anon ]
+ 08048000      4K r-x--  /home/admin1/TestToolInstallations/ttcn3/glili/newenv/teststk
+ 08049000      4K rw---  /home/admin1/TestToolInstallations/ttcn3/glili/newenv/teststk
+ b7f0c000      8K rw---    [ anon ]
+ b7f1f000      8K rw---    [ anon ]
+ bf15b000  10248K rw---    [ stack ]     10m
+
+
+** kenerl sapce check
+dmesg  >log 
+vim log /.init
+----------------------
+[    0.000999] Memory: 3361780k/3399680k available (3447k kernel code, 34004k reserved, 1382k data, 316k init, 2479568k highmem)
+[    0.000999] virtual kernel memory layout:
+[    0.000999]     fixmap  : 0xfff51000 - 0xfffff000   ( 696 kB)
+[    0.000999]     pkmap   : 0xff800000 - 0xffc00000   (4096 kB)
+[    0.000999]     vmalloc : 0xf8800000 - 0xff7fe000   ( 111 MB)
+[    0.000999]     lowmem  : 0xc0000000 - 0xf8000000   ( 896 MB)
+[    0.000999]       .init : 0xc05bf000 - 0xc060e000   ( 316 kB)
+[    0.000999]       .data : 0xc045dd9a - 0xc05b7930   (1382 kB)
+[    0.000999]       .text : 0xc0100000 - 0xc045dd9a   (3447 kB)
+---------------------------
+
+
+
+** what's the memory limitation of a process
+In fact, there are three :
+1. the pysical memory how much system can provide, 
+2. the addr sapce for a 32 bit system, 4G (minus the space reserved for OS, 1g for linux, 2g for windows)
+3. the system ulimit -a to check(ulimit is for every user in a same system)
+-----------------------
+core file size (bloks,-c) 0
+data seg size  (Kb, -d)  unlimited
+By default, kernel will almost always give you more memory when asked. This means that malloc() will always return a valid address. It's only when you refer to an allocated page for the first time that the kernel will actually bother to find a page for you. If it finds that it cannot hand you one it runs an OOM killer which according to certain measure called badness (which includes your process's and its children's virtual memory sizes, nice level, overalw running time etc) selects a victim and sends it a SIGTERM. This memory management technique is called overcommit and is used by the kernel when /proc/sys/vm/overcommit_memory is 0 or 1. See overcommit-accounting in kernel documentation for details.
+
+By writing 2 into /proc/sys/vm/overcommit_memory you can disable the overcommit. If you do that the kernel will actually check whether it has memory before promising it. This will result in malloc() returning NULL if no more memory is available.
+
+ulimit -v
+Virtual Memory  (kbytes, -v)
+You can also set a limit on the virtual memory a process can allocate with setrlimit() and RLIMIT_AS or with the ulimit -v command. Regardless of the overcommit setting described above, if the process tries to allocate more memory than the limit, kernel will refuse it and malloc() will return NULL. Note than in modern Linux kernel (including entire 2.6.x series) the limit on the resident size (setrlimit() with RLIMIT_RSS or ulimit -m command) is ineffective.
+
+*** testcase
+$ cat bigmem.c
+#include <stdlib.h>
+#include <stdio.h>
+
+int main() {
+  int i = 0;
+  for (; i < 13*1024; i  ) {
+    void* p = malloc(1024*1024);
+    if (p == NULL) {
+      fprintf(stderr, "malloc() returned NULL on %dth request\n", i);
+      return 1;
+    }
+  }
+  printf("Allocated it all\n");
+  return 0;
+}
+$ cc -o bigmem bigmem.c
+$ cat /proc/sys/vm/overcommit_memory
+0
+$ ./bigmem
+Allocated it all
+$ sudo bash -c "echo 2 > /proc/sys/vm/overcommit_memory"
+$ cat /proc/sys/vm/overcommit_memory
+2
+$ ./bigmem
+malloc() returned NULL on 8519th request
+$ sudo bash -c "echo 0 > /proc/sys/vm/overcommit_memory"
+$ cat /proc/sys/vm/overcommit_memory
+0
+$ ./bigmem
+Allocated it all
+$ ulimit -v $(( 1024*1024 ))
+$ ./bigmem
+malloc() returned NULL on 1026th request
+
+*** why a malloc failed
+I think your original problem was that malloc failed to allocate the requested memory on your system.
+
+Why this happened is specific to your system.
+
+When a process is loaded, it is allocated memory up to a certain address which is the system break point for the process. Beyond that address the memory is unmapped for the process. So when the process "hits" the "break" point it requests more memory from the system and one way to do this is via the system call sbrk
+malloc would do that under the hood but in your system for some reason it failed.
+
+//heap address is not mapped until you malloc some 
+
+There could be many reasons for this for example:
+1) I think in Linux there is a limit for max memory size. I think it is ulimit and perhaps you hit that. Check if it is set to a limit
+2) Perhaps your system was too loaded
+3) Your program does bad memory management and you end up with fragemented memory so malloc can not get the chunk size you requested.
+4) Your program corrupts the malloc internal data structures i.e. bad pointer usage
+etc
+
+** stack limited
+when you define a large variable in your function, and your system have limited on it,
+then there will be segmentation falt.
+ulimit -s
+8192
+if your variable in function large than that, there would be error
+
+*** why there should be a limit on the stack
+There has to be a set stack size, because the stack is stored contiguously in memory, and if it grows too big, it will start overwriting the heap. 
+Increasing the stack size would involve moving the heap, which would invalidate every single heap pointer in the program (which, typically, would be the vast majority of pointers).
+So normally, in linux c language, stack size is pr allocated when the elf file was loaded. the size is from ulimit -s result.
+
+Stack is stored contiguously, for assemble laguage to count the address of every local variable and function address.
+
+
+*** multiple threads share memory in a process
+ for a multiple threads program, every single thread has the "ulimit -s" size stack size separately.
+about 8-10M.  So if a recursive function with so huge local variable, it's very easy to lead stack overflow(Segmetation Fault).
+but for heap, all threads sharing the heap. it's dynamically allocated as every thread request.
+if need a very heap size, replace a thread with a process is a good choice, but every individual's thread only has a limited size stack.this is from OS configuration. ulimit -s
+
+
+
+** monitor a system's memory usage
+top -p `pidof tm`
+--------------------------------
+PID  VIRT  RES  COMMAND
+     3100m  3g      tm
+---------------------------------
+the testcase bigmem won't get the first line of top, cause though it allocated memory,
+but it didn't memset it. So top don't know the memory  has been used.
+maybe top relize it when memset the allocated memory by malloc()
+
+*** User limits - limit the use of system-wide resources.
+
+Syntax
+      ulimit [-acdfHlmnpsStuv] [limit]
+
+Options
+
+   -S   Change and report the soft limit associated with a resource. 
+   -H   Change and report the hard limit associated with a resource. 
+
+   -a   All current limits are reported. 
+   -c   The maximum size of core files created. 
+   -d   The maximum size of a process's data segment. 
+   -f   The maximum size of files created by the shell(default option) 
+   -l   The maximum size that may be locked into memory. 
+   -m   The maximum resident set size. 
+   -n   The maximum number of open file descriptors. 
+   -p   The pipe buffer size. 
+   -s   The maximum stack size. 
+   -t   The maximum amount of cpu time in seconds. 
+   -u   The maximum number of processes available to a single user. 
+   -v   The maximum amount of virtual memory available to the process. 
+ulimit -a //chould check all the limits on your system and this is unique to every bash enviroment,
+every tab terminator could be different even for the same user, be aware of this.
+So you should do this everytime before you run the prog
+
+
+** Physical Address Extension
+In computing, Physical Address Extension (PAE) is a feature to allow 32-bit x86 central processing units (CPUs) to access a physical address space (including random access memory and memory mapped devices) larger than 4 gigabytes.
+x86 processor hardware-architecture is augmented with additional address lines used to select the additional memory, so physical address size increases from 32 bits to 36 bits. This increases the physical memory addressable by the system from 4 GB to 64 GB. The 32-bit size of the virtual address is not changed, so regular application software continues to use instructions with 32-bit addresses and (in a flat memory model) is limited to 4 gigabytes of virtual address space. Operating systems supporting this mode use page tables to map the regular 4-GB address space into the physical memory, which depending on the operating system may be as big as 64 GB. The mapping is typically applied separately for each process, so that the extra memory is useful even though no single regular application can access it all simultaneously.

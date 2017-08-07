@@ -1,0 +1,838 @@
+* mplayer使用技巧
+
+<- and ->
+            前后10秒
+split -b 3M *.mp3
+set -x; for i in `ls *mp3`; do mplayer -af channels=2:2:1:0:1:1 "$i" -ao pcm:file=${i%.mp3}.wav;  lame "${i%.mp3}.wav" -o "${i%.mp3}_do.mp3" -b 160; done
+
+mplayer -af channels=2:2:1:0:1:1 xabtest.mp3 -ao pcm
+lame audiodump.wav -o output.mp3 -b 160
+------------------------------------------------
+完全可以啊！編輯這個文件：~/.mplayer/input.conf ，設置這樣的兩行就好了（左右鍵5秒）：
+RIGHT seek +5
+LEFT seek -5
+
+系統默認是10秒：
+RIGHT seek +10
+LEFT seek -10
+
+系統默認的鍵盤控制配置信息好像是在：/etc/mplayer/input.conf
+------------------------------------------------------------------------------
+
+       up and down
+
+            前后1分
+
+       pgup and pgdown
+
+            前后10分
+
+       [ and ]
+
+            增减速度10%
+
+       { and }
+
+            半或双速
+
+       backspace
+
+            速度回正常
+
+       < and >
+
+            播放列表中前或后
+
+       ENTER
+
+            播放列表中前进
+
+       HOME and END
+
+            next/previous playtree entry in the parent list
+
+       INS and DEL (ASX playlist only)
+
+            next/previous alternative source.
+
+       p / SPACE
+
+            暂停
+
+       .
+
+            单步前进
+
+       q / ESC
+
+            退出
+
+       + and -
+
+            声音延时 +/- 0.1秒
+
+       / and *
+
+            增减音量
+
+       9 and 0
+
+            增减音量
+
+       m
+
+            静音
+
+       # (MPEG and Matroska only)
+
+            换音轨
+
+       f
+
+            全屏切换
+
+       T
+
+            切换最上层
+
+       w and e
+
+            增减屏幕幅面
+
+       o
+
+            切换屏幕显示
+
+       d
+
+            切换丢帧模式
+
+       v
+
+            切换字幕显示
+
+       b / j
+
+            切换不同字幕
+
+       y and g
+
+            Step forward/backward in the subtitle list.
+
+       F
+
+            Toggle displaying “forced subtitles”.
+
+       a
+
+            切换字幕位置
+
+       r and t
+
+            字幕上下移动
+
+       S (-vf screenshot only)
+
+           开始/停止抓屏 
+
+       I
+
+            屏幕上显示播放文件名
+
+       ! and @
+
+            前/后一节
+
+ 补充：
+wn 
+
+后退/前进10分钟 
+
+
+
+< 和 > 
+
+在播放列表中前进/后退 
+
+
+
+HOME 和 END 
+
+跳转到上级播放列表中的下一个/上一个播放项 
+
+
+
+INS 和 DEL 
+
+跳转到下一个/上一个供选择的源(仅用于asx播放列表) 
+
+
+
+p / SPACE 
+
+暂停电影(按任意键继续) 
+
+
+
+q / ESC 
+
+停止播放并退出 
+
+
+
++ 和 − 
+
+调整音频延迟+/− 0.1秒 
+
+
+
+/ 和 * 
+
+降低/升高音量 
+
+
+
+9 and 0 
+
+降低/升高音量 
+
+
+
+m 
+
+静音 
+
+
+
+f 
+
+触发全屏 
+
+
+
+w 和 e 
+
+降低/升高panscan范围 
+
+
+
+o 
+
+触发不同OSD状态: 无/搜索/搜索+计时器 
+
+
+
+d 
+
+触发掉帧 
+
+
+
+v 
+
+触发字幕是否可见 
+
+
+
+j 
+
+切换字幕语言 
+
+
+
+a 
+
+切换字幕对齐: 上/中/下 
+
+
+
+z 和 x 
+
+调整字幕延迟+/− 0.1秒 
+
+
+
+r 和 t 
+
+调整字幕位置 
+
+
+
+i 
+
+设置EDL标记 
+
+
+(下列键只对−vo xv或者−vo [vesa|fbdev]:vidix或者−vo xvidix (下列键只能用于使用硬件 加速的视频输出(xv, (x)vidix, (x)mga等等), 或者软件均衡滤镜(-vf eq或者-vf eq2)). 
+
+
+
+1 and 2 
+
+调整对比度 
+
+
+
+3 and 4 
+
+调整亮度 
+
+
+
+5 and 6 
+
+调整色相 
+
+
+
+7 and 8 
+
+调整饱和度 
+
+
+
+GUI键盘控制 
+
+
+
+ENTER 
+
+开始播放 
+
+
+
+s 
+
+停止播放 
+
+
+
+l 
+
+加载文件 
+
+
+
+c 
+
+skin浏览器 
+
+
+
+p 
+
+触发播放列表
+
+
+
+mplayer 播放的声道控制
+
+      左声道：
+
+mplayer -af channels=1:1:1
+
+
+
+右声道：
+
+mplayer -af channels=1:1
+
+
+
+细节：
+
+-af channels=nch[:nr:from1:to1:from2:to2:from3:to3:...] 
+
+  能用于添加, 去除, 路由和拷贝音频声道。如果仅给定 , 默认是用路由(跳接), 其所做工作如下: 如果输出声道数大于输入声道数, 插入空的声道 (除了混音单声道成立体声时, 在两个输出声道中重复此单声道)。如果输出声道数小于输入声道数, 截掉多余的声道。 
+
+  
+
+ 输出声道数 (1-6) 
+
+  
+
+ 路由数 (1-6) 
+
+  
+
+ 0 到 5 对定义各声道的路由。 
+
+ 示例: 
+
+ mplayer -af channels=4:4:0:1:1:0:2:2:3:3 media.avi 
+
+ 改成 4 声道并设置 4 对路由: 交换声道 0 和声道 1, 保留声道 2 和 3 未动。会观察到如果回放媒体含有两个声道, 声道 2 和 3 无声, 但声道 0 和 1 仍要交换。 
+
+ mplayer -af channels=6:4:0:0:0:1:0:2:0:3 media.avi 
+
+ 改成 6 声道并设置 4 对路由: 拷贝声道 0 到声道 0 至 3。声道 4 和 5 无声。
+
+Q: 如何用mplayer录制视频,比如录制在线电影,电视?
+mplayer       mms://202.***.***.***/test.asf     -dumpstream     -dumpfile  MyMovie.asf
+
+可以把mms ,rtsp.http.ftp….等协议的视频流录制下来,保存为 MyMovie.asf文件.
+
+    *
+       Q:如何把mplayer可以播放的文件转化为avi格式?
+
+mencoder yourfile.rm  -ovc copy -oac copy -o testOut.avi
+
+   Q: 如何把所有音视频文件转化为mp3文件?
+mplayer -vo null -ao pcm  music.wmv lame -h audiodump.wav music.mp3
+
+
+
+* mplayer移植和mencoder使用
+
+原创  mplayer移植和mencoder使用 收藏
+
+
+一：mplayer 和 mencoder介绍
+
+    MPlayer
+       是一个电影播放器,它可以在很多系统上运行.它原生支持播放MPEG/VOB,AVI,Ogg/OGM,VIVO,ASF/WMA/WMV,QT/MOV /MP4,RealMedia,Matroska,NUT,NuppelVideo,FLI,YUV4MPEG,FILM,RoQ,PVA文件,也支持 Win32的编码解码器.你可以观看VCD,SVCD,DVD,3ivx,DivX 3/4/5甚至WMV影片.MPlayer是一个开源项目,通过GNUv2授权.这就说明你可以自由的使用和拷贝这个软件.你也可以对软件进行修改,而发布你自己修改后的程序.但是你也必须公布你的源代码.
+
+   mencoder
+   MEncoder(MPlayer's Movie Encoder)是一个简单的电影编码器，设计用来把MPlayer可以播放的电影 (AVI/ASF/OGG/DVD/VCD/VOB/MPG/MOV/VIV/FLI/RM/NUV/NET/PVA)编码成别的MPlayer可以播放的格式。它可以使用各种编解码器进行编码，例如 DivX4(1或2 passes)，libavcodec， PCM/MP3/VBR MP3音频。同时也有强大的插件系统用于控制视频。
+
+二：mplayer 移植（mipsel）
+参考网址：http://blog.csdn.net/twj1710/archive/2006/05/09/715479.aspx
+
+ 1.源码下载
+  svn checkout svn://svn.mplayerhq.hu/mplayer/trunk mplayer
+   下载libavcodec和libavutil,方法
+  svn checkout svn://svn.mplayerhq.hu/ffmpeg/trunk ffmpeg
+    下载的目录中有两个子目录,libavutil和libavcodec,然后把这两个目录拷到Mplayer目录下（很重要，在libavutil和libavcodec有mips子目录）
+
+ 2.在mplayer主目录下新建一个脚本文件build-mips.sh,主要是写configure设置,内容如下:
+#!/bin/sh
+./configure --cc=mipsel-linux-gcc \
+--host-cc=gcc \
+--enable-cross-compile \
+--target=mips-mips-linux \
+--enable-linux-devfs \
+--disable-win32dll \
+--disable-dvdread \
+--enable-fbdev \
+--enable-liba52 \
+--disable-libmpeg2 \
+--disable-ivtv \
+--enable-liba52 \
+--disable-mp3lib \
+--enable-static
+--disable-live 2>&1 | tee logfile
+
+下面部分参考网上的资料.
+--cc=arm-linux-gcc设置交叉编译器
+ 
+--host-cc=gcc是用来编译一些需要在host上执行的中间文件的，如 codec-cfg，切记不能少了或搞错了！网上的《mplayer在ARM9(s3c2410)上的移植》(以下简称《移》文)一文介绍说遇到提示 codec-cfg不能被执行出错时的解决方法是先将codec-cfg编译成i386平台的在再这里停下来时用i386的codec-cfg替代从而使编译继续。通过实验设置了这个参数就不用那么麻烦了，而且整个过程也显得比较幽雅了。
+ 
+--enable-cross-compile ,允许交叉编译,我是看./configure --help中有这个选项,所以就加入了,对编译有没有影响还不是很清楚.
+ 
+--enable-linux-devfs set default devices to devfs ones,configure中是这么解释的,具体的含义还不是很清楚,不过这个跟编译有很大的影响,如果没有加上这个选项,在pxa270平台上不能正常运行程序,不能显示.
+ 
+--target=mips-mips-linux这个参数要注意的是一个分三部分，第一部分的mips是指arch，这里设定为mips；第二部分的 mips是指具体的版本，这个要注意了，一定要跟libavcodec目录下的平台目录名一致，否则为这个平台的优化代码没办法编译进去；第三部分是系统平台。这个主要是用在libavcodec的编译中,libavcodec下面支持很多平台,比如i386,armv4l,ppc,sh,...,你进入 libavcodec的目录下就可以看见这些子目录,里面分别存放跟这些平台相关的优化汇编代码,我们所用的平台是mips.
+ 
+--enable-static是设定静态连接，不需要一堆乱七八糟的动态库，尤其对我们这些新手来说省了很多的麻烦。如果设置了这个参数就不用设置—prefix了，另外也不用执行make install。
+ 
+最后的一个2>&1 | tee logfile意思是将执行的情况在输出到屏幕的同时记录到logfile文件中，在控制台下编译比较有用。
+ 
+剩余的几个参数没什么好介绍的了，记住--disable-mencoder，我们没有加上。因为我们需要mencoder来编码。
+如果不清楚其它的参数的意思自己看configure文件(./configure --help)，里面都有介绍。
+ 
+ 3.cp mplayer mencoder /nfsroot/rootfs/usr/bin 测试运行
+  #mplaye test.avi
+
+
+
+
+3 使用mencoder进行编码
+首先选择一部avi文件，假设文件名为src.avi，启动命令行，运行
+mencoder.exe src.avi -o dst.avi -endpos 60 -oac copy -ovc copy
+他的含义是截取src.avi的前60秒，并且不通过再编码，直接输出为dst.avi。这时候dst.avi应该是src.avi的前60秒的内容。
+这个命令行参数中，有一些需要注意的地方:
+1 src.avi 源文件名是src.avi
+2 -o dst.avi 编码输出的文件名是dst.avi
+3 -endpos 60 在第60秒的地方结束编码，这个位置也可以跟其它的全局参数(任何在mplayer播放时指定的参数，都可以在这个位置给出)
+4 -oac 指定音频编码方式
+5 -ovc 指定视频编码格式
+无论后面的mencoder参数多么复杂，都是由这5个部分组成，这点需要牢记。而通过第3点，可以在编码中延伸出非常多的技巧。
+
+接着,使用更加复杂一些的参数:
+mencoder.exe src.avi -o dst.avi -endpos 60 -oac mp3lame -lameopts vbr=3:br=128 -ovc copy
+他的含义是截取src.avi的前60秒，视频不重新编码，音频使用lame进行重新编码,指定vbr编码方式为abr,比特率为128kbps。
+命令行的参数:
+1 -lameopts 编码的参数
+2 : 各个编码参数使用":"隔开，并列列出
+这一步成功以后，试着对音频不重新编码，对视频重新编码:
+mencoder.exe src.avi -o dst.avi -endpos 60 -vf scale=320:240 -oac copy -ovc xvid -xvidencopts pass=1:bitrate=300
+mencoder.exe src.avi -o dst.avi -endpos 60 -vf scale=320:240 -oac copy -ovc xvid -xvidencopts pass=2:bitrate=300
+和上一个不同的是，在编码前视频被scale成320*240格式，接着使用xvid进行编码，1pass,bitrate为300(1 pass的bitrate选项好像无效?)，接着使用2pass编码一遍
+如果mencoder报错误，首先检查以上的命令行参数是否正确，特别是空格。
+
+通过以上3步，而且都成功的话，那么可以实际试验真正的编码格式了，我目前使用的参数为:
+mencoder.exe src.avi -o dst.avi -noskip -vf scale=320:240 -oac mp3lame -lameopts vbr=3:br=128 -ovc xvid -xvidencopts pass=1:bitrate=300:keyframe_boost=20:trellis:quant_type=h263
+mencoder.exe src.avi -o dst.avi -noskip -vf scale=320:240 -oac mp3lame -lameopts vbr=3:br=128 -ovc xvid -xvidencopts pass=2:bitrate=300:keyframe_boost=20:trellis:quant_type=h263
+无论是电影还是动画，这个参数设置都可以得到非常理想的效果。速度方面，在音频视频都重新编码的情况下，2pass的情况下，在我的C4 2G的机器上，略小于播放时间。我的经验不足，不然2pass中第一遍pass的速度还可以提高。体积方面，一部127分钟的dvd光盘编码后大小为 340M，一部25分钟的动画，编码后结果在76M左右。
+在dell x5(pxa255 300MHZ),使用betaplayer播放，除了偶尔停顿以外，整体相当流畅。
+
+4 一些编码提示
+---对于dvd光盘的转换，源文件的格式为 dvd://1 -dvd-device z:/
+其中z是dvd光驱号.
+---对于源是ac3的音频，往往比较轻，可以在lameopts中指定vol=n(取值0-10)来提高增益(音量)
+--使用-vf scale -zoom -xy 320 可以指定输出视频的宽度为320，由mencoder自行计算合适的高度
+--使用-noskip 禁止编码中跳帧
+--使用-ss 00:30 -endpos 60编码电影中30分钟开始的60秒内容，在编码整部电影之前，可以尝试编码片断以看看效果，并且根据结果调整参数
+--对于采样率为22KHZ的音频，如果转换后的音频存在问题，可以在mencoder参数的第3部分指定-ssrate 44100进行重采样
+--质量优先的情况下，对于源音频不大于128kbps的，建议保留，大于这个值的，重新编码为128kbps
+--质量优先的情况下，建议视频编码不低于250kbps，300kbps可以得到相当满意的结果
+--质量优先的情况下，建议保留原始的fps
+
+
+* video and audio convert
+
+ape ---    mac 编解碼
+
+ mplayer xxx.mp4 -endpos 1:00 -ao pcm:file=/dev/stdout -really-quiet -novideo | oggenc - -o dest.ogg
+mplayer xxx.mp4 -endpos 1:00 -ao pcm -novideo
+create a file named audiodump.wav 
+then use gogo audiodump.wav **.mp3
+
+
+shntool   --- a audio conver tools
+shntool split -f image.cue -t '%n.%t' -o flac image.ape
+-o 'cust ext=mp3 lame --quiet -  %f'  (create  mp3  files  using
+              lame)
+
+for i in `find *.flac`; do convmv -f gbk -t utf8 --notest $i; done
+
+视频编辑 命令 
+http://blog.csdn.net/jixiuffff/archive/2010/07/02/5710182.aspx
+
+mencoder 7m.mts -o movie.avi -ovc lavc -oac copy -lavcopts vcodec=mpeg4:vbitrate=10000 -fps 60 -vf scale=1280:720
+mencoder -ss 00:00:08 -endpos 3 -ovc copy -oac copy movie.avi  -o moviesplit.avi
+
+vbitrate  比特率
+fps   帧率
+scale 分辨率
+
+linux底下的玩家要各个都是高手，对于一样东西啥都不懂，基本搞不定。
+录了很多bb的视频，准备从MTS转换成 avi的。
+
+其实码率就是比特率，是影片编码的大小，单位是 /kbps，
+ 帧数是 fps，是指每秒视频的大小 和 一秒钟视频的帧数多少，般视频帧数都是23.9fps，24fps，30fps， 蓝光等高清晰视频，也有最高60fps的视频，码率 也不尽相同，最高有10M，甚至几十M的码率都有的， 普通视频，基本上都在1M一下 ！
+视频文件一般涉及到三个参数：帧率、分辨率和码率。
+
+　　帧率：每秒显示的图片数
+
+　　分辨率：（矩形）图片的长度和宽度，即图片的尺寸
+
+　　码率：把每秒显示的图片进行压缩后的数据量
+
+　　帧率×分辨率=压缩前的每秒数据量（单位应该是若干个字节）
+
+　　压缩比=压缩前的每秒数据量/码率 
+
+
+mplayer移植和mencoder使用
+
+三：mencoder 使用
+
+mencoder进行操作的常用方法: mencoder infile.* -o outfile.* [-ovc 目标视频格式] [-oac 目标音频格式] [-of 目标文件格式]
+
+-ovc就是你要转换成为什么格式的文件 我们可以使用的参数是:xvid,x264,nuv,raw,lav
+如果你想使用一些高级的格式像Divx等可以用lavc后面跟另外一些参数选项来控制.当然如果你不想转换格式,而只想调整一下文件的大小,或者嵌入字幕,我推荐你使用copy参数.
+
+-oac这个参数说明你要使用的音频格式.通常有mp3lame,faac,toolame,twolame,pcm.同样你如果要用AC3/DTS等格式可以用lavc参数.如不转换就用copy参数.
+
+-of参数说明你的目标文件的容器格式,就是我刚才说道的容器.能够选择的参数有:avi,mpeg,rawvideo,rawaudio 同样也有lavf可以选择.
+
+例子：
+
+1.mencoder -of mpeg -ovc lavc -lavcopts vcodec=mpeg4:vbitrate=500 -oac copy media.avi -o output.mpg
+
+把一个"media.avi"的文件转换成为视频文件dest.avi
+-lavcopts vcodec=mpeg4:vbitrate=500，指定libavcodec的参数，vcodec=mpeg4指使用mpeg4压缩，就是DivX，vbitrate=500指500kbps的比特率。
+
+2.mencoder src.avi -o dst.avi -ofps 10 -vf scale=320:240 -oac copy -ovc lavc -lavcopts vcodec=mpeg4:vbitrate=500
+    # src.avi 原文件
+    # -o dst.avi 定义压缩为dst.avi
+    # -vf scale=320:240，调整视频尺寸到320x240；
+    # -oac copy，指定音频编码器，copy是指不压缩，直接使用源文件里的音频。copy换成 MP3lame，即压缩成mp3。
+    # -ovc lavc，指定视频编码器，使用libavcodec编码器；
+    # -lavcopts vcodec=mpeg4:vbitrate=500，指定libavcodec的参数，vcodec=mpeg4指使用mpeg4压缩，就是DivX，vbitrate=500指500kbps的比特率。
+    ## -ofps 23 设定帧数，缩小帧数对节约文件大小效果不明显    
+
+VIDEO:  [XVID]  640x480  12bpp(12位每像素)  25.000 fps  820.5 kbps (100.2 kbyte/s,码率)
+
+3.
+mencoder "输入文件" -o "输出文件" -of lavf -lavfopts i_certify_that_my_video_stream_does_not_use_b_frames -oac mp3lame -lameopts abr:br=56 -ovc lavc -lavcopts vcodec=flv:vbitrate=100:mbd=2:mv0:trell:v4mv:cbp:last_pred=3:dia=4:cmp=6:vb_strategy=1 -vf scale=512:-3 -ofps 12 -srate 22050
+
+语法说明:
+mencoder "输入文件" -o "输出文件"  
+-of lavf    //参数 -of :输出文件的格式,flv文件是属于lavf格式
+-lavfopts i_certify_that_my_video_stream_does_not_use_b_frames    //lavf格式的参数设置,对于转换flv格式,最好加上这个长句.意思是不用bframes.
+-oac mp3lame   //输出音频编码器,这里用的mp3lame
+-lameopts abr:br=56   //是专门针对mp3lame的参数设置,abr:br=56,是设置音频比特率为56
+
+//视频编码器的设置:
+-ovc lavc //输出视频编码器
+-lavcopts
+vcodec=flv:   //指定视频编码器为flv
+vbitrate=500: //指定视频比特率为500 ,低品质为150kb/s,中等品质为400kb/s,高品质为700kb/s
+mbd=2:        //宏模块选择算法,值为0～2默认为0,值越大转换越缓慢,但在品质和文件大小方面有好处
+mv0:          //编译每个宏模块并选择最好的一个,当mbd=0时无效；
+trell:        //会稍微增加品质,mbd>0时效果更明显；
+v4mv:         //量子化网格搜索,对每8×8block找到最优化编码
+cbp:          //只能和trell一期使用,评估失真的图像块编码；
+last_pred=3: //与上一帧相比的移动数量预测,值为0～99,1～3比较合适,大于3时对品质的提高已经无关紧要,但却会降低速度；
+dia=4:        //移动搜索范围,值为-99～6,对于快速转换,-1是个不错的值,如果不是很重视速度,可以考虑2～4；
+cmp=6:        //值为1～2000,默认为0,设置用于全象素移动预算的比较函数
+vb_strategy=1 //对动作很大的场景会有帮助,对有些视频,设置vmax_b_frames会有损品质,加上vb_strategy=1会好点.
+
+//mencoder的参数
+-vf scale=512:-3   //-vf表示视频格式scale是缩放,512:-3表示强制将宽度设置为512,高度写为-3表示保持高宽比,也可以设置为-1或-2,
+-ofps 12            /*输出视频的帧频,一般,用于flash播放的视频帧频高了没有意义,反而会增加视频文件大小,但如果ofps设置的不合适,
+                           比如源视频帧频不是ofps的整数倍,可能会导致转换后的视频、音频不同步,
+                           似乎可以将这一参数改为-noskip来解决这一问题；*/
+-srate 22050      //音频采样率一般为22050或44100.
+-af channels=2:2:1:0:1:1 //右声道
+-af channels=2:2:0:0:0:1 //左声道
+-stereo 0 //立体声
+-oac mp3lame : //输出音频使用mp3编码
+-lameopts mode=2:cbr:br=32 : //码率br=32 kbit
+-ovc xvid -xvidencopts bitrate=200 : //以xvid方式编码,码率200kbps （经实验,目前divx比xvid要快,在使用vhq功能时会稍稍影响速度）
+-vf scale=480:-3 -sws 9 : //变换至480像素宽,高度按比例缩放
+
+
+--------------------参数选择分析------------------------
+
+18fps:这是以前通过多次测试得来的,一般电视剧和动画片15fps就够用了.如果场景变换不是很大,13fps就能保证播放流畅.降低fps值可以使压缩速度更快,对于电影,特别是动作片,要保证流畅无马赛克,就要提高fps,最大24就够了
+
+选择18fps足以应付大部分,性价比高
+
+从视频提取音频
+mencoder jerr.mkv  -o s.mp3  -ovc copy -oac mp3lame  -of rawaudio  
+ 辑 音频，视频 ，截图 命令
+得rrplayer 生成一系列的图片
+
+mplayer  -vo jpeg girl_song.flv
+
+mplayer  -vo png girl_song.flv
+
+mplayer  -vo gif girl_song.flv
+
+可以加一个-ss 参数表示从第几秒开始截图
+
+mplayer   -ss 55 -vo gif girl_song.flv
+
+mplayer   -ss 00:01:23 -vo gif girl_song.flv   从第一分23秒截
+
+ 按q 键退出
+
+可以输入 mplayer -vo help  查看帮助
+
+example: 将movie.wmv 转成movie.avi 
+mencoder movie.wmv -o movie.avi -ovc lavc -oac lavc
+
+Here's an explanation each option being passed:
+
+    * movie.wmv   原始文件
+
+    * -o <filename>    输出文件 （output ）
+
+    * -ovc <video codec> OVC 输出 后的视频格式 ，ovc :output video ..
+
+    * -oac <audio codec>   输出后的音频格式
+
+或许你会说记不住 lavc 等音频格式，视频格式，你根本不用去记
+
+ 当你的选项中缺少-oac 时它会提示
+
+view plaincopy to clipboardprint?
+
+   1. jixiuf@jf /tmp/d $ mencoder  a.mpg  -o b.avi  
+   2. MEncoder SVN-r29796-4.4.3 (C) 2000-2009 MPlayer Team  
+   3. 成功：格式：0  数据：0x0 - 0xca9800  
+   4. 检测到 MPEG-PS 文件格式。  
+   5. VIDEO:  MPEG1  320x240  (aspect 1)  23.976 fps    0.0 kbps ( 0.0 kbyte/s)  
+   6. [V] 文件格式:2  fourcc:0x10000001  大小:320x240  帧速:23.976  帧时间:=0.0417  
+   7. 没有选择音频编码器（-oac）。请选择一个编码器（参见 -oac help）或者使用 -nosound。  
+   8. 正在退出..  
+
+jixiuf@jf /tmp/d $ mencoder a.mpg -o b.avi MEncoder SVN-r29796-4.4.3 (C) 2000-2009 MPlayer Team 成功：格式：0 数据：0x0 - 0xca9800 检测到 MPEG-PS 文件格式。 VIDEO: MPEG1 320x240 (aspect 1) 23.976 fps 0.0 kbps ( 0.0 kbyte/s) [V] 文件格式:2 fourcc:0x10000001 大小:320x240 帧速:23.976 帧时间:=0.0417 没有选择音频编码器（-oac）。请选择一个编码器（参见 -oac help）或者使用 -nosound。正在退出..
+
+这个时候你只需输入
+
+ mencoder -oac help 就会给出如下提示
+
+view plaincopy to clipboardprint?
+
+   1. jixiuf@jf /tmp/d $ mencoder  -oac help  
+   2. MEncoder SVN-r29796-4.4.3 (C) 2000-2009 MPlayer Team  
+   3. Available codecs:  
+   4.    copy     - frame copy, without re-encoding (useful for AC3)  
+   5.    pcm      - uncompressed PCM audio  
+   6.    mp3lame  - cbr/abr/vbr MP3 using libmp3lame  
+   7.    lavc     - FFmpeg audio encoder (MP2, AC3, ...)  
+   8.    twolame  - Twolame MP2 audio encoder  
+   9.    faac     - FAAC AAC audio encoder  
+  10. copy 表示直接把源视频中的音频部分不经解码直接copy 到新文件   
+  11. mp3lame  :表示mp3 编码音频  
+
+jixiuf@jf /tmp/d $ mencoder -oac help MEncoder SVN-r29796-4.4.3 (C) 2000-2009 MPlayer Team Available codecs: copy - frame copy, without re-encoding (useful for AC3) pcm - uncompressed PCM audio mp3lame - cbr/abr/vbr MP3 using libmp3lame lavc - FFmpeg audio encoder (MP2, AC3, ...) twolame - Twolame MP2 audio encoder faac - FAAC AAC audio encoder copy 表示直接把源视频中的音频部分不经解码直接copy 到新文件 mp3lame :表示mp3 编码音频
+
+
+
+任务1： 延迟视频部分 （对avi文件有效）
+mencoder -delay 0.7 -oac copy -ovc copy input.avi -o output.avi
+解释 ：让视频轨比当前的音频轨落后0.7秒钟
+任务2：  延迟音频部分（对avi文件有效）
+mencoder -oac copy -ovc copy -audio-delay -0.7 input.avi -o output.avi
+
+解释 ：让音频轨比当前的视频轨落后0.7秒钟
+
+
+
+任务3： 切割视频轨
+mencoder -ss 00:00:10 -endpos 60 -ovc copy -oac copy input.avi -o output.avi
+
+解释 ：切割视频部分，从0分10秒开始，到1分10秒，时间长度为60秒。将结果存储为output.avi 
+
+
+
+任务4：  连接两段视频 （必须比特率相同）
+mencoder -oac copy -ovc copy -idx -o output.avi input1.avi input2.avi
+
+解释 ：
+
+
+
+任务5：  将一系列静止图像和一个mp3文件转换为AVI视频文件
+mencoder "mf://snap*.bmp" -mf fps=25 -oac mp3lame -lameopts abr:br=128:mode=3 -audiofile test.mp3 -ovc lavc -lavcopts vcodec=msmpeg4v2:vpass=1:vbitrate=2560000:mbd=2:keyint=132:vqblur=1.0:cmp=2:subcmp=2:dia=2:mv0:last_pred=3 -o leadnull
+
+mencoder "mf://snap*.bmp" -mf fps=25 -oac mp3lame -lameopts abr:br=128:mode=3 -audiofile test.mp3 -ovc lavc -lavcopts vcodec=msmpeg4v2:vpass=2:vbitrate=2560000:mbd=2:keyint=132:vqblur=1.0:cmp=2:subcmp=2:dia=2:mv0:last_pred=3 -o lead.avi
+
+解释 ：mono=3 代表单声道音频输出， mono=0 代表立体声音频输出。上面使用的视频编码是微软的msmpeg4，因此这个AVI文件可以直接在Windows media player中播放，不需要另外安装插件。 上面两条命令，表示两遍压缩。 为提高速度，也可以只实用第一条做单次压缩。输出视频的fps为25。
+
+
+
+任务6：  切割 mp3音频文件
+
+mplayer -ss 00:01:59 -endpos 102.5 input.mp3 -ao pcm
+
+sox audiodump.wav result1.wav fade t 3
+
+sox result1.wav result2.wav fade t 0 102.5 3.5
+
+lame result2.wav -o fighting.mp3 -b 160
+
+解释 ：这个过程由四条命令组成。 上面的例子中，
+第一步：切割部分为 1分59秒开始，到3分41.5秒结束，长度102.5秒。用户需自己计算切割部分，设定上述参数。 
+第二步：用sox对音频开头3秒钟做一个淡入效果（声音逐渐增强）
+第三步：用sox对音频结束3.5秒钟做一个淡出效果（声音逐渐衰减）
+第四步：将lame处理好的音频重新编码成160kbps的mp3文件
+
+其中，第二、第三步是可以省略的。 
+
+
+mplayer -af channels=2:2:1:0:1:1 xabtest.mp3 -ao pcm
+任务7：  将wma 文件转换为mp3文件
+
+mplayer input.wma -ao pcm
+
+lame audiodump.wav -o output.mp3 -b 160
+
+解释 ：一共两条命令。第一条将wma转化为wav文件，第二条再将wav转换为mp3文件，比特率为160kbps. 
+
+
+
+任务8：  将一系列图像文件转换为flv视频文件
+
+mencoder  "mf://snap*.bmp" -mf fps=25 -audiofile test.mp3 -o output.flv   -af resample=22050:0:0 -sws 9 -vf scale=448:-3,expand=448:336 -of lavf -ovc lavc -lavcopts vcodec=flv:vbitrate=260:mbd=2:mv0:trell:v4mv:cbp:last_pred=3:predia=2:dia=2:vb_strategy=1:precmp=2:cmp=2:subcmp=2:preme=2:vpass=1
+
+mencoder  "mf://snap*.bmp" -mf fps=25 -o output.flv -audiofile test.mp3  -af resample=22050:0:0 -sws 9 -vf scale=448:-3,expand=448:336 -of lavf -ovc lavc -lavcopts vcodec=flv:vbitrate=260:mbd=2:mv0:trell:v4mv:cbp:last_pred=3:predia=2:dia=2:vb_strategy=1:precmp=2:cmp=2:subcmp=2:preme=2:qns=2:vpass=2
+
+解释 ：两遍压缩，将一系列snap001.bmp, snap002.bmp, ...图像和一个mp3文件"test.mp3"转换成fps=25的录像。音频采样率设定为22050，视频画面大小为448x336, 视频的比特率为260kbps。 
+如果你希望更改视频中的keyframe, 你可以在第一条命令执行后，手动编辑一个divx2pass.log文件。文件中"Type:1"表示关键帧keyframe (或者叫i frame), "Type:2"表示p-frame,就是只记录相邻帧变化部分的帧。 
+
+
+
+任务9：  将一系列图像文件转换为ogg视频文件
+
+ffmpeg2theora -f image2 snap%05d.bmp -V 320 -o output.ogg
+
+解释 ：ogg录像还是有点用的，wikipedia, wikimeida都在用。上面的视频比特率为320kbps
+
+
+
+任务10：  将一系列图像转化为与NTSC DVD兼容的mpeg2格式文件。 
+
+来源：(http://blog.sina.com.cn/s/blog_648dbb7c0100h69j.html ) - 15条常用的视频音频编辑脚本命令（mencoder/ffmpeg等)_再会阿休肯_新浪博客
+mencoder -oac lavc -ovc lavc -of mpeg -mpegopts format=dvd:tsaf -vf scale=720:480,harddup -srate 48000 -af lavcresample=48000 -lavcopts vcodec=mpeg2video:vpass=1:vrc_buf_size=1835:vrc_maxrate=9800:vbitrate=5000:keyint=18:vstrict=0:acodec=ac3:abitrate=192:aspect=16/9 -ofps 30000/1001 -o ntscdvd.mpg "mf://snap*.bmp" -mf fps=25 -audiofile test.mp3
+
+mencoder -oac lavc -ovc lavc -of mpeg -mpegopts format=dvd:tsaf -vf scale=720:480,harddup -srate 48000 -af lavcresample=48000 -lavcopts vcodec=mpeg2video:vpass=2:vrc_buf_size=1835:vrc_maxrate=9800:vbitrate=5000:keyint=18:vstrict=0:acodec=ac3:abitrate=192:aspect=16/9 -ofps 30000/1001 -o ntscdvd.mpg "mf://snap*.bmp" -mf fps=25 -audiofile test.mp3
+
+解释 ：两遍压缩，输入图像帧率为25fps, 输出帧率为29.97fps,视频编码mpeg2, 音频编码192kbps ac3.  
+
+
+
+任务11：  将一系列图像文件转换为与PAL DVD兼容的mpeg2格式视频文件
+
+mencoder -oac lavc -ovc lavc -of mpeg -mpegopts format=dvd:tsaf -vf scale=720:576,harddup -srate 48000 -af lavcresample=48000 -lavcopts vcodec=mpeg2video:vpass=1:vrc_buf_size=1835:vrc_maxrate=9800:vbitrate=5000:keyint=15:vstrict=0:acodec=ac3:abitrate=192:aspect=16/9 -ofps 25 -o paldvd.mpg "mf://snap*.bmp" -mf fps=25 -audiofile test.mp3
+
+mencoder -oac lavc -ovc lavc -of mpeg -mpegopts format=dvd:tsaf -vf scale=720:576,harddup -srate 48000 -af lavcresample=48000 -lavcopts vcodec=mpeg2video:vpass=2:vrc_buf_size=1835:vrc_maxrate=9800:vbitrate=5000:keyint=15:vstrict=0:acodec=ac3:abitrate=192:aspect=16/9 -ofps 25 -o paldvd.mpg "mf://snap*.bmp" -mf fps=25 -audiofile test.mp3
+
+解释 ：两遍压缩，输入为snap001.jpg, snap002.jpg... 和test.mp3,图像系列的fps为25， 输出视频文件的fps为25. 视频编码为mpeg2, 音频编码为192kbps ac3. 
+
+
+
+任务12：  将视频文件转换为一系列图像
+用ffmpeg命令如下
+
+ffmpeg -i test.avi snap%05d.bmp
+
+也可以用mplayer完成同样功能
+
+mplayer video.avi -vo png -ss 00:00:10 -endpos 5.0 -vf crop=480:360:80:60
+
+解释 ：这里mplayer的例子中，还提供了额外的切割选择功能。切割的部分从0分10秒开始，到0分15秒结束，长达5秒。同时画面也被切割，切割的位置从坐标(80,60)开始，宽度480像素，高度360像素。这里坐标系以屏幕左上角为(0,0). 
+
+
+
+任务13：  将 midi文件转换为mp3文件
+
+timidity input.mid -Ow
+
+lame -b 160 -h -k input.wav output.mp3
+
+解释 ：第一条命令使用timidity将midi转换为wav文件，第二条命令用lame将wav转换为160kbps mp3文件。 
+timidity配置和安装还是比较麻烦的。还需要额外安装高品质的sf2声音字体文件，配置sf2文件也异常容易出错。总体效果还可以接受。但无法使用目前流行的vst，因此可能会被慢慢淘汰掉。 
+
+
+
+任务14：  将一系列图像转换为swf格式的flash文件（需要perl) 
+
+flv2swf  input.flv  output.swf
+
+解释 ：有时候可能用swf来保存视频比flv更方便。如果图像数量不多的话，可以采用swftools来进行转换 
+如果图像数量很多的话，首先我们用任务8 中的命令将图像转换为一个flv文件。然后我们可以用adobe的各种软件很轻松的将flv录像加入一个flash项目里，最后输出为swf. 如果你熟悉perl的话，也可以用一个perl脚本将flv文件转换成swf. CPAN(Perl公共模块库）有一个FLV::info的模块，安装后就可以使用flv2swf命令了。
+
+
+
+
+任务15：  将 mp3文件转换为wma文件
+
+mplayer input.mp3 -ao pcm
+
+ffmpeg -i audiodump.wav -acodec wmav2 -ab 128000 test.wma1
+
+解释 ：偶尔也需要这个功能的。第一步，将mp3文件转换为wav文件，第二步用ffmpeg将wav文件转换为wma. 
+
+gll@ubuntu:~/Videos$ mencoder 7months00001.MTS -o movie4.avi -ovc lavc -oac copy -lavcopts vcodec=mpeg4:vbitrate=15000 -fps 60 -vf scale=1920:1080 -quie
+
+http://wiki.ubuntu.com.cn/Convert_MTS_M2TS_AVCHD_to_AVI/zh
+
+
+mplayer -ao pcm:file=dd.wav CDImage.ape
+lame -h -b 192 test.wav test.mp3

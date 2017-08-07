@@ -1,0 +1,1986 @@
+* makefile Rule Syntax
+
+In general, a rule looks like this:
+
+     targets : prerequisites
+             recipe
+             ...
+
+** Syntax of Static Pattern Rules
+-------------------
+TARGETS ...: TARGET-PATTERN: PREREQ-PATTERNS ...
+	RECIPE
+	...(more RECIPE)
+--------------
+ Each target specified must match the target pattern; a warning is
+issued for each target that does not.  If you have a list of files,
+only some of which will match the pattern, you can use the `filter'
+function to remove nonmatching file names (*note Functions for String
+Substitution and Analysis: Text Functions.):
+-----------------------
+     files = foo.elc bar.o lose.o
+
+     $(filter %.o,$(files)): %.o: %.c
+             $(CC) -c $(CFLAGS) $< -o $@
+     $(filter %.elc,$(files)): %.elc: %.el
+             emacs -f batch-byte-compile $<
+-------------------------------------------
+In this example the result of `$(filter %.o,$(files))' is `bar.o
+lose.o', and the first static pattern rule causes each of these object
+files to be updated by compiling the corresponding C source file.  The
+result of `$(filter %.elc,$(files))' is `foo.elc', so that file is made
+from `foo.el'.
+
+
+** Syntax of imlicit rule 
+similar to this 
+%.o:%.c
+	recepie...
+this is totally different from this static pattern rule
+a.o b.o :%.o : %.c
+//a.o and b.o are specified here, but %.o means any files with suffix .o
+there are two kinds of implict rules: built-in and defined in makefile by yourself
+makefile
+----------
+FEXE: t.o
+	cp $^ $@
+##this is a static  rule
+%.c:%.asn
+	cp $^ $@
+##this is a implicit rule
+----------
+ls
+t.asn
+make -p
+---------------------------------------
+t.o: t.c
+#  Implicit rule search has been done.
+#  Implicit/static pattern stem: `t'
+#  Last modified 2013-09-10 15:43:53
+#  File has been updated.
+#  Successfully updated.
+#  recipe to execute (built-in):
+        $(COMPILE.c) $(OUTPUT_OPTION) $<
+--------------------------------------------
+the rule of t.o:t.c hasn't been defined in makefile itself, but the built-in implict rule will be applied.
+
+makefile2
+----------
+FEXE: t.o
+	cp $^ $@
+##this is a static  rule
+%o: %c
+#no rule specified
+%.c:%.asn
+	cp $^ $@
+##this is a implicit rule
+----------
+make:  No rule to make target t.o, needed by FEXE, Stop.
+
+***  Canceling Implicit Rules
+You can override a built-in implicit rule (or one you have defined yourself) by defining a new pattern rule with the same target and prerequisites, but a different recipe. When the new rule is defined, the built-in one is replaced. The new rule's position in the sequence of implicit rules is determined by where you write the new rule.
+
+You can cancel a built-in implicit rule by defining a pattern rule with the same target and prerequisites, but no recipe. For example, the following would cancel the rule that runs the assembler:
+
+     %.o : %.s
+
+*** pattern match
+This algorithm results in more specific rules being preferred over more generic ones; for example:
+
+     %.o: %.c
+             $(CC) -c $(CFLAGS) $(CPPFLAGS) $< -o $@
+     
+     %.o : %.f
+             $(COMPILE.F) $(OUTPUT_OPTION) $<
+     
+     lib/%.o: lib/%.c
+             $(CC) -fPIC -c $(CFLAGS) $(CPPFLAGS) $< -o $@
+Given these rules and asked to build bar.o where both bar.c and bar.f exist, make will choose the first rule and compile bar.c into bar.o. In the same situation where bar.c does not exist, then make will choose the second rule and compile bar.f into bar.o.
+
+If make is asked to build lib/bar.o and both lib/bar.c and lib/bar.f exist, then the third rule will be chosen since the stem for this rule (‘bar’) is shorter than the stem for the first rule (‘lib/bar’). If lib/bar.c does not exist then the third rule is not eligible and the second rule will be used, even though the stem is longer.
+
+
+
+
+** Rules without recipes or prerequisites 
+if the target is a nonexistent file
+make will imagine the target to have been updated every time, this imply that the target which depends
+on this one will be run its recepie every time
+*** Rules without prerequisites and recipe
+------------------
+clean: FORCE
+	rm *.o
+FORCE: 
+# this is a rule without prerequisites
+------------------
+make clean will be updated every time cause clean depend on FORCE, and FORCE is condsidered updated everytime since FORCE is a nonexistent file
+
+*** Rules without prerequisites but has recipe Phony Targets
+this is basically a Phony Targets, a name of a recipe
+------------------
+clean:	
+	rm *.o
+-----------------
+when remaking, make clean will be executed since it's not exist(the recipe won't created it)
+but if happend there a file named clean, the make clean won't execute it's recipe when remaking
+
+.PHONY: clean
+this means  even if clean file exists, it should be updated every time make run
+
+
+** chains of Implicit Rules
+a file can be made by a sequence of implicit rules.
+makefile3
+----------
+FEXE: t.o
+	cp $^ $@
+##this is a static  rule
+%o: %c
+	cp $^ %@
+#no rule specified
+%.c:%.asn
+	cp $^ $@
+##this is a implicit rule
+----------
+Implicit Rules chain here is 
+%o: %c
+%c: %.asn
+
+
+** chains of explicit Rules
+mak1:
+===============
+all: zz
+        echo "this is all rule"
+	zz: bbb
+	        cp bbb zz
+==================
+
+mak2:
+================
+Aliaszz= zz
+all: zz
+        echo "this is all rule"
+Aliaszz: bbb
+        cp bbb zz
+
+==============
+
+mak1 and mak2 are not the same,
+the chains rule for mak1 is  all:zz:bbb
+the  rule for mak2 is
+all:zz  
+Aliaszz:bbb
+
+thogh zz and Aliaszz are the same "zz"
+but in the database of mak2, no such depency chain
+  
+
+
+** intermediate files
+if t.c is not exsit and not mentioned in static rule(either as a target or a prerequisites) t.c will be a intermediate file
+As makefil3 described, no mention t.c in makefile 
+if makefile4
+--------------
+FEXE: t.o
+	cp $^ $@
+t.o: t.c
+	cp $^ %@
+#static rule for t.c
+%.c:%.asn
+	cp $^ $@
+--------------
+
+or makefile5
+--------------
+FEXE: t.o
+	cp $^ $@
+%.o: %.c
+	cp $^ %@
+#static rule for t.c
+t.c:t.asn
+	cp $^ $@
+#
+--------------
+in makefile5 and makefile4 t.c couldn't be an intermediate file 
+
+**** specific rule for intermediate files
+Intermediate files are remade using their rules just like all other files. But intermediate files are treated differently in two ways.
+
+1.The first difference is what happens if the intermediate file does not exist. If an ordinary file b does not exist, and make considers a target that depends on b, it invariably creates b and then updates the target from b. But if b is an intermediate file, then make can leave well enough alone. It won't bother updating b, or the ultimate target, unless some prerequisite of b is newer than that target or there is some other reason to update that target.
+
+2.The second difference is that if make does create b in order to update something else, it deletes b later on after it is no longer needed. Therefore, an intermediate file which did not exist before make also does not exist after make. make reports the deletion to you by printing a ‘rm -f’ command showing which file it is deleting.
+
+*** specify a file to be intermediate or not
+1:Ordinarily, a file cannot be intermediate if it is mentioned in the makefile as a target or prerequisite. However, you can explicitly mark a file as intermediate by listing it as a prerequisite of the special target .INTERMEDIATE. This takes effect even if the file is mentioned explicitly in some other way.
+
+2:You can prevent automatic deletion of an intermediate file by marking it as a secondary file. To do this, list it as a prerequisite of the special target .SECONDARY. When a file is secondary, make will not create the file merely because it does not already exist, but make does not automatically delete the file. Marking a file as secondary also marks it as intermediate.
+
+refer more details:
+http://www.gnu.org/software/make/manual/html_node/Chained-Rules.html
+
+** automatic variable
+$@
+    表示规则中的目标文件集。在模式规则中，如果有多个目标，那么，"$@"就是匹配于目标中模式定义的集合。
+
+$%
+    仅当目标是函数库文件中，表示规则中的目标成员名。例如，如果一个目标是"foo.a(bar.o)"，那么，"$%"就是"bar.o"，"$@"就是"foo.a"。如果目标不是函数库文件（Unix下是[.a]，Windows下是[.lib]），那么，其值为空。
+
+$<
+    依赖目标中的第一个目标名字。如果依赖目标是以模式（即"%"）定义的，那么"$<"将是符合模式的一系列的文件集。注意，其是一个一个取出来的。
+
+$?
+    所有比目标新的依赖目标的集合。以空格分隔。
+
+$^
+    所有的依赖目标的集合。以空格分隔。如果在依赖目标中有多个重复的，那个这个变量会去除重复的依赖目标，只保留一份。
+
+$+
+    这个变量很像"$^"，也是所有依赖目标的集合。只是它不去除重复的依赖目标。
+
+$* 
+   这个变量表示目标模式中"%"及其之前的部分。如果目标是"dir/a.foo.b"，并且目标的模式是"a.%.b"，那么，"$*"的值就是"dir/a.foo"。这个变量对于构造有关联的文件名是比较有较。如果目标中没有模式的定义，那么"$*"也就不能被推导出，但是，如果目标文件的后缀是make所识别的，那么"$*"就是除了后缀的那一部分。例如：如果目标是"foo.c"，因为".c"是make所能识别的后缀名，所以，"$*"的值就是"foo"。这个特性是GNU make的，很有可能不兼容于其它版本的make，所以，你应该尽量避免使用"$*"，除非是在隐含规则或是静态模式中。如果目标中的后缀是make所不能识别的，那么"$*"就是空值。
+
+
+** multiple depencies for only on target
+TARGET: TARGET_PATTERN : DEPEND
+	RULE
+eg.
+a.o b.o c.c: %.o: %.c
+	gcc -c %.o %.c
+it means that TARGET .o depend on .c
+why so much target, why include c.c?
+for sometimes target could be a variable contains too many info need to be filtered
+$(GENERATED_O); $(TARGET_DIR)/%$(OBJ_SUFFIX) : $(GEN_DIR)/%.c
+	$(CC) $(COMPILE_AS)$@ -c $<
+% means stem 
+
+
+
+
+** simplest makefile
+*** example
+=====================================
+CC=g++
+CFLAGS=-g 
+OBJECTS   =  CShape.o \
+             CWObjec.o \
+             main.o
+TARGET = factory
+all: $(TARGET)
+
+$(TARGET):  $(OBJECTS)  
+	$(CC) -o $(TARGET) $(OBJECTS) 
+####这是链接步骤，还是用g++,把所有o文件都链接起来就ok了
+%.o: %.cpp 
+	$(CC) -c $(CFLAGS)  $< -o $@ 
+##隐含规则的使用，所有.o依赖于.cpp
+clean: $(OBJECTS) $(TARGET)
+       rm -rf $(OBJECTS) $(TARGET)
+=====================================
+这里几乎适用当前目录下的所有文件编译，唯一需要的是更新OBJECTS列表
+lily@willow:~/libtest/createbystring$ ls
+CShape.cpp  CShape.h  CWObjec.cpp  CWObjec.h  factory  log  main.cpp  mm
+###########文件列表
+lily@willow:~/libtest/createbystring$ ls *.cpp |sed 's/cpp/o \\/'
+CShape.o \
+CWObjec.o \
+main.o \
+####得出object列表
+lily@willow:~/libtest/createbystring$ make 
+g++ -c -g   CShape.cpp -o CShape.o 
+g++ -c -g   CWObjec.cpp -o CWObjec.o 
+g++ -c -g   main.cpp -o main.o 
+g++ -o factory CShape.o CWObjec.o main.o 
+lily@willow:~/libtest/createbystring$ make clean
+rm -rf CShape.o CWObjec.o main.o factory
+
+##########################################
+makefile to print the goal and target
+######################################
+
+
+
+* implicit default target
+==============================================
+The implicit default target of the makefile
+===============================================
+if you use make [-f Makefile]
+then which is the target?
+that's a question.
+that's the first target defined in the Makefile but not including .PHONY target.
+And if the Makefile include some other makefiles firstly, then the target maybe defined firstly in the other make files.
+this is a general rule.
+
+
+makefile
+=====================================
+CC=g++
+CFLAGS=-g 
+OBJECTS   =  CShape.o \
+             CWObjec.o \
+             main.o
+TARGET = factory
+all: $(TARGET)
+
+$(TARGET):  $(OBJECTS)  
+	$(CC) -o $(TARGET) $(OBJECTS) 
+%.o: %.cpp 
+	$(CC) -c $(CFLAGS)  $< -o $@ 
+clean: $(OBJECTS) $(TARGET)
+       rm -rf $(OBJECTS) $(TARGET)
+=====================================
+
+"make -f makefile all" equal to "make -f makefile" here, for all is the first defined target in the makefile.
+
+
+** first defined target will be the default target in the included makefile
+./Makefile:
+-------------------------------------------
+include test/Makefile
+first_targ: one_depend
+	@echo "command for this first target" 
+--------------------------------------------
+./test/Makefile
+---------------------------------------------
+second_targ: the_second
+	@echo "command for this second target"
+
+---------------------------------------------
+
+this make system composed of two makefiles will be equal to this one:
+./Makefile:
+---------
+second_targ: the_second
+	@echo "command for this second target"
+
+first_targ: one_depend
+	@echo "command for this first  target" 
+------------
+when using command  "make" without any target to designated, there will be: 
+command for this second target
+
+
+
+** the override target receipes/rule in different  makefile
+when two makefiels have the same target, and one makefile include another one, then what happend?
+from beginning to the end, when there is a include makefile, it will be expanded 
+So if the definition in both files exsits and conflicts, the newer one will override
+the older one.
+===========
+[admin1@TeamCI-136 mtest]$ ls
+cc1  cc2  cc3  mak1  mak2  m.mak  tc
+[admin1@TeamCI-136 mtest]$ cc1 cc2 cc3 are touched files.
+[admin1@TeamCI-136 mtest]$ ls
+cc1  cc2  cc3  mak1  mak2  m.mak  tc
+
+[admin1@TeamCI-136 mtest]$ cat m.mak
+include mak1
+TCH= aa
+
+include mak2
+
+[admin1@TeamCI-136 mtest]$ cat mak1
+.PHONY: all
+all: cc3
+        echo "thi is firstt"
+[admin1@TeamCI-136 mtest]$ cat mak2
+.PHONY: all
+all: cc1 cc2
+        echo "thi is second"
+[admin1@TeamCI-136 mtest]$
+
+
+[admin1@TeamCI-136 mtest]$ make -f m.mak --debug=implicit -p  -C . 2>&1|tee tc
+we can see dependency exists, cc1, cc2 and cc3 are all exists,dependencies not be overided but command is overrided. 
+
+output
+-------------------
+Reading makefiles...
+# make: Entering directory `/home/admin1/TestToolInstallations/ttcn3/glili/zz/mtest'
+mak2:3: warning: overriding commands for target `all'
+mak1:3: warning: ignoring old commands for target `all'
+Updating goal targets....
+ File `all' does not exist.
+
+all: cc1 cc2 cc3
+## thou
+#  Phony target (prerequisite of .PHONY).
+#  Implicit rule search has not been done.
+#  Implicit/static pattern stem: `'
+#  File does not exist.
+#  File has been updated.
+#  Successfully updated.
+# Load=8/32=25%, Rehash=0, Collisions=1/10=10%
+#  commands to execute (from `mak2', line 3):
+        echo "thi is second"
+===========
+
+so, the same target in different makefile, the dependencies will be added together and the rule will be overrided by the last read/updated
+from the makefile
+
+
+** avoid override of the same target's rule/receipe
+Particularly when working with includes, you might want make to run the commands of any rule with a certain target name. For this to work, you just need to duplicate the colon:
+
+[admin1@TeamCI-136 mtest]$ cat mak1
+.PHONY: all
+all:: cc3
+        echo "thi is firstt"
+[admin1@TeamCI-136 mtest]$ cat mak2
+.PHONY: all
+all:: cc1 cc2
+        echo "thi is second"
+[admin1@TeamCI-136 mtest]$
+
+[admin1@TeamCI-136 mtest]$ ls
+cc1  cc2  cc3  mak1  mak2  m.mak  tc
+[admin1@TeamCI-136 mtest]$ cc1 cc2 cc3 are touched files.
+[admin1@TeamCI-136 mtest]$ ls
+cc1  cc2  cc3  mak1  mak2  m.mak  tc
+
+[admin1@TeamCI-136 mtest]$ cat m.mak
+include mak1
+TCH= aa
+
+include mak2
+
+
+It will work as expected:
+------------------------
+[admin1@TeamCI-136 mtest]$ make -f m.mak
+echo "thi is firstt"
+thi is firstt
+echo "thi is second"
+thi is second
+[admin1@TeamCI-136 mtest]$
+----------------------------------
+
+[admin1@TeamCI-136 mtest]$ make -f m.mak --debug=implicit -p  -C . 2>&1|tee tc
+we can see dependency exists, cc1, cc2 and cc3 are all exists,dependencies not be overided but command is overrided. 
+
+output
+-------------------
+Reading makefiles...
+# make: Entering directory `/home/admin1/TestToolInstallations/ttcn3/glili/zz/mtest'
+mak2:3: warning: overriding commands for target `all'
+mak1:3: warning: ignoring old commands for target `all'
+Updating goal targets....
+ File `all' does not exist.
+
+all::  cc3
+#  phony target (prerequisite of .phony).
+#  implicit rule search has not been done.
+#  implicit/static pattern stem: `'
+#  file does not exist.
+#  file has been updated.
+#  commands to execute (from `mak2', line 3):
+        echo "thi is first"
+
+	
+all::  cc1 cc2
+#  phony target (prerequisite of .phony).
+#  implicit rule search has not been done.
+#  implicit/static pattern stem: `'
+#  file does not exist.
+#  file has been updated.
+#  commands to execute (from `mak2', line 3):
+        echo "thi is second"
+
+===========
+
+
+** .PHONY usage
+the target in makefile could be a file or not(just a symbol) 
+the default rule of makefile to deduce if the traget need bo be made, is if the target file exsits, 
+(make will treat every target as a file)
+----------------------------------
+Reading makefile `nonstdsctp.mak'...
+Updating goal targets....
+Considering target file `clobber'.
+ File `clobber' does not exist.
+ Finished prerequisites of target file `clobber'.
+Must remake target `clobber'.
+---------------------------------
+In some complicate make system, the top makefile would be like this:
+
+
+the indent of the log is meaningful, one target analyzing to end
+from "Considering target file xxx"
+to   "Finished prerequsites of target file xx"
+------------
+Considering target file `factory'.
+  Considering target file `main.o'.
+    Considering target file `main.c'.
+     Finished prerequisites of target file `main.c'.
+    No need to remake target `main.c'.
+   Finished prerequisites of target file `main.o'.
+   Prerequisite `main.c' is older than target `main.o'. ##dep of target is older than target, noneed remake. the condition is that main.o exists, if main.o not exists, the comparision will not be done.
+  No need to remake target `main.o'.
+  Considering target file `dum.o'.
+    Considering target file `dum.c'.
+     Finished prerequisites of target file `dum.c'.
+    No need to remake target `dum.c'.
+   Finished prerequisites of target file `dum.o'.
+   Prerequisite `dum.c' is older than target `dum.o'.
+  No need to remake target `dum.o'.
+ Finished prerequisites of target file `factory'.
+ Prerequisite `main.o' is older than target `factory'.
+ Prerequisite `dum.o' is older than target `factory'.
+No need to remake target `factory'.
+
+-------------
+*** example
+[admin1@TeamCI-136 mtest]$ cat mak3
+all: exefile
+        echo "all is up"
+exefile:
+        echo "make -C other files"
+        touch exefile
+#####here exefile is a real file which will be generated
+
+n1@TeamCI-136 mtest]$ ls
+cc1  cc2  cc3  mak1  mak2  mak3  m.mak  tc  zz
+[admin1@TeamCI-136 mtest]$ make -f mak3
+echo "make -C other files"
+make -C other files
+touch exefile
+echo "all is up"
+all is up
+[admin1@TeamCI-136 mtest]$ ls
+cc1  cc2  cc3  exefile  mak1  mak2  mak3  m.mak  tc  zz
+
+## when exefile is generated, make mak3 again, the rule of exefile won't be executed, for no timestmap to compare with for all and exefile
+[admin1@TeamCI-136 mtest]$ make -f mak3
+echo "all is up"
+all is up
+
+## this will make exefile no get updated every time.
+[admin1@TeamCI-136 mtest]$ cat mak3
+.PHONY: exefile
+## add exefile as a .PHONY, then exefile will be updated everytime
+all: exefile
+        echo "all is up"
+exefile:
+        echo "make -C other files"
+        touch exefile
+
+[admin1@TeamCI-136 mtest]$ ls
+cc1  cc2  cc3  exefile  mak1  mak2  mak3  m.mak  tc  zz
+[admin1@TeamCI-136 mtest]$
+[admin1@TeamCI-136 mtest]$ make -f mak3
+echo "make -C other files"
+make -C other files
+touch exefile
+echo "all is up"
+all is up
+
+
+
+** get the var value in Makefile
+*** make -p |grep var_name
+*** through the var.mak to get 
+make -f Makefile -f var.mak var_name
+var.mak
+%:
+	echo "$*=$($*)"
+*** the var can be passed throught the command line as argument of make
+eg. make var_name=dddd  -f Makefile
+if var_name is defined, the value will be covered by ddd
+*** make -p -f /dev/null
+To print the data base without trying to remake any files, use
+            make -p -f/dev/null.
+
+
+** makefile command argument(pass the variable define in the command line for make var)
+a makefile variable definition could in make file or a eviroment variable,
+Makfile1
+--------------------------
+ifndef VAR_Name
+VAR_Name=2
+endif
+----------------------------------
+Makfile2
+--------------------------
+#ifndef VAR_Name  //comment out this ifndef
+VAR_Name=2
+#endif
+----------------------
+
+make -f Makfile1 VAR_Name=1 
+--> VAR_Name=1
+make -f Makfile1
+--> VAR_Name=2
+
+make -f Makfile2 VAR_Name=1 
+--> VAR_Name=1
+make -f Makfile2
+--> VAR_Name=2
+
+
+ifndef TAUTESTER_DIR
+TAUTESTER_DIR           = /tools/tautester2.0
+endif
+if this TAUTESTER_DIR has been export in env, this will pass
+
+$export ENV_VAR=9
+$make
+ENV_VAR=9   //if no ENV_VAR defined in makefile
+ENV_VAR=10   //if  ENV_VAR=10 defined in makefile
+
+$make ENV_VAR=11 
+with evn |grep ENV_VAR
+ENV_VAR=9   // ENV_VAR defined in  env
+ENV_VAR=10   //if  ENV_VAR=10 defined in makefile
+ENV_VAR=11   //the result should be in parameter as a make command(this is the newest set after the var defined in mak and enviroment export is the oldest
+
+
+the macro in makefile is different from C macro,
+in c code *.c
+------------------------
+#ifndef MARCRO_NAME
+.........
+#endif
+----------------
+this will be controled by gcc -DMARCRO_NAME -g ..... -o *.o *.c
+
+
+===================================
+
+
+
+
+
+* make debug option
+there are some option for us to understand how make work:
+-p print the database
+-d print the dependecy analasis process
+
+** -d option 
+ -d is The --debug Option
+When you need to know how make analyzes your dependency graph, use the --debug
+option. This provides the most detailed information available other than by running
+a debugger. There are five debugging options and one modifier: basic, verbose,
+OPTIONS are:
+implicit, jobs, all, and makefile, respectively.
+If the debugging option is specified as --debug, basic debugging is used. If the debugging option is given as -d, all is used. To select other combinations of options, use a
+comma separated list --debug=option1,option2 where the option can be one of the
+following words (actually, make looks only at the first letter):
+basic
+Basic debugging is the least detailed. When enabled, make prints each target that
+is found to be out-of-date and the status of the update action. Sample output
+
+*** basic option
+[liguo@localhost test_makesys]$ make --debug
+GNU Make 3.80
+Copyright (C) 2002  Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.
+There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE.
+Reading makefiles...
+Updating goal targets....
+ File `all' does not exist.
+     File `CShape.o' does not exist.
+    Must remake target `CShape.o'.
+g++ -g   -c -o CShape.o CShape.c
+    Successfully remade target file `CShape.o'.
+     File `main.o' does not exist.
+    Must remake target `main.o'.
+g++ -g   -c -o main.o main.c
+    Successfully remade target file `main.o'.
+   Prerequisite `CShape.o' is newer than target `factory'.
+   Prerequisite `main.o' is newer than target `factory'.
+  Must remake target `factory'.
+g++ -o factory CShape.o main.o
+generate o objects is: factory
+  Successfully remade target file `factory'.
+Must remake target `all'.
+the  all target
+Successfully remade target file `all'.
+[liguo@localhost test_makesys]$
+
+
+
+############
+*** verbose option
+This option sets the basic option and includes additional information about
+which files where parsed, prerequisites that did not need to be rebuilt, etc.:
+If you want to get the clear dependency track, it is useful
+------------------------------------------------------
+[liguo@localhost test_makesys]$ make --debug=verbose
+GNU Make 3.80
+Copyright (C) 2002  Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.
+There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE.
+Reading makefiles...
+Reading makefile `Makefile'...
+Updating goal targets....
+Considering target file `all'.
+ File `all' does not exist.
+  Considering target file `factory'.
+    Considering target file `CShape.o'.
+     File `CShape.o' does not exist.
+      Considering target file `CShape.c'.
+       Finished prerequisites of target file `CShape.c'.
+      No need to remake target `CShape.c'.
+     Finished prerequisites of target file `CShape.o'.
+    Must remake target `CShape.o'.
+g++ -g   -c -o CShape.o CShape.c
+    Successfully remade target file `CShape.o'.
+    Considering target file `main.o'.
+     File `main.o' does not exist.
+      Considering target file `main.c'.
+       Finished prerequisites of target file `main.c'.
+      No need to remake target `main.c'.
+     Finished prerequisites of target file `main.o'.
+    Must remake target `main.o'.
+g++ -g   -c -o main.o main.c
+    Successfully remade target file `main.o'.
+   Finished prerequisites of target file `factory'.
+   Prerequisite `CShape.o' is newer than target `factory'.
+   Prerequisite `main.o' is newer than target `factory'.
+  Must remake target `factory'.
+g++ -o factory CShape.o main.o
+++++++++
+generate o objects is: factory
+  Successfully remade target file `factory'.
+ Finished prerequisites of target file `all'.
+Must remake target `all'.
+++++++++
+the  all target
+Successfully remade target file `all'.
+
+------------------------------------------------------
+
+*** implicit option
+This option sets the basic option and includes additional information about
+implicit rule searches for each target:
+----------------------------------
+[liguo@localhost test_makesys]$ make --debug=implicit -f Makefile
+GNU Make 3.80
+Copyright (C) 2002  Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.
+There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE.
+Reading makefiles...
+Updating goal targets....
+ File `all' does not exist.
+     File `CShape.o' does not exist.
+     Looking for an implicit rule for `CShape.o'.
+     Trying pattern rule with stem `CShape'.
+     Trying implicit prerequisite `CShape.c'.
+     Found an implicit rule for `CShape.o'.                 #### the rule %.o:  %.c
+       Looking for an implicit rule for `CShape.c'.
+       Trying pattern rule with stem `CShape'.
+       Trying implicit prerequisite `CShape.y'.
+       Trying pattern rule with stem `CShape'.
+       Trying implicit prerequisite `CShape.l'.
+       Trying pattern rule with stem `CShape'.
+       Trying implicit prerequisite `CShape.w'.
+       Trying pattern rule with stem `CShape'.
+       Trying implicit prerequisite `CShape.w'.
+       Trying pattern rule with stem `CShape.c'.
+       Trying implicit prerequisite `CShape.c,v'.
+       Trying pattern rule with stem `CShape.c'.
+       Trying implicit prerequisite `RCS/CShape.c,v'.
+       Trying pattern rule with stem `CShape.c'.
+       Trying implicit prerequisite `RCS/CShape.c'.
+       Trying pattern rule with stem `CShape.c'.
+       Trying implicit prerequisite `s.CShape.c'.
+       Trying pattern rule with stem `CShape.c'.
+       Trying implicit prerequisite `SCCS/s.CShape.c'.
+       Trying pattern rule with stem `CShape'.
+       Trying implicit prerequisite `CShape.y'.
+       Looking for a rule with intermediate file `CShape.y'.
+        Avoiding implicit rule recursion.
+        Trying pattern rule with stem `CShape.y'.
+        Trying implicit prerequisite `CShape.y,v'.
+        Trying pattern rule with stem `CShape.y'.
+        Trying implicit prerequisite `RCS/CShape.y,v'.
+        Trying pattern rule with stem `CShape.y'.
+        Trying implicit prerequisite `RCS/CShape.y'.
+        Trying pattern rule with stem `CShape.y'.
+        Trying implicit prerequisite `s.CShape.y'.
+        Trying pattern rule with stem `CShape.y'.
+        Trying implicit prerequisite `SCCS/s.CShape.y'.
+       Trying pattern rule with stem `CShape'.
+       Trying implicit prerequisite `CShape.l'.
+       Looking for a rule with intermediate file `CShape.l'.
+        Avoiding implicit rule recursion.
+        Trying pattern rule with stem `CShape.l'.
+        Trying implicit prerequisite `CShape.l,v'.
+        Trying pattern rule with stem `CShape.l'.
+        Trying implicit prerequisite `RCS/CShape.l,v'.
+        Trying pattern rule with stem `CShape.l'.
+        Trying implicit prerequisite `RCS/CShape.l'.
+        Trying pattern rule with stem `CShape.l'.
+        Trying implicit prerequisite `s.CShape.l'.
+        Trying pattern rule with stem `CShape.l'.
+        Trying implicit prerequisite `SCCS/s.CShape.l'.
+       Trying pattern rule with stem `CShape'.
+       Trying implicit prerequisite `CShape.w'.
+       Looking for a rule with intermediate file `CShape.w'.
+        Avoiding implicit rule recursion.
+        Trying pattern rule with stem `CShape.w'.
+        Trying implicit prerequisite `CShape.w,v'.
+        Trying pattern rule with stem `CShape.w'.
+        Trying implicit prerequisite `RCS/CShape.w,v'.
+        Trying pattern rule with stem `CShape.w'.
+        Trying implicit prerequisite `RCS/CShape.w'.
+        Trying pattern rule with stem `CShape.w'.
+        Trying implicit prerequisite `s.CShape.w'.
+        Trying pattern rule with stem `CShape.w'.
+        Trying implicit prerequisite `SCCS/s.CShape.w'.
+       Trying pattern rule with stem `CShape'.
+       Rejecting impossible implicit prerequisite `CShape.w'.
+       No implicit rule found for `CShape.c'.    ###no target of %.c:, so rewind to last dependency %.o:%.c target
+    Must remake target `CShape.o'.
+g++ -g   -c -o CShape.o CShape.c
+    Successfully remade target file `CShape.o'.
+     File `main.o' does not exist.
+     Looking for an implicit rule for `main.o'.
+     Trying pattern rule with stem `main'.
+     Trying implicit prerequisite `main.c'.
+     Found an implicit rule for `main.o'.
+       Looking for an implicit rule for `main.c'.
+       Trying pattern rule with stem `main'.
+       Trying implicit prerequisite `main.y'.
+       Trying pattern rule with stem `main'.
+       Trying implicit prerequisite `main.l'.
+       Trying pattern rule with stem `main'.
+       Trying implicit prerequisite `main.w'.
+       Trying pattern rule with stem `main'.
+       Trying implicit prerequisite `main.w'.
+       Trying pattern rule with stem `main.c'.
+       Trying implicit prerequisite `main.c,v'.
+       Trying pattern rule with stem `main.c'.
+       Trying implicit prerequisite `RCS/main.c,v'.
+       Trying pattern rule with stem `main.c'.
+       Trying implicit prerequisite `RCS/main.c'.
+       Trying pattern rule with stem `main.c'.
+       Trying implicit prerequisite `s.main.c'.
+       Trying pattern rule with stem `main.c'.
+       Trying implicit prerequisite `SCCS/s.main.c'.
+       Trying pattern rule with stem `main'.
+       Trying implicit prerequisite `main.y'.
+       Looking for a rule with intermediate file `main.y'.
+        Avoiding implicit rule recursion.
+        Trying pattern rule with stem `main.y'.
+        Trying implicit prerequisite `main.y,v'.
+        Trying pattern rule with stem `main.y'.
+        Trying implicit prerequisite `RCS/main.y,v'.
+        Trying pattern rule with stem `main.y'.
+        Trying implicit prerequisite `RCS/main.y'.
+        Trying pattern rule with stem `main.y'.
+        Trying implicit prerequisite `s.main.y'.
+        Trying pattern rule with stem `main.y'.
+        Trying implicit prerequisite `SCCS/s.main.y'.
+       Trying pattern rule with stem `main'.
+       Trying implicit prerequisite `main.l'.
+       Looking for a rule with intermediate file `main.l'.
+        Avoiding implicit rule recursion.
+        Trying pattern rule with stem `main.l'.
+        Trying implicit prerequisite `main.l,v'.
+        Trying pattern rule with stem `main.l'.
+        Trying implicit prerequisite `RCS/main.l,v'.
+        Trying pattern rule with stem `main.l'.
+        Trying implicit prerequisite `RCS/main.l'.
+        Trying pattern rule with stem `main.l'.
+        Trying implicit prerequisite `s.main.l'.
+        Trying pattern rule with stem `main.l'.
+        Trying implicit prerequisite `SCCS/s.main.l'.
+       Trying pattern rule with stem `main'.
+       Trying implicit prerequisite `main.w'.
+       Looking for a rule with intermediate file `main.w'.
+        Avoiding implicit rule recursion.
+        Trying pattern rule with stem `main.w'.
+        Trying implicit prerequisite `main.w,v'.
+        Trying pattern rule with stem `main.w'.
+        Trying implicit prerequisite `RCS/main.w,v'.
+        Trying pattern rule with stem `main.w'.
+        Trying implicit prerequisite `RCS/main.w'.
+        Trying pattern rule with stem `main.w'.
+        Trying implicit prerequisite `s.main.w'.
+        Trying pattern rule with stem `main.w'.
+        Trying implicit prerequisite `SCCS/s.main.w'.
+       Trying pattern rule with stem `main'.
+       Rejecting impossible implicit prerequisite `main.w'.
+       No implicit rule found for `main.c'.
+    Must remake target `main.o'.
+g++ -g   -c -o main.o main.c
+    Successfully remade target file `main.o'.
+   Prerequisite `CShape.o' is newer than target `factory'.
+   Prerequisite `main.o' is newer than target `factory'.
+  Must remake target `factory'.
+g++ -o factory CShape.o main.o
+++++++++
+generate o objects is: factory
+  Successfully remade target file `factory'.
+Must remake target `all'.
+++++++++
+the  all target
+Successfully remade target file `all'.
+
+------------------------------------
+there are too many built-in implicit rules, we could avoid it using make -r --debug=implict
+
+
+*** jobs option
+This options prints the details of subprocesses invoked by make. It does not
+enable the basic option.
+Got a SIGCHLD; 1 unreaped children.
+gcc ... ../mp3_player/app/player/play_mp3.c
+Putting child 0x10033800 (app/player/play_mp3.o) PID 576 on the chain.
+Live child 0x10033800 (app/player/play_mp3.o) PID 576
+Got a SIGCHLD; 1 unreaped children.
+Reaping winning child 0x10033800 PID 576
+Removing child 0x10033800 PID 576 from chain.
+
+*** all option
+This enables all the previous options and is the default when using the -d option.
+
+makefile
+Normally, debugging information is not enabled until after the makefiles have
+been updated. This includes updating any included files, such as lists of dependencies. When you use this modifier, make will print the selected information
+,ch12.8053  Page 235  Friday, March 25, 2005  2:55 PMThis is the Title of the Book, eMatter Edition
+Copyright © 2005 O’Reilly & Associates, Inc. All rights reserved.
+236 | Chapter 12: Debugging Makefiles
+while rebuilding makefiles and include files. This option enables the basic
+option and is also enabled by the all option
+----------------------------------------
+
+
+
+** query and print option
+  make -qp  (make system statically analyze)
+ make -qp | awk -F':' '/^[a-zA-Z0-9][^$#\/\t=]*:([^=]|$)/ {split($1,A,/ /);for(i in A)print A[i]}'
+###this command will get all the targets
+factory
+all
+main.c
+CShape.o
+Makefile
+CShape.c
+clean
+main.o
+
+----------------------
+there's some problem in previous solution
+Several responders have suggested using make -pn, which will print the database of rules but not execute anything -- more or less. The problem with this approach is that -n does still invoke all recursive makes, and it does still do a lot more work than necessary, because it prints out every command that it would have invoked in a regular build. A more efficient solution would be to create a trivial makefile, dummy.mk, with these contents:
+
+__all_targets__: ; #no-op
+Now invoke make as make -p -f Makefile -f dummy.mk __all_targets__. On any substantial build, the difference in the amount of output generated by make is significant. For example:
+
+$ gmake -pn | wc
+ 138985 2632330 69612711
+$ gmake -f Makefile -f /tmp/dummy.mk -pn __all_targets__ | wc
+  21673   93437  878985
+
+
+ make -qp
+this will print the variable and rules,targets , including defines(the whole database) in Makefile and makesystem
+To extiguish them it use (from <makefile name>, line <num>):
+
++++++++++++
+clean:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  commands to execute (from `Makefile', line 18):
+        @echo "++++++++"
+        echo "enter into clean process"
+        rm *.o
+        @echo "++++++++"
+        @echo "how you feel"
+
++++++++++
+#implicit rules
+%.o: %.c
+#  commands to execute (built-in):
+        $(COMPILE.c) $(OUTPUT_OPTION) $<
++++++++++++++++
+
+
+
+
+
+
+* parallel make
+When writing a makefile for parallel execution, attention to proper prerequisites is even more important. As mentioned previously, when �jobs is 1, a list of prerequisites will usually be evaluated from left to right. When �jobs is greater than 1, these prerequisites may be evaluated in parallel. Therefore, any dependency relationship that was implicitly handled by the default left to right evaluation order must be made explicit when run in parallel.
+
+** intermediate files
+Another hazard of parallel make is the problem of shared intermediate files. For example, if a directory contains both foo.y and bar.y, running yacc twice in parallel could result in one of them getting the other's instance of y.tab.c or y.tab.h or both moved into its own .c or .h file. You face a similar hazard with any procedure that stores temporary information in a scratch file that has a fixed name.
+Another common idiom that hinders parallel execution is invoking a recursive make from a shell for loop:
+dir:
+        for d in $(SUBDIRS); do  \
+          $(MAKE) --directory=$$d; \
+	  echo $$d; \
+        done
+
+As mentioned in Section 6.1 in Chapter 6, make cannot execute these recursive invocations in parallel. To achieve parallel execution, declare the directories .PHONY and make them targets:
+
+.PHONY: $(SUBDIRS)
+$(SUBDIRS):
+        $(MAKE) --directory=$@
+------------------------------------------------------------------
+Makefile
+all:
+	@$(MAKE) -C partA
+	@$(MAKE) -C partB
+	@$(MAKE) -C partC
+ 
+
+partA/Makefile, partB/Makefile, partC/Makefile
+all: j1 j2 j3 
+
+j1 j2 j3:
+	sleep 3
+
+###############
+Makefile1
+.PHONY: partA partB partC
+
+all: partA partB partC
+
+partA partB partC:
+	@$(MAKE) -C $@
+---------------------------------------------------------------------
+[liguo@walnut test-para]$ time make -f Makefile -j4
+make[1]: Entering directory `/home/liguo/test_makesys/test-para/partA'
+sleep 3
+sleep 3
+sleep 3
+make[1]: Leaving directory `/home/liguo/test_makesys/test-para/partA'
+make[1]: Entering directory `/home/liguo/test_makesys/test-para/partB'
+sleep 3
+sleep 3
+sleep 3
+make[1]: Leaving directory `/home/liguo/test_makesys/test-para/partB'
+make[1]: Entering directory `/home/liguo/test_makesys/test-para/partC'
+sleep 3
+sleep 3
+sleep 3
+make[1]: Leaving directory `/home/liguo/test_makesys/test-para/partC'
+
+real    0m9.178s
+user    0m0.025s
+sys     0m0.040s
+
+[liguo@walnut test-para]$ time make -j4 -f Makefile2
+make[1]: Entering directory `/home/liguo/test_makesys/test-para/partA'
+sleep 3
+sleep 3
+make[1]: Entering directory `/home/liguo/test_makesys/test-para/partB'
+sleep 3
+make[1]: Entering directory `/home/liguo/test_makesys/test-para/partC'
+sleep 3
+sleep 3
+sleep 3
+sleep 3
+sleep 3
+make[1]: Leaving directory `/home/liguo/test_makesys/test-para/partA'
+sleep 3
+make[1]: Leaving directory `/home/liguo/test_makesys/test-para/partB'
+make[1]: Leaving directory `/home/liguo/test_makesys/test-para/partC'
+
+real    0m9.099s
+user    0m0.024s
+sys     0m0.037s
+----------------------------------------------------------------------
+
+
+
+
+
+
+===================================================================
+the object of the makefile
+the object could be a file it will exist or not ever.
+for example, all, false_t is a false target, means a tag not a file in the below.
+
+0. target is a file, depncy is nothing
+-----------------------------------
+file:
+        echo "nothing to depend on!"
+
+--------------------------
+[liguo@walnut tesobj]$ rm file
+[liguo@walnut tesobj]$ make --debug=verbose file
+GNU Make 3.80
+Copyright (C) 2002  Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.
+There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE.
+Reading makefiles...
+Reading makefile `Makefile'...
+Updating goal targets....
+Considering target file `file'.
+ File `file' does not exist.
+ Finished prerequisites of target file `file'.
+Must remake target `file'.
+echo "nothing to depend on!"
+nothing to depend on!
+Successfully remade target file `file'.
+[liguo@walnut tesobj]$ touch file
+[liguo@walnut tesobj]$ make --debug=verbose file
+GNU Make 3.80
+Copyright (C) 2002  Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.
+There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE.
+Reading makefiles...
+Reading makefile `Makefile'...
+Updating goal targets....
+Considering target file `file'.
+ Finished prerequisites of target file `file'.
+No need to remake target `file'.
+make: `file' is up to date.
+[liguo@walnut tesobj]$
+
+---------------------------
+1. target is tag, depency is a file
+all: symb_file
+        echo "Something to depend on!!"
+        touch symb_file
+
+##here all is always older than the file_exsit since no file named all.
+
+2. target is file, dependency is a tag
+---------------------
+file_exsit: false_t
+        echo "false target depend on"
+
+false_t:
+        echo "do something for false target"
+        touch file_exsit
+
+---------------------
+[liguo@walnut tesobj]$ make file_exsit
+echo "do something for false target"
+do something for false target
+touch file_exsit
+echo "false target depend on"
+false target depend on
+[liguo@walnut tesobj]$
+
+[liguo@walnut tesobj]$ make --debug=verbose file_exsit
+GNU Make 3.80
+Copyright (C) 2002  Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.
+There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE.
+Reading makefiles...
+Reading makefile `Makefile'...
+Updating goal targets....
+Considering target file `file_exsit'.
+  Considering target file `false_t'.
+   File `false_t' does not exist.
+   Finished prerequisites of target file `false_t'.
+  Must remake target `false_t'.
+echo "do something for false target"
+do something for false target
+touch file_exsit
+  Successfully remade target file `false_t'.
+ Finished prerequisites of target file `file_exsit'.
+ Prerequisite `false_t' of target `file_exsit' does not exist.
+Must remake target `file_exsit'.
+echo "false target depend on"
+false target depend on
+Successfully remade target file `file_exsit'.
+------------------------------------------
+
+3. target is a file, dependency is a file
+------------------------------------
+file_1: file_2
+        echo "file to file"
+        cp file_2 file_1
+
+-------------------------------------------
+[liguo@walnut tesobj]$ touch file_2
+[liguo@walnut tesobj]$ fg
+vim Makefile
+
+[1]+  Stopped                 vim Makefile
+[liguo@walnut tesobj]$ make  --debug=verbose file_1
+GNU Make 3.80
+Copyright (C) 2002  Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.
+There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE.
+Reading makefiles...
+Reading makefile `Makefile'...
+Updating goal targets....
+Considering target file `file_1'.
+ File `file_1' does not exist.
+  Considering target file `file_2'.
+   Finished prerequisites of target file `file_2'.
+  No need to remake target `file_2'.
+ Finished prerequisites of target file `file_1'.
+Must remake target `file_1'.
+echo "file to file"
+file to file
+cp file_2 file_1
+Successfully remade target file `file_1'.
+[liguo@walnut tesobj]$ make  --debug=verbose file_1
+GNU Make 3.80
+Copyright (C) 2002  Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.
+There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE.
+Reading makefiles...
+Reading makefile `Makefile'...
+Updating goal targets....
+Considering target file `file_1'.
+  Considering target file `file_2'.
+   Finished prerequisites of target file `file_2'.
+  No need to remake target `file_2'.
+ Finished prerequisites of target file `file_1'.
+ Prerequisite `file_2' is older than target `file_1'.
+No need to remake target `file_1'.
+make: `file_1' is up to date.
+[liguo@walnut tesobj]$
+---------------------------------------------------
+To summary, the rule for tag(either target or depndency) is always being executed everytime. (since no files to compare the older nor newer)
+
+**  makefile dependency file
+*** generate dependncy file
+in order to make adding make with multiple jobs effect, we must define the dependency files. if only c file, it's very useful to use option MM or M to get the dependency files.
+gcc的-M选项和-MM选项列出foo.c对其它文件的依赖关系的结果，从结果你可以看出它们会列出foo.c中直接或是间接包含的头>文件。-MM选项与-M选项的区别是，-MM选项并不列出对于系统头文件的依赖关系，比如stdio.h就属于系统头文件。其道理是，
+绝大多数情况我们并不会改变系统的头文件，而只会对自己项目的头文件进行更改。
+gcc还有一个非常有用的选项是-E，这个命令告诉gcc只做预处理，而不进行程序编译，在生成依赖关系时，其实我们并不需要gcc去编译，只要进行预处理就行了。这可以避免在生成依赖关系时出现没有必要的warning，以及提高依赖关系的生成效率。
+
+# gcc -M foo.c
+foo.o: foo.c /usr/include/stdio.h /usr/include/features.h \
+/usr/include/sys/cdefs.h /usr/include/bits/wordsize.h \
+/usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h \
+/usr/lib/gcc/i486-linux-gnu/4.2.3/include/stddef.h \
+/usr/include/bits/types.h /usr/include/bits/typesizes.h \
+/usr/include/libio.h /usr/include/_G_config.h /usr/include/wchar.h \
+/usr/lib/gcc/i486-linux-gnu/4.2.3/include/stdarg.h \
+/usr/include/bits/stdio_lim.h /usr/include/bits/sys_errlist.h foo.h \
+define.h other.h
+
+
+# gcc -MM -E foo.c
+foo.o: foo.c foo.h define.h other.h
+
+
+# gcc -MM foo.c | sed 's,\(.*\)\.o[ :]*,objs/\1.o: ,g'
+objs/foo.o: foo.c foo.h define.h other.h
+
+*** put dependency files into makefile 
+
+由于make在处理Makefile的include命令时，发现找不到test.dep，所以出错了。如何理解这一错误呢?从这一错误我们可知，make对于include的处理是先于all目标的构建的，这样的话，由于依赖文件是在构建all目标时才创建的，所以很自然make在处>理include指令时，是找不到依赖文件的。我们说第一次make的确没有依赖文件，所以include出错也是正常的，那能不能让make忽略这一错误呢?可以的，在Makefile中，如果在include前加上一个'-'号，当make处理这一包含指示时，如果文件不存在就>会忽略这一错误。除此之外，需要对于Makefile中的include有更为深入的了解。当make看到include指令时，会先找一下有没>有这个文件，如果有则读入。接着，make还会看一看对于包含进来的文件，在Makefile中是否存在规则来更新它。如果存在，>则运行规则去更新需被包含进来的文件，当更新完了之后再将其包含进来。
+
+01 .PHONY: all
+02
+03 RM =rm
+04 CC = gcc
+05 RMFLAGS = -fr
+06
+07 SRC = $(wildcard *.c)
+08 OBJ = $(patsubst %.c,%.o,$(SRC))
+09 DEP = $(patsubst %.c,%.dep,$(SRC))
+10
+11 -include $(DEP)
+12
+13 all:
+14     @echo "just test"
+15
+16 $(DEP): $(SRC)
+17     @echo "Making $@ ..."
+18     @set -e ; \^M
+19     $(RM) $(RMFLAGS) $@.tmp ; \
+20     $(CC) -E -MM $(filter %.c, $^) > $@.tmp ; \
+21     sed 's,\(.*\)\.o[ :]*,objs/\1.o $@: ,g' < $@.tmp > $@ ; \
+22     $(RM) $(RMFLAGS) $@.tmp
+
+
+# make all
+Making test.dep ...
+just test
+
+* makefile pass parameter
+** makefile variable value
+makefile:
+--------------
+TARGET = factory
+ifdef AA
+CFLAGS+=-i
+AA=7
+#export AA=9
+endif
+include test/Makefile
+.PHONY: clean all myown
+        @echo "++++++++"
+        @echo "the mytar target"
+ts:
+        echo "AA is $(AA)"
+------------------------------
+make AA=11 ts
+------------
+[liguo@walnut test_makesys]$ make ts
+echo "AA is "
+AA is
+[liguo@walnut test_makesys]$ make  AA=11 ts
+echo "AA is 11"
+AA is 11
+-------
+
+//make file bug when remake(some intermediate files exsits,not clean up, there's some requisites problem
+testcase : Makefile2
+--------------------
+all: FEXE
+FEXE: t.o
+	cp t.o FEXE
+t.o: t.c
+	cp t.c t.o
+t.c: phony_gen
+phony_gen:
+	sleep 3
+	touch t.c
+-----------------------
+if we use make -f Makfile2 j1 
+//there will be no problem
+----------------
+sleep 3
+touch t.c
+cp t.c t.o
+cp t.o FEXE
+-------------
+let FEXE t.o t.c exists
+make -f Makefile2 j4
+------------
+sleep 3
+touch t.c
+------------
+Obviously t.c is newer than FEXE after this. So FEXE is not updated due to
+paralleling process of Make
+
+
+//make-3.82 bug fixing
+remake.c
+694
+deps_changed =0;
+for (d=file->deps; d!=0; d=d->next)
+ {
+-   FILE_TIMESTAMP d_mtime =file_mtime(d->file);
++   FILE_TIMESTAMP d_mtime =f_mtime(d->file,1);
+}
+
+
+** an example
+Makefile
+--------
+all: FEXE
+FEXE: t.o c.o
+	cat to. c.o > FEXE
+t.o: t.c
+	cat t.c > t.o
+c.o: c.c
+	cat c.c > c.o
+-------------
+Normally this is perfect, the output is FEXE and the input is file t.c and c.c
+
+Makefile
+--------
+all: FEXE
+FEXE: t.o c.o
+	cat to. c.o > FEXE
+t.o: t.c
+	sleep 10 && cat t.c > t.o
+c.o: c.c
+	sleep 7 && cat c.c > c.o
+t.c: t.ttcn
+	sleep 5 && cat t.ttcn >t.c
+c.c: c.ttcn
+	sleep 3 && cat c.ttcn >c.c
+-------------
+here the input is ttcn files. all the rules are simulated and sleep is how much time  fro executing that rule.
+but in reality from ttcn to c file is not created individually for each,it will resolve all
+Makefile
+--------
+all: FEXE
+FEXE: t.o c.o
+	cat to. c.o > FEXE
+t.o: t.c
+	sleep 10 && cat t.c > t.o
+c.o: c.c
+	sleep 7 && cat c.c > c.o
+%.c: %.ttcn
+	sleep 20 && t3cg %.ttcn   
+#this means 
+#t.c :t.ttcn
+#	tc3g t.ttcn > t.c 
+#c.c :c.ttcn
+#	tc3g c.ttcn > c.c 
+-------------
+t3cg not work this way, t3cg t.ttcn c.ttcn  ...> t.c c.c, it won't generated files
+individually, it will generate them all in all
+Makefile3 
+------------------
+all: FEXE
+FEXE: t.o c.o
+	cat to. c.o > FEXE
+t.o: t.c
+	sleep 10 && cat t.c > t.o
+c.o: c.c
+	sleep 7 && cat c.c > c.o
+t.c c.c: pon_gen
+pon_gen:
+#	t3cg t.ttcn c.ttcn  ...> t.c c.c
+	sleep 15 && cat t.tt >t.c && cat c.tt>c.c  # for simulation acting of t3cg
+------------------------------------
+this makefile would lead to some problem, when remake with the previous buliding intermideate files.
+first make
+touch t.tt
+ls -l t.*
+----------
+15:34 t.c
+15:34 t.o
+15:36 t.tt
+----------
+time make -j3 -f Makefile3 --debug=verbose >ddlj3
+15s
+so we can see job1 and job2 are running simutanaously15s
+
+cat ddlj3
+====
+
+GNU Make 3.81
+Copyright (C) 2006  Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.
+There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE.
+
+This program built for i486-pc-linux-gnu
+Reading makefiles...
+Reading makefile `Makefile3'...
+Updating goal targets....
+#############job 1
+Considering target file `all'.
+ File `all' does not exist.
+  Considering target file `FEXE'.
+    Considering target file `t.o'.
+      Considering target file `t.c'.
+        Considering target file `pon_gen'.
+          Considering target file `t.tt'.
+           Finished prerequisites of target file `t.tt'.
+          No need to remake target `t.tt'.
+          Considering target file `c.tt'.
+           Finished prerequisites of target file `c.tt'.
+          No need to remake target `c.tt'.
+         Finished prerequisites of target file `pon_gen'.
+         Prerequisite `t.tt' is newer than target `pon_gen'.
+         Prerequisite `c.tt' is older than target `pon_gen'.
+        Must remake target `pon_gen'.
+sleep 15 && cat t.tt >t.c && cat c.tt>c.c 
+        Commands of `pon_gen' are being run.
+       Finished prerequisites of target file `t.c'.
+      The prerequisites of `t.c' are being made.
+      Pruning file `pon_gen'.
+     Finished prerequisites of target file `t.o'.
+    The prerequisites of `t.o' are being made.
+    Considering target file `c.o'.
+      Considering target file `c.c'.
+        Pruning file `pon_gen'.
+       Finished prerequisites of target file `c.c'.
+      The prerequisites of `c.c' are being made.
+     Finished prerequisites of target file `c.o'.
+    The prerequisites of `c.o' are being made.
+   Finished prerequisites of target file `FEXE'.
+  The prerequisites of `FEXE' are being made.
+ Finished prerequisites of target file `all'.
+The prerequisites of `all' are being made.
+########## job2 job1 and job2 are running simutanously
+Considering target file `all'.
+ File `all' does not exist.
+  Considering target file `FEXE'.
+    Considering target file `t.o'.
+      Considering target file `t.c'.
+        Considering target file `pon_gen'.
+        File `pon_gen' was considered already.
+       Finished prerequisites of target file `t.c'.
+       Prerequisite `pon_gen' is older than target `t.c'.
+      No commands for `t.c' and no prerequisites actually changed.
+######### this will make job2 not waiting for t.c be newly created
+      No need to remake target `t.c'.
+      Pruning file `pon_gen'.
+     Finished prerequisites of target file `t.o'.
+     Prerequisite `t.c' is older than target `t.o'.
+     Prerequisite `pon_gen' is older than target `t.o'.
+######### compare the timestamp of the old t.c file, for t.c has not been created.
+    No need to remake target `t.o'.
+    Considering target file `c.o'.
+      Considering target file `c.c'.
+        Pruning file `pon_gen'.
+       Finished prerequisites of target file `c.c'.
+       Prerequisite `pon_gen' is older than target `c.c'.
+      No commands for `c.c' and no prerequisites actually changed.
+      No need to remake target `c.c'.
+     Finished prerequisites of target file `c.o'.
+     Prerequisite `c.c' is older than target `c.o'.
+    No need to remake target `c.o'.
+   Finished prerequisites of target file `FEXE'.
+   Prerequisite `t.o' is older than target `FEXE'.
+   Prerequisite `c.o' is older than target `FEXE'.
+  No need to remake target `FEXE'.
+ Finished prerequisites of target file `all'.
+Must remake target `all'.
+--------
+
+
+Makefile4
+------------------
+all: FEXE
+FEXE: t.o c.o
+	cat to. c.o > FEXE
+t.o: t.c
+	sleep 10 && cat t.c > t.o
+c.o: c.c
+	sleep 7 && cat c.c > c.o
+pon_gen:
+	sleep 15 && cat t.tt >t.c && cat c.tt>c.c  # for simulation acting of t3cg
+------------------------------------
+
+make -f Makefile4 pon_gen
+make -f -j3 Makefile4 all
+this will solve the problem when using -jn .
+
+
+** makefile打印特定的变量名
+
+http://blogread.cn/it/article.php?id=3353
+
+  对于Makefile中的各种变量，可能是我们比较头痛的事了。我们要查看他们并不是很方便，需要修改makefile加入echo命令>。这有时候很不方便。其实我们可以制作下面一个专门用来输出变量的makefile(假设名字叫：vars.mk)
+
+%:
+        @echo \'$*=$($*)\'
+
+d-%:
+        @echo \'$*=$($*)\'
+        @echo \'  origin = $(origin $*)\'
+        @echo \'   value = $(value  $*)\'
+        @echo \'  flavor = $(flavor $*)\'
+
+    这样一来，我们可以使用make命令的-f参数来查看makefile中的相关变量(包括make的内建变量，比如：COMPILE.c或MAKE_VERSION之类的)。注意：第二个以“d-”为前缀的目标可以用来打印关于这个变量更为详细的东西(后面有详细说明)
+
+
+
+    假设我们的makefile是这个样子(test.mk)
+
+OBJDIR := objdir
+OBJS := $(addprefix $(OBJDIR)/,foo.o bar.o baz.o)
+
+foo = $(bar)bar = $(ugh)ugh = Huh?
+
+CFLAGS = $(include_dirs) -O
+include_dirs = -Ifoo -Ibar
+CFLAGS := $(CFLAGS) -Wall
+
+MYOBJ := a.o b.o c.o
+MYSRC := $(MYOBJ:.o=.c)
+
+    那么，我们可以这样进行调试：
+[hchen@RHELSVR5]$ make -f test.mk -f var.mk OBJS
+OBJS=objdir/foo.o objdir/bar.o objdir/baz.o
+
+[hchen@RHELSVR5]$ make -f test.mk -f var.mk d-foo
+foo=Huh?
+  origin = file
+  value = $(bar)
+  flavor = recursive
+
+[hchen@RHELSVR5]$ make -f test.mk -f var.mk d-CFLAGS
+CFLAGS=-Ifoo -Ibar -O -O
+  origin = file
+  value = -Ifoo -Ibar -O -O
+  flavor = simple
+
+[hchen@RHELSVR5]$  make -f test.mk -f var.mk d-COMPILE.c
+COMPILE.c=cc -Ifoo -Ibar -O -Wall   -c
+  origin = default
+  flavor = recursive
+   value = $(CC) $(CFLAGS) $(CPPFLAGS) $(TARGET_ARCH) -c
+
+    我们可以看到：
+# make的第一个-f后是要测试的makefile，第二个是我们的debug makefile。
+# 后面直接跟变量名，如果在变量名前加”d-”，则输出更为详细的东西。
+
+    说一说”d-” 前缀(其意为details)，其中调用了下面三个参数。
+# $(origin)：告诉你这个变量是来自哪儿，file表示文件，environment表示环境变量，还有environment override，command line，override，automatic等。
+# $(value)：打出这个变量没有被展开的样子。比如上述示例中的 foo 变量。
+# $(flavor)：有两个值，simple表示是一般展开的变量，recursive表示递归展开的变量。
+
+
+
+
+
+
+** intermediate files in makefile
+chains of implicit rules
+
+
+** makefile call shell command
+FILES = $(shell ls)
+all:
+        echo $(FILES)
+
+
+* 源代码预处理技术（gcc和Make）
+** gcc preprocess
+gcc preprocess option
+-E  Stop after the preprocessing stage; do not run the compiler proper.  The output is in the form of preprocessed source code, which is sent to output
+all macro will be expanded
+
+** make
+ Makefile 格式 ，语法：
+info make 详细文档
+http://www.linuxsir.org/main/doc/gnumake/GNUmake_v3.80-zh_CN_html/index.html#content
+http://www.makelinux.net/make3/main  （in English better）
+
+Makefile中把那些没有任何依赖只有执行动作的目标称为“伪目标”（phony targets）。需要执行“clean”目标所定义的命令，可在shell下输入：make clean。 
+ make如何工作
+默认的情况下，make执行的是Makefile中的第一个规则，此规则的第一个目标称之为“最终目的”或者“终极目标”（就是一个Makefile最终需要更新或者创建的目标。
+
+上例的Makefile，目标“edit”在Makefile中是第一个目标，因此它就是make的“终极目标”。当修改了任何C源文件或者头文件后，执行make将会重建终极目标“edit”。
+-----------------------------------------------
+clean :
+rm edit $(objects)
+
+在实际应用时，我们把这个规则写成如下稍微复杂一些的样子。以防止出现始料未及的情况。
+
+.PHONY : clean
+clean :
+-rm edit $(objects)
+这两个实现有两点不同： 1. 通过“.PHONY”特殊目标将“clean”目标声明为伪目标。避免当磁盘上存在一个名为“clean”文件时，目标“clean”所在规则的命令无法执行。2. 在命令行之前使用“-”，意思是忽略命令“rm”的执行错误。
+
+
+make 命令行 选项
+man make 
+详细说明的参数 
+-n  检查makefile用， Print the commands that would be executed, but do not execute them.
+$ make -n
+---------------------------
+echo "Target system fs image: out/target/product/generic/obj/PACKAGING/systemimage_intermediates/system.img"
+
+out/host/linux-x86/bin/mkyaffs2image -f  out/target/product/generic/system out/target/product/generic/obj/PACKAGING/systemimage_intermediates/system.img
+echo "Install system fs image: out/target/product/generic/system.img"
+mkdir -p out/target/product/generic/
+out/host/linux-x86/bin/acp -fpt out/target/product/generic/obj/PACKAGING/systemimage_intermediates/system.img out/target/product/generic/system.img
+true
+echo "Target ram disk: out/target/product/generic/ramdisk.img"
+out/host/linux-x86/bin/mkbootfs out/target/product/generic/root | out/host/linux-x86/bin/minigzip > out/target/product/generic/ramdisk.img
+echo "Target userdata fs image: out/target/product/generic/userdata.img"
+mkdir -p out/target/product/generic/data
+out/host/linux-x86/bin/mkyaffs2image -f  out/target/product/generic/data out/target/product/generic/userdata.img
+----------------------------
+
+ -p, --print-data-base
+            Print  the  data  base (rules and variable values) that results from reading the makefiles; then
+            execute as usual or as otherwise specified. 
+
+$make -p -q    
+列出(rules and variable values)，但不实际make文件
+
+$make -p -f /dev/null
+指定空makefile作为make输入，打印make 内建变量和默认变量和规则
+若只打印特定的变量名，参照  makefile打印特定的变量名
+
+Makefile 格式 ，语法：
+
+
+1.9.4  GNU make 的主要预定义变量
+
+GNU make 有许多预定义的变量，这些变量具有特殊的含义，可在规则中使用。表 1-5 给出了一些主要的
+预定义变量，除这些变量外，GNU make 还将所有的环境变量作为自己的预定义变量。
+
+                        表 1-5  GNU make 的主要预定义变量
+预定义变量                      含义
+$*              不包含扩展名的目标文件名称。
+$+              所有的依赖文件，以空格分开，并以出现的先后为序，可能包含重复的依赖文件。
+$<              第一个依赖文件的名称。
+$?              所有的依赖文件，以空格分开，这些依赖文件的修改日期比目标的创建日期晚。
+$@              目标的完整名称。
+$^              所有的依赖文件，以空格分开，不包含重复的依赖文件。
+$%              如果目标是归档成员，则该变量表示目标的归档成员名称。例如，如果目标名称
+                为 mytarget.so(image.o)，则 $@ 为 mytarget.so，而 $% 为 image.o。
+AR              归档维护程序的名称，默认值为 ar。
+ARFLAGS         归档维护程序的选项。
+AS              汇编程序的名称，默认值为 as。
+ASFLAGS         汇编程序的选项。
+CC              C 编译器的名称，默认值为 cc。
+CCFLAGS         C 编译器的选项。
+CPP             C 预编译器的名称，默认值为 $(CC) -E。
+CPPFLAGS        C 预编译的选项。
+CXX             C++ 编译器的名称，默认值为 g++。
+CXXFLAGS        C++ 编译器的选项。
+FC              FORTRAN 编译器的名称，默认值为 f77。
+FFLAGS          FORTRAN 编译器的选项。
+
+
+
+内部变量$@, $< $^ : 分别表示目标名(:前面的部分，比如all)，依靠列表（:后面的部分）中的第一个依靠文件，所有依靠文件 
+%   --- 匹配 的字符串 
+  *   --- 引用匹配的字符串
+  $?  --- 没有更新的目标
+$$$$  ---makefile当前的进程号 
+
+---------------------------------------------
+%.d: %.c
+$(CC) -M $(CPPFLAGS) $< > $@.$$$$; \
+---------------------------------------------
+生成的依赖文件名为  test.c   假如进程号为3251
+生成的依赖文件名称为  test.d.3251
+
+-------------------------
+bigoutput littleoutput : %output : text.g
+generate text.g -$* > $@
+----------------------------
+这里%匹配 big 和 little  $*,表示big和little  
+当执行此规则的命令时，自动环变量“$*”被展开为“茎”。在这里就是“big”和“little”
+ 
+===========
+print: *.c
+
+lpr -p $?
+touch print
+============
+两点说明：1. 上述的规则中目标“print”时一个空目标文件。（当前目录下存在一个文件“print”，但我们不关心它的实际内容，此文件的作用只是记录最后一次执行此规则的时间。2. 自动环变量“$?”在这里表示依赖文件列表中被改变过的所有文件。
+ 
+
+
+
+
+在Makefile中运行shell命令佣@开头，控制回显
+@echo “the variable is $(TARGET)”
+
+Makefile里的函数：
+$(filter <pattern…>, <text>)
+该函数的功能是，以 <pattern> 模式过滤 <text> 字符串中的单词，保留符合 <pattern> 模式的单词。
+该函数的返回值是符合 <pattern> 模式的字符串。
+
+patsubst 函数的使用形式如：
+   $(patsubst <pattern>, <replacement>, <text>)
+
+
+所有的依赖文件，参照 gcc 在makefile中的使用
+
+
+
+
+* built-in function in makefile
+GNU document
+http://www.chemie.fu-berlin.de/chemnet/use/info/make/make_8.html
+** Functions for String Substitution and Analysis
+
+Here are some functions that operate on strings:
+
+$(subst from,to,text)
+    Performs a textual replacement on the text text: each occurrence of from is replaced by to. The result is substituted for the function call. For example,
+
+    $(subst ee,EE,feet on the street)
+
+    substitutes the string `fEEt on the strEEt'. 
+$(patsubst pattern,replacement,text)
+    Finds whitespace-separated words in text that match pattern and replaces them with replacement. Here pattern may contain a `%' which acts as a wildcard, matching any number of any characters within a word. If replacement also contains a `%', the `%' is replaced by the text that matched the `%' in pattern. `%' characters in patsubst function invocations can be quoted with preceding backslashes (`\'). Backslashes that would otherwise quote `%' characters can be quoted with more backslashes. Backslashes that quote `%' characters or other backslashes are removed from the pattern before it is compared file names or has a stem substituted into it. Backslashes that are not in danger of quoting `%' characters go unmolested. For example, the pattern `the\%weird\\%pattern\\' has `the%weird\' preceding the operative `%' character, and `pattern\\' following it. The final two backslashes are left alone because they cannot affect any `%' character. Whitespace between words is folded into single space characters; leading and trailing whitespace is discarded. For example,
+
+    $(patsubst %.c,%.o,x.c.c bar.c)
+
+    produces the value `x.c.o bar.o'. Substitution references (see section Substitution References) are a simpler way to get the effect of the patsubst function:
+
+    $(var:pattern=replacement)  
+
+    is equivalent to
+
+    $(patsubst pattern,replacement,$(var))
+
+    The second shorthand simplifies one of the most common uses of patsubst: replacing the suffix at the end of file names.
+
+    $(var:suffix=replacement) 
+
+    is equivalent to
+
+    $(patsubst %suffix,%replacement,$(var))
+
+    For example, you might have a list of object files:
+
+    objects = foo.o bar.o baz.o
+
+    To get the list of corresponding source files, you could simply write:
+
+    $(objects:.o=.c)
+
+    instead of using the general form:
+
+    $(patsubst %.o,%.c,$(objects))
+
+$(strip string)
+    Removes leading and trailing whitespace from string and replaces each internal sequence of one or more whitespace characters with a single space. Thus, `$(strip a b c )' results in `a b c'. The function strip can be very useful when used in conjunction with conditionals. When comparing something with the empty string `' using ifeq or ifneq, you usually want a string of just whitespace to match the empty string (see section Conditional Parts of Makefiles). Thus, the following may fail to have the desired results:
+
+    .PHONY: all
+    ifneq   "$(needs_made)" ""
+    all: $(needs_made)
+    else
+    all:;@echo 'Nothing to make!'
+    endif
+
+    Replacing the variable reference `$(needs_made)' with the function call `$(strip $(needs_made))' in the ifneq directive would make it more robust. 
+$(findstring find,in)
+    Searches in for an occurrence of find. If it occurs, the value is find; otherwise, the value is empty. You can use this function in a conditional to test for the presence of a specific substring in a given string. Thus, the two examples,
+
+    $(findstring a,a b c)
+    $(findstring a,b c)
+
+    produce the values `a' and `' (the empty string), respectively. See section Conditionals that Test Flags, for a practical application of findstring. 
+$(filter pattern...,text)
+    Removes all whitespace-separated words in text that do not match any of the pattern words, returning only matching words. The patterns are written using `%', just like the patterns used in the patsubst function above. The filter function can be used to separate out different types of strings (such as file names) in a variable. For example:
+
+    sources := foo.c bar.c baz.s ugh.h
+    foo: $(sources)
+            cc $(filter %.c %.s,$(sources)) -o foo
+
+    says that `foo' depends of `foo.c', `bar.c', `baz.s' and `ugh.h' but only `foo.c', `bar.c' and `baz.s' should be specified in the command to the compiler. 
+$(filter-out pattern...,text)
+    Removes all whitespace-separated words in text that do match the pattern words, returning only the words that do not match. This is the exact opposite of the filter function. For example, given:
+
+    objects=main1.o foo.o main2.o bar.o
+    mains=main1.o main2.o
+
+    the following generates a list which contains all the object files not in `mains':
+
+    $(filter-out $(mains),$(objects))
+
+$(sort list)
+    Sorts the words of list in lexical order, removing duplicate words. The output is a list of words separated by single spaces. Thus,
+
+    $(sort foo bar lose)
+
+    returns the value `bar foo lose'. Incidentally, since sort removes duplicate words, you can use it for this purpose even if you don't care about the sort order. 
+
+Here is a realistic example of the use of subst and patsubst. Suppose that a makefile uses the VPATH variable to specify a list of directories that make should search for dependency files (see section VPATH: Search Path for All Dependencies). This example shows how to tell the C compiler to search for header files in the same list of directories.
+
+The value of VPATH is a list of directories separated by colons, such as `src:../headers'. First, the subst function is used to change the colons to spaces:
+
+$(subst :, ,$(VPATH))
+
+This produces `src ../headers'. Then patsubst is used to turn each directory name into a `-I' flag. These can be added to the value of the variable CFLAGS, which is passed automatically to the C compiler, like this:
+
+override CFLAGS += $(patsubst %,-I%,$(subst :, ,$(VPATH)))
+
+The effect is to append the text `-Isrc -I../headers' to the previously given value of CFLAGS. The override directive is used so that the new value is assigned even if the previous value of CFLAGS was specified with a command argument (see section The override Directive). 
+
+** Functions for File Names
+
+Several of the built-in expansion functions relate specifically to taking apart file names or lists of file names.
+
+Each of the following functions performs a specific transformation on a file name. The argument of the function is regarded as a series of file names, separated by whitespace. (Leading and trailing whitespace is ignored.) Each file name in the series is transformed in the same way and the results are concatenated with single spaces between them.
+
+$(dir names...)
+    Extracts the directory-part of each file name in names. The directory-part of the file name is everything up through (and including) the last slash in it. If the file name contains no slash, the directory part is the string `./'. For example,
+
+    $(dir src/foo.c hacks)
+
+    produces the result `src/ ./'. 
+$(notdir names...)
+    Extracts all but the directory-part of each file name in names. If the file name contains no slash, it is left unchanged. Otherwise, everything through the last slash is removed from it. A file name that ends with a slash becomes an empty string. This is unfortunate, because it means that the result does not always have the same number of whitespace-separated file names as the argument had; but we do not see any other valid alternative. For example,
+
+    $(notdir src/foo.c hacks)
+
+    produces the result `foo.c hacks'. 
+$(suffix names...)
+    Extracts the suffix of each file name in names. If the file name contains a period, the suffix is everything starting with the last period. Otherwise, the suffix is the empty string. This frequently means that the result will be empty when names is not, and if names contains multiple file names, the result may contain fewer file names. For example,
+
+    $(suffix src/foo.c hacks)
+
+    produces the result `.c'. 
+$(basename names...)
+    Extracts all but the suffix of each file name in names. If the file name contains a period, the basename is everything starting up to (and not including) the last period. Otherwise, the basename is the entire file name. For example,
+
+    $(basename src/foo.c hacks)
+
+    produces the result `src/foo hacks'. 
+$(addsuffix suffix,names...)
+    The argument names is regarded as a series of names, separated by whitespace; suffix is used as a unit. The value of suffix is appended to the end of each individual name and the resulting larger names are concatenated with single spaces between them. For example,
+
+    $(addsuffix .c,foo bar)
+
+    produces the result `foo.c bar.c'. 
+$(addprefix prefix,names...)
+    The argument names is regarded as a series of names, separated by whitespace; prefix is used as a unit. The value of prefix is prepended to the front of each individual name and the resulting larger names are concatenated with single spaces between them. For example,
+
+    $(addprefix src/,foo bar)
+
+    produces the result `src/foo src/bar'. 
+$(join list1,list2)
+    Concatenates the two arguments word by word: the two first words (one from each argument) concatenated form the first word of the result, the two second words form the second word of the result, and so on. So the nth word of the result comes from the nth word of each argument. If one argument has more words that the other, the extra words are copied unchanged into the result. For example, `$(join a b,.c .o)' produces `a.c b.o'. Whitespace between the words in the lists is not preserved; it is replaced with a single space. This function can merge the results of the dir and notdir functions, to produce the original list of files which was given to those two functions. 
+$(word n,text)
+    Returns the nth word of text. The legitimate values of n start from 1. If n is bigger than the number of words in text, the value is empty. For example,
+
+    $(word 2, foo bar baz)
+
+    returns `bar'. 
+$(words text)
+    Returns the number of words in text. Thus, the last word of text is $(word $(words text),text). 
+$(firstword names...)
+    The argument names is regarded as a series of names, separated by whitespace. The value is the first name in the series. The rest of the names are ignored. For example,
+
+    $(firstword foo bar)
+
+    produces the result `foo'. Although $(firstword text) is the same as $(word 1,text), the firstword function is retained for its simplicity. 
+$(wildcard pattern)
+    The argument pattern is a file name pattern, typically containing wildcard characters (as in shell file name patterns). The result of wildcard is a space-separated list of the names of existing files that match the pattern. See section Using Wildcard Characters in File Names. 
+
+The foreach Function
+
+The foreach function is very different from other functions. It causes one piece of text to be used repeatedly, each time with a different substitution performed on it. It resembles the for command in the shell sh and the foreach command in the C-shell csh.
+
+The syntax of the foreach function is:
+
+$(foreach var,list,text)
+
+The first two arguments, var and list, are expanded before anything else is done; note that the last argument, text, is not expanded at the same time. Then for each word of the expanded value of list, the variable named by the expanded value of var is set to that word, and text is expanded. Presumably text contains references to that variable, so its expansion will be different each time.
+
+The result is that text is expanded as many times as there are whitespace-separated words in list. The multiple expansions of text are concatenated, with spaces between them, to make the result of foreach.
+
+This simple example sets the variable `files' to the list of all files in the directories in the list `dirs':
+
+dirs := a b c d
+files := $(foreach dir,$(dirs),$(wildcard $(dir)/*))
+
+Here text is `$(wildcard $(dir)/*)'. The first repetition finds the value `a' for dir, so it produces the same result as `$(wildcard a/*)'; the second repetition produces the result of `$(wildcard b/*)'; and the third, that of `$(wildcard c/*)'.
+
+This example has the same result (except for setting `dirs') as the following example:
+
+files := $(wildcard a/* b/* c/* d/*)
+
+When text is complicated, you can improve readability by giving it a name, with an additional variable:
+
+find_files = $(wildcard $(dir)/*)
+dirs := a b c d
+files := $(foreach dir,$(dirs),$(find_files))
+
+Here we use the variable find_files this way. We use plain `=' to define a recursively-expanding variable, so that its value contains an actual function call to be reexpanded under the control of foreach; a simply-expanded variable would not do, since wildcard would be called only once at the time of defining find_files.
+
+The foreach function has no permanent effect on the variable var; its value and flavor after the foreach function call are the same as they were beforehand. The other values which are taken from list are in effect only temporarily, during the execution of foreach. The variable var is a simply-expanded variable during the execution of foreach. If var was undefined before the foreach function call, it is undefined after the call. See section The Two Flavors of Variables.
+
+You must take care when using complex variable expressions that result in variable names because many strange things are valid variable names, but are probably not what you intended. For example,
+
+files := $(foreach Esta escrito en espanol!,b c ch,$(find_files))
+
+might be useful if the value of find_files references the variable whose name is `Esta escrito en espanol!' (es un nombre bastante largo, no?), but it is more likely to be a mistake. 
+
+
+* print make command
+    
+
+By default, make does print every command before executing it. This printing can be suppressed by one of the following mechanisms:
+
+    on a case-by-case basis, by adding @ at the beginning of the command
+    globally, by adding the .SILENT built-in target.
+    somewhere along the make process, by invoking sub-make(s) with one of the flags -s, --silent or --quiet, as in $(MAKE) --silent -C someDir, for example. From that moment on, command echoing is suppressed in the sub-make.
+
+If your makefile does not print the commands, then it is probably using one of these three mechanisms, and you have to actually inspect the makefile(s) to figure out which.
+
+As a workaround to avoid these echo-suppressing mechanisms, you could re-define the shell to be used to use a debug mode, for example like make SHELL="/bin/bash -x" target. Other shells have similar options. With that approach, it is not make printing the commands, but the shell itself
