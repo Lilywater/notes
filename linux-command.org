@@ -1401,4 +1401,64 @@ sudo service deluge-web start
 
 https://localhost:8112
 
+** start prg when on system boot
+*** /etc/init.d
 
+The third method to run a program on your Raspberry Pi at startup is to add the program (to be run on boot) to the /etc/init.d directory.  This directory contains the scripts which are started during the boot process (in addition, all programs here are  executed when you shutdown or reboot the system).
+
+Add the program to be run at startup to the init.d directory using the following lines:
+
+sudo cp /home/pi/sample.py /etc/init.d/
+
+Move to the init directory and open the sample script
+
+cd /etc/init.d
+sudo nano sample
+
+Add the following lines to the sample script to make it a Linux Standard Base (LSB) (A standard for software system structure, including the filesystem hierarchy used in the Linux operating system) init script.
+#!/bin/sh
+==================
+### BEGIN INIT INFO
+# Provides:          sample.py
+# Required-Start:    $remote_fs $syslog
+# Required-Stop:     $remote_fs $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Start daemon at boot time
+# Description:       Enable service provided by daemon.
+### END INIT INFO
+yourownshellscript execution
+---------------------------------------------------------
+init.d scripts require the above runtime dependencies to be documented so that it is possible to verify the current boot order, the order the boot using these dependencies, and run boot scripts in parallel to speed up the boot process.  
+
+
+sudo chmod +x sample
+sudo update-rc.d sample defaults
+
+*** systemd 
+Open a sample unit file using the command as shown below:
+
+sudo nano /lib/systemd/system/sample.service
+
+Add in the following text :
+
+ [Unit]
+ Description=My Sample Service
+ After=multi-user.target
+
+ [Service]
+ Type=idle
+ ExecStart=/usr/bin/python /home/pi/sample.py
+
+ [Install]
+ WantedBy=multi-user.target
+
+You should save and exit the nano editor.
+
+
+Step 2 – Configure systemd
+
+Now the unit file has been defined we can tell systemd to start it during the boot sequence :
+
+sudo systemctl daemon-reload
+sudo systemctl enable sample.service

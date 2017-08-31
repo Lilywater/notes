@@ -56,7 +56,7 @@ iptables -t nat -D REDSOCKS -p tcp -d <dstipaddr> -s <srcipaddr> --dstport <dstp
 iptables -t nat -D REDSOCKS <rule num in the list> 
 
 **** listing rules in a table 
-# iptables -t filter/mangle/nat/raw --list (no -t option, means filter table)
+# iptables -t filter/mangle/nat/raw --list (no -t option, means filter table) -nv   (-n means numberic , -v means in-interface and out-inteface also listed)
 
 The following iptable example shows that there are some rules defined in the input, forward, and output chain of the filter table.
 # iptables -t filter --list (or) # iptables --list

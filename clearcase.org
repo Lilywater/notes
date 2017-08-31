@@ -213,3 +213,75 @@ get the new added files in clearcase
 ct ls |grep -v "^\." |grep -v Rule
 addfile -p
 
+==============================================
+telnet EC:  username: cli
+username: admin
+password  admin
+root@8EC2-81-1-ACT:~# /pureNeApp/EC/dbgCut 
+dbgCut> !dbgCutThru (flts 0 otumach 1 2) "dltcl
+dbgCut> 
+dbgCut> 
+dbgCut> 
+dbgCut> !dbgCutThru (flts 0 otumach 1 2) "dltcl odukDumpPortInfo
+dbgCut> RV_SUCCESS
+
+dbgCut> 
+dbgCut> 
+dbgCut> !dbgCutThru (flts 0 otumach 1 2) "dltcl set drv [CDriverItfcImpl_getInstance]
+dbgCut> _1043b300_p_CDriverItfcImpl
+
+dbgCut> 
+dbgCut> !dbgCutThru (flts 0 otumach 1 2) "dltcl dumpDrvLog $DRVLOGFM
+dbgCut> 
+
+dbgCut> 
+dbgCut> !dbgCutThru (flts 0 otumach 1 2) "dltcl dumpDrvLog $DRVLOGFM
+dbgCut> 
+
+dbgCut> !dbgCutThru (flts 0 otumach 1 2) "dltcl odukDumpPortInfo  
+
+app perspective of port number
+1-2       L1-L2
+3-10      C1-C8
+11-12     VOA1/2
+13-14     BP1/2
+
+
+oduCreate: appPort, appHoOduType, appLoOduType, aapLoOduId, tmask  // appPort is BP1/2, then hyphy otn_line0/1
+             odukCreate:    portnumber odutype, oduid 
+
+connCreate : srcport, srcoduId, dstport, dstoduIda  , xcreate,  low_odutype, direction     
+xbarSelSet : appPortNumber, bpN+?, bpLane1/2  // appPortNumber<-> hyphy otn_line0/1, bpN+? N+1? N+2?  ,  bpLaneN+? 0/1 
+
+GBE, C7BP1 N+1 lane1 in tclsh:
+$dl initialize 0
+set drv [CDriverItfcImpl_getInstance]
+$drv sigTypeSet  9  $DRVIF_SIG_1GBE
+$drv oduCreate  9  $DRVIF_ODU_ODU0  $DRVIF_ODU_ODU0  0  0
+$drv sigTypeSet  13  $DRVIF_SIG_OTU2
+$drv oduCreate  13  $DRVIF_ODU_OTUODU2  $DRVIF_ODU_ODU2ODU0  1  0x1
+connCreate  $OTN_CLN_7  0  $OTN_LIN_1  1  $OTN_XC_CREATE  $OTN_LoOduXcRate_odu0  $OTN_XC_BIDIRECTION
+                    9   0      1       1         
+//bp1 to N+1 lane1
+$drv xbarSelSet 13 1 1 
+
+
+
+#!/bin/sh
+  2 if [ "$1" == "" ]; then
+  3   HOST='135.251.99.168'
+  5   HOST=$1
+  6 fi
+  7    echo "ftp host is $1 to replace driver_8p20.so"
+  8 USER='root'
+  9 PASSWD='ALu12#'
+ 10
+ 11
+ 12 ftp -n $HOST <<END_SCRIPT
+ 13 quote USER $USER
+ 14 quote PASS $PASSWD
+ 15 put tmp/libot_driver_8p20.so /pureNeApp/dwdm/xijia/libot_driver_8p20.so
+ 16 quit
+ 17 END_SCRIPT
+ 18 exit 0
+
