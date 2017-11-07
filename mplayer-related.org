@@ -836,3 +836,12 @@ http://wiki.ubuntu.com.cn/Convert_MTS_M2TS_AVCHD_to_AVI/zh
 
 mplayer -ao pcm:file=dd.wav CDImage.ape
 lame -h -b 192 test.wav test.mp3
+
+
+** ffmpeg covert mp4 to mp3 and cut a whole bunch of mp3 from time to differnet time
+*** ffmpeg covert from video to audio
+avconv -i input.mp4 -vn -acodec libmp3lame -ac 2 -ab 160k -ar 48000 outupt.mp3
+
+*** extract mp3 from start time to end time 
+ffmpeg -i input.mp3 -ss 00:04:57 -to 00:09:25 -acodec copy -async 1 output.mp3
+

@@ -85,16 +85,26 @@ enable - 0 disable, 1 enable
 
 
 * CBRB cross connect provisioning
+:CUSTOM_ID: cbrb-prov-fig
 VCAT Interface <-> ODU0 ODUKPP [0..7]<-> CBRB <-> ODU0 OTN Line framer [0..7]
+        \                          /                /
+        hyPhyFlexOdukppOdukDataPathCfg             /
+                                   \              /
+                                    \            /    
+                                     \          /
+                                  hyPhyFlexCbrbReaderSrcChnlCfg
 
 ** CBRB connection
 hyPhyFlexCbrbReaderSrcChnlCfg   ## it connect ODU0 ODUKpp and ODUO OTN Line framer
 This function specifies the CBRB writer channel to be associated with a CBRB reader FIFO.
-rdChnl - Read channel to be configured
+(rdChnl  ,wrChl)
+Register EG_BUFadress(rdChnal) valuebits(wrChl)  //engress/exit 
+Register BUF_LOWPOWR   valuebits(wrChl) 0 means it's working
+
 HYPHY FLEX Device:
 - HYPHY_FLEX operation mode:
-0-7: 1st OTN ODU0/Flex framer 0-7
-8-15: 2nd OTN ODU0/Flex framer 0-7
+0-7: 1st OTN ODU0/Flex framer 0-7      L1(1-8)
+8-15: 2nd OTN ODU0/Flex framer 0-7     L2(1-8)
 16-23: 3rd OTN ODU0/Flex framer 0-7
 24-31: 4th OTN ODU0/Flex framer 0-7
 32-39: 1st ODUKPP ODU0/Flex framer 0-7
@@ -114,12 +124,109 @@ HYPHY FLEX device:
 8-15: 2nd OTN ODU0/Flex framer 0-7
 16-23: 3rd OTN ODU0/Flex framer 0-7
 24-31: 4th OTN ODU0/Flex framer 0-7
-32-39: 1st ODUKPP ODU0/Flex framer 0-7
-40-47: 2nd ODUKPP ODU0/Flex framer 0-7
+32-39: 1st ODUKPP ODU0/Flex framer 0-7   c1-32 c2-33 c3-34 c4-35
+40-47: 2nd ODUKPP ODU0/Flex framer 0-7   c5-40 c6-41 c7-42 c8-43
 48-63: 1st-16th OTN ODU1 framers
 64-71: 1st-8th ODUKPP ODU1 framers
 72-73: 1st-2th OTN ODU2 framers
 74-75: 1st-2th ODUKPP ODU2 framers
+b==========================================================================================
+
+*** check CBRB connection 
+tcl script
+------------------------------------------
+proc pmidx {} {
+ for {set x 0} {$x<76} {incr x} {
+              set sl [malloc_UINT4]
+              set M [getHyphy5451Handle]
+              utilHyPhyFlexOpiPmmGet $M $x $sl
+              set res [get_UINT4 $sl]
+              puts "chanl  $x pmm index is  $res"
+           }
+}
+
+proc srcidx {} {
+ for {set x 0} {$x<24} {incr x} {
+              set sl [malloc_UINT4]
+              set M [getHyphy5451Handle]
+              sysHyPhy20gRead $M [expr 0x4A514D4+0x4*$x] $sl
+              set res [get_UINT4 $sl]
+              puts "chanl  $x src index is  $res"
+           }
+}
+====================================================
+
+pss8_168# show odukxc brief
+A-End                   Z-End                  ID       XcRate       XcDir          Protection Connection
+                                                                                    State      Name
+---------------------------------------------------------------------------------------------------------------------
+ODU0-1/3/C6             ODU2ODU0-1/3/BP1/3     1:2      ODU0         Bidirectional  none
+ODU0-1/3/C7             ODU2ODU0-1/3/BP1/4     1:8      ODU0         Bidirectional  none
+
+
+**** findout the pmm index of the channel number
+pmidx:
+when ln0 and ln1 configured as otu2, then the channel number and pmm index is as follow:
+chanl  0 pmm index is  7              //these otn odu2 channel mapping happend when sigtypset line port
+chanl  1 pmm index is  8
+chanl  2 pmm index is  9              // BP1/3 idx 9
+chanl  3 pmm index is  10             // BP1/4 idx 10
+chanl  4 pmm index is  11           
+chanl  5 pmm index is  12
+chanl  6 pmm index is  13
+chanl  7 pmm index is  14
+chanl  8 pmm index is  15
+chanl  9 pmm index is  16
+chanl  10 pmm index is  17
+chanl  11 pmm index is  18
+chanl  12 pmm index is  19
+chanl  13 pmm index is  20
+chanl  14 pmm index is  21
+chanl  15 pmm index is  22              //two otn odu2 8 channel odu0 channel
+HYPHY20G_ERR: src/hyphy20g_util_pmm.c:5944 utilHyPhyFlexOpiPmmGet returning -643
+..............................
+HYPHY20G_ERR: src/hyphy20g_util_pmm.c:5944 utilHyPhyFlexOpiPmmGet returning -643
+                                      // these odukpp channel mapping happend when client port sigtype set gbe 
+chanl  32 pmm index is  0             // first odukpp odu0 channel
+chanl  33 pmm index is  1
+chanl  34 pmm index is  2
+chanl  35 pmm index is  3
+chanl  38 pmm index is  255
+chanl  40 pmm index is  4             //second odukpp odu0 channel
+chanl  41 pmm index is  5             //  ----C6(41)'s pmm index is 5
+chanl  42 pmm index is  6             //  ----C7(42)'s pmm index is 6
+HYPHY20G_ERR: src/hyphy20g_util_pmm.c:5944 utilHyPhyFlexOpiPmmGet returning -643
+chanl  43 pmm index is  255
+
+
+**** get the resgister value of srcidx
+Register 0x4A514D4 + 0x4*N(N=0:31): APB:SYSTEM:OTN_PKT_IF:CBRB_FLEX:CBRB_FLEX_TOP - EGRESS BUFFER CONFIGURATION page 6310
+srcidx:   //  0-31
+# chanl  0 src index is  4026531840
+chanl  1 src index is  4026531840
+chanl  2 src index is  4026531840
+chanl  3 src index is  4026531840
+chanl  4 src index is  4026531840
+chanl  5 src index is  4026531849      //5src-9
+chanl  6 src index is  4026531850      //6src-10 
+chanl  7 src index is  4026531840
+chanl  8 src index is  4026531840
+chanl  9 src index is  4026531845      //9src--5
+chanl  10 src index is  4026531846     //10src--6
+chanl  11 src index is  4026531840
+chanl  12 src index is  4026531840
+chanl  13 src index is  4026531840
+chanl  14 src index is  4026531840
+chanl  15 src index is  4026531840
+chanl  16 src index is  4026531840
+chanl  17 src index is  4026531840
+chanl  18 src index is  4026531840
+chanl  19 src index is  4026531840
+chanl  20 src index is  4026531840
+chanl  21 src index is  4026531840
+chanl  22 src index is  4026531840
+chanl  23 src index is  4026531840
+
 
 
 
@@ -132,13 +239,24 @@ HYPHY FLEX device:
 for ODU2/ODU1 Framer, there's channel mapping for lineIF side and sysIF(VCAT interface) to configure, but for odu0, it is a hard connection, just enable the channel is enough 
 
 hyPhy20gOdukppOdu1DataPathCfg  lineIF:   odu1slice 0-7 sysIf:    VCAT interface 0 port0-3       VCAT interface 1 port 0-3
-hyPhyFlexOdukppOdukDataPathCfg channel ID: 0-7 channel numbers of ODU0 framer 0 8-15 of framer 1 slotNum :  the number of timeslots for the channel   
+hyPhyFlexOdukppOdukDataPathCfg channel ID: 0-7 channel numbers of ODU0 framer 0 8-15 of framer 1 slotNum :  the number of timeslots for the channel[1-64]   
 
 * SFP client Provisioning
+:CUSTOM_ID: sfp-prov-fig
 SFP Port [0..7] <-> CPB ID [0..7] <-> GFP CPB ID [19..26] <-> GFP Group ID [0..7] <-> ODU0Slice0 framer [0-7]
                                                                                 \    /
                                                                                  \  /
-                                                                                 VcatOtnOdu0LinkCfg
+                                                                     VcatOtnOdu0LinkCfg(slice, odu0Num, grpid)
+                        \                /
+                         \              /
+                          \            /
+                  hyPhy20gCpbChnlProv wrchid..,RdchnlId                                                                   
+                                                    \              /
+                                                     \            /
+                                                      \          /
+                                                     hyPhyFlexGfpOdu0TranspChTxAdd(slice, cpbid, grpid, odu0Num)
+                                                                                   A/B,    0-64  0-64    0-7 
+
 ** CPB port mapping           
 LS Slice CH 0---CH 15
 HS Slice CH 17/18
@@ -149,9 +267,11 @@ hyPhy20gCpbChnlProv  #wrChnlId=[0..7], primRdChnlId=[19..26]
 ** GFP  GroupID and cpbid connection
 *** for Gfp Odu0 case
 hyPhyFlexGfpOdukTranspChRxInit #odukType=0, OdukNum=0..7, grpId=0..7,rate=1250, pktSize=200, cnBitMode=0, bitRateTolerance=100ppm, cnLimitEn=1, zoneCentEn = 1.
-hyPhyFlexGfpOdu0TranspChTxAdd
+#assocaite OTNMD in VCAT odukNum with grpId (1,5) 
+
+hyPhyFlexGfpOdu0TranspChTxAdd      (1/B,1,5,5)
 slice - 0 - Slice 'A' - 1 - Slice 'B'
-otu0Num - 0-7
+odu0Num - 0-7  in the OTNMA to config
 cpbId - CPBID of the channel being added - valid values are 0x0 - 0x3F (0-63)
 grpId - VCAT group ID to assign this channel to - valid values are 0x0 - 0x3F (0-63)
 
@@ -240,12 +360,552 @@ the CPB Channel Number, the CID is passed through a linear extension header.
 The GFP Subsystem multiplexing of the 64 Central Packet Buffer channel in each direction into up to 64 VCAT Groups(GID's);
 the channels are seleted by the round-robin scheduler. TXGFPT only switches channels at the end of the GFP frame.
 
-A programmable scheduler provides one-to-one or oneto-
-many mapping between GID's and 64 channel buffers in the Central Packet Buffer (CPB) subsystem
+A programmable scheduler provides one-to-one or oneto- many mapping between GID's and 64 channel buffers in the Central Packet Buffer (CPB) subsystem
 
 
 
 
 
 
+* another way of xc connection
+$drv sigTypeSet  9  $DRVIF_SIG_1GBE
+$drv oduCreate  9  $DRVIF_ODU_ODU0  $DRVIF_ODU_ODU0  0  0
+$drv sigTypeSet  13  $DRVIF_SIG_OTU2
+$drv oduCreate  13  $DRVIF_ODU_OTUODU2  $DRVIF_ODU_ODU2ODU0  1  0x1
+connCreate  $OTN_CLN_7  0  $OTN_LIN_1  1  $OTN_XC_CREATE  $OTN_LoOduXcRate_odu0  $OTN_XC_BIDIRECTION
 
+**  OTN side configuration
+*** oduCreate OTN_LIN_1  otu0odu2 oduid mask
+oduCreate ( portno,   OTN_ODU_OTUODU2,  oduid, timeslotmask)
+provoduk
+\-----
+           case OTN_ODU_ODU2ODU0:
+1582      { // line side low order ODUk
+1586                     HYPHY20G_ProvOdu0FrmrOpiCfg_ARGS_T ProvOdu0FrmrOpiCfgArgs;
+1587                     UINT4 mode, xfpPort, odu0Id, odukFrmr, odtu21Ts, odtuInput;
+1588                     mode      = 2; // ODU0 <> ODTU2.1
+1589                     xfpPort   = portNo - OTN_LIN_1;
+1590                     odu0Id    = oduId - 1;
+1591                     odukFrmr  = 8 * xfpPort + odu0Id; // 0~7   : OTN ODUk Framer 0 channel 0 to 7  1592                     // 8~15  : OTN ODUk Framer 1 channel 0 to 7
+                    ###### line port, oduid associtaed with odukFrmr  ########
+1595                     odtu21Ts  = odu0Id;      ###timeslot the same with oduid
+1596                     odtuInput = odukFrmr;    ###odtuInput in mux the same with odukFrmr  
+1598                     OTN_ODU_TYPE oldLoOdukType = _portInfo[portNo].linePort.loOdukType[odu0Id];
+
+   ProvOdu0FrmrOpiCfgArgs.odtuInput = odtuInput;  #### odtu21 mux channel####
+   ProvOdu0FrmrOpiCfgArgs.timeslot  = odtu21Ts;
+   ASSERT_HYPHY_SUCCESS(hyPhyFlex_ProvOdu0FrmrOpiCfg(&_handle, odukFrmr, mode, upDown, &ProvOdu0FrmrOpiCfgArgs));
+
+
+
+OTN side from odukFrmrChannel to odu0muxchannedl
+
+******************************************************************************
+  42 # proc hyphyFlexOdu0TransportServiceCfg
+  43 #
+  44 # serviceType       0 - ODTU01 to ODU0 to CBRB
+  45 #                   1 - ODTU2.1 to ODU0 to CBRB
+  46 #                   2 - SERDES to ODU0 to CBRB
+  47 #
+  48 # upDown            0 - Tear down the specified service
+  49 #                   1 - Bring up the specified service
+  50 #
+  51 # args:
+  52 #
+  53 **************************************************
+
+ # Relevant ONLY for serviceType = '0' or '1'
+  55 #
+  56 # odukFrmrChnl      This is OTN SS ODUk framer channel
+  57 #                   0 to 7   - ODUk Framer 0 channel 0 to 7
+  58 #                   8 to 15  - ODUk Framer 1 channel 0 to 7
+  59 #                   16 to 23 - ODUk Framer 2 channel 0 to 7
+  60 #                   24 to 31 - ODUk Framer 3 channel 0 to 7
+  61 #
+  62
+  63 #
+  64 # odu0Chnl          0 to 7  - ODTU2-21 Mux 0 input port 0 to 7
+  65 #                   8 to 15 - ODTU2-21 Mux 1 input port 0 to 7
+  66 #                   16 to 17 - ODTU01 Mux 0 input port 0 to 1
+  67 #                   18 to 19 - ODTU01 Mux 1 input port 0 to 1
+  68 #                   20 to 21 - ODTU01 Mux 2 input port 0 to 1
+  69 #                   22 to 23 - ODTU01 Mux 3 input port 0 to 1
+  70 #                   24 to 25 - ODTU01 Mux 4 input port 0 to 1
+  71 #                   26 to 27 - ODTU01 Mux 5 input port 0 to 1
+  72 #                   28 to 29 - ODTU01 Mux 6 input port 0 to 1
+  73 #                   30 to 31 - ODTU01 Mux 7 input port 0 to 1
+  74 #                   32 to 33 - ODTU01 Mux 8 input port 0 to 1
+  75 #                   34 to 35 - ODTU01 Mux 9 input port 0 to 1
+  76 #                   36 to 37 - ODTU01 Mux 10 input port 0 to 1
+  77 #                   38 to 39 - ODTU01 Mux 11 input port 0 to 1
+  78 #                   40 to 41 - ODTU01 Mux 12 input port 0 to 1
+  79 #                   42 to 43 - ODTU01 Mux 13 input port 0 to 1
+  80 #                   44 to 45 - ODTU01 Mux 14 input port 0 to 1
+  81 #                   46 to 47 - ODTU01 Mux 15 input port 0 to 1
+  82 #                   ** 0 to 15  ONLY when serviceType = 1 and
+  83 #                      16 to 47 ONLY when serviceType = 0 **
+  84 #
+  85 #
+  86 # odukRate          Increments of 1.25Gbps
+  87 #                   NOTE: This is for calculating num_calendar_slots
+  88 #
+  89 # odtu01Ts          0 to 1 - ODTU01 Mux timeslot 0 to 1
+  90 #                   NOTE: This is used ONLY for Bring up and serviceType = 0
+  91 #
+  92 # odtu21Ts          0 to 7 - ODTU2.1 Mux timeslot 0 to 7
+  93 #                   NOTE: This is used ONLY for Bring Up and serviceType = 1
+  94 #
+  95 **************************************************
+
+       OTN  block:
+                              
+ HOMuxCh_____________LOmuxCh                                  _________  
+     0| 2* ODTU2-21 |0                ______________          | 4*8ch |
+      | mux/demux   |.                |ODUk        |          | ODUk  |
+     1| ____________|.                |cross point |          | framer|
+                     7                |____________|          |_______|_ 
+                                                                                    
+                                                             _ ______
+       ____________                                          |16*    |
+     0|16* ODTU01 |0                                          |ODU1   |
+     .|  mux/demux|                                          |framer |
+     .|___________|1                                         ---------
+     15
+
+------
+                                          hyPhyFlexMuxLOChnlProv(.,7,128,8,1,0). ##associate mux chanid and timeslot
+[L1007:_hyPhyFlex_Odu0TransportServiceCfg]hyPhyFlexOdukTxSchedulerCfg(.,0,7,1,1).
+[L1012:_hyPhyFlex_Odu0TransportServiceCfg]hyPhyFlexDemuxLOChnlProv(.,7,128,8,1,0).
+[L1016:_hyPhyFlex_Odu0TransportServiceCfg]hyPhyFlexDemuxLOChnlActivate(.,7).
+[L1020:_hyPhyFlex_Odu0TransportServiceCfg]hyPhyFlexOdukRxSchedulerCfg(.,0,7,1,1).  # enable framer
+[L1028:_hyPhyFlex_Odu0TransportServiceCfg]hyPhyFlexOdukXBarCfg(.,8,7,0,7,1).       #cross point to connect framer and mux channel 
+
+------------------------------
+
+_hyPhyFlex_Odu0TransportServiceCfg
+{
+             
+  hyPhyFlexOdukRxSchedulerCfg(fileHndl,odukFramer,odukPort,num_calendar_slots,enable);   //enable framer
+                                       |OTN 4*8ch oduk framer|
+
+
+  hyPhyFlexOdukXBarCfg(fileHndl,muxFrmId,odtu21InPort,odukFramer,odukPort,enable);       //cross point to connet framer and mux channel
+                               | odtu21chanel mux/demux |
+
+  hyPhyFlexMuxLOChnlProv(fileHndl,chnlId,tribSlotMask,loOduType,mapMode,0);              // associate mux chnlId with timeslot
+                                 | muxchid |   | odtut21TS |
+}
+
+
+
+
+*** oduCreate OTN_LIN_1  otu1odu2 oduid mask
+_hyPhy20g_Otu1TransportServiceCfg
+{
+  hyPhy20gOtu1SysDataPathCfg(fileHndl,slice,source);  
+                                     | otu1framer 0-15 | |CBRB|
+                                     
+   hyPhyFlexOtu1XBarCfg(fileHndl,odtu12MuxId,odtu12InPort,otnOtu1FrmrSlice,enable);
+                                 | odtu21channel mux/demux |   | 1/16 ODU1framer |
+
+ hyPhy20gOtu1LineDataPathCfg(fileHndl,slice,src);
+ [   slice - OTU1 Framer instance: 0 to 7 - OTU1 Framer 0 to 7 0 to 15 - OTU1 Framer 0 to 15 (HyPHY 20Gflex)
+     source - Date source for OTU1 Framer
+     0 - ODTU12 Multiplexer 0 timeslot 0 1 - ODTU12 Multiplexer 0 timeslot 1 2 - ODTU12 Multiplexer 0 timeslot 2 3 - ODTU12 Multiplexer 0 timeslot 3 4 - ODTU12 Multiplexer 1 timeslot 0
+     5 - ODTU12 Multiplexer 1 timeslot 1 6 - ODTU12 Multiplexer 1 timeslot 2 7 - ODTU12 Multiplexer 1 timeslot 3  8  (from SFP SERDES) 9 - not configured (HyPHY 20Gflex
+]
+
+
+ hyPhyFlexMuxLOChnlProv(fileHndl,chnlId,tribSlotMask,loOduType,mapMode,0);   //assocaite mux chnlId with triSlotmask(two time slots here for odu1)
+ }
+
+
+** ODUkpp-VCAT-GFP-CPB-CLI side creation
+*** port sig type setting in client for odu0
+GFP/VCAT(TVCP) slice A/B  seperated, but for GFPA-TVCPA  , GPPB-TVCPB
+about cpbid 0-64 means in GFP buffer's cpbid   
+refer to SFP client provisioning graphic [[#sfp-prov-fig]] using # to open blue link
+
+                                                                            cln_6       cln_7
+[L1243:_hyPhy20g_CpbChnlCfgUp]hyPhy20gCpbChnlProv(.,2,5,0,88,0,1250,10,20,31,0,0).      (6, 89)
+                                                                                         \LS 0-15       \-GFPsliceB 83-146 
+
+[L2238:_hyPhy20g_VcatOtnGrpTransponderCfg]hyPhyFlexGfpOdukTranspChRxInit(.,1,0,1,5,1000000,300,0,100).  
+
+[L1468:_hyPhy20g_CpbChnlCfgEnbl]hyPhyFlexGfpOdu0TranspChTxAdd(.,1,1,5,5,499).      (1,2,6,6)
+                                                               /  |odu0num            \odu0num
+                                                 GFP(OTNM) sliceB    \cpbid               \cpbid
+                                                                        \grpid              \grpid
+
+[L1772:_hyPhy20g_VcatOtnGrpTransponderCfg]hyPhyFlexVcatOtnOdu0LinkCfg(.,1,1,1,1,1,0,5).     2,2,0,6         //VCAT sliceB+odu0slice number1  = odukppframer1,channid number1 means 9
+                                                                                      OTNMA src/   \--vct group id                                           
+                                                                        \TVCP slice A/B (Trassmit VCAT  processor)                         
+                                                                           \odu0slice 0-7
+
+
+refer to   [[#cbrb-prov-fig]] 
+[L368 :_hyPhy20g_OdukppTransportServiceCfg]hyPhyFlexOdukppOdukDataPathCfg(.,9,8,1).    (10,8,1)     //enable odukpp framer channelid 
+
+
+**** ODUKpp in CBRB side config
+  hyPhyFlexOdukppOdukDataPathCfg (odukframer[0-1], slot[timeslot1-64] enable )   //enable the odukframerN
+                                 0-7(fr1) 8-15(fr2)
+                               cl1-cl4    cl5-cl8
+
+**** Cpb channel provision
+  INT4 hyPhy20gCpbChnlProv(struct file *fileHndl, UINT4 numBlocks, UINT4 wrChnlId,
+                           UINT4 wrChnlPortWidth, UINT4 primRdChnlId,
+                                                    UINT4 primRdChnlPortWidth, UINT4 chnlRate, UINT4 zone1,
+  **                    wrChnlId    - The absolute write channel address                               Legal range 0 to 293
+  **                  primRdChnlId- The absolute read channel address  of the  primary read channel.   Legal range 0 to 297
+GFP Slice A CH 19-82 GFP Slice B CH 83-146    LS slice CH0-15
+                                     88-5    89-6
+                
+**** OTNMA cpb channel with VCAT GID configuration
+DESCRIPTION:    Enables a CPBID to VCAT GID mapping within the OTNMA
+                for a client channel carried transparently within an ODU0.
+
+INPUTS:     *fileHndl   - Base address
+            slice       - 0 - Slice 'A'
+                        - 1 - Slice 'B'
+            odu0Num     - Specifies which of the 8 ODU0 links in the OTNMA
+                          to configure.
+                        - Valid values are 0-7
+            cpbId       - CPBID of the added channel.
+                        - Valid values are 0x0 - 0x3F (0-63)
+            grpId       - VCAT group ID to assign this channel to.
+                        - Valid values are 0x0 - 0x3F (0-63)
+            pktSize     - Configures the nominal packet byte size to use for
+                          the OTNMA. This value should match the
+                          value used by the LSCI/HSCI.
+            Application Specific recommended values for pktSize are:
+            499 bytes
+
+INT4 hyPhyFlexGfpOdu0TranspChTxAdd(struct file *fileHndl, UINT4 slice, UINT4 odu0Num, UINT4 cpbId, UINT4 grpId, UINT4 pktSize)
+
+
+
+**** vcatOtnOdu0LinkCfg
+ hyPhyFlexVcatOtnOdu0LinkCfg
+ ___________________________________________________________________________
+
+ DESCRIPTION:    Configures the properties of an ODU0 link, including
+                 remapped slice id, master mode, mapping mode,
+                 data source and group ID.
+
+                 This function should only be called after the associated
+                 slice within the VCAT subsystem has been initialized and
+                 configured for mixed operation mode.
+
+ INPUTS:         *fileHndl   - Base address
+                 slice       - Selects which slice to configure:
+                             - 0 - slice 'A' (TVCPO_0, RVCPO_0)
+                             - 1 - slice 'B' (TVCPO_1, RVCPO_1)
+                 odu0Slice   - Selects which ODU0 within the TVCPO/RVCPO to
+                               configure:
+                             - Valid values are 0-7
+                 flexSliceIdRemap
+                             - Remapped slice id for the slice flexSliceNum.
+                             - Valid values are 0-7
+                 master      - Master/slave mode
+                             - 0 - slave
+                             - 1 - master
+                 mapping     - This bit selects between AMP and GMP mode when
+                               ODU0/ODUflex slice N is in Master Mode and
+                               OTNMA is the data source.
+                             - 1: GMP mode.
+                             - 0: non-GMP mode and AMP mode.
+                 dataSrc     - Selects which of the 3 upstream interfaces
+                               acts as the data source for ODU0/ODUflex
+                               slice N.
+                             - 0: OTNMA
+                             - 1: TXDP
+                             - 2: PRBS
+                 grpId       - Indicates the GID group number assigned to the
+                               'grouping'.
+                             - Valid values are 0x0 - 0x3F (0-63)
+
+
+INT4 hyPhyFlexVcatOtnOdu0LinkCfg(struct file *fileHndl, UINT4 slice, UINT4 odu0Slice, UINT4 flexSliceIdRemap, UINT4 master, UINT4 mapping, UINT4 dataSrc, UINT4 grpId)
+
+
+
+
+=========
+
+t matched] portSigTypeSet#OTN_CLN_6#OTN_SIG_GE1
+[L1787:_hyPhyFlex_ProvAnyClientMapOpiCfg]Args:(.,5,0,0,5,1,5,1,{9,9999,9999,0x8100,0,1,0,1,0,2,0,0,0,0,0,0x0,0x0,108}).
+[L3227:_hyPhyFlex_ProvAnyClientMapOpiCfg]provAnyClientMapOpiOdu1Cfg: add channel....
+[L128 :_hyPhy20g_OdukppTransportServiceCfg]Args:(.,3,19,1,1,{0,0,0,0,1,108}).
+[L177 :_hyPhy20g_OdukppTransportServiceCfg]ODUKPP Slice Init Flag initialized.
+[L266 :_hyPhy20g_OdukppTransportServiceCfg]OdukppSliceInitFlag[#19]= 99.
+[L282 :_hyPhy20g_OdukppTransportServiceCfg]OdukppSliceInitFlag[#19]= 1.
+[L306 :_hyPhy20g_OdukppTransportServiceCfg]ODUKPP ODUk Subsystem previously initialized.
+[L322 :_hyPhy20g_OdukppTransportServiceCfg]CBRB previously initialized.
+[L368 :_hyPhy20g_OdukppTransportServiceCfg]hyPhyFlexOdukppOdukDataPathCfg(.,9,8,1).
+[L372 :_hyPhy20g_OdukppTransportServiceCfg]hyPhyFlexOdukRxPmDefectCfg(.,1,19,0x1).
+[L376 :_hyPhy20g_OdukppTransportServiceCfg]hyPhyFlexOdukTxPmTcmiBipSrcCfg(.,1,19,0,1).
+[L462 :_hyPhy20g_OdukppTransportServiceCfg]hyPhyFlexOpiPmmOifPktPerCal(.,1244160.000000,108,...).
+[L466 :_hyPhy20g_OdukppTransportServiceCfg]hyPhyFlexOpiPmmInit(.,41,8,1.000000,0,0,0x6C,0xD8).
+[L472 :_hyPhy20g_OdukppTransportServiceCfg]utilHyPhyFlexOpiPmmGet(.,41).[L475 :_hyPhy20g_OdukppTransportServiceCfg] result(21).
+[L480 :_hyPhy20g_OdukppTransportServiceCfg]hyPhy20gWrite . 0x4A54A80 0x2
+[L485 :_hyPhy20g_OdukppTransportServiceCfg]ODUKPP Framer 19 initialization complete.
+[L3382:_hyPhyFlex_ProvAnyClientMapOpiCfg]hyPhyFlexOpukRxPtExpCfg(.,1,19,0x7).
+[L3386:_hyPhyFlex_ProvAnyClientMapOpiCfg]hyPhyFlexOpukTxPtSrcCfg(.,1,19,1,0x7).
+[L4355:_hyPhyFlex_ProvVcatOtnFlexGrpCfg]Args:(.,5,1,5,1,{0,1,1,0,0, 1000000,1,1,99,99, 5,1,0,2,1, 0,0,0,0}).
+[L326 :_hyPhy20g_VcatOtnGrpTransponderCfg]Args:(.,5,1,5,1,{99,0,1,1,0,99,99,99,99,99,0,5,1,0,0,0,1,1,99,1000000,1,0,100,0,0,0,3,0,0,0}).
+[L1503:_hyPhy20g_VcatOtnGrpTransponderCfg]VCAT Bring up operations being performed
+[L2588:_hyPhy20g_vcatSliceTimeslotMap]Args:(.,1,0,1,0, 1,0,0,3).
+[L2702:_hyPhy20g_vcatSliceTimeslotMap]returned [2]!
+[L1566:_hyPhy20g_VcatOtnGrpTransponderCfg]CPB previously initialized
+[L1581:_hyPhy20g_VcatOtnGrpTransponderCfg]GFP group tracking for slice [1] previously initialized
+[L1595:_hyPhy20g_VcatOtnGrpTransponderCfg]DBG - pDynamicCfgCtxt->GfpSliceTransOdu1Up[1] previously initialized
+[L1643:_hyPhy20g_VcatOtnGrpTransponderCfg]Adding client to a new VCAT group.
+[L1659:_hyPhy20g_VcatOtnGrpTransponderCfg]Adding client to a new VCAT group.
+[L1666:_hyPhy20g_VcatOtnGrpTransponderCfg]VCAT Slice [1] previously initialized
+[L1735:_hyPhy20g_VcatOtnGrpTransponderCfg]Setting VCAT slice[1], OTU1#[99] for linkMode[ODU0 GMP]
+[L1752:_hyPhy20g_VcatOtnGrpTransponderCfg]Setting VCAT slice 1, ODU0#1 for GMP.
+[L1772:_hyPhy20g_VcatOtnGrpTransponderCfg]hyPhyFlexVcatOtnOdu0LinkCfg(.,1,1,1,1,1,0,5).
+[L1851:_hyPhy20g_VcatOtnGrpTransponderCfg]GFP Slice 1 previously initialized
+[L2027:_hyPhy20g_VcatOtnGrpTransponderCfg]Configuring VCAT slice 1, ODU0#1 for GMP mode using group 5.
+[L2029:_hyPhy20g_VcatOtnGrpTransponderCfg]hyPhyFlexVcatOtnOdu0SliceEnable(.,1,1,1).
+[L2033:_hyPhy20g_VcatOtnGrpTransponderCfg]hyPhyFlexGfpOdu0TranspSliceInit(.,1,1,2,1).
+[L2045:_hyPhy20g_VcatOtnGrpTransponderCfg]hyPhyFlexGfpOdukTranspChTxInit(.,1,0,1,5,1171875,499,1060,0,100,1,0).
+[L2052:_hyPhy20g_VcatOtnGrpTransponderCfg]hyPhyFlexGfpOdukTranspSliceTTTEnable(.,1,0,1,5,5,1).
+[L2058:_hyPhy20g_VcatOtnGrpTransponderCfg]DBG - type 3, up: 1.
+[L2177:_hyPhy20g_VcatOtnGrpTransponderCfg]DBG - GfpSliceTransOdu1Up[#1][#99] = 0.
+[L2218:_hyPhy20g_VcatOtnGrpTransponderCfg]Initializing OTNMA/OTNMD slice 1 for ODU0 operation.
+[L2238:_hyPhy20g_VcatOtnGrpTransponderCfg]hyPhyFlexGfpOdukTranspChRxInit(.,1,0,1,5,1000000,300,0,100).
+[L2245:_hyPhy20g_VcatOtnGrpTransponderCfg]Initializing ODU0 slice 1 for TTT operation.
+[L2251:_hyPhy20g_VcatOtnGrpTransponderCfg]hyPhyFlexGfpOdukTranspChRxTTTCfg(.,1,5,1).
+[L2256:_hyPhy20g_VcatOtnGrpTransponderCfg]hyPhy20gGfpGfpGrpInit(.,1,5,0,1).
+[L2458:_hyPhy20g_VcatOtnGrpTransponderCfg]Info: GfpGrpIdUsageSlc[#1][#5] = 11.
+[L3502:_hyPhyFlex_ProvAnyClientMapOpiCfg]Starting LSCI Configuration...channel 5.
+[L915 :_hyPhy20g_LsciClientCfg]Args:(.,5,1,1,{4,9999,9999,9999,0,1250000,33}).
+[L1000:_hyPhy20g_LsciClientCfg]DBG - Determine mode for LSCI Init and EnetComLsciInit, geMode=[4].
+[L1193:_hyPhy20g_LsciClientCfg]DBG - PMM Rate Configuration, geMode=[4].
+[L1354:_hyPhy20g_LsciClientCfg]LSCI Port Tracking Previously Initialized.
+[L1367:_hyPhy20g_LsciClientCfg]ENET_COM LSCI Port Tracking Previously Initialized.
+[L1380:_hyPhy20g_LsciClientCfg]HSCI Slice Usage Tracking Previously Initialized.
+[L1393:_hyPhy20g_LsciClientCfg]LSCI Port Usage Tracking Previously Initialized.
+[L1483:_hyPhy20g_LsciClientCfg]Bring up operations being performed....
+[L1489:_hyPhy20g_LsciClientCfg]SFP Initialization....
+[L1492:_hyPhy20g_LsciClientCfg]hyPhy20gSfpSerdesInit(.,5,0).
+[L1496:_hyPhy20g_LsciClientCfg]hyPhy20gSfpSerdesInit(.,5,1).
+[L1503:_hyPhy20g_LsciClientCfg]SFP rate configuration....
+[L1514:_hyPhy20g_LsciClientCfg]hyPhy20gSfpRateCfg(.,5,1,0,1).
+[L1534:_hyPhy20g_LsciClientCfg]SONET_LINE Configuration....
+[L1539:_hyPhy20g_LsciClientCfg]SONET_LINE Interface previously enabled.
+[L1565:_hyPhy20g_LsciClientCfg]hyPhy20gSonetLnSfpDataPathCfg(.,5,24,0).
+[L1571:_hyPhy20g_LsciClientCfg]hyPhy20gSonetLnSfpSrcCSel(.,5,40).
+[L1577:_hyPhy20g_LsciClientCfg]hyPhy20gSonetLnSfpSrcBSel(.,5,33).
+[L1593:_hyPhy20g_LsciClientCfg]ENET_COM subsystem previously enabled.
+[L1616:_hyPhy20g_LsciClientCfg]LSCI Configuration....
+[L1618:_hyPhy20g_LsciClientCfg]hyPhy20gLsciInit(.,5,9).
+[L1624:_hyPhy20g_LsciClientCfg]hyPhyFlexLsciTttModeCfg(.,5,0xE,1,1).
+[L1791:_hyPhy20g_LsciClientCfg]LSCI PMM Initialization....
+[L1897:_hyPhy20g_LsciClientCfg]payloadType = [29], timingMode = 1.
+[L2158:_hyPhy20g_LsciClientCfg]DBG - rate[1] feMode[9999] geMode[4] => LsciPortUsage[5]=0.
+[L2162:_hyPhy20g_LsciClientCfg]LSCI Client Configuration Complete.
+[L3518:_hyPhyFlex_ProvAnyClientMapOpiCfg]Starting GFP Channel Provisioning...channel 5.
+[L380 :_hyPhy20g_GfpChTransponderCfg]Args:(.,1,9,5,{2,0,2,3,0,1,0,1,999,0,0,0,{999,999,999,999},{999,999,999,999},
+[L388 :_hyPhy20g_GfpChTransponderCfg]      {0,0,0,0},{0,0,0,0},{0,0,0,0},999,1,0,0,0,0,0,0,1,0,1,0,1,0,0,0}).
+[L533 :_hyPhy20g_GfpChTransponderCfg]GFP channel tracking for slice [1] previously initialized.
+[L598 :_hyPhy20g_GfpChTransponderCfg]Configuring GFP channel 5 in slice 1 for GE TTT mode
+[L601 :_hyPhy20g_GfpChTransponderCfg]hyPhy20gGfpTChInitRx(.,1,5,1,0,0,1,1,0,0).
+[L624 :_hyPhy20g_GfpChTransponderCfg]hyPhy20gGfpFDataExtHdrCfg(.,1,5,0,0,0).
+[L653 :_hyPhy20g_GfpChTransponderCfg]hyPhy20gGfpFPtiUpiFilterCfg(.,1,5,0,0,0,0,0,0,0,0).
+[L653 :_hyPhy20g_GfpChTransponderCfg]hyPhy20gGfpFPtiUpiFilterCfg(.,1,5,1,0,0,0,0,0,0,0).
+[L653 :_hyPhy20g_GfpChTransponderCfg]hyPhy20gGfpFPtiUpiFilterCfg(.,1,5,2,0,0,0,0,0,0,0).
+[L653 :_hyPhy20g_GfpChTransponderCfg]hyPhy20gGfpFPtiUpiFilterCfg(.,1,5,3,0,0,0,0,0,0,0).
+[L966 :_hyPhy20g_GfpChTransponderCfg]DBG - GfpChnlIdUsageSlc[1][5]=10.
+[L3529:_hyPhyFlex_ProvAnyClientMapOpiCfg]Starting CPB Channel Provisioning...channel 5.
+[L160 :_hyPhy20g_CpbChnlCfgUp]Args:(.,0,5,88,{2,1250,9999,5,10,20,9999,0,9999,*pifRxFcMap,*pifTxFcMap,0,0,9999,9999}).
+[L296 :_hyPhy20g_CpbChnlCfgUp]CPB Write Channel Tracking Initialized.
+[L325 :_hyPhy20g_CpbChnlCfgUp]CPB Write Channel Tracking Initialized.
+[L358 :_hyPhy20g_CpbChnlCfgUp]CPB Write Channel Tracking Initialized.
+[L385 :_hyPhy20g_CpbChnlCfgUp]DBG-Save GlobalVar:WrChnlId[5]->RdChnlId[88].
+[L452 :_hyPhy20g_CpbChnlCfgUp]GFP B to CPB Read Channel Tracking Initialized.
+[L504 :_hyPhy20g_CpbChnlCfgUp]LSCI Port Tracking Initialized.
+[L730 :_hyPhy20g_CpbChnlCfgUp]GFP B Group Tracking Initialized.
+[L928 :_hyPhy20g_CpbChnlCfgUp]CPB QDR type defined as Internal QDR.
+[L948 :_hyPhy20g_CpbChnlCfgUp]CPB previously initialized.
+[L1243:_hyPhy20g_CpbChnlCfgUp]hyPhy20gCpbChnlProv(.,2,5,0,88,0,1250,10,20,31,0,0).
+[L160 :_hyPhy20g_CpbChnlCfgUp]Args:(.,0,88,5,{3,1250,5,9999,10,25,9999,0,9999,*pifRxFcMap,*pifTxFcMap,0,0,9999,9999}).
+[L296 :_hyPhy20g_CpbChnlCfgUp]CPB Write Channel Tracking Initialized.
+[L325 :_hyPhy20g_CpbChnlCfgUp]CPB Write Channel Tracking Initialized.
+[L358 :_hyPhy20g_CpbChnlCfgUp]CPB Write Channel Tracking Initialized.
+[L385 :_hyPhy20g_CpbChnlCfgUp]DBG-Save GlobalVar:WrChnlId[88]->RdChnlId[5].
+[L478 :_hyPhy20g_CpbChnlCfgUp]GFP B to CPB Write Channel Tracking Initialized.
+[L504 :_hyPhy20g_CpbChnlCfgUp]LSCI Port Tracking Initialized.
+[L730 :_hyPhy20g_CpbChnlCfgUp]GFP B Group Tracking Initialized.
+[L806 :_hyPhy20g_CpbChnlCfgUp]GFP B Group Tracking Initialized.
+[L835 :_hyPhy20g_CpbChnlCfgUp]DBG - wrChnlCtxt=10; wrPortWidth=1
+[L928 :_hyPhy20g_CpbChnlCfgUp]CPB QDR type defined as Internal QDR.
+[L948 :_hyPhy20g_CpbChnlCfgUp]CPB previously initialized.
+[L1243:_hyPhy20g_CpbChnlCfgUp]hyPhy20gCpbChnlProv(.,3,88,1,5,0,1250,10,25,43,0,0).
+[L3668:_hyPhyFlex_ProvAnyClientMapOpiCfg]Starting CPB Data Flow Enabling...channel 5 and 88.
+[L151 :_hyPhy20g_CpbChnlCfgEnbl]Args:(.,0,5,1,{9999,0,9,1,1,0,5,1,0,1000,0,1}).
+[L897 :_hyPhy20g_CpbChnlCfgEnbl]Bring up operations being performed.
+[L1268:_hyPhy20g_CpbChnlCfgEnbl]OpType[0] WrChnlId[5]->RdChnlRd[88].
+[L1313:_hyPhy20g_CpbChnlCfgEnbl]DBG - rdChnlId=88, GFP slice 1
+[L1322:_hyPhy20g_CpbChnlCfgEnbl]DBG - rdGrpId = [5].
+[L1468:_hyPhy20g_CpbChnlCfgEnbl]hyPhyFlexGfpOdu0TranspChTxAdd(.,1,1,5,5,499).
+[L1599:_hyPhy20g_CpbChnlCfgEnbl]CPB Channel Enabling for wrChnlId 5....
+[L1602:_hyPhy20g_CpbChnlCfgEnbl]hyPhy20gCpbChnlEnable(.,5).
+[L151 :_hyPhy20g_CpbChnlCfgEnbl]Args:(.,0,88,1,{9999,0,9,1,1,0,5,1,1,1000,0,1}).
+[L897 :_hyPhy20g_CpbChnlCfgEnbl]Bring up operations being performed.
+[L1268:_hyPhy20g_CpbChnlCfgEnbl]OpType[0] WrChnlId[88]->RdChnlRd[5].
+[L1274:_hyPhy20g_CpbChnlCfgEnbl]hyPhy20gLsciDataPathEnable(.,5,1,1).
+[L1599:_hyPhy20g_CpbChnlCfgEnbl]CPB Channel Enabling for wrChnlId 88....
+[L1602:_hyPhy20g_CpbChnlCfgEnbl]hyPhy20gCpbChnlEnable(.,88).
+[L1666:_hyPhy20g_CpbChnlCfgEnbl]wrGrpId = [5].
+[L1777:_hyPhy20g_CpbChnlCfgEnbl]hyPhyFlexGfpOdu0TranspChRxAdd(.,1,1,5,5,300).
+[L1783:_hyPhy20g_CpbChnlCfgEnbl]hyPhy20gGfpRxChAdd(.,1,5,0,5,1).
+[L3805:_hyPhyFlex_ProvAnyClientMapOpiCfg]sXAUI Channelize Initialization
+[L3843:_hyPhyFlex_ProvAnyClientMapOpiCfg]ACB Initialization....
+[L3846:_hyPhyFlex_ProvAnyClientMapOpiCfg]hyPhy20gSfpAcbInit(.,5,0).
+[L3850:_hyPhyFlex_ProvAnyClientMapOpiCfg]hyPhy20gSfpAcbInit(.,5,1).
+[L3860:_hyPhyFlex_ProvAnyClientMapOpiCfg]hyPhyFlexSfpAcbCfgGain(.,5,0xF,0,5,8,8,3,0x7).
+[L4170:_hyPhyFlex_ProvAnyClientMapOpiCfg]hyPhyFlexSfpAcbModeSelExt(.,5,2,0,2,0,1,1,300).
+[L4178:_hyPhyFlex_ProvAnyClientMapOpiCfg]hyPhy20gLsciDataPathEnable(.,5,0,1).
+[L1164:provOduk]hyPhy20gGfpFPtiUpiFilterCfg . 1 5 0 1 4 1 1 1 0 1
+[L1167:provOduk]hyPhy20gGfpFPtiUpiFilterCfg . 1 5 1 2 4 1 1 0 1 0
+[L1170:provOduk]hyPhy20gGfpFPtiUpiFilterCfg . 1 5 2 0 0 0 0 0 0 0
+[L1173:provOduk]hyPhy20gGfpFPtiUpiFilterCfg . 1 5 3 0 0 0 0 0 0 0
+[L1188:provOduk]hyPhyFlexOpukRxDefectCfg . 1 19 0 1 1 0x3
+[L1200:provOduk]hyPhyFlexOdukPmModeCfg . 1 19 1 0x8
+[L1203:provOduk]hyPhyFlexOdukTxPmTcmiBdiSrcCfg . 1 19 0 1 0
+[L1207:provOduk]hyPhy20gRegFieldWrite . 0x4A3E9A8 0x1 0x0
+[L1212:provOduk]hyPhyFlexOpukRxDCsfCfg . 1 19 0
+[L7419:enableCsfInertion]hyPhyFlexOpukTxCsfSrcCfg . 1 19 1 0
+[L7636:setLoOdukAisInsertion]hyPhyFlexOdukTxDiagCfg . 1 5 0 1
+[L7581:sendClGenericAis]hyPhy20gLsciFcCbrPattForce . 5 1 0
+OtSetOduApsRecord:: port= 0x8
+(<5 1 3 7 3 0>):(03:31:39.541957):(Ot8p20FltSup.C:5272)
+WARNING! Incoming OduApsRecord Size = 0; Expecting =144
+
+OtSetOduApsId:: port=0x8 ,pgid = 0x0
+(<5 1 3 8 4 0>):(03:31:41.265022):(Ot8p20PrfSup.C:403) port 1/3/8 change sigtype to value 74
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+*** odukcreate in client side:
+[not matched] odukCreate#OTN_CLN_6-OTN_ODU_ODU0-0-+0-16#0
+[L1105:provOduk]hyPhyFlexOpukRxDefectCfg . 1 19 0 1 1 0x3
+[L1107:provOduk]hyPhyFlexOpukRxDCsfCfg . 1 19 0
+[L1110:provOduk]hyPhyFlexOdukTxPmTcmiBdiSrcCfg . 1 19 0 1 0
+(<5 1 3 7 3 0>):(03:31:43.558771):(Ot8p20FltSupPm.C:917) Succ to create OtnPmCollector(ODU0/1/3/8/R,fac:4,subfac:1)
+
+[L4861:interruptEnablePort]hyPhy20gRegFieldWrite . 0x4964B0C 0x8 0x0
+[L4864:interruptEnablePort]sysHyPhy20gBitWrite . 0x4000180 0xA
+[L4871:interruptEnablePort]hyPhy20gWrite . 0x48AC100 0xFFFF
+[L4875:interruptEnablePort]hyPhy20gWrite . 0x48AC104 0x1
+[L4879:interruptEnablePort]hyPhy20gWrite . 0x48A8028 0x0
+[L7419:enableCsfInertion]hyPhyFlexOpukTxCsfSrcCfg . 1 12 1 1
+[L7581:sendClGenericAis]hyPhy20gLsciFcCbrPattForce . 5 0 0
+
+
+====================================
+prepare for otn side odukpp channel 
+
+[not matched] portSigTypeSet#OTN_LIN_2#OTN_SIG_OTU2
+(<5 1 3 7 3 0>):(01:47:03.968302):(FmApi.cc:43) sigTypeSet,isHyphyPending 0, isGnPending 0, return 0
+(<5 1 3 7 3 0>):(01:47:03.999104):(Ot8p20FltSup.C:3265) create detector: port 14 XBAR, success
+(<5 1 3 7 3 0>):(01:47:04.001643):(FmApi.cc:51) oduCreate, 14 2 2 0,0
+(<5 1 3 7 3 0>):(01:47:04.003609):(FmApi.cc:632) odukCreate 2 19 0
+[not matched] odukCreate#OTN_LIN_2-OTN_ODU_ODUTP_ODU2-0-+0-16#0
+[L1046:provOduk]hyPhy20gOtnOhRamCfg . 9 2 0 0x700000 0xFFC0
+[L1049:provOduk]hyPhy20gOtnOhRamCfg . 9 0xFF
+[L1052:provOduk]hyPhy20gOtnOhRamInsEnable . 9 1 1 0
+[L1057:provOduk]hyPhy20gRegFieldWrite . 0x4968300 0xC000
+[L1076:provOduk]hyPhy20gRegFieldWrite . 0x4B3E804 0x936ED2DB(0x 936ED2DB)
+(<5 1 3 7 3 0>):(01:47:05.857876):(Ot8p20FltSupPm.C:1016) Succ to create OtnPmCollector(ODU2/1/3/14/R,fac:6,subfac:3)
+(<5 1 3 7 3 0>):(01:47:05.859431):(Ot8p20FltSup.C:3294) create detector: BP port 14 ODU2, success
+(<5 1 3 8 4 0>):(01:47:06.170557):(Ot8p20PrfSup.C:743) create LoOdu ODU2ODU0/1/3/14/1 success
+(<5 1 3 8 4 0>):(01:47:06.184008):(Ot8p20PrfSup.C:754) create LoOdu ODU2ODU0/1/3/14/1 success
+(<5 1 3 8 4 0>):(01:47:06.199580):(Ot8p20PrfSup.C:743) create LoOdu ODU2ODU0/1/3/14/2 success
+(<5 1 3 8 4 0>):(01:47:06.212944):(Ot8p20PrfSup.C:754) create LoOdu ODU2ODU0/1/3/14/2 success
+(<5 1 3 8 4 0>):(01:47:06.228414):(Ot8p20PrfSup.C:743) create LoOdu ODU2ODU0/1/3/14/3 success
+(<5 1 3 8 4 0>):(01:47:06.241592):(Ot8p20PrfSup.C:754) create LoOdu ODU2ODU0/1/3/14/3 success
+(<5 1 3 8 4 0>):(01:47:06.256317):(Ot8p20PrfSup.C:743) create LoOdu ODU2ODU0/1/3/14/4 success
+(<5 1 3 8 4 0>):(01:47:06.268620):(Ot8p20PrfSup.C:754) create LoOdu ODU2ODU0/1/3/14/4 success
+(<5 1 3 8 4 0>):(01:47:06.282767):(Ot8p20PrfSup.C:743) create LoOdu ODU2ODU0/1/3/14/5 success
+(<5 1 3 8 4 0>):(01:47:06.294764):(Ot8p20PrfSup.C:754) create LoOdu ODU2ODU0/1/3/14/5 success
+(<5 1 3 8 4 0>):(01:47:06.309298):(Ot8p20PrfSup.C:743) create LoOdu ODU2ODU0/1/3/14/6 success
+(<5 1 3 8 4 0>):(01:47:06.321475):(Ot8p20PrfSup.C:754) create LoOdu ODU2ODU0/1/3/14/6 success
+(<5 1 3 8 4 0>):(01:47:06.335704):(Ot8p20PrfSup.C:743) create LoOdu ODU2ODU0/1/3/14/7 success
+(<5 1 3 8 4 0>):(01:47:06.347926):(Ot8p20PrfSup.C:754) create LoOdu ODU2ODU0/1/3/14/7 success
+(<5 1 3 8 4 0>):(01:47:06.361916):(Ot8p20PrfSup.C:743) create LoOdu ODU2ODU0/1/3/14/8 success
+(<5 1 3 8 4 0>):(01:47:06.374294):(Ot8p20PrfSup.C:754) create LoOdu ODU2ODU0/1/3/14/8 success
+(<5 1 3 7 3 0>):(01:47:09.992323):(FmApi.cc:51) oduCreate, 14 2 8 1,1
+(<5 1 3 7 3 0>):(01:47:09.994123):(FmApi.cc:632) odukCreate 2 25 1
+[not matched] odukCreate#OTN_LIN_2-OTN_ODU_ODU2ODU0-1-+1-16#0
+[L5214:_hyPhyFlex_ProvOdu0FrmrOpiCfg]Args(.,8,2,1,{8,0,108}).
+[L5304:_hyPhyFlex_ProvOdu0FrmrOpiCfg]Transport Service Configuration....
+[L164 :_hyPhyFlex_Odu0TransportServiceCfg]Args:(.,1,1,{8,8,1.250000,0,0,0,0,108}).
+[L618 :_hyPhyFlex_Odu0TransportServiceCfg]Bring up operations being performed.
+[L674 :_hyPhyFlex_Odu0TransportServiceCfg]SONET_LINE Configuration....
+[L679 :_hyPhyFlex_Odu0TransportServiceCfg]SONET_LINE Interface previously enabled.
+[L715 :_hyPhyFlex_Odu0TransportServiceCfg]CBRB previously initialized
+[L736 :_hyPhyFlex_Odu0TransportServiceCfg]OTN ODUk Framer Configuration...
+[L744 :_hyPhyFlex_Odu0TransportServiceCfg]OTN ODUk Framer Device Level Configuration....
+[L746 :_hyPhyFlex_Odu0TransportServiceCfg]hyPhyFlexOtnOdukDeviceInit(.,1,1).
+[L754 :_hyPhyFlex_Odu0TransportServiceCfg]hyPhyFlexOdukTxSchedulerCfg(.,1,0,1,0).
+[L758 :_hyPhyFlex_Odu0TransportServiceCfg]hyPhyFlexOdukRxSchedulerCfg(.,1,0,1,0).
+[L754 :_hyPhyFlex_Odu0TransportServiceCfg]hyPhyFlexOdukTxSchedulerCfg(.,1,1,1,0).
+[L758 :_hyPhyFlex_Odu0TransportServiceCfg]hyPhyFlexOdukRxSchedulerCfg(.,1,1,1,0).
+[L754 :_hyPhyFlex_Odu0TransportServiceCfg]hyPhyFlexOdukTxSchedulerCfg(.,1,2,1,0).
+[L758 :_hyPhyFlex_Odu0TransportServiceCfg]hyPhyFlexOdukRxSchedulerCfg(.,1,2,1,0).
+[L754 :_hyPhyFlex_Odu0TransportServiceCfg]hyPhyFlexOdukTxSchedulerCfg(.,1,3,1,0).
+[L758 :_hyPhyFlex_Odu0TransportServiceCfg]hyPhyFlexOdukRxSchedulerCfg(.,1,3,1,0).
+[L754 :_hyPhyFlex_Odu0TransportServiceCfg]hyPhyFlexOdukTxSchedulerCfg(.,1,4,1,0).
+[L758 :_hyPhyFlex_Odu0TransportServiceCfg]hyPhyFlexOdukRxSchedulerCfg(.,1,4,1,0).
+[L754 :_hyPhyFlex_Odu0TransportServiceCfg]hyPhyFlexOdukTxSchedulerCfg(.,1,5,1,0).
+[L758 :_hyPhyFlex_Odu0TransportServiceCfg]hyPhyFlexOdukRxSchedulerCfg(.,1,5,1,0).
+[L754 :_hyPhyFlex_Odu0TransportServiceCfg]hyPhyFlexOdukTxSchedulerCfg(.,1,6,1,0).
+[L758 :_hyPhyFlex_Odu0TransportServiceCfg]hyPhyFlexOdukRxSchedulerCfg(.,1,6,1,0).
+[L754 :_hyPhyFlex_Odu0TransportServiceCfg]hyPhyFlexOdukTxSchedulerCfg(.,1,7,1,0).
+[L758 :_hyPhyFlex_Odu0TransportServiceCfg]hyPhyFlexOdukRxSchedulerCfg(.,1,7,1,0).
+[L782 :_hyPhyFlex_Odu0TransportServiceCfg]hyPhyFlexOpiPmmOifPktPerCal(.,1244160,108,...).
+[L786 :_hyPhyFlex_Odu0TransportServiceCfg]hyPhyFlexOpiPmmInit(.,8,8,1,1,1,0x6c,0xd8).
+[L927 :_hyPhyFlex_Odu0TransportServiceCfg]ODTU2.1 Configuration....
+[L943 :_hyPhyFlex_Odu0TransportServiceCfg]Configuring ODTU2.1 Mux HO channel for OTU2 Framer #1....
+[L950 :_hyPhyFlex_Odu0TransportServiceCfg]hyPhyFlexMuxHOChnlProv(.,9,0x21).
+[L954 :_hyPhyFlex_Odu0TransportServiceCfg]hyPhyFlexMuxHOChnlActivate(.,9).
+[L959 :_hyPhyFlex_Odu0TransportServiceCfg]hyPhyFlexDemuxHOChnlProv(.,9,0x21).
+[L963 :_hyPhyFlex_Odu0TransportServiceCfg]hyPhyFlexDemuxHOChnlActivate(.,9).
+[L989 :_hyPhyFlex_Odu0TransportServiceCfg]Configuring LO channel....
+[L999 :_hyPhyFlex_Odu0TransportServiceCfg]hyPhyFlexMuxLOChnlProv(.,8,1,8,1,0).
+[L1003:_hyPhyFlex_Odu0TransportServiceCfg]hyPhyFlexMuxLOChnlActivate(.,8).
+[L1007:_hyPhyFlex_Odu0TransportServiceCfg]hyPhyFlexOdukTxSchedulerCfg(.,1,0,1,1).
+[L1012:_hyPhyFlex_Odu0TransportServiceCfg]hyPhyFlexDemuxLOChnlProv(.,8,1,8,1,0).
+[L1016:_hyPhyFlex_Odu0TransportServiceCfg]hyPhyFlexDemuxLOChnlActivate(.,8).
+[L1020:_hyPhyFlex_Odu0TransportServiceCfg]hyPhyFlexOdukRxSchedulerCfg(.,1,0,1,1).
+[L1028:_hyPhyFlex_Odu0TransportServiceCfg]hyPhyFlexOdukXBarCfg(.,9,0,1,0,1).
+[L1032:_hyPhyFlex_Odu0TransportServiceCfg]hyPhy20gCbrbVcatOtnChnlCfg(.,8,1).
+[L1036:_hyPhyFlex_Odu0TransportServiceCfg]hyPhy20gOpiPmmMonEnable(.,8,1).
+[L1147:_hyPhyFlex_Odu0TransportServiceCfg]CBRB Configuration....
+[L1152:_hyPhyFlex_Odu0TransportServiceCfg]CBRB previously initialized.
+[L1173:_hyPhyFlex_Odu0TransportServiceCfg]OTU0 Transport Service Configuration Complete.
+[L1629:provOduk]hyPhyFlexOdukPmModeCfg . 0 26 3 0x8
+[L1632:provOduk]hyPhyFlexOdukTxPmTcmiTtiMsgSrcCfg . 0 26 0 0
+[L1636:provOduk]hyPhy20gRegFieldWrite . 0x4B3E8B0 0x1 0x0
+[L1638:provOduk]hyPhyFlexOpukRxDCsfCfg . 0 26 0
+[L1642:provOduk]hyPhyFlexOdukTxApsPccSrcCfg . 0 26 0 0 0x0
+[L1644:provOduk]hyPhyFlexOpukTxCsfSrcCfg . 0 26 0 0
+[L1647:provOduk]hyPhyFlexOpukRxDefectCfg . 0 26 0 0 1 0x1
+[L1649:provOduk]hyPhyFlexOdukTxPmTcmiBipSrcCfg . 0 26 0 0
+[L7914:setLoOdukOciInsertion]hyPhyFlexOdukTxDiagCfg . 0 26 2 1
+[L1656:provOduk]hyPhyFlexOdukRxPmTcmiPmonCfg . 0 26 0 1 1 3
+(<5 1 3 7 3 0>):(01:47:13.116948):(Ot8p20FltSupPm.C:1016) Succ to create OtnPmCollector(ODU2ODU0/1/3/14/1/R,fac:7,subfac:2)
+(<5 1 3 7 3 0>):(01:47:13.122744):(FmApi.cc:51) oduCreate, 14 2 8 2,2
+(<5 1 3 7 3 0>):(01:47:13.124633):(FmApi.cc:632) odukCreate 2 25 2
+
+
+-----------------------------------------
+- one item
+- <<target>>another item
+
+     Here we refer to item [[target]].
+      [[odukcreate][find odukcreate]]
