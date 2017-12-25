@@ -909,3 +909,584 @@ prepare for otn side odukpp channel
 
      Here we refer to item [[target]].
       [[odukcreate][find odukcreate]]
+
+
+* FDI/BDI usage
+                                                
+                                                link is broken                pass FDI to F from E  pass FDI to G from E
+   |                    |                     |                 |   FDI        |  FDI           |   FDI             |
+   |-------->-----------|------------>--------|-------->--------|------>-------|--------->------|----------->-------|
+   |                    |                     |       \/        |              |                |                   |
+   |                    |                     |       /\        |              |                |                   |
+   |                    |                     |                 |              |                |                   |
+   |--------<-----------|------------<--------|--------<--------|------<-------|--------<-------|---------<---------|
+   |      BDI           |      BDI            |     BDI         |              |                |                   |
+nodeA                nodeB                   nodeC            nodeD           nodeE            nodeF               nodeG
+ pass BDI to nodeA from B    pass BDI to nodeB from C        generate FDI/BDI
+
+when link is boroken, rx of nodeD will notice firstly, and nodeD will insert FDI to nodeE(downstream) in the forward dir, and nodeD will send nodeC BDI(upstream) in the backword dir.
+back/forward is related to the link broken direction. Thus all the nodes in this path know about this broken link.
+FDI always refeter to AIS.
+
+
+** 8p20/4b alarm when link broken from L1 to L4, but L4 to L1 is OK
+ InSSF outLof  
+   C6                c7  InBDI
+    |                | 
+    |                |
+    bp2            bp1  InBDI (L1 tx )
+    |InSSF           |
+    |                | 
+    |                |
+    L4--------------L1 
+InLof/SSF                InBDI    
+SSF is FDI in above concept.
+
+** oduk-AIS in 4b/8p20
+             1gbe            odu2-odu0               odu2
+  smartbit--------- 1/2/c4--------------1/2/bp2/1--------------1/4/L1------------testset(insertion signal)
+
+AIS is similar to FDI in above concept, so AIS will be forward in the downstream, which is SSF in 4b and 8p20, and
+BDI insertion in 4b/8p20 
+*** odu2-AIS insertion
+In testset odu2-AIS insert in the tx, then a odu0-pm-bdi(inserted by 8p20) and odu2-pm-bdi(inserted by 4b)  will show in th rx.
+---------------------------------------------------------------------------------------
+NR NSA   21/07/06 19:26:58 ODU0     SSFODU              ODU0 1/2/C4 In
+   Server Signal Failure - ODU                                             8P20
+
+NR NSA   21/07/06 20:05:43 ODU2     SSFODU              OTUODU2 1/4/L1 In
+   Server Signal Failure - ODU                                          11QPA4B
+
+NR NSA   21/07/06 20:05:44 ODU2     SSFODU              ODU2 1/2/BP2 In
+   Server Signal Failure - ODU                                             8P20
+------------------------------------------------------------------------------------------
+
+*** odu0-AIS insertion
+In odu2odu0 structure, a odu0-AIS insert in the tx, then a odu0-pm-bdi(inserted by 8p20) will show in th rx.
+8p20 odu0 level alarm, no 1/4/L1 alarm since it's odu2 level
+------------------------------------
+NR NSA   21/07/06 19:26:57 ODU0     SSFODU              ODU2ODU0 1/2/BP2 LO:1 In
+   Server Signal Failure - ODU                                             8P20
+
+NR NSA   21/07/06 19:26:58 ODU0     SSFODU              ODU0 1/2/C4 In
+   Server Signal Failure - ODU                                             8P20
+-------------------------------------
+
+** two 4b and one 8p20 board
+*** a tx is broken
+1gbe from c3->bp2->4/L1------------>3/L1->bp1->c4(fiber loopback)->bp1->3/L1->ont(600)->4/l1->bp2->c3
+                       broken here 
+
+if 4/L1->3/L1(4/L1 st down) is broken then alarm will as below:
+
+    c4                       c3  
+  SSF                       BDI
+    |                        |      
+    |                        |
+   bp1                        bp2 
+  SSF                        BDI   
+    |                        |
+    |             x          |
+ 3/L1-------------<----------4/L1 
+  BDI                        BDI
+   \|/                       /|\   
+    |                         |
+    ----- ont-600 BDI---------
+
+*** odu2 level insersion in the otn-600 testset
+
+1gbe from c3->bp2->4/L1->3/L1->bp1->c4(fiber loopback)->bp1->3/L1->ont(600)->4/l1->bp2->c3
+
+   C4                       c3  \/
+BDI                         SSF
+    |                        |      
+    |                        |
+   bp1                        bp2 
+  BDI                        SSF   
+    |                        |
+    |                        |
+ 3/L1------------<-----------4/L1    (insert BDI upstream, insert SSF in downstream)
+  BDI                       SSF,BDI
+   \|/                        |   
+    |                         |
+    ----- ont-600 BDI---------
+     odu2-AIS insertion   
+    
+
+** oduk pm-bip in 4b/8p20
+*** odu2 pm-bip in 4b/8p20
+In testset odu2-pm-bip insert in the tx, then a  odu2-pm-bei(inserted by 4b)  will show in th rx.
+no alarm in client ,so no odu0-pm-bei will be inserted
+--------------------------------
+MJ SA    21/07/06 20:36:44 ODU2     DEG                 OTUODU2 1/4/L1 In
+   Signal Degrade - ODU                                                 11QPA4B
+
+MJ SA    21/07/06 20:36:45 ODU2     DEG                 ODU2 1/2/BP2 In
+   Signal Degrade - ODU                                                    8P20
+----------------------------
+
+*** odu0 pm-bip in 4b/8p20
+In testset odu0-pm-bip insert in the tx, then a  odu0-pm-bei(inserted by 4b)  will show in th rx.
+no alarm in 4b, so only 8p20 insert the odu0-pm-bei
+--------------------------------
+NR NSA   21/07/06 20:42:33 ODU0     SSFODU              ODU2ODU0 1/2/BP2 LO:1 In
+   Server Signal Failure - ODU                                             8P20
+
+NR NSA   21/07/06 20:42:34 ODU0     SSFODU              ODU0 1/2/C4 In
+   Server Signal Failure - ODU                                             8P20
+-----------------------------
+
+
+
+
+
+** ODU alarms in otu2, odu2 odu0 in 4b/8p20
+testset(ont-600)--4b/L1---8p20bp1------8p20bp1/ts1-------8p20odukpp/chan1-------------client
+
+*** testset tx laser is off
+
+      ONT-600-testset
+      |          |
+      |         /|\
+      x          | SM-bwd
+      |          | 
+         4b/L1   generate SM-bwd
+      |otu-SSF   | 
+      |         /|\
+      \/         |     
+      card8p20/BP1
+       |        /|\ 
+      \|/        |      
+       |Odu2-SSF | odu2-PM-BDI
+       |         |    
+       OTN8timeslot
+       |          |
+      \|/        /|\
+       |odu0-ssf  | odu0-PM-BDI   
+       ODUKPP8channel 
+        |        |
+       \|/      /|\
+        |--------|
+         client  
+
+*** 8p/Bp1 to 4b/L1  broke 
+
+      ONT-600-testset
+      |          |
+      |         /|\
+     \/          |odu2-OCI 
+         4b/L1   
+      |          | 
+      |          x broke inside a pack     
+      |          | 
+      \/         |     
+         8p/BP1
+       |        /|\ 
+      \|/        |      
+       OTN8timeslot
+       |          |               
+      \|/        /|\
+       |          |
+       |          |
+        ODUKPP8channel 
+        |        |
+       \|/      /|\
+        |        |
+        |________|
+         client  
+
+
+      
+
+*** only one direction client to bp1/1 matrix
+
+      ONT-600-testset
+      |          |
+      |         /|\
+     \/          | 
+         4b/L1  
+      |          | 
+      |         /|\
+      \/         |     
+         8p/BP1
+       |        /|\ 
+      \|/        |      
+       OTN8timeslot
+        |         |
+        x        /|\
+        |         |  odu0-LOF  
+        ODUKPP8channel 
+        |odu0ssf |
+       \|/      /|\
+        |________|
+         client  
+
+
+*** only one direction bp1/1 to client  matrix
+
+      ONT-600-testset
+      |          |
+      |         /|\
+     \/          | 
+         4b/L1  
+      |          | 
+      |         /|\
+      \/         |     
+         8p/BP1
+       |        /|\ 
+      \|/        | odu0-AIS     
+       OTN8timeslot
+        |         |
+       \|/        x
+        |         |    
+        ODUKPP8channel 
+        |        |
+       \|/      /|\
+        |________|
+         client  
+
+
+
+*** No client to bp1/1 matrix 
+
+      ONT-600-testset
+      |          |
+      |         /|\
+     \/          | 
+         4b/L1  
+      |          | 
+      |         /|\
+      \/         |     
+         8p/BP1
+       |        /|\ 
+      \|/        |odu0-AIS      
+       OTN8timeslot
+                 |               
+                 |LOS broke inside hyphy
+                 x
+                 |
+        ODUKPP8channel 
+        |        |
+       \|/      /|\
+        |        |
+        |________|
+         client  
+
+
+
+*  timslot for OH PSI/MSI field
+PSI  payload structure Identifier 0x21 means: eight opu2 1.25G tributary slots 8 bytes of the PSI(PSI[2]-PSI[9])
+MSI OPUk Multiplex Structure Identifier which encodes the ODU multiplex structure in the OPU.
+PSI[2]:   80   Tributary Slot 1:  port#:    1
+PSI[3]:   83   Tributary Slot 2:  port#:    4 
+PSI[4]:   82   Tributary Slot 3:  port#:    3
+PSI[5]:   81   Tributary Slot 4:  port#:    2
+PSI[6]:   84   Tributary Slot 5:  port#:    5
+PSI[7]:   85   Tributary Slot 6:  port#:    6 
+PSI[8]:   86   Tributary Slot 7:  port#:    7 
+PSI[9]:   87   Tributary Slot 8:  port#:    8 
+
+//when configured like this, it means the port#number-timeslot  //port#4 in timeslot2
+PSS8_97.208# show oduptf odu2 1/2/bp2 odustruct
+Transmitted LO-ODUk structure: odu0#1-1&odu0#4-2&odu0#3-3&odu0#2-4&odu0#5-5&odu0#6-6&odu0#7-7&odu0#8-8
+
+//when connecting the equipmentONT-601 in terminate mode in 4b 1/3/L1, c3 port fiber loopback in 8p20:
+PSS8_97.208# show odukxc br
+A-End                   Z-End                  ID       XcRate       XcDir          Protection Connection
+                                                                                    State      Name
+---------------------------------------------------------------------------------------------------------------------
+ODU0-1/2/C3             ODU2ODU0-1/2/BP2/4     1:2      ODU0         Bidirectional  none   // port#4 of odu2odu0                              
+OTUODU2-1/3/L1          ODU2-1/2/BP2           1:1      ODU2         Bidirectional  none        
+
+to get a valid opu0 in the equipmentONT-601 instead of odu0-oci,lck; in odu2 TX multiplexing should configured also as the above odustruct in 8p20;
+and 8p20 will always received the opu0 in any of the ODU2ODU0-1/2/BP2/*.since equipment generate all 8 slot opu0 to send to 8p20(only one foreground timeslot
+could be confgiured as odu0 layer).
+
+and Rx mutiplexing should get the timneslot 2. //since only port#4 opu could be fiber loopback in 8p20-->4b--->equipmentONT-601(only oud2odu0#4-2 xc exsit.). 
+
+
+** chek if 8p20 received the odu0 packet
+PSS8_97.208# show odukxc br
+A-End                   Z-End                  ID       XcRate       XcDir          Protection Connection
+                                                                                    State      Name
+---------------------------------------------------------------------------------------------------------------------
+ODU2ODU0-1/2/BP2/5      ODU0-1/2/C3            1:2      ODU0         Bidirectional  none    //odukxc must exits to get port number#5-tslot3 port#5 is forground odu0 in equipment
+ODU2ODU0-1/2/BP2/8      ODU0-1/2/C2            1:3      ODU0         Bidirectional  none    // port number#8-tslot8 is backgroud odu0 
+OTUODU2-1/3/L1          ODU2-1/2/BP2           1:1      ODU2         Bidirectional  none
+
+
+
+PSS8_97.208# show oduptf odu2 1/2/bp2 odustruct
+
+Transmitted LO-ODUk structure: odu0#1-1&odu0#2-2&odu0#5-3&odu0#4-4&odu0#3-5&odu0#6-6&odu0#7-7&odu0#8-8
+
+equipment-ont-600 configuration of TX Multiplexing shoud be as the same as above in 8p20, or the different configuration port won't be received.
+and only one foreground port could be configured the Payload type(as 7) and other OH(forground-odu0 for sapi of tti), port#5-3 is the foreground, and other 7 ports
+ are background which only TTI(background ODU0) could be configured. 
+
+*** show odu0 head in the 8p20 board
+PSS8_97.208# show oduptf odu0 1/2/c2
+
+Shelf: 1 Slot: 2 Port: C2 - [odu0]
+-----------------------------------------------------------------------
+Admin State           : Up              Oper State       : Down
+State Qualifier       : SDEE FAF        Oper Capability  : Disabled
+AINS                  : Disabled
+Use System AINS Timer : Enabled
+AINS Timer            : System
+AINS Countdown        : 0m
+
+
+Payload Type                             : 7 (0x7)
+Payload Type Mismatch Response           : Disabled
+Degrade Interval                         : 7
+Degrade Threshold                        : 500
+Incoming Payload Type                    : 253    // payload type is in the OH 
+
+ODUSTRUCT Structure                      :
+INC ODUSTRCUT Structure                  :
+
+TTI
+-----------------------------------------------------------------------
+tx_sapi                         : c3-8p20
+timmresp                        : Disabled
+exp_sapi                        :
+exp_dapi                        :
+tx_dapi                         :
+tx_os                           :
+trccmp                          : Disabled
+inc_dapi                        : ONT-PM-BGR-DAPI               //incoming tti from equipment-ont-600
+inc_sapi                        : background-odu0 
+inc_os                          : ONT-PM-BGR OPERATOR SPECIFIC
+TTI Status                      : UNSPECIFIED
+
+PSS8_97.208# show oduptf odu0 1/2/c3
+
+Shelf: 1 Slot: 2 Port: C3 - [odu0]
+-----------------------------------------------------------------------
+Admin State           : Up              Oper State       : Down
+State Qualifier       : SDEE FAF        Oper Capability  : Disabled
+AINS                  : Disabled
+Use System AINS Timer : Enabled
+AINS Timer            : System
+AINS Countdown        : 0m
+
+
+Payload Type                             : 7 (0x7)
+Payload Type Mismatch Response           : Disabled
+Degrade Interval                         : 7
+Degrade Threshold                        : 500
+Incoming Payload Type                    : 7    // payload type is in the OH 
+
+ODUSTRUCT Structure                      :
+INC ODUSTRCUT Structure                  :
+
+TTI
+-----------------------------------------------------------------------
+tx_sapi                         : c3-8p20
+timmresp                        : Disabled
+exp_sapi                        :
+exp_dapi                        :
+tx_dapi                         :
+tx_os                           :
+trccmp                          : Disabled
+inc_dapi                        : ONT-PM-BGR-DAPI               //incoming tti from equipment-ont-600
+inc_sapi                        : foreground-odu0 
+inc_os                          : ONT-PM-BGR OPERATOR SPECIFIC
+TTI Status                      : UNSPECIFIED
+
+
+**** no valid odu0 OH received example
+PSS8_97.208# config odukxc ODU2ODU0-1/2/BP2/8      ODU0-1/2/C2  del
+
+
+PSS8_97.208# show oduptf odu0 1/2/c2
+
+Shelf: 1 Slot: 2 Port: C2 - [odu0]
+-----------------------------------------------------------------------
+Admin State           : Up              Oper State       : Down
+State Qualifier       : FAF             Oper Capability  : Disabled
+AINS                  : Disabled
+Use System AINS Timer : Enabled
+AINS Timer            : System
+AINS Countdown        : 0m
+
+
+Payload Type                             : 7 (0x7)
+Payload Type Mismatch Response           : Disabled
+Degrade Interval                         : 7
+Degrade Threshold                        : 500
+Incoming Payload Type                    : 255   //invalid
+
+ODUSTRUCT Structure                      :
+INC ODUSTRCUT Structure                  :
+
+TTI
+-----------------------------------------------------------------------
+tx_sapi                         : c2-8p20
+timmresp                        : Disabled
+exp_sapi                        :
+exp_dapi                        :
+tx_dapi                         :
+tx_os                           :
+trccmp                          : Disabled
+inc_dapi                        : ???????????????    //invalid
+inc_sapi                        : ???????????????    //invalid
+inc_os                          :
+TTI Status                      : UNSPECIFIED
+
+if the TX Multiplexing odustructure in equmipment ONT-600 modified as not the same with 8p20's, then the invalid OH will be received.
+  
+*** show odu0 head in the equpipment ONT-601
+Rx Demultiplexing configured which timeslot will be received in above case:
+ PSS8_97.208# show oduptf odu2 1/2/bp2 odustruct
+ Transmitted LO-ODUk structure: odu0#1-1&odu0#2-2&odu0#5-3&odu0#4-4&odu0#3-5&odu0#6-6&odu0#7-7&odu0#8-8
+
+ODU2ODU0-1/2/BP2/5      ODU0-1/2/C3            1:2      ODU0         Bidirectional  none    //odukxc must exits to get port number#5-tslot3 port#5 is forground odu0 in equipment
+OTUODU2-1/3/L1          ODU2-1/2/BP2           1:1      ODU2         Bidirectional  none
+
+port#5 will be mapped into timeslot3, so in eupipment , should configured TS#3 to receive C3's TTI(c3-8p20), only opu0 warning in equpment.
+if no proper odu0 in the RX of equipment, odu0-oci will raise.
+
+PSS8_97.208# show oduptf odu0 1/2/c3
+
+Shelf: 1 Slot: 2 Port: C3 - [odu0]
+-----------------------------------------------------------------------
+Admin State           : Up              Oper State       : Down
+State Qualifier       : SDEE FAF        Oper Capability  : Disabled
+AINS                  : Disabled
+Use System AINS Timer : Enabled
+AINS Timer            : System
+AINS Countdown        : 0m
+
+
+Payload Type                             : 7 (0x7)
+Payload Type Mismatch Response           : Disabled
+Degrade Interval                         : 7
+Degrade Threshold                        : 500
+Incoming Payload Type                    : 7    // payload type is in the OH 
+
+ODUSTRUCT Structure                      :
+INC ODUSTRCUT Structure                  :
+
+TTI
+-----------------------------------------------------------------------
+tx_sapi                         : c3-8p20      // this should be in equipment's tti rx 
+timmresp                        : Disabled
+exp_sapi                        :
+exp_dapi                        :
+tx_dapi                         :
+tx_os                           :
+trccmp                          : Disabled
+inc_dapi                        : ONT-PM-BGR-DAPI               //incoming tti from equipment-ont-600
+inc_sapi                        : foreground-odu0 
+inc_os                          : ONT-PM-BGR OPERATOR SPECIFIC
+TTI Status                      : UNSPECIFIED
+
+
+*  CSF (Client Signal Fail)
+CSF is only in  opu0 OH in this situation.
+when hyphy configured in odu0 xc as:
+ODU0-1/2/C4             ODU2ODU0-1/2/BP2/1     1:2      ODU0         Bidirectional  none
+
+
+PSS8_97.208# show odukxc  br
+A-End                   Z-End                  ID       XcRate       XcDir          Protection Connection
+                                                                                    State      Name
+---------------------------------------------------------------------------------------------------------------------
+ODU0-1/2/C3             ODU2ODU0-1/2/BP2/1     1:2      ODU0         Bidirectional  none
+OTUODU2-1/3/L1          ODU2-1/2/BP2           1:1      ODU2         Bidirectional  none
+
+
+
+then hyphy in the configured channel will map the "client signal" into the opu0, then 
+opu0-->odu0(with TTI, with pldtype, and if CSF)
+if no any signal in rx(means LOS, no physical input in rx) in hyphy client port, then there will be CSF,
+only if the rx was plugged into a fiber, then no CSF at all, even this plugged fiber was not connect with any 
+real client signal(as ethernet signal).
+
+equipment ONT-60 configured as through mode, but laser on,  
+if C4 is fiber loopback no CSF, if not fiber plug in the rx moudle of the clinet port, there will be CSF.
+
+* oduptf(odu termiate)  VS. odunim(odu non instrusive monitor)
+for a 8p20 pack ,odu0 has two points: odu0nim {in odu2-odu0 OTN line side}, odu0ptf(in odu0 odukpp side in hyphy client) 
+**  line side odu2-odu0 it's odunim point
+As show below, no odu0 tti could be configured
+
+show odunim odu2odu0 1/2/bp2/1
+
+Shelf: 1 Slot: 2 Port: BP2 - [odu2odu0]
+-----------------------------------------------------------------------
+Admin State           : Up              Oper State       : Up
+State Qualifier       : SDEE            Oper Capability  : Enabled
+
+
+
+
+TTI
+-----------------------------------------------------------------------
+
+
+Ingress TTI
+------------
+Expected DAPI TTI       :
+Expected SAPI TTI       :
+TTI Comparison          : Disabled
+TTI Mismatch Response   : Disabled
+Incoming DAPI TTI       :
+Incoming SAPI TTI       :
+Incoming OS TTI         :
+TTI Status              : UNAVAILABLE
+
+Degrade Interval         : 7
+Degrade Threshold        : 500
+Path Overhead Monitoring : Disabled
+
+
+** client side odu0 it's oduptf point
+odu0 tti could be configured also in ptf point
+pss8_168# show oduptf odu0 1/2/c8 det
+
+Shelf: 1 Slot: 2 Port: C8 - [odu0]
+-----------------------------------------------------------------------
+Admin State           : Up              Oper State       : Up
+State Qualifier       : SDEE            Oper Capability  : Enabled
+AINS                  : Disabled
+Use System AINS Timer : Enabled
+AINS Timer            : System
+AINS Countdown        : 0m
+
+
+Payload Type                             : 7 (0x7)
+Payload Type Mismatch Response           : Disabled
+Degrade Interval                         : 7
+Degrade Threshold                        : 500
+Incoming Payload Type                    : 7
+
+ODUSTRUCT Structure                      :
+INC ODUSTRCUT Structure                  :
+
+TTI
+-----------------------------------------------------------------------
+tx_sapi                         :
+timmresp                        : Disabled
+exp_sapi                        :
+exp_dapi                        :
+tx_dapi                         :             #this could be configured in config oduptf odu0 1/2/c8 command
+tx_os                           :
+trccmp                          : Disabled
+inc_dapi                        :
+inc_sapi                        :
+inc_os                          :
+TTI Status                      : UNSPECIFIED
+
+** odu2 ptf point
+for 8p20 board bp2 is a terminate point, so odu2 tti head could be configured here
+pss8_168(config-oduptf-odu2-1/2/bp2-tti)# tx_sapi
+
+Current value: term-odu2-p
+
+** otu TTI /SM TTI
+board 4b response for the otu OH, so config otu TTI (SM TTI)
+otu tti is configured in
+pss8_168# config otu 1/3/L1

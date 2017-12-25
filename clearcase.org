@@ -1,3 +1,4 @@
+* clearcase command
 check code procedure:
 1.  Go to the directory you’re working on, e.g. ot_driver/common/gn2412
 2.  (optional) Run ‘make <target>’, the <target> depends on the content of Makefile, it may be mvl_lc, sim_lc or wra9_lc
@@ -285,3 +286,216 @@ $drv xbarSelSet 13 1 1
  17 END_SCRIPT
  18 exit 0
 
+
+* cli command
+config otu 1/3/L1 tti
+config odunim
+config oduptf
+
+
+config interface 1/3/c7 ty 1gbe
+config interface 8p20 1/3/c7 1gbE container odu0
+config interface 1/3/c7 state up
+
+config interface 8p20 1/3/bp1 ty otu2
+config interface 8p20 1/3/bp1 sta up
+
+config oduptf odu2 1/3/bp1 odustruct odu0#1-1
+
+config odukxc odu0-1/3/c1 odu2odu0-1/3/bp1/1 create odu0 bi
+config database clear
+
+PSS8_97.208# show oduptf odu2 1/2/bp2 pm odurx 0 0
+
+Group: ODU RX Stats  Interval: 0  Bin: 0  Location: 1/2/bp2
+--------------------------------------------------------------
+Start Time                                        : 2021/07/06 16:30:00 (UTC)
+Bin Status                                        : Partial
+
+Rx NeBIP8 Error Count                             : 0
+Rx FeBIP8 Error Count                             : 0
+Rx Ne Errored Seconds                             : 1
+Rx Fe Errored Seconds                             : 1
+Rx Ne Severely Errored Seconds                    : 1
+Rx Fe Severely Errored Seconds                    : 1
+Rx Ne Unavailable Seconds                         : 0
+Rx Fe Unavailable Seconds                         : 0
+
+
+PSS8_97.208# show oduptf odu2 1/2/bp2 pm odurx 0 0
+ conf oduptf odu2 1/2/bp2 pm odurx pmmode en
+  
+   PSS8_97.208# config otu 1/3/L1 fectype
+
+   FEC Mode:rsfec
+
+config otu 1/3/L1 tti
+
+** TTI of SM/PM-odu2/pM-odu0
+11qpa4b: 1/3          8p20: 1/2
+*** PM-odu0 TTI
+PSS8_97.208(show-oduptf-odu0)# 1/2/c3
+
+Shelf: 1 Slot: 2 Port: C3 - [odu0]
+-----------------------------------------------------------------------
+Admin State           : Up              Oper State       : Down
+State Qualifier       : SDEE FAF        Oper Capability  : Disabled
+AINS                  : Disabled
+Use System AINS Timer : Enabled
+AINS Timer            : System
+AINS Countdown        : 0m
+
+
+Payload Type                             : 7 (0x7)
+Payload Type Mismatch Response           : Disabled
+Degrade Interval                         : 7
+Degrade Threshold                        : 500
+Incoming Payload Type                    : 254
+
+ODUSTRUCT Structure                      :
+INC ODUSTRCUT Structure                  :
+
+TTI
+-----------------------------------------------------------------------
+tx_sapi                         : 8p20c3
+timmresp                        : Disabled
+exp_sapi                        :
+exp_dapi                        :
+tx_dapi                         :
+tx_os                           :
+trccmp                          : Disabled
+inc_dapi                        : PM-TRC DAPI-SEC
+inc_sapi                        : PM-odu0 SAPI-SE
+inc_os                          : PM-TRC OPERATOR SPECIFIC SECTION
+TTI Status                      : UNSPECIFIED
+
+
+*** PM-odu2 TTI
+**** 8p20
+PSS8_97.208# show oduptf odu2 1/2/bp2
+
+Shelf: 1 Slot: 2 Port: BP2 - [odu2]
+-----------------------------------------------------------------------
+Admin State           : Up              Oper State       : Up
+State Qualifier       : SDEE            Oper Capability  : Enabled
+AINS                  : Disabled
+Use System AINS Timer : Enabled
+AINS Timer            : System
+AINS Countdown        : 0m
+
+
+Payload Type                             : 33 (0x21)
+Payload Type Mismatch Response           : Disabled
+Degrade Interval                         : 7
+Degrade Threshold                        : 4000
+Incoming Payload Type                    : 33
+
+ODUSTRUCT Structure                      : odu0#1-1&odu0#4-2&odu0#3-3&odu0#2-4&odu0#5-5&odu0#6-6&odu0#7-7&odu0#8-8
+INC ODUSTRCUT Structure                  : AS#1-1&AS#2-2&AS#3-3&AS#4-4&AS#5-5&AS#6-6&AS#7-7&AS#8-8
+
+TTI
+-----------------------------------------------------------------------
+tx_sapi                         : 8p20_bp2
+timmresp                        : Disabled
+exp_sapi                        :
+exp_dapi                        :
+tx_dapi                         :
+tx_os                           :
+trccmp                          : Disabled
+inc_dapi                        : PM-TRC DAPI-SEC
+inc_sapi                        : PM-TRC SAPI-SEC
+inc_os                          : PM-TRC OPERATOR SPECIFIC SECTION
+TTI Status                      : UNSPECIFIED
+
+
+**** 11qpa4b
+PSS8_97.208# show odunim otuodu2 1/3/L1
+
+
+ODUNIM Facility: OTUODU2-1/3/L1 - [ODU2]
+-----------------------------------------------------------------------
+
+Admin State           : Up              Oper State       : Up
+State Qualifier       : SDEE            Oper Capability  : Enabled
+
+AINS                  : Disabled
+Use System AINS Timer : Enabled
+AINS Timer            : System
+AINS Countdown        : 0m
+
+Alarm Profile         :
+
+
+TCM List              : none
+
+
+FlexType                : unknown
+
+
+MGRACD                : none
+
+Egress TTI
+-----------
+Expected DAPI TTI       :
+Expected SAPI TTI       :
+TTI comparison          : Disabled
+TTI Mismatch Response   : Disabled
+Incoming DAPI TTI       :
+Incoming SAPI TTI       :
+TTI Status              : UNSPECIFIED
+Incoming OS TTI         :
+
+Egress Degrade Interval          : 7
+Egress Degrade Threshold         : 4000
+Egress Path Overhead Monitoring  : Disabled
+
+
+Ingress TTI
+------------
+Expected DAPI TTI       :
+Expected SAPI TTI       :
+TTI comparison          : Disabled
+TTI Mismatch Response   : Disabled
+Incoming DAPI TTI       : PM-TRC DAPI-SEC
+Incoming SAPI TTI       : PM-TRC SAPI-SEC
+TTI Status              : UNSPECIFIED
+Incoming OS TTI         : PM-TRC OPERATOR SPECIFIC SECTION
+
+Degrade Interval         : 7
+Degrade Threshold        : 4000
+Path Overhead Monitoring : Enabled
+
+** SM TTI
+PSS8_97.208# show otu 1/3/L1
+
+Shelf: 1 Slot: 3 Port: L1 - OTU2 Facility
+-----------------------------------------------------------------------
+Admin State           : Up              Oper State       : Up
+State Qualifier       : SDEE            Oper Capability  : Enabled
+
+AINS                  : Disabled
+Use System AINS Timer : Enabled
+AINS Timer            : System
+AINS Countdown        : 0m
+
+OTU2 Settings:
+--------------
+FEC Mode              : RSFEC
+Degrade Interval      : 7
+Degrade Threshold     : 4000
+
+TTI                            OTU2
+-----------------------------------------------------------------
+Expected SAPI TTI          : 11qpa4bsapi
+Expected DAPI TTI          :
+Incoming SAPI TTI          : SM-TRC SAPI-SEC
+Incoming DAPI TTI          : SM-TRC DAPI-SEC
+Incoming OS TTI            : SM-TRC OPERATOR SPECIFIC SECTION
+TTI Status                 : UNSPECIFIED
+TTI Mismatch Response      : Disabled
+TTI Comparison             : Disabled
+Transmitted SAPI TTI       : 11qpa4b
+Transmitted DAPI TTI       :
+Transmitted OS TTI         :
+
+** config admin resetNE
