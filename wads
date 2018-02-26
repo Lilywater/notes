@@ -1,0 +1,1152 @@
+load and configure PLL by open pen and select the new read_reg to init CDR
+
+jtags -v -r /ffs/lib/8p20_fpga_ver2.tra
+
+set jtag chain on EC
+135.251.99.173
+;############configure FuBCM GPIO################
+mw.l 0x67000204 0x0fffffffe
+mw.l 0x67000214 0x0A6040463
+mw.l 0x67000224 0x0000EA01
+mw.l 0x67000200 0xffffffff
+mw.l 0x67000238 0x000000ff
+
+;############Reset FPGA################
+
+md.l 0x67000210 1
+mw.l 0x67000210 0xe29004ef
+
+mw.l 0x67000210 0xe21004ef
+
+md.l 0x61000000 10
+
+;############Reset HYPHY################
+mw.l 0x61000664 0x00000001
+mw.l 0x61000600 0x00000001
+mw.l 0x61000604 0x00000001
+
+mw.l 0x61000604 0x00000000
+
+check PCIE lock status
+md.l 0x61000564 1
+ md.l 0x61000564 1: 00004256
+
+;############Laser on################
+mw.l 0x61000664 0x00000001
+
+mw.l 0x61000018 0x000000ff
+
+mw.l 0x618a2000 0x2A800
+mw.l 0x618a4000 0x00
+
+mw.l 0x618a2004 0x2A800
+mw.l 0x618a4004 0x00
+
+mw.l 0x618a2008 0x2A800
+mw.l 0x618a4008 0x00
+
+mw.l 0x618a200c 0x2A800
+mw.l 0x618a400c 0x00
+
+mw.l 0x618a2010 0x2A800
+mw.l 0x618a4010 0x00
+
+mw.l 0x618a2014 0x2A800
+mw.l 0x618a4014 0x00
+
+mw.l 0x618a2018 0x2A800
+mw.l 0x618a4018 0x00
+
+mw.l 0x618a201c 0x2A800
+mw.l 0x618a401c 0x00
+
+;############gn2412 enable################
+mw.l 0x61000664 0x01
+mw.l 0x61000608 0x01
+mw.l 0x6100060c 0x01
+
+mw.l 0x6100060c 0x00
+
+;############gn2412 clock################
+mw.l 0x6100A008 0x0
+mw.l 0x6100A000 0xc0
+mw.l 0x6100A004 0x0
+mw.l 0x6100A008 0x80
+
+tar xzvf /ffs/lib/tcl8.4.tar.gz -C /
+
+tclsh
+load /ffs/lib/libot_driver_hyphyflex_app.so hyphyflexappapi
+load /ffs/lib/libot_driver_8p20.so driverapi
+
+source /ffs/lib/exampleDataPath.tcl
+
+DevLayerCreate
+
+set H [getHyphy5451Handle]
+
+#hyphy internal XC
+exampleGeCbrTTTOdu0Otu2
+
+#hyphy terminal loopback
+hyPhy20gXfiSerdesDiagLpbk $H 0 1
+hyPhy20gXfiSerdesDiagLpbk $H 1 1
+
+#L1 hyphy facility loopback
+set drv [CDriverItfcImpl_getInstance]
+$drv lpbkSet 13 1
+
+
+#load and run 2412 firmware x
+set dev [CDevLayer8P20_getInstance]
+$dev initGn2412
+
+#configure otu2 timebase, configure all 12 lanes loopback with otu2 signal type,
+#configure A to B ,what's mean?
+set gn [CDevLayer8P20_getGn2412Instance]
+$gn callAllFunctionsGN2412 1 0
+
+#L1 terminal loopback
+$gn configureDataLaneGN2412 8 8 1
+$gn configurePathGN2412 8 8
+
+#stand alone for L0<---->C7
+$gn configurePathGN2412 8 11
+$gn configurePathGN2412 11 8
+
+#BP for L0 <--->N+1_0
+$gn configurePathGN2412 8 2
+$gn configurePathGN2412 2 8
+ !dbgCutThru (flts 0 otumach 1 3) "dltcl odukDumpPortInfo
+mount -t nfs -onolock,nfsvers=1 100.0.81.1:/pureNeApp/dwdm/xijia /root/mnt
+
+configureTimebaseGN2412 $timebaseOTU2_config_t  18  1
+updgrade NE
+/pureNeApp/EC/cli
+config software server
+ip 
+ 
+
+this is in linuxbox source tree
+/pssnfs/roadm/dwdm_1830_switch/kiwicake-170705/swp/ARMADA/1830PSSECX-19.5-70 
+ps -efx
+ 
+
+ks_kyra_cmd
+1 slot 1
+8 1 1 0400
+9
+
+////los 
+mw.l 0x61000668 3
+
+
+md.l 0x61000480 1
+
+pllll
+> imw 68 1.1 0
+chip=68  addr=1  value=0 len=1  access=1
+> imd 68 0E.1
+000e: 0f
+>
+
+
+setTraceMask  status|lvl2 |int
+hdwdbgGLC
+
+
+
+//configurePll by serial command
+
+chip=68  addr=25  value=2 len=1  access=1
+> imw 68 1.1 00
+chip=68  addr=1  value=0 len=1  access=1
+> imd 68 0e 1
+000e: 45
+
+$dl initCDR
+no device=ffff0100
+device=ffff0100  reserveCount=0x0
+device=ffff0100  reserveCount=0x1
+device=ffff0100  reserveCount=0x0
+i2cTrace:
+decrementerTicks  delta traceId data
+
+
+
+chmod 777 libot_driver_8p20.so
+/ffs/lib 
+# tftp -l libot_driver_8p20.so -r libot_driver_8p20.so -g 100.0.81.1
+
+# ls -l libot_driver_8p20.so
+
+startapp
+tclsh
+source /ffs/lib/exampleDataPath.tcl
+$dl initialize 0
+#hyphy internal XC
+exampleGeCbrTTTOdu0Otu2
+==DATA PATH==
+SFP#0-3<->GE_CBR<->CPB<->GTTT<->ODU0<->CBRB<->ODU0<->ODTU2.1<->OTU2<->XFP#0
+SFP#4-7<->GE_CBR<->CPB<->GTTT<->ODU0<->CBRB<->ODU0<->ODTU2.1<->OTU2<->XFP#1
+
+
+exampleOc48BmpOdu1Otu2
+==DATA PATH==
+SFP#0-3<->OC48<->CPB<->AMP<->ODU1<->CBRB<->ODU1<->ODTU12<->OTU2<->XFP#0
+SFP#4-7<->OC48<->CPB<->AMP<->ODU1<->CBRB<->ODU1<->ODTU12<->OTU2<->XFP#1
+
+
+
+ set si [CI2cSi5345_getInstance]
+_1020cd48_p_ubcmDevice__CI2cSi5345
+% $si waitPllLock_N
+(no proc name):(00:08:10.295030):(CI2cSi5345.C:352) waitPllLock_N: Si5345 PLL failed to lock!!!
+RV_FAILURE
+% $si isPllLOL_N
+Wrong number of arguments :CI2cSi5345_isPllLOL_N self lol  argument 2
+% set bl [malloc_bool]
+_10228450_p_bool
+% $si isPllLOL_N $bl
+RV_SUCCESS
+% get_bool bl
+TypeError in method 'get_bool', argument 1 of type 'bool *'
+% get_bool $bl
+
+
+PLL老是锁不住，输入的参考时钟都是正常的，没有LOS/OOF（page 0，0xD值为0xF），但是总是有LOL和holdover（page 0, 0xE值为）
+> i2cw 0x68 0x01 00
+chip=68  addr=1  12cwid=0 value=0 len=1
+DriverApi.C(1616): initialize Ci2cAdapter pointer with I2C dev Id 0x68
+> i2cd 0x68 0x0E 1
+chip=68  addr=e  i2cwid=0 value=0 len=1
+05
+> i2cd 0x68 0x0F 1
+chip=68  addr=f  i2cwid=0 value=0 len=1
+
+> i2cw 0x68 0x01 05
+chip=68  addr=1  12cwid=0 value=5 len=1
+> i2cd 0x68 0x2a 1
+chip=68  addr=2a  i2cwid=0 value=0 len=1
+03   // manual  in1
+        0x36
+2f   //
+
+------------------------------------
+i2cw 0x68 0x01 05
+i2cd 0x68 0x2a 1
+03
+
+i2cw 0x68 0x01 05
+i2cd 0x68 0x36 1
+03  
+
+i2cw 0x68 0x01 09
+i2cd 0x68 0x0e 1
+00
+
+i2cw 0x68 0x01 00
+i2cd 0x68 0x0c 1
+05
+
+i2cw 0x68 0x01 00
+i2cd 0x68 0x01 1
+i2cd 0x68 0x0e 1
+05       
+
+
+
+i2cw 0x68 0x01 00
+i2cd 0x68 0x0e 1
+
+i2cw 0x68 0x01 00
+i2cd 0x68 0x01 1
+i2cd 0x68 0x0f 1
+05
+
+
+% $si read 0x00 0x0d 1
+255
+% $si read 0x09 0x0e 1   // xaxb
+2
+
+
+--------------------------------
+
+
+
+
+$dl initPLL
+$dl initCDR
+$dl initGpio
+$dl resetFpga
+$dl resetSfpXfp
+
+$dl resetGn2412
+$dl initGn2412
+$dl initConfigGn2412
+$dl resetHyphy5451
+
+
+$dl tDelay 5
+$dl initGn2412
+$dl resetHyphy5451
+$dl tDelay 5
+$dl initConfigGn2412
+$dl tDelay 1
+
+$dl initPLL
+
+zzzzzzzzzzzzz
+$dl initGpio
+$dl initPLL
+$dl initCDR
+$dl resetFpga
+$dl tDelay 20
+$dl resetSfpXfp
+$dl resetGn2412
+$dl tDelay 5
+$dl initGn2412
+$dl tDelay 5
+$dl initConfigGn2412
+$dl resetHyphy5451
+$hyphy initialize 0
+
+
+mount -t nfs -onolock,nfsvers=1 100.0.81.1:/pureNeApp/dwdm/xijia /root/mnt
+yyyyy
+
+$dl initGpio
+$dl initPLL
+$dl initCDR
+$dl resetFpga
+$dl resetSfpXfp
+$dl tDelay 7
+$dl resetHyphy5451
+$hyphy initialize 0
+$dl resetGn2412
+$dl initGn2412
+$dl tDelay 5
+$dl initConfigGn2412
+
+$dl writeGpioEx 0
+$dl writeGpioEx 1
+
+
+$dl readGpioEx 
+xxxxxxxxxxxxxxxxxxxx
+$dl initGpio
+$dl initPLL
+$dl initCDR
+$dl resetFpga
+$dl writeGpioEx 1
+$dl tDelay 3
+$dl resetHyphy5451
+$hyphy initialize 0
+$dl tDelay 2
+$dl resetHyphy5451
+$hyphy initialize 0
+
+
+
+
+$dl resetFpga
+$dl writeGpioEx 1
+$dl tDelay 4
+$dl resetHyphy5451
+$hyphy initialize 0
+$dl tDelay 1
+$dl resetHyphy5451
+$hyphy initialize 0
+
+
+
+
+$dl readFpga
+$dl tDelay 2
+$dl readFpga
+$dl tDelay 2
+$dl readFpga
+$dl tDelay 2
+$dl readFpga
+$dl tDelay 2
+$dl readFpga
+
+
+
+$dl initGpio
+$dl initPLL
+$dl initCDR
+$dl resetFpga
+$dl writeGpioEx 1
+$dl tDelay 10
+$dl resetHyphy5451
+$hyphy initialize 0
+$dl resetFpga
+$dl resetHyphy5451
+$hyphy initialize 0
+$dl tDelay 1
+
+mount -t nfs -onolock,nfsvers=1 100.0.81.1:/pureNeApp/dwdm/xijia /root/mnt
+
+
+$dl initGpio
+$dl initPLL
+$dl initCDR
+$dl resetFpga
+$dl writeGpioEx 1
+$dl tDelay 5
+$dl resetFpga
+$dl resetHyphy5451
+$dl resetFpga
+$dl writeGpioEx 1
+$dl tDelay 1
+$dl resetFpga
+$dl resetHyphy5451
+$dl resetFpga
+$dl writeGpioEx 1
+$dl tDelay 2
+$dl resetFpga
+$dl resetHyphy5451
+
+
+$dl resetGn2412
+$dl initGn2412
+$dl tDelay 5
+$dl initConfigGn2412
+$dl tDelay 1
+$dl resetGn2412 
+$dl initGn2412
+$dl initConfigGn2412
+$dl tDelay 5
+$dl resetFpga
+
+
+
+$hyphy initialize 0
+$dl initConfigGn2412
+$dl tDelay 5
+
+$dl resetGn2412 
+$dl resetGn2412 
+$dl initGn2412
+$dl initConfigGn2412
+$dl tDelay 5
+
+
+$dl initConfigGn2412
+
+ put tmp/libot_driver_8p20.so /pureNeApp/dwdm/xijia/libot_driver_8p20.so
+$gn configureTimebaseGN2412 $timebaseOTU2_config_t  18  1
+
+
+$dl initConfigGn2412
+$dl tDelay 1
+$dl resetHyphy5451
+hyPhyFlexSfpSerdesLineLpbk $H 6 1
+hyPhy20gSfpAcbInit $H 6 0 
+hyPhy20gSfpAcbInit $H 6 1
+hyPhyFlexSfpAcbModeSelExt  $H 6 2 1 1 1 0 0 0
+||     exampleOc3GmpOdu0Odu1Od|6008   hyPhyFlexSfpAcbCfgGain . 6 0xc 0 5 8 8 3 0x7
+||     exampleOc3GmpOdu0Odu2  |6009   hyPhyFlexSfpAcbModeSelExt . 6 2 0 1 1 0 0 0
+
+ttybr &
+
+
+
+Lizhaobo:27126271
+
+
+% $gn configureDataLaneGN2412 11 6 2
+can't read "gn": no such variable
+    while executing
+"$gn configureDataLaneGN2412 11 6 2"
+% set gn [CGn2412Driver_getInstance]
+_10287970_p_ubcmDevice__CGn2412Driver
+% $gn configureDataLaneGN2412 11 6 2
+RV_SUCCESS
+% $gn configurePathGN2412 11 6
+RV_SUCCESS
+% $gn configurePathGN2412 6 11
+RV_SUCCESS
+% exit
+# hdwdbgGLC
+hdwdbg2 Utility, Feb  5 2013 (17:28:19)
+Time now is: Sun Jan  4 22:56:06 1970
+CDevLayerGLC constructor...
+CDevLayerGLC: completed
+> mw.l 0x61000668 3
+ mw.l 0x61000668 3: ok
+> quit
+#
+
+
+
+cli cmd
+
+config interface 1/2/c4 ty 1gbe
+config interface 1/2/c4 state up
+config interface 8p20 1/2/bp1 ty otu2
+config interface 8p20 1/2/bp1 sta upf
+config odukxc odu0-1/3/c2 odu2odu0-1/3/bp1/1 create odu0 bi
+show slot *
+
+
+config odukaps  odu0-1/3/C2 create odu2odu0-1/3/bp2/3 odu2odu0-1/3/bp1/3  bi
+
+
+pss8_168# show odukxc brief
+A-End                   Z-End                  ID       XcRate       XcDir          Protection Connection
+                                                                                    State      Name
+---------------------------------------------------------------------------------------------------------------------
+ODU2ODU0-1/2/BP1/1      ODU0-1/2/C4            1:4      ODU0         Bidirectional  working
+ODU2ODU0-1/2/BP2/1      ODU0-1/2/C4            1:6      ODU0         Bidirectional  protection
+ODU0-1/3/C1             ODU2ODU0-1/3/BP1/1     1:5      ODU0         Bidirectional  none
+ODU0-1/5/C6             ODU2ODU0-1/5/BP1/1     1:3      ODU0         Bidirectional  none
+ODU2ODU0-1/8/BP1/1      ODU0-1/8/C3            1:1      ODU0         Bidirectional  working
+ODU2ODU0-1/8/BP2/1      ODU0-1/8/C3            1:2      ODU0         Bidirectional  protection
+
+
+
+pss8_168# config odukaps ODU0-1/2/C4 delete
+pss8_168# show odukxc brief
+A-End                   Z-End                  ID       XcRate       XcDir          Protection Connection
+                                                                                    State      Name
+---------------------------------------------------------------------------------------------------------------------
+ODU0-1/3/C1             ODU2ODU0-1/3/BP1/1     1:5      ODU0         Bidirectional  none
+ODU0-1/5/C6             ODU2ODU0-1/5/BP1/1     1:3      ODU0         Bidirectional  none
+ODU2ODU0-1/8/BP1/1      ODU0-1/8/C3            1:1      ODU0         Bidirectional  working
+ODU2ODU0-1/8/BP2/1      ODU0-1/8/C3            1:2      ODU0         Bidirectional  protection
+
+
+pss160-255!zhiqianh:Linux3.10.0-327.el7.x86_64/vobs/pss/node(zhiqianh-kiwicake)
+-> ../tools/imtool/sub/1830-imgen ot.8p20 1 1 1
+ENTRY: ----------------------- ot.8p20 1 1 1 ---------------------
+##### INVOKING ../tools/imtool/sub/1830-imgen #####
+
+config interface 8p20 1/2/c4 type 1gbE
+
+config interface 1/2/bp1 type otu2
+config interface 8p20 1/2/bp1 state up
+config interface 8p20 1/2/bp1 state mt
+
+
+config interface 1/2/bp2 type otu2
+config interface 8p20 1/2/bp2 state up
+
+config odunim odu2odu0 1/2/bp1/1 pom enabled
+config odunim odu2odu0 1/2/bp2/1 pom enabled
+config odukaps odu0-1/2/c4 create odu2odu0-1/2/bp1/1 odu2odu0-1/2/bp2/1 bi
+config odukaps ODU0-1/8/C3 convertUnProt protection
+
+
+Register 0x4A514D4 + 0x4*N(N=0:31): APB:SYSTEM:OTN_PKT_IF:CBRB_FLEX:CBRB_FLEX_TOP -
+EGRESS BUFFER CONFIGURATION
+page 6310
+
+export HYPHYFLEX_SDK_DEBUG on
+
+export  HYPHYFLEX_SDK_DEBUG=on
+pss74-255!xijia:Linux3.10.0-327.el7.x86_64/vobs/pss/node(xijia-dwdm_1830-kiwicake-170928)
+-> echo $HYPHYFLEX_SDK_DEBUG
+
+ config card 1/3 reset cold force
+PSS8_97.228# config card 8p20 1/3 reset warm
+ show condition
+ config admin resetNE warm yes   // warm reset NE
+ 
+ 
+  ODU0-1/2/C4             ODU2ODU0-1/2/BP2/1      ODU2ODU0-1/2/BP1/1
+=======================
+cli
+
+mount -t nfs -onolock,nfsvers=1 100.0.81.1:/pureNeApp/dwdm/xijia /root/mnt
+65536
+before value is e390088d and write is e390088d
+after value is e390088d and write is e210088d
+
+$si setPage_N 0x05 
+$si write_N 0x2a 2
+
+
+$si setPage_N 0x05 
+$si write_N 0x36 5
+
+
+$si setPage_N 0x05 
+$si write_N 0x38 0x21
+$si write_N 0x39 0x43 
+
+mw.l 0x67000204 0x0fffffffe
+mw.l 0x67000214 0x0A6040463
+mw.l 0x67000224 0x0000EA01
+mw.l 0x67000200 0xffffffff
+mw.l 0x67000238 0x000000ff
+sleep 3
+md.l 0x67000210 1
+mw.l 0x67000210 0xe390088d
+sleep 1
+mw.l 0x67000210 0xe210088d
+sleep 1
+md.l 0x61000000 1
+md.l 0x61000654 1
+md.l 0x61000640 1
+md.l 0x61000648 1
+mw.l 0x61000664 0x00000001
+sleep 1
+md.l 0x61000000 1
+md.l 0x61000654 1
+md.l 0x61000640 1
+md.l 0x61000648 1
+
+
+
+
+> run hds
+running commands from a script file ...
+using file: hds
+mw.l 0x67000204 0x0fffffffe
+ mw.l 0x67000204 0x0fffffffe: ok
+mw.l 0x67000214 0x0A6040463
+ mw.l 0x67000214 0x0A6040463: ok
+mw.l 0x67000224 0x0000EA01
+ mw.l 0x67000224 0x0000EA01: ok
+mw.l 0x67000200 0xffffffff
+ mw.l 0x67000200 0xffffffff: ok
+mw.l 0x67000238 0x000000ff
+ mw.l 0x67000238 0x000000ff: ok
+sleep 3
+executing sleep(3) ...
+md.l 0x67000210 1
+ md.l 0x67000210 1: e21004cf
+mw.l 0x67000210 0xe29004ef
+ mw.l 0x67000210 0xe29004ef: ok
+sleep 1
+executing sleep(1) ...
+mw.l 0x67000210 0xe21004ef
+ mw.l 0x67000210 0xe21004ef: ok
+sleep 1
+executing sleep(1) ...
+md.l 0x61000000 1
+ md.l 0x61000000 1: 0a108112
+md.l 0x61000654 1
+ md.l 0x61000654 1: 00000000
+md.l 0x61000640 1
+ md.l 0x61000640 1: 00000001
+md.l 0x61000648 1
+ md.l 0x61000648 1: 00000000
+mw.l 0x61000664 0x00000001
+ mw.l 0x61000664 0x00000001: ok
+sleep 1
+executing sleep(1) ...
+md.l 0x61000000 1
+ md.l 0x61000000 1: 0a108112
+md.l 0x61000654 1
+ md.l 0x61000654 1: 00000000
+md.l 0x61000640 1
+ md.l 0x61000640 1: 00000001
+md.l 0x61000648 1
+ md.l 0x61000648 1: 00000000
+script cmd completed
+>
+
+
+
+
+
+%
+$dl initGpio
+$dl initPLL
+$dl initCDR
+$dl resetFpga
+$dl writeGpioEx 1
+$dl tDelay 1
+$dl readFpga
+$dl tDelay 2
+$dl readFpga
+$dl tDelay 1
+$dl readFpga
+$dl tDelay 1
+$dl readFpga
+
+
+
+$dl resetHyphy5451
+$hyphy initialize 0
+$dl resetFpga
+$dl writeGpioEx 1
+$dl tDelay 3
+$dl resetHyphy5451
+$hyphy initialize 0
+$dl tDelay 1
+$dl resetHyphy5451
+$hyphy initialize 0
+RV_SUCCESS
+%
+RV_SUCCESS
+% RV_SUCCESS
+% FPGA version ID 0x0a108112
+FPGA build time 0x17060616
+CPLD version ID  0x00000000
+RV_SUCCESS
+% RV_SUCCESS
+% sleep for 5 s
+RV_SUCCESS
+% check PCIE lock status is 0x4256
+RV_SUCCESS
+% mmap_ptr = 0x3058a000,sizeof(mmap_struct)=0x18
+mmap_ptr->pDevCtxt = 0x3058a018
+mmap_ptr->pBackupCtxt = 0x305ee018
+mmap_ptr->database = 0x30652018
+mmap_ptr->bakDatabase = 0x30654828
+hyPhyFlexInitDevCtxt,4550,0x3058a030
+using default context, due to coldrestart or context->valid=0 is invalid.
+pDevCtxt->valid=0x0
+RV_SUCCESS
+% FPGA version ID 0x0a108112
+FPGA build time 0x17060616
+CPLD version ID  0x00000000
+RV_SUCCESS
+% RV_SUCCESS
+% sleep for 3 s
+RV_SUCCESS
+% check PCIE lock status is 0x4256
+RV_SUCCESS
+% mmap_ptr = 0x3058a000,sizeof(mmap_struct)=0x18
+mmap_ptr->pDevCtxt = 0x3058a018
+mmap_ptr->pBackupCtxt = 0x305ee018
+mmap_ptr->database = 0x30652018
+mmap_ptr->bakDatabase = 0x30654828
+hyphyflex already initialized.
+hyPhyFlexInitDevCtxt,4550,0x3058a030
+using default context, due to coldrestart or context->valid=0 is invalid.
+pDevCtxt->valid=0x0
+HYPHY20G_ERR: src/hyphy20g_hw.c:2046 sysHyPhy20gFwDownload returning -701
+HYPHY20G_ERR: src/hyphy20g_api.c:2618 hyPhy20gFwDownload returning -701
+(no proc name):(00:09:29.621890):(CHyphy5451.cc:717) CHyphy5451.cc(717) initialize: assert failed!
+
+RV_FAILURE
+% sleep for 1 s
+RV_SUCCESS
+% check PCIE lock status is 0x4256
+RV_SUCCESS
+% mmap_ptr = 0x3058a000,sizeof(mmap_struct)=0x18
+mmap_ptr->pDevCtxt = 0x3058a018
+mmap_ptr->pBackupCtxt = 0x305ee018
+mmap_ptr->database = 0x30652018
+mmap_ptr->bakDatabase = 0x30654828
+hyPhyFlexInitDevCtxt,4550,0x3058a030
+using default context, due to coldrestart or context->valid=0 is invalid.
+pDevCtxt->valid=0x0
+RV_SUCCESS
+% %
+
+
+
+
+
+
+
+
+
+
+
+
+
+config interface 1/3/c7 ty 1gbe
+config interface 8p20 1/3/c7 1gbE container odu0
+config interface 1/3/c7 state up
+
+config interface 8p20 1/3/bp1 ty otu2
+config interface 8p20 1/3/bp1 sta up
+
+config oduptf odu2 1/3/bp1 odustruct odu0#1-1
+
+config odukxc odu0-1/3/c1 odu2odu0-1/3/bp1/1 create odu0 bi
+
+1，         GBE
+/opt/bin/startapp
+Tclsh
+$dl initialize 0
+set drv [CDriverItfcImpl_getInstance]
+$drv sigTypeSet  9  $DRVIF_SIG_1GBE
+$drv oduCreate  9  $DRVIF_ODU_ODU0  $DRVIF_ODU_ODU0  0  0
+$drv sigTypeSet  13  $DRVIF_SIG_OTU2
+$drv oduCreate  13  $DRVIF_ODU_OTUODU2  $DRVIF_ODU_ODU2ODU0  1  0x1
+connCreate  $OTN_CLN_7  0  $OTN_LIN_1  1  $OTN_XC_CREATE  $OTN_LoOduXcRate_odu0  $OTN_XC_BIDIRECTION
+
+//bp1 to N+1 lane1,
+//if not configure below API, the traffic would be loopback at the channel 8 of GN212,
+$drv xbarSelSet 13 1 1 1
+
+
+2，OTU1
+/opt/bin/startapp
+Tclsh
+$dl initialize 0
+set drv [CDriverItfcImpl_getInstance]
+$drv sigTypeSet  9  $DRVIF_SIG_OTU1
+$drv oduCreate  9  $DRVIF_ODU_ODU1  $DRVIF_ODU_ODU1  0  0
+$drv sigTypeSet  13  $DRVIF_SIG_OTU2
+$drv oduCreate  13  $DRVIF_ODU_OTUODU2  $DRVIF_ODU_ODU2ODU1  3  0x44
+connCreate  $OTN_CLN_7  0  $OTN_LIN_1  3  $OTN_XC_CREATE  $OTN_LoOduXcRate_odu1  $OTN_XC_BIDIRECTION
+
+3，OC48
+/opt/bin/startapp
+Tclsh
+$dl initialize 0
+set drv [CDriverItfcImpl_getInstance]
+$drv sigTypeSet  9  $DRVIF_SIG_OC48
+$drv oduCreate  9  $DRVIF_ODU_ODU1  $DRVIF_ODU_ODU1  0  0
+$drv sigTypeSet  13  $DRVIF_SIG_OTU2
+$drv oduCreate  13  $DRVIF_ODU_OTUODU2  $DRVIF_ODU_ODU2ODU1  3  0x44
+connCreate  $OTN_CLN_7  0  $OTN_LIN_1  3  $OTN_XC_CREATE  $OTN_LoOduXcRate_odu1  $OTN_XC_BIDIRECTION
+
+
+
+
+
+BRs
+Dang Zhaiwei
+-------------------------------------------
+Tel:+86 028 62565446(OnNet:2719 5446)
+Office: F4, Building #8, Cheng Du, SiChuan
+-------------------------------------------
+
+From: DANG Zhaiwei 
+Sent: 2017?7?31? 14:59
+To: Guo, Lily (NSB - CN/Chengdu) <lily.guo@nokia-sbell.com>; FU Jiangdong <Jiangdong.Fu@alcatel-sbell.com.cn>
+Cc: ZHANG Hechun <Hechun.Zhang@alcatel-sbell.com.cn>; JIA Xin <Xin.Jia@alcatel-sbell.com.cn>
+Subject: RE: traffic can work normally in 8P20
+
+Lily & ??,
+
+8.3?8.22????,???????driver?app????????,?lily?????????
+
+???PSSSW-63496????,??????case(C7),gbe?????,oc48?otu1??,????????
+
+Driver???debug?????????,??dbgCutThru?????
+1,	dump APP ??driver API??????:
+dumpDrvLog $DRVLOGFM, ??dumpDrvLog 2
+????log??
+clearDrvLog $DRVLOGFM
+
+2,	dump driver???????:
+odukDumpPortInfo
+
+3,	dump hyphy??????xc??
+odukDumpConn
+
+4,	?????????driver level1?trace??
+setTraceMask lcdrv|lvl1f
+?????
+setTraceMask 0
+
+5,?????????hyphy?trace??
+hyPhy20g_SetDbgLevel $H 0 0
+?????
+hyPhy20g_SetDbgLevel $H 1 1
+
+
+???????:
+1,dumpDrvLog $DRVLOGFM
+00000001: 1970-01-04 22:15:48:894 > sigTypeSet, portNo 9, sigType 9
+00000002: 1970-01-04 22:15:48:897 > matrixConnCreate 9 0 0 11 1
+00000003: 1970-01-04 22:15:49:34 > portSigTypeSet 9 11
+00000004: 1970-01-04 22:15:50:195 > sigTypeSet, return 0
+00000005: 1970-01-04 22:16:01:706 > oduCreate, 9 6 6 0,0
+00000006: 1970-01-04 22:16:01:709 > odukCreate 9 1 0
+00000007: 1970-01-04 22:16:01:720 > oduCreate, return 0
+00000008: 1970-01-04 22:16:01:851 > sigTypeSet, portNo 13, sigType 2
+00000009: 1970-01-04 22:16:01:856 > portSigTypeSet 1 2
+00000010: 1970-01-04 22:16:01:858 > sigTypeSet, return 0
+00000011: 1970-01-04 22:16:12:54 > oduCreate, 13 1 8 1,1
+00000012: 1970-01-04 22:16:12:57 > odukCreate 1 25 1
+00000013: 1970-01-04 22:16:12:625 > oduCreate, return 0
+00000014: 1970-01-04 22:16:12:785 > connCreate 9 0 1 1 1 1 1
+00000015: 1970-01-04 22:16:29:187 > xbarSelSet 13 1 1 1
+00000016: 1970-01-04 22:16:29:190 > matrixConnCreate 13 1 1 2 1
+00000017: 1970-01-04 22:16:29:316 > xbarSelSet, return 0
+
+2,odukDumpPortInfo
+
+Line1, signal 2,payload 33, fecMode 1, facilityLpbk 0, terminalLpbk 0
+loOdukType:
+25  0  0  0  0  0  0  0 
+timeslot:
+0  255  255  255  255  255  255  255 
+ 255  255  255  255  255  255  255  255 
+ 255  255  255  255  255  255  255  255 
+ 255  255  255  255  255  255  255  255 
+ 255  255  255  255  255  255  255  255 
+ 255  255  255  255  255  255  255  255 
+ 255  255  255  255  255  255  255  255 
+ 255  255  255  255  255  255  255  255 
+
+otu1Xbar:
+0  0  0  0  0  0  0  0 
+odukXbar:
+0  0  0  0  0  0  0  0 
+otu1FrmMapping:
+0  0  0  0  0  0  0  0 
+
+Line2, signal 2,payload 33, fecMode 1, facilityLpbk 0, terminalLpbk 0
+loOdukType:
+0  0  0  0  0  0  0  0 
+timeslot:
+255  255  255  255  255  255  255  255 
+ 255  255  255  255  255  255  255  255 
+ 255  255  255  255  255  255  255  255 
+ 255  255  255  255  255  255  255  255 
+ 255  255  255  255  255  255  255  255 
+ 255  255  255  255  255  255  255  255 
+ 255  255  255  255  255  255  255  255 
+ 255  255  255  255  255  255  255  255 
+
+otu1Xbar:
+0  0  0  0  0  0  0  0 
+odukXbar:
+0  0  0  0  0  0  0  0 
+otu1FrmMapping:
+0  0  0  0  0  0  0  0 
+
+Line3, signal 0,mappingType 0, container 0, facilityLpbk 0, terminalLpbk 0, otu1FecMode 0
+loOduValid:
+0  0 
+
+Line4, signal 0,mappingType 0, container 0, facilityLpbk 0, terminalLpbk 0, otu1FecMode 0
+loOduValid:
+0  0 
+
+Line5, signal 0,mappingType 0, container 0, facilityLpbk 0, terminalLpbk 0, otu1FecMode 0
+loOduValid:
+0  0 
+
+Line6, signal 0,mappingType 0, container 0, facilityLpbk 0, terminalLpbk 0, otu1FecMode 0
+loOduValid:
+0  0 
+
+Line7, signal 0,mappingType 0, container 0, facilityLpbk 0, terminalLpbk 0, otu1FecMode 0
+loOduValid:
+0  0 
+
+Line8, signal 0,mappingType 0, container 0, facilityLpbk 0, terminalLpbk 0, otu1FecMode 0
+loOduValid:
+0  0 
+
+Line9, signal 11,mappingType 2, container 1, facilityLpbk 0, terminalLpbk 0, otu1FecMode 0
+loOduValid:
+0  0 
+
+Line10, signal 0,mappingType 0, container 0, facilityLpbk 0, terminalLpbk 0, otu1FecMode 0
+loOduValid:
+0  0 
+RV_SUCCESS
+
+3,odukDumpConn
+------------------------------------------------
+srcPort | srcOduId | dstPort | dstOduId | rate 
+------------------------------------------------
+       9          0         1          1      1
+       1          1         9          0      1
+------------------------------------------------
+RV_SUCCESS
+
+
+BRs
+Dang Zhaiwei
+-------------------------------------------
+Tel:+86 028 62565446(OnNet:2719 5446)
+Office: F4, Building #8, Cheng Du, SiChuan
+-------------------------------------------
+
+
+Login ID: glili
+Password: Z#n7creSEC
+Server name and IP: pss74-255.ongnj.us.alcatel-lucent.com, 135.104.255.74
+
+From: DANG Zhaiwei 
+Sent: 2017?7?28? 15:52
+To: JIA Xin <Xin.Jia@alcatel-sbell.com.cn>; ZHANG Hechun <Hechun.Zhang@alcatel-sbell.com.cn>; FU Jiangdong <Jiangdong.Fu@alcatel-sbell.com.cn>; LIU Xin <Xin.Liu@alcatel-sbell.com.cn>; ZHU Ke <Ke.Zhu@alcatel-sbell.com.cn>; CHENG Wei <Wei.Cheng@alcatel-sbell.com.cn>; Guo, Lily (Nokia - CN/Chengdu) <lily.guo@nokia.com>; ZHANG Xuepeng <Xuepeng.Zhang@alcatel-sbell.com.cn>; Jiang, Yizuo (Nokia - CN/Chengdu) <yizuo.jiang@nokia.com>; TAN Zhongwei <Zhongwei.Tan@alcatel-sbell.com.cn>
+Cc: LI Yanghong <Yanghong.Li@alcatel-sbell.com.cn>
+Subject: traffic can work normally in 8P20
+
+Hi all,
+
+The traffics handled by 8P20 can work normally now when configuring them by driver APIs for GBE, OC48, OTU1 in TCLSH,
+And after 20 hours monitor, there is no packet lost with a complex topology for GBE that passing through 2 8P20s and covering 3 types of XC.
+
+Codes have been checked in by MR PSSSW-63496.
+
+GBE, C7??BP1 N+1 lane1 in tclsh:
+$dl initialize 0
+set drv [CDriverItfcImpl_getInstance]
+$drv sigTypeSet  9  $DRVIF_SIG_1GBE
+$drv oduCreate  9  $DRVIF_ODU_ODU0  $DRVIF_ODU_ODU0  0  0
+$drv sigTypeSet  13  $DRVIF_SIG_OTU2
+$drv oduCreate  13  $DRVIF_ODU_OTUODU2  $DRVIF_ODU_ODU2ODU0  1  0x1
+connCreate  $OTN_CLN_7  0  $OTN_LIN_1  1  $OTN_XC_CREATE  $OTN_LoOduXcRate_odu0  $OTN_XC_BIDIRECTION
+
+//bp1 to N+1 lane1
+$drv xbarSelSet 13 1 1 1
+
+root@8EC2-81-1-ACT:~# /pureNeApp/EC/dbgCut 
+dbgCut> !dbgCutThru (flts 0 otumach 1 2) "dltcl
+dbgCut> 
+dbgCut> 
+dbgCut> 
+dbgCut> !dbgCutThru (flts 0 otumach 1 2) "dltcl odukDumpPortInfo
+dbgCut> RV_SUCCESS
+
+dbgCut> 
+dbgCut> 
+dbgCut> !dbgCutThru (flts 0 otumach 1 2) "dltcl set drv [CDriverItfcImpl_getInstance]
+dbgCut> _1043b300_p_CDriverItfcImpl
+!dbgCutThru (flts 0 otumach 1 4) "sfplaser 1 0
+###pf number[0-7]", "on:1  off:0"
+### turn off sfpp client 1, 0 means off
+dbgCut> 
+dbgCut> !dbgCutThru (flts 0 otumach 1 2) "dltcl dumpDrvLog $DRVLOGFM
+dbgCut> 
+
+dbgCut> 
+dbgCut> !dbgCutThru (flts 0 otumach 1 2) "dltcl dumpDrvLog $DRVLOGFM
+dbgCut> 
+
+dbgCut> !dbgCutThru (flts 0 otumach 1 3) "dltcl odukDumpPortInfo    
+dbgCut> RV_SUCCESS
+
+!dbgCutThru (flts 0 otumach 1 3) "setTraceMask lcdrv|lvl1
+!dbgCutThru (flts 0 otumach 1 3) "dltcl hyPhy20g_SetDbgLevel $H 0 0
+!dbgCutThru (flts 0 otumach 1 3) "dltcl set drv [CDriverItfcImpl_getInstance]
+!dbgCutThru (flts 0 otumach 1 3) "dltcl $drv sigTypeSet  9  $DRVIF_SIG_1GBE
+!dbgCutThru (flts 0 otumach 1 3) "dltcl $drv oduCreate  9  $DRVIF_ODU_ODU0  $DRVIF_ODU_ODU0  0  0
+!dbgCutThru (flts 0 otumach 1 3) "dltcl $drv sigTypeSet  13  $DRVIF_SIG_OTU2
+!dbgCutThru (flts 0 otumach 1 3) "dltcl $drv oduCreate  13  $DRVIF_ODU_OTUODU2  $DRVIF_ODU_ODU2ODU0  1  0x1
+!dbgCutThru (flts 0 otumach 1 3) "dltcl connCreate  $OTN_CLN_7  0  $OTN_LIN_1  1  $OTN_XC_CREATE  $OTN_LoOduXcRate_odu0  $OTN_XC_BIDIRECTION
+!dbgCutThru (flts 0 otumach 1 3) "dltcl set dl [CDevLayer8P20_getInstance]
+!dbgCutThru (flts 0 otumach 1 3) "dltcl $dl resetSfpXfp
+
+
+[not matched] portSigTypeSet#OTN_CLN_7#OTN_SIG_GE1
+[not matched] odukCreate#OTN_CLN_7-OTN_ODU_ODU0-0-+0-0#0
+[not matched] portSigTypeSet#OTN_LIN_1#OTN_SIG_OTU2
+[not matched] odukCreate#OTN_LIN_1-OTN_ODU_ODU2ODU0-1-+1-0#0
+[not matched] connCreate#OTN_CLN_7#0#OTN_LIN_1#1#OTN_XC_CREATE#OTN_LoOduXcRate_odu0#OTN_XC_BIDIRECTION
+(<5 1 3 7 3 0>):(08:50:30.410828):(CHyphy5451.cc:7303) CHyphy5451.cc(7303) setLoOdukOciInsertion: assert failed!
+
+------------------------------------------------
+ srcPort | srcOduId | dstPort | dstOduId | rate
+------------------------------------------------
+       9          0         1          1      1
+       1          1         9          0      1
+------------------------------------------------
+
+
+dbgCut> !dbgCutThru (flts 0 otumach 1 3) "dltcl hyPhy20g_SetDbgLevel $H 0 0
+dbgCut> 0
+
+dbgCut> !dbgCutThru (flts 0 otumach 1 20) "setTraceMask lcdrv|lvl1|diag|data"
+
+dbgCut> !dbgCutThru (flts 0 otumach 1 20) "dltcl hyPhy20g_SetDbgLevel $H 0 0 "
+dbgCut> !dbgCutThru (flts 0 otumach 1 20) "dltcl hyPhy20g_SetDbgLevel $H 0 1"
+
+dbgCut> !dbgCutThru (flts 0 otumach 1 20) "dltcl $impl oduGetRxPldType 10 6 $pldtype
+dbgCut> !dbgCutThru (flts 0 otumach 1 20) "dltcl hyPhyFlexOpukRxPtAcptExt $H 1 7 $val"
+
+show  oduptf odu0 1/3/c1 pldtype
+/vobs/lc/fa_lxhrp_ot/internal/pkg/ot_driver/ot_8p20/…
+
+
+
+====
+
+1.给NE指定好ftp server 的用户名和密码
+FTP
+135.251.99.236
+
+uid
+pid
+
+PSS32-131(config-software-server)# ip 135.251.99.236
+PSS32-131(config-software-server)# userid ftp_pss
+Enter password: chenhan
+
+
+2.给NE指定好ftp server 的路径 
+
+PSS32-131(config-software-upgrade-manual)# audit /pssnfs/roadm/dwdm_1830_switch/kiwicake-171021/swp/ARMADA/1830PSSECX-22.21-70  nobackup 
+
+
+3. do load command
+PSS32-131(config-software-upgrade-manual)# load
+
+4.可以查看 Software Upgrade Information
+PSS32-131(config-software-upgrade)# status
+
+
+5.load完成后做 activate
+
+PSS32-131(config-software-upgrade-manual)# activate
+
+6.NE重启后，等待一段时间再做 commit
+
+PSS32-131# config software upgrade commit
+
+
+ EC:
+ config database clear
+
+ 
+ 
+PSS8_97.208# show oduptf odu2 1/2/bp2 pm odurx 0 0
+
+Group: ODU RX Stats  Interval: 0  Bin: 0  Location: 1/2/bp2
+--------------------------------------------------------------
+Start Time                                        : 2021/07/06 16:30:00 (UTC)
+Bin Status                                        : Partial
+
+Rx NeBIP8 Error Count                             : 0
+Rx FeBIP8 Error Count                             : 0
+Rx Ne Errored Seconds                             : 1
+Rx Fe Errored Seconds                             : 1
+Rx Ne Severely Errored Seconds                    : 1
+Rx Fe Severely Errored Seconds                    : 1
+Rx Ne Unavailable Seconds                         : 0
+Rx Fe Unavailable Seconds                         : 0
+
+
+PSS8_97.208# show oduptf odu2 1/2/bp2 pm odurx 0 0
+ conf oduptf odu2 1/2/bp2 pm odurx pmmode en
+ 
+ PSS8_97.208# config otu 1/3/L1 fectype
+
+FEC Mode:rsfec
+
+
+
+fw_printenv
+
+fw_setenv autorun no
+fw_setenv autoreboot no
+
+###########################################
+optical module:   ss-16  (support stm-16 ) 
+                  ss10gb-lr(surpport 10gb signal)
+                  ss-1.1 (suppport stm-1)
+                    ss-64(suppport stm-64, oc-192)
+oc-3  --- STM-1 155M
+OC-12 - 622 megabits per second  STM-4 (4 OC3s) no estimated price available
+OC-48 - 2.5 gigabits per seconds STM-16 (4 OC12s) no estimated price available
+OC-192 - 9.6 gigabits per second stm-64 (4 OC48s) no estimated price available
+                  
+
+
+dbgCut> !dbgCutThru (flts 0 otumach 1 2) "dltcl set drv [CDriverItfcImpl_getInstance]
+
+!dbgCutThru (flts 0 otumach 1 22) "dltcl $drv lpbkSet <portNo> <loopback_type>
+portNo: 13/14 [Line1 or Line2]
+loopback_type: $DRVIF_LPBK_FCLT/$DRVIF_LPBK_TERM/$DRVIF_LPBK_NONE
+
+
+ct co /vobs/lc/fa_lxhrp_ot/internal/pkg/ot_driver/hyphyflex/regen_mm

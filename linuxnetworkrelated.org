@@ -1808,7 +1808,12 @@ nc ipadr 7777|mplayer -vo x11 ...
 then we could see a video here
 nc -l -p 12345 | tar xvzf - 
 - means the stardard input
- 
+
+** netcat binary pipe
+mkfifo backpipe
+nc -l 12345 0<backpipe | nc www.google.com 80 1>backpipe
+or
+
 
 
 * Port scaanner for tcp, udp, sctp

@@ -927,6 +927,8 @@ nodeA                nodeB                   nodeC            nodeD           no
 when link is boroken, rx of nodeD will notice firstly, and nodeD will insert FDI to nodeE(downstream) in the forward dir, and nodeD will send nodeC BDI(upstream) in the backword dir.
 back/forward is related to the link broken direction. Thus all the nodes in this path know about this broken link.
 FDI always refeter to AIS.
+AIS :all bits are "1" in the sginal for AIS.
+OCI :PM bit for if OCI status
 
 
 ** 8p20/4b alarm when link broken from L1 to L4, but L4 to L1 is OK
@@ -1067,7 +1069,12 @@ testset(ont-600)--4b/L1---8p20bp1------8p20bp1/ts1-------8p20odukpp/chan1-------
         |        |
        \|/      /|\
         |--------|
-         client  
+        | client | 
+        |        |
+   odu0-|AIS    /|\ 
+       \|/       |
+        |        |
+       TESET-SET GBE singal
 
 *** 8p/Bp1 to 4b/L1  broke 
 
@@ -1408,7 +1415,7 @@ real client signal(as ethernet signal).
 equipment ONT-60 configured as through mode, but laser on,  
 if C4 is fiber loopback no CSF, if not fiber plug in the rx moudle of the clinet port, there will be CSF.
 
-* oduptf(odu termiate)  VS. odunim(odu non instrusive monitor)
+* oduptf(odu termiate)[TP]  VS. odunim(odu non instrusive monitor)
 for a 8p20 pack ,odu0 has two points: odu0nim {in odu2-odu0 OTN line side}, odu0ptf(in odu0 odukpp side in hyphy client) 
 **  line side odu2-odu0 it's odunim point
 As show below, no odu0 tti could be configured
