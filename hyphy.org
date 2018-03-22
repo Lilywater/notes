@@ -1212,6 +1212,14 @@ could be confgiured as odu0 layer).
 and Rx mutiplexing should get the timneslot 2. //since only port#4 opu could be fiber loopback in 8p20-->4b--->equipmentONT-601(only oud2odu0#4-2 xc exsit.). 
 
 
+** meaning of odustructure and odu2odu0(odu2odu1)/portnumber
+bp1 odustruct as this:   #number means the last number of the odukxc ODU2ODU0-1/2/BP2/4 (4 means port 4, but there's no port number 4 configured as below, so 
+only odu2odu0-1/9/bp1/5(6,7,8)  or odu2odu1-1/9/bp1/1(2) could be configured
+ODUSTRUCT Structure                      : odu1#1-1,2&odu1#2-3,4&odu0#5-5&odu0#6-6&odu0#7-7&odu0#8-8
+c1 is odu0 c2 is odu1
+config odukxc odu1-1/9/c2 odu2odu1-1/9/bp1/1 create odu1 bi
+config odukxc odu0-1/9/c1 odu2odu0-1/9/bp1/5 create odu0 bi
+
 ** chek if 8p20 received the odu0 packet
 PSS8_97.208# show odukxc br
 A-End                   Z-End                  ID       XcRate       XcDir          Protection Connection
@@ -1450,13 +1458,97 @@ Degrade Threshold        : 500
 Path Overhead Monitoring : Disabled
 
 
+
+odunim only enable path monitor, tti sent by pack could not be configure in odunim since(non-instrusive)
+config odunim odu2odu0 1/2/bp1/1 or 1/71/1/1 pom enabled to monitor the path overhead
+##timeslot 1 odu20du0-pm-tti will be monitored
+
+
+pss8_211(config-odunim-odu2odu0-1/71/1/1)# pom en
+pss8_211(config-odunim-odu2odu0-1/71/1/1)# det
+
+Shelf: 1 Slot: 71 Port: 0 - [odu2odu0]
+-----------------------------------------------------------------------
+Admin State           : Up              Oper State       : Up             
+State Qualifier       : SDEE            Oper Capability  : Enabled
+
+
+TTI
+-----------------------------------------------------------------------
+
+Egress path Overhead monitoring tti
+==================================
+egpom                   : Disabled
+Expected DAPI TTI       : 
+Expected SAPI TTI       : 
+Incoming DAPI TTI       : 
+Incoming SAPI TTI       : 
+Incoming OS TTI         : 
+TTI Status              : UNAVAILABLE
+TTI Comparison          : Disabled
+TTI Mismatch Response   : Disabled
+
+
+Egress Degrade Interval          : 7
+Egress Degrade Threshold         : 500
+
+Path Overhead Monitoring tti
+===========================
+pom                     : Enabled
+Expected DAPI TTI       : 
+Expected SAPI TTI       : 
+Incoming DAPI TTI       : EXFO ODU DAPI
+Incoming SAPI TTI       : du0-exfo
+Incoming OS TTI         : EXFO ODU OPERATOR SPECIFIC
+TTI Status              : UNSPECIFIED
+TTI Comparison          : Disabled
+TTI Mismatch Response   : Disabled
+Degrade Interval        : 7
+Degrade Threshold       : 500
+
+
+
+
+pss8_211(config-odunim-otuodu2-1/4/l1)# pom en
+pss8_211(config-odunim-otuodu2-1/4/l1)# det
+
+Shelf: 1 Slot: 4 Port: L1 - [otuodu2]
+-----------------------------------------------------------------------
+Admin State           : Up              Oper State       : Down           
+State Qualifier       : SDEE SGEO       Oper Capability  : Disabled
+
+
+
+
+TTI
+-----------------------------------------------------------------------
+
+
+Ingress TTI
+------------
+Expected DAPI TTI       : 
+Expected SAPI TTI       : 
+TTI Comparison          : Disabled
+TTI Mismatch Response   : Disabled
+Incoming DAPI TTI       : du2-pmtti-dapi
+Incoming SAPI TTI       : du2-PMtti-sapi
+Incoming OS TTI         : china
+TTI Status              : UNSPECIFIED
+
+Degrade Interval         : 7
+Degrade Threshold        : 4000
+Path Overhead Monitoring : Enabled
+
+
+
 ** client side odu0 it's oduptf point
 odu0 tti could be configured also in ptf point
-pss8_168# show oduptf odu0 1/2/c8 det
-
-Shelf: 1 Slot: 2 Port: C8 - [odu0]
+oduptf 
+config oduptf odu0 1/4/c2 det
+--
+Shelf: 1 Slot: 4 Port: C2 - [odu0]
 -----------------------------------------------------------------------
-Admin State           : Up              Oper State       : Up
+Admin State           : Up              Oper State       : Up             
 State Qualifier       : SDEE            Oper Capability  : Enabled
 AINS                  : Disabled
 Use System AINS Timer : Enabled
@@ -1464,28 +1556,30 @@ AINS Timer            : System
 AINS Countdown        : 0m
 
 
-Payload Type                             : 7 (0x7)
+Payload Type                             : 11 (0xB)
 Payload Type Mismatch Response           : Disabled
 Degrade Interval                         : 7
 Degrade Threshold                        : 500
-Incoming Payload Type                    : 7
+Incoming Payload Type                    : 11
 
-ODUSTRUCT Structure                      :
-INC ODUSTRCUT Structure                  :
+ODUSTRUCT Structure                      : 
+INC ODUSTRCUT Structure                  : 
 
 TTI
 -----------------------------------------------------------------------
-tx_sapi                         :
+tx_sapi                         : -4-c2-pmtti      ####pack settings in oduptf config
 timmresp                        : Disabled
-exp_sapi                        :
-exp_dapi                        :
-tx_dapi                         :             #this could be configured in config oduptf odu0 1/2/c8 command
-tx_os                           :
+exp_sapi                        : 
+exp_dapi                        : 
+tx_dapi                         : 
+tx_os                           : 
 trccmp                          : Disabled
-inc_dapi                        :
-inc_sapi                        :
-inc_os                          :
+inc_dapi                        : EXFO ODU DAPI     ##testset config settings
+inc_sapi                        : du0-exfo
+inc_os                          : EXFO ODU OPERATOR SPECIFIC
 TTI Status                      : UNSPECIFIED
++++++++++++++++++++++++++++++++
+
 
 ** odu2 ptf point
 for 8p20 board bp2 is a terminate point, so odu2 tti head could be configured here
@@ -1493,7 +1587,290 @@ pss8_168(config-oduptf-odu2-1/2/bp2-tti)# tx_sapi
 
 Current value: term-odu2-p
 
+config oduptf odu2 1/71/1  ( ,Slot as 71,72 as per Virtual Plane or bp1/bp2)
+ss8_211(config-oduptf-odu2-1/71/1)# det
+
+Shelf: 1 Slot: 71 Port: 0 - [odu2]
+-----------------------------------------------------------------------
+Admin State           : Up              Oper State       : Up             
+State Qualifier       : SDEE            Oper Capability  : Enabled
+
+Payload Type                             : 33 (0x21)
+Payload Type Mismatch Response           : Disabled
+Degrade Interval                         : 7
+Degrade Threshold                        : 4000
+Incoming Payload Type                    : 33
+
+ODUSTRUCT Structure                      : odu0#1-1&odu0#2-2&odu0#3-3&odu0#4-4&odu0#5-5&odu0#6-6&odu0#7-7&odu0#8-8
+INC ODUSTRCUT Structure                  : AS#1-1&AS#2-2&AS#3-3&AS#4-4&AS#5-5&AS#6-6&AS#7-7&AS#8-8
+
+TTI
+-----------------------------------------------------------------------
+tx_sapi                         : 
+timmresp                        : Disabled
+exp_sapi                        : 
+exp_dapi                        : 
+tx_dapi                         : 
+trccmp                          : Disabled
+inc_dapi                        : du2-pmtti-dapi
+inc_sapi                        : du2-PMtti-sapi
+TTI Status                      : UNSPECIFIED
+tx_os                           : 
+inc_os                          : china
+
++++++++++++++++++++++++++++++++++++++++++
+
+
+
+
+
 ** otu TTI /SM TTI
+SM TTI is not related to any odunim or oduptf point, only pm-odu0 or pm-odu2 are realated to the odunim/oduptf
 board 4b response for the otu OH, so config otu TTI (SM TTI)
 otu tti is configured in
 pss8_168# config otu 1/3/L1
+==============
+pss8_211(config-otu-1/4/l1)# det 
+
+Shelf: 1 Slot: 4 Port: L1 - OTU2 Facility
+-----------------------------------------------------------------------
+Admin State           : Up              Oper State       : Down           
+State Qualifier       : SDEE SGEO       Oper Capability  : Disabled
+
+AINS                  : Disabled
+Use System AINS Timer : Enabled
+AINS Timer            : System
+AINS Countdown        : 0m
+
+OTU2 Settings:
+--------------
+FEC Mode              : RSFEC          
+Degrade Threshold     : 4000
+Degrade Interval      : 7
+
+TTI                            OTU2
+-----------------------------------------------------------------
+Expected DAPI TTI          : 
+Expected SAPI TTI          : 
+Incoming DAPI TTI          : odu0-pmtti- OTU
+Incoming SAPI TTI          : tu2-exfotti
+Incoming OS TTI            : EXFO OTU OPERATOR SPECIFIC
+TTI Status                 : UNSPECIFIED
+TTI Mismatch Response      : Disabled
+TTI Comparison             : Disabled
+Transmitted DAPI TTI       : 
+Transmitted SAPI TTI       : 
+Transmitted OS TTI         : 
+
+
+
+* OTU Frame structure
+FA OH, OTU OH,  ODU OH, OPU OH
+
+                      Column #
+1    2    3    5   6   7  | 8    9    10   11   12  13  14   15    16 
+Frame Alignment overhead  | OTUk overhead
+RES TCMACT TCM6           | TCM5 TCM4 FTFL  
+TCM3 TCM2                TCM1 PM   EXP
+GCC1 GCC2   APS/PCC        
+
+
+Three maintenance signals are available at the ODU, they are the AIS (Alarm Indication Signal),
+Locked defect (LCK), and Open Connection Indication (OCI). The LCK maintenance signal is
+generated on operator request to perform out-of-service tests. It is a repeating '01010101' pattern that fills the ODU, OPU, and payload. 
+An open connection generates the OCI maintenance signal, which is a repeating '01100110' pattern that also fills the ODU, OPU, and payload. 
+AIS is an all 1's pattern that fills the ODU except for the FTFL, OPU, and payload. It is a forwarded signal in the downstream direction sent as a response to a signal fail indication, such
+as in the FTFL or an incoming ODU-AIS. 
+In the upstream direction the response to continuity, connectivity and maintenance signals, such as AIS, is a Backward Defect Indication (BDI) signal
+indicated by a bit found in the PM, TCMi, or SM for the OTU. BDI is raised as an alarm when it has been received for five consecutive frames. 
+
+The BDI and AIS also exist at the OTU layer,
+where the AIS is a 2047-bit polynomial sequence, called PN-11, that covers the full OTU frame including the framing bytes.
+In a practical example , the OTU-AIS would be sent as a response to a loss of signal.
+At the OPU level, a Payload Mismatch (PLM) is declared when the received payload type (PT)
+differs from the expected, pre-provisioned PT value
+
+** FA OH
+FAS MFAS
+FAS   Frame Alignment Signal
+MFAS   MultiFrame Alignment Signal
+
+** OTU overhead
+SM GCC0
+*** SM field
+1     2         3
+TTI BIp-8     BEI/BIAE BDI IAE
+
+IAE  Incoming Alignment Error    (frame slip detected IAE alarm raised)
+BIAE Backward Incoming Alignment Error 
+BEI  Backward Error Indication   (BIP is not equal to the checksum)
+BDI  Backward Defect indication  (AIS forward downstream)
+
+** ODU overhead
+TCM field is similar to PM field
+*** PM field
+1     2         3
+TTI   BIP-8   BEI BDI STAT
+
+
+****  STAT
+status bits indicating the presence of a maintenance signal (STAT).
+1 0 1
+Maintenance signal: ODUk-LCK
+1 1 0
+Maintenance signal: ODUk-OCI
+1 1 1
+Maintenance signal: ODUk-AIS
+ 
+** OPU overhead
+*** PSI
+PSI[0] is payloadtype when it is 0x20 or 0x21 means mux timeslot and port relation
+
+*** CSF field in OPU PSI 
+OPUk Client Signal Fail (CSF)
+For support of local management systems, a single-bit OPUk Client Signal Fail (CSF) indicator is defined to convey the signal fail status of the CBR and Ethernet Private Line client signal mapped into a LO OPUk at the ingress of the OTN to the egress of the OTN.
+OPUk CSF is located in bit 1 of the PSI[2] byte of the Payload Structure Identifier. Bits 2 to 8 of the PSI[2] byte are reserved for future international standardization. These bits are set to all ZEROs.
+OPUk CSF is set to "1" to indicate a client signal fail indication, otherwise it is set to "0".
+
+
+*** MSI
+ MSI bytes within PSI multi-frame
+ODUk  |PayloadType | Tributory Slots| MSI bytes in PSI position range
+------------------------------------------------------------------------------
+ODU1  |    20      | TS[1,2]        | PSI[2,3]
+ODU2  |    20      | TS[1..4]       | PSI[2..5]
+ODU2  |    21      | TS[1..8]       | PSI[2..9]
+ODU3  |    20      | TS[1..16]      | PSI[2..17]
+ODU3  |    21      | TS[1..32]      | PSI[2..33]
+ODU4  |    21      | TS[1..80]      | PSI[2..81]
+
+
+          1     2 |  3  4  5  6  7  8
+         ______________________________ 
+PSI[1+i] |ODTU type| Tributary Port # |  TS #i
+         ------------------------------
+**** OPU2 Multiplex Structure Identifier (MSI) – Payload Type 20
+the four OPU2 2.5G tributary slots : TS[1..4]
+                   tributary port: 1..4
+odtu type 00:  ODTU12
+
+**** OPU2 Multiplex Structure Identifier (MSI) – Payload Type 21 (refer 709-19.4.1.5)
+the eight OPU2 1.25G tributary slots: TS[1..8]
+                     tributary port: 1..8
+odtu type 00:  ODTU12      
+odtu type 10:  ODTU2.ts
+
+eg. 8p20: pss8_211# show oduptf odu2 1/3/bp1 
+
+Shelf: 1 Slot: 3 Port: BP1 - [odu2]
+-----------------------------------------------------------------------
+Admin State           : Up              Oper State       : Down           
+State Qualifier       : SDEE SGEO       Oper Capability  : Disabled
+AINS                  : Disabled
+Use System AINS Timer : Enabled
+AINS Timer            : System
+AINS Countdown        : 0m
+
+
+Payload Type                             : 33 (0x21)
+Payload Type Mismatch Response           : Disabled
+Degrade Interval                         : 7
+Degrade Threshold                        : 4000
+Incoming Payload Type                    : 255
+
+ODUSTRUCT Structure                      : odu0#1-1&odu0#2-2&odu0#3-3&odu0#4-4&odu0#5-5&odu0#6-6&odu0#7-7&odu0#8-8
+INC ODUSTRCUT Structure                  : AS#1-1&AS#2-2&AS#3-3&AS#4-4
+
+TTI
+-----------------------------------------------------------------------
+tx_sapi                         : 
+timmresp                        : Disabled
+exp_sapi                        : 
+exp_dapi                        : 
+tx_dapi                         : 
+tx_os                           : 
+trccmp                          : Disabled
+inc_dapi                        : ???????????????
+inc_sapi                        : ???????????????
+inc_os                          : .???????????????????????????????
+TTI Status                      : UNSPECIFIED
+
+
+
+
+* Defect detail
+E |-    Client Signal
+l |        |
+e |    OPU(optical Payload Unit)
+c |        |
+t |    ODU(optical Data Unit)
+r |        |
+i |-    OTU (optical Transport Unit)
+           |
+O  -      Och(optical Channel)
+p  |        |
+t  |       OMU(optical Multiplex Unit)
+i  |        |
+c  |-       OTM (optical Transport Module) 
+
+
+TCP --- trail connection point
+CI  ---  characteristic information  (info crossing the TCP)
+AP  ---  access point 
+AI  ---  adapted information (info crossing the AP)
+
+** functions and process
+In the sink direction, every layer receives a server signal fail indication (SSF) from its server layer,
+performs supervision of parameters pertaining to the layer, and generates a server signal fail
+indication to its client layer. Reports of probable fault causes are made to the management system.
+The signal fail state of the layer is forwarded/indicated via a forward defect indication (FDI) or an
+alarm indication signal (AIS). AIS is the term used when the signal is in the digital domain (ODU
+and OTU layer). FDI is the term used when the signal is in the optical domain; FDI is transported as
+non-associated overhead in the OOS.
+
+*** OTU funtions
+ The OTUk characteristic information (OTUk_CI) is the unscrambled OTUk frame without
+ FEC code and defined SM, GCC0 and RES overhead as shown in Figure 13-2, together with a
+ frame and multiframe start
+
+
+** continuity supervision [continuity, connection supervision]
+*** LOS in OCH layer
+The purpose of monitoring this parameter is to indicate either:
+i) transmitter failure at the OCh or OChr layer; or
+ii) optical path break at the OCh, OMS, OTS or OPS layer.
+
+Palyload recovery in OCH layer fail, dLOS,
+OCI, FDI are extracted from OCH layer overhead 
+
+*** Open connection indication defect (dOCI)
+Open connection indication defect (dOCI) is monitored at the OCh and ODUk layers. The purpose
+to qualify a downstream loss of signal defect by indicating that the
+loss of signal defect is due to an output connection point not connected to an input connection point.
+ shall be declared if the accepted STAT information (AcSTAT) is "110". dOCI shall be
+ cleared if the accepted STAT information is not equal to "110
+
+
+** signal quality supervision [Frame Alignment related Error]
+*** DEG
+if the defect dIAE(BIP value is not correct) was active once during the second.
+
+*** LOF/LOM
+loss of frame.  FAS bytes in  otu header
+
+
+
+=========================
+
+
+TIMActDis (tti mismatch action disabled)
+in 8p20 pack, timmresp option is enabled equal to TIMActDis
+pss8_211# config oduptf odu2 1/71/1 det
+TTI
+-----------------------------------------------------------------------
+tx_sapi                         : 
+timmresp                        : Enabled
+
+
+root@8EC2-81-1-ACT:~# /pureNeApp/EC/fmdh 1/3 defectdb dump
+!dbgCutThru (flts 0 otumach 1 3) "printState

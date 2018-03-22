@@ -1122,7 +1122,7 @@ PSS8_97.208# show oduptf odu2 1/2/bp2 pm odurx 0 0
  PSS8_97.208# config otu 1/3/L1 fectype
 
 FEC Mode:rsfec
-
+//standard fec mode, for test equipment
 
 
 fw_printenv
@@ -1150,3 +1150,65 @@ loopback_type: $DRVIF_LPBK_FCLT/$DRVIF_LPBK_TERM/$DRVIF_LPBK_NONE
 
 
 ct co /vobs/lc/fa_lxhrp_ot/internal/pkg/ot_driver/hyphyflex/regen_mm
+
+optical module
+=============
+1/2/L1  S10GB-LR           1AB390930002       ALLU14--FA73102053   (not working in 8p20 Line
+        1/2/L2  S10GB-LR           1AB390930002       ALLU16--FA36101930 (working in 8p20 line
+==================================================================
+
+show card inven *  this card won't reboot when warm reboot sometimes
+    1/11  8P20         8P20           3KC49240AAAA01     EZ1748A9764        WOWUBFDTAA  0.01           0.00
+
+ALLU14 is not working
+1/2/L1  S10GB-LR           1AB390930002       ALLU14--FA73102053 
+        1/2/L2  S10GB-LR           1AB390930002       ALLU16--FA36101930 
+
+
+
+config slot 1/10 type empty
+
+viewinfo -g
+
+
+
+
+
+
+Config interface 1/5/bp4 state up
+Config interface 1/5/l1 type otu2
+Config interface 1/5/l1 state up
+Config interface 1/5/l4 type otu2
+Config interface 1/5/l4 state up
+Config odukxc OTUODU2-1/5/L4          ODU2-1/3/BP1 create odu2 bi
+Config odukxc OTUODU2-1/5/L1          ODU2-1/3/BP2 create odu2 bi
+Config odukxc ODU2ODU0-1/3/BP1/7      ODU0-1/3/C6 create odu0 bi
+Config odukxc ODU2ODU0-1/3/BP2/7      ODU0-1/3/C7 create odu0 bi
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+workflow
+collaborate approved------->GGGGG----> check in------>FFFFFF------>resolve------->integrated
