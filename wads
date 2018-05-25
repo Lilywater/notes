@@ -1187,28 +1187,167 @@ Config odukxc ODU2ODU0-1/3/BP2/7      ODU0-1/3/C7 create odu0 bi
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 workflow
 collaborate approved------->GGGGG----> check in------>FFFFFF------>resolve------->integrated
+
+* gt-...
+list the build number
+http://ond-ott-webhost01.labs.ca.alcatel-lucent.com/JIRA/gitbuild/wiki/sidestream-mhpilot_deliveries.html
+
+gt-makews -p dwdm_1830 -b mhpilot-180319
+gt-removews <workspace>
+
+===================================
+telnet TestPoint
+tp:> ls
+d--- tpshell 
+d--- debug 
+d--- sysadmin 
+d--- sys 
+d--- carrier 
+d--- events 
+d--- test 
+d--- payload 
+d--- gbe 
+d--- disruption 
+tp:> cd sysadmin
+tp:sysadmin> ls
+
+tp:sysadmin> ls
+d--- software 
+-rw- date 
+d--- lan 
+d--- sntp 
+d--- bootctrl 
+d--- hardware 
+---e reset 
+
+==============
+PSS4_97.125#show general time
+System Date and Time:  1970/05/21 01:34:36
+
+LC show software version:
+BusyBox v1.1.0 (2006.10.30-15:01+0000) Built-in shell (ash)
+# cat /opt/runtime/swVerInfoAscii
+1830PSSECX-15.15-75
+
+show interface 11dpm4m 1/7/c5 PM eth 0/1 (0: 15min  1: 1 day) [0...n](n 15min/day before) 
+facitlity loopback in 1/7/c5 will not tx packets but rx packets present
+
+# ls /pureNeApp/bootCfg/EC_ACTIVE
+1830PSS4.DSC  1830PSS4M.DSC  CATALOG  SystemPartition  V15.17.75  rpm
+
+LC show startapp log:
+- /opt/runtime/LOGS/startapp.log
+STARTAPP CONFIG TASK STARTED AT DATESTAMP:05-21-1970__01:56:00                                                                                                                               
+swVerInfoAscii: 1830PSS4-15.17-75                                                                                                                                                            
+Image swVerInfoAscii: 1830PSS4-15.17-75
+LOADING dwdm/swVerInfoAscii from 100.0.81.1
+Updated swVerInfoAscii: 1830PSS4-15.17-75
+
+============================================
+ODU2ODU0-1/4/L1/1       ODU2ODU0-1/4/L2/1      1:5      ODU0         Bidirectional  none                                                    
+ODU2ODU0-1/4/L1/1       ODU0-1/4/C1            1:14     ODU0         Unidirectional none                                                    
+ODU2ODU0-1/4/L1/2       ODU2ODU0-1/4/L2/2      1:6      ODU0         Bidirectional  none                                                    
+ODU2ODU0-1/4/L1/3       ODU2ODU0-1/4/L2/3      1:7      ODU0         Bidirectional  none                                                    
+ODU2ODU0-1/4/L1/4       ODU2ODU0-1/4/L2/4      1:8      ODU0         Bidirectional  none                                                    
+ODU2ODU0-1/4/L1/5       ODU2ODU0-1/4/L2/5      1:9      ODU0         Bidirectional  none                                                    
+ODU2ODU0-1/4/L1/6       ODU2ODU0-1/4/L2/6      1:10     ODU0         Bidirectional  none                                                    
+ODU2ODU0-1/4/L1/7       ODU2ODU0-1/4/L2/7      1:11     ODU0         Bidirectional  none                                                    
+ODU2ODU0-1/4/L1/8       ODU2ODU0-1/4/L2/8      1:12 
+
+ECid testing
+-----------------
+!dbgCutThru (cmag 0 otumach 1 5) "setTraceMask 0x80
+// dbgCut for cmag
+root@8EC2-81-1-ACT:~# /pureNeApp/EC/screen -x
+login: root
+Password: 
+ACT-OSE $  ecget -ec=RtrvShelfWtClk -oid=1/5
+
+
+EC show logs
+======================================
+----------------
+PSS4_97.125(show-logs)# user
+
+
+125259     1970/05/29 12:23:51                                              127.0.0.1
+Desc   : User Action
+Changed: Oth Oduk Xc Direction                                                 
+Data   : admin #120
+
+125257     1970/05/29 12:23:51                                              127.0.0.1
+Desc   : User Action
+Changed: Oth Oduk Xc Rate                                                      
+Data   : admin #120
+
+125255     1970/05/29 12:23:51                                              127.0.0.1
+Desc   : User Action
+Changed: Oth Oduk Xc Row Status                                                
+Data   : admin #120
+
+125249     1970/05/29 12:21:48                                              127.0.0.1
+Desc   : User Action
+Changed: OthODUk Tx Odu Struct                                                 
+Data   : (admin:120) SET OBJ ODU2 SH:1 SL:7 P:L1
+
+--------------------------
+PSS4_97.125(show-logs)# state
+
+
+125197     1970/05/29 12:02:47                                              SH:1 SL:7
+Desc   : Card Identification Event            11DPM4M
+Data   : 11DPM4M, 11DPM4M ,3KC13313AAAA01,YP123504C5     
+
+125175     1970/05/29 11:58:27                                              SH:1 SL:7
+Desc   : Software Cold Reset Request            11DPM4M
+Data   : from SH-1:SL-1 SSU
+
+125109     1970/05/29 11:50:32                                              SH:1 SL:7
+Desc   : Card Identification Event            11DPM4M
+Data   : 11DPM4M, 11DPM4M ,3KC13313AAAA01,YP123504C5     
+
+125070     1970/05/29 11:46:11                                              SH:1 SL:7
+Desc   : Software Cold Reset Request            11DPM4M
+Data   : from SH-1:SL-1 SSU
+----------------------------
+
+PSS4_97.125(show-logs)# critical 
+121515     1970/05/23 11:51:41                              SH:1 SL:7 P:L1 In Optical
+Type      : Cleared                                                     11DPM4M
+Desc      : Loss of Signal - OTU SA
+Condition : LOS-P                                                                 
+Data      : 
+
+121491     1970/05/23 11:41:29                              SH:1 SL:7 P:C5 In Optical
+Type      : Cleared                                                     11DPM4M
+Desc      : Loss of synchronization SA
+Condition : LANLSS                                                                
+Data      : 
+
+121472     1970/05/23 11:37:13                              SH:1 SL:7 P:L1 In Optical
+Type      : Raised                                                      11DPM4M
+Desc      : Loss of Signal - OTU SA
+Condition : LOS-P                                                                 
+Data      : 
+
+121445     1970/05/23 11:25:43                              SH:1 SL:7 P:C5 In Optical
+Type      : Raised                                                      11DPM4M
+Desc      : Loss of synchronization SA
+Condition : LANLSS                                                                
+Data      : 
+
+
+LC dbgCut log files:
+---------
+dumpEvent <option> <traceLevel>
+option: 0[fault]   1[Configuration]   2[Trace]  4[debug]   5[allLog]
+
+dbgCut> !dbgCutThru (prfagt 0 otumach 1 4) "dumpEvent 0 0"bgCut> --------- log type:fault------------ⅻd(0): 02-25-2016_20:57:57.955602     reason:: ACTIVE  defect id:: 28 (0x1c)äefect data:: 4 (0x4)äescription:: OTUODU2/1/4/10/R T_UAS_ODU_15MIN threshold:15 value:16
+
+dbgCut> !dbgCutThru (prfagt 0 otumach 1 4) "dumpEvent 1 0"bgCut> --------- log type:configuration------------rcd(290): (02-25-2016_22:34:24):(handleSetEcSig) set objid ODU2/1/71/1 ecid odu_POM = 0(0x0) Successfulrcd(291): (02-25-2016_22:34:24):(handleSetEcSig) set objid ODU2/1/71/1 ecid odu_EgPOM = 0(0x0) Successfulrcd(292): (02-25-2016_22:34:24):(handleSetEcSig) set objid ODU2/1/71/1 ecid odu_Delete = 0(0x0) Successful
+
+
+dbgCut> !dbgCutThru (prfagt 0 otumach 1 4) "dumpEvent 5 0"bgCut> --------- log type:fault------------‥.­------- log type:configuration------------‥.­------- log type:vlog trace------------‥.­------- log type:debug------------
+

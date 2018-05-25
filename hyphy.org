@@ -1,4 +1,5 @@
 * OTN Transport Provisioning 
+
 ** OTN Line Subsystem block
 2*OUT2 framer      2*ODTU12 mux/demux
 16*OTU1/ODU1 Framer   ODU1/OTU1 selection  16*ODTU01 mux/demux
@@ -1857,7 +1858,11 @@ if the defect dIAE(BIP value is not correct) was active once during the second.
 
 *** LOF/LOM
 loss of frame.  FAS bytes in  otu header
+loss of multi-frame  MFAS bytes in otu header 
 
+*** OOM/OOF 
+OOM out of multiframe    
+OOF out of Frame
 
 
 =========================
@@ -1874,3 +1879,28 @@ timmresp                        : Enabled
 
 root@8EC2-81-1-ACT:~# /pureNeApp/EC/fmdh 1/3 defectdb dump
 !dbgCutThru (flts 0 otumach 1 3) "printState
+
+
+
+
+** ethernet/stm signal LOS insertion
+when client signal was insert with LOS in testset to pack,
+then pack will report CSFODU, and hyphy will insert CSF to downstream 
+using (<5 1 7 7 3 0>):(23:38:48.672537):(AlmApi.cc:105) OT11DPM4M_stopCMF 7
+(<5 1 7 7 3 0>):(23:38:48.681522):(AlmApi.cc:363) OT11DPM8_stopCMF 7
+(<5 1 7 7 3 0>):(23:38:48.687484):(AlmApi.cc:114) OT11DPM4M_startCMF 7 1
+(<5 1 7 7 3 0>):(23:38:48.703346):(AlmApi.cc:373) OT11DPM8_startCMF 7 1
+(<5 1 7 7 3 0>):(23:38:48.710418):(AlmApi.cc:163) OT11DPM4M_insertCSF 7 1
+(<5 1 7 7 3 0>):(23:38:48.726426):(AlmApi.cc:486) OT11DPM8_insertCSF 7 1
+
+odu2odu0opu0CSF will be reported in TestSet in line receiving
+
+
+
+*** LFI for ehternet insertion.
+OT11DPM8_insertEthernetLinkFaultIndication
+
+and peer end will report Playload sync error and traffic down in Ethernet testset, but the 
+peer pack won't report any alarm, since the LOS is inside the payload.
+
+

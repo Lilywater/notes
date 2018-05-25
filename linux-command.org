@@ -1359,11 +1359,93 @@ ctrl a tab will jump between regsions
 *** send command to the nested screen
 ctrl+a a d will do ctrl+a d in the sub-screen (detaching it)
 
-** back to original bash
+** open multiple tabs in default every time open screen 
+.screnrc will open two tabs and three echo commands will be executed.
+=====================================================================
+screen -t tab1                                                                                     
+select 0                                                                                           
+stuff "echo 'tab1 cmd1'; echo 'tab1 cmd2'; echo 'tab1 cmd3'^M"                                     
+screen -t tab2                                                                                     
+select 1                                                                                           
+stuff "echo 'tab2 cmd1'; echo 'tab2 cmd2'; echo 'tab2 cmd3'^M"                                     
+
+altscreen on                                                                                       
+term screen-256color                                                                               
+bind ',' prev                                                                                      
+bind '.' next                                                                                      
+#                                                                                                  
+#change the hardstatus settings to give an window list at the bottom of the                        
+#screen, with the time and date and with the current window highlighted                            
+hardstatus alwayslastline                                                                          
+#hardstatus string '%{= kG}%-Lw%{= kW}%50> %n%f* %t%{= kG}%+Lw%< %{= kG}%-=%c:%s%{-}'              
+hardstatus string '%{= kG}[ %{G}%H %{g}][%= %{= kw}%?%-Lw%?%{r}(%{W}%n*%f%t%?(%u)%?%{r})%{w}%?%+Lw%?%?%= %{g}][%{B} %m-%d %{W}%c %{g}]'
+
+**  open multiple tabs and execut scripts in detach mode
 screen -ls   // check all the sessions in host, for different screen command
 screen -wipe // flush dead screen
 screen -r tty // will resume the detached session
 kill -9 process // will kill the session
+
+**
+ Creating #2 without using a .screenrc file
+
+If you're looking for the scenario where you can:
+
+    create a screen session
+    load it up with tabs
+    have each tab running their own commands
+    not require a .screenrc file
+
+Then this is the one for you! Be prepared though. This one can get a little tricky with the command lines.
+
+For starters let's create a screen session:
+
+$ screen -AdmS myshell -t tab0 bash
+
+The switches -AdmS do the following:
+
+(See the screen man page for more details)
+
+    -A
+
+        Adapt the sizes of all windows to the size of the  current terminal. 
+        By default, screen tries to restore its old window sizes when
+        attaching to resizable terminals
+
+    -d -m
+
+        Start screen in "detached" mode. This creates a new session but
+        doesn't attach to it. This is useful for system startup scripts.
+
+    -S sessionname
+
+        When creating a new session, this option can be used to specify a
+        meaningful name for the session. This name identifies the session for
+        "screen -list" and "screen -r" actions. It substitutes the default
+        [tty.host] suffix.
+
+Now let's start loading it up with tabs + their commands:
+
+$ screen -S myshell -X screen -t tab1 vim
+$ screen -S myshell -X screen -t tab2 ping www.google.com
+$ screen -S myshell -X screen -t tab3 bash
+
+These 3 commands will create 3 additional tabs and run vim, ping google, and launch a bash shell. If we list out the screen sessions we'll see the following:
+
+$ screen -ls
+There is a screen on:
+        26642.myshell   (Detached)
+1 Socket in /var/run/screen/S-root.
+
+If we connect to the screen session, myshell, and list the tabs that it contains we'll see the following:
+
+$ screen -r myshell
+
+*** cygwin worked as a telnet/ssh client
+screen -dmS test
+screen -S test  -X screen -t tab3 telnet 135.251.97.132
+### execute this inside a screen named "test" will open telnet
+screen -S test -p 3 -X stuff "ls -l /tmp\n"
 
 
 * ssh into remote host without a password
