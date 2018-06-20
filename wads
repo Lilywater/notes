@@ -1351,3 +1351,9 @@ dbgCut> !dbgCutThru (prfagt 0 otumach 1 4) "dumpEvent 1 0"bgCut> --------- log t
 
 dbgCut> !dbgCutThru (prfagt 0 otumach 1 4) "dumpEvent 5 0"bgCut> --------- log type:fault------------‥.­------- log type:configuration------------‥.­------- log type:vlog trace------------‥.­------- log type:debug------------
 
+-----linux zhu
+root@135.251.103.129
+xyz=1234
+
+reset NE:
+config admin resetNE cold yes

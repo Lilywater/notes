@@ -481,6 +481,8 @@ $ tr -dc "[:alnum:][:space:][:punct:]" </tmp/009
 
 
 * crontab at 计划任务
+files in this dir to check the crontab task of each user
+/var/spool/cron/crontabs/
 
 用实例告诉你Linux下如何编写计划任务crontab。
 
