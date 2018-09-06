@@ -50,38 +50,77 @@ opposite operation of the git add.
 
 *** git show url and branches in remote (svn info)
 [admin1@TeamCI-136 MME_SGSN_tester]$ git remote  show origin
-* remote origin
-  Fetch URL: https://glili@deveo.ext.net.nokia.com/Nokia/projects/mme_sgsn_teste                                                                                                              r/repositories/git/MME_SGSN_tester
-  Push  URL: https://glili@deveo.ext.net.nokia.com/Nokia/projects/mme_sgsn_teste                                                                                                              r/repositories/git/MME_SGSN_tester
+
+* git basic concept
+** branch
+*** git remote origin
+-> git remote show
+acos
+
+-> git remote show acos
+ * remote acos
+  Fetch URL: ssh://glili@gerrit.ext.net.nokia.com:29418/DWDM1830/lc
+  Push  URL: ssh://glili@gerrit.ext.net.nokia.com:29418/DWDM1830/lc
   HEAD branch: master
   Remote branches:
-    master tracked
-    ns17   tracked
-  Local branches configured for 'git pull':
-    master merges with remote master
-    ns17   merges with remote ns17
-  Local refs configured for 'git push':
-    master pushes to master (up to date)
-    ns17   pushes to ns17   (local out of date)
-* git branch -r -v 
-this command show the remote origin branch
-git branch -r
--------------------
-  origin/HEAD -> origin/master
-  origin/master
-  origin/ns17
-------------------
-
-this command show the local branch
-git branch 
-[admin1@TeamCI-136 MME_SGSN_tester]$ git branch
-  master
-  * ns17
- [admin1@TeamCI-136 MME_SGSN_tester]$ git branch -v
-    master 2d9d43d add support for teid as optional field in  errencoding message.
-    * ns17   a1dbbbe Add support for teid as optinal field in message "EncdingErr" of Gtpv2
+    clearcase/integration                tracked
+    clearcase/release-dummy              tracked
+    clearcase/release-kiwicake           tracked
+    integration                          tracked
 
 
+*** git branch -r -v 
+this command show the remote  branches
+-> git branch -r -v
+  acos/release-dummy              769d31a kiwi-170225
+  acos/release-kiwicake           8c47448 cc_kiwicake-180215
+  acos/integration               5fdb523 PSSSW-82389: PM change for FID-14205 ITU-T Sync OAM - time part LC2
+
+brach is a serial of commit based on a path 
+                     A---B---C integration(A-B-C)(C is the HEAD of the branch integration) 
+                    /
+               D---E---F---G     realease-kiwicake(D-E-F-G) (G is the HEAD of the brach release-kiwicake)
+ 
+
+** tag
+tag is the name of the commit, HEAD is also a tag.
+show tags in log graph
+-> git log --graph --decorate --oneline --simplify-by-decoration
+
+  *   273d9b3 (HEAD -> integration, tag: lime-180514, tag: integration-180514, tag: integration-180513, m/integration) Merge of commits 5cd2b48 and f8810a9
+ |\  
+ | *   5cd2b48 Merge of commits c780d10 and 7b1ad5a
+ | |\  
+ | | * 7b1ad5a (tag: sdwintegration-180511) PSSSW-76739: fix undefined behaviour uncovered by cppcheck
+ | | *   bafde95 (tag: sdwintegration-180510) Merge of commits a33811e and 2ce13e6
+ | | |\  
+ | * | \   c780d10 Merge of commits 01cd3bb and 0c11904
+ | |\ \ \  
+ | * \ \ \   01cd3bb Merge of commits a33811e and 2ce13e6
+             
+*** HEAD
+-> cat .git/HEAD
+ref: refs/heads/integration
+pss-gitbuild4!glili:Linux3.10.0-327.el7.x86_64/gitworkspace/glili/dwdm_1830-integration-180515/lc
+-> cat .git/refs/heads/integration
+b7a9d45410961aff5c6e751d26b9053097a859ef
+
+*** FETCH_HEAD
+-> cat .git/FETCH_HEAD
+5fdb5230f612e9fe622d6e06118487b87f8a8841                branch 'integration' of ssh://gerrit.ext.net.nokia.com:29418/DWDM1830/lc
+
+when commit this b7a9d45, it based on another commit, HEAD will be b7a9d45.
+FETCH_HEAD will be the head of this branch in the remote server with log --all 
+
+-> git log --graph --decorate --oneline --simplify-by-decoration --all
+ * b7a9d45 (HEAD -> integration) PSSSW-82443: 8P20 DM Driver api
+ | * 5fdb523 (acos/integration) PSSSW-82389: PM change for FID-14205 ITU-T Sync OAM - time part LC2
+ | * 928d99b (acos/continuous/integration) PSSSW-82359: TTIM cause traffic down when timresp is disabled
+ | * 43b0348 (tag: integration-180709) PSSSW-82357: R3.1: Upgrade Sherpa to sherpa_top_b180702_v40030404.tra
+ | | * 3871d17 (acos/release-lime, acos/continuous/release-lime) PSSSW-82356: R3.0: Upgrade Sherpa to sherpa_top_b180702_v40030404.tra
+
+
+** changes made to this branch
 *** git commit
 **** git commit ###will commit all the  "Changes to be committed" files
 [admin1@TeamCI-136 cleancodeContest]$ git status
@@ -158,7 +197,61 @@ git push [<repoistory>]  [<refspec>]
                D---E---F---G---H master
 
 
+*** git fetch
+**** git fetch the latest HEAD of the branch of the remote server
+-> git remote show acos
+X11 forwarding request failed on channel 0
+* remote acos
+  Fetch URL: ssh://glili@gerrit.ext.net.nokia.com:29418/DWDM1830/lc
+  Push  URL: ssh://glili@gerrit.ext.net.nokia.com:29418/DWDM1830/lc
+  HEAD branch: master
+  Remote branches:
+  acos/integration                tracked
+
+
+->git fetch ssh://glili@gerrit.ext.net.nokia.com:29418/DWDM1830/lc  ### default branch is master, HEAD in remote is master
+X11 forwarding request failed on channel 0
+From ssh://gerrit.ext.net.nokia.com:29418/DWDM1830/lc
+ * branch            HEAD       -> FETCH_HEAD                     ###here HEAD in remote is master
+
+
+//for all tags name, use -> git fetch --all
+-> git fetch ssh://glili@gerrit.ext.net.nokia.com:29418/DWDM1830/lc integration  ###get the HEAD of brach integration to FETCH_HEAD
+ X11 forwarding request failed on channel 0
+ remote: Counting objects: 21197, done
+ remote: Finding sources: 100% (4601/4601)
+ remote: Total 4601 (delta 1783), reused 4592 (delta 1783)
+ Receiving objects: 100% (4601/4601), 6.78 MiB | 7.34 MiB/s, done.
+ Resolving deltas: 100% (1783/1783), completed with 836 local objects.
+ From ssh://gerrit.ext.net.nokia.com:29418/DWDM1830/lc
+  * branch            integration -> FETCH_HEAD
+
+-> cat .git/FETCH_HEAD
+454528e809b5ccfc93da6cdaff2e88058f368d46                branch 'integration' of ssh://gerrit.ext.net.nokia.com:29418/DWDM1830/lc
+
+git log 454528e809b5ccfc93da6cdaff2e88058f368d46   // will show the latest commits and tags in the remote server.
+
+
+**** git merge 
+git fetch only update FETCH_HEAD pointer
+git merget will update the source files in local
+
+-> git merge 454528e809b5ccfc93da6cdaff2e88058f368d46  ##git merge <FETCH_HEAD>
+Updating 40990e2..454528e
+Checking out files: 100% (1202/1202), done.
+Fast-forward
+
+all above two steps the same pull the integration branch
+
+**** git reflog
+-> git reflog HEAD
+6167750 HEAD@{0}: checkout: moving from 6167750647dfb6f664d8293aa5c820bf038cea53 to integration
+6167750 HEAD@{1}: commit: PSSSW-82443: 8P20 DM Driver api
+454528e HEAD@{2}: reset: moving to FETCH_HEAD
+
+
 *** git reset
+let HEAD to the previous reference, if no parameter, and current HEAD will be saved to ORIG_HEAD
 **** undo add(without any parameter)
 git add fil.c
 git reset ### will undo add fil.c step
@@ -327,6 +420,14 @@ commit c82a22c39cbc32576f64f5c6b3f24b99ea8149c7
 Author: Junio C Hamano <junkio@cox.net>
 Date:   Tue May 16 17:18:22 2006 -0700
 
+**** git log with pretty format option
+--pretty=format:"%h%x09%an%x09%ad%x09%s" 
+5cd2b48 Herbert HOESS   Sat May 12 20:30:31 2018 +0200  Merge of commits c780d10 and 7b1ad5a
+
+
+
+
+**** git log to gerate the patch
 $ git log -p
 Often the overview of the change is useful to get a feel of each step
 
@@ -347,43 +448,144 @@ So it would be like this:
 "first edition"\               "Merge"
                  bob comment /
 
-$ git log --graph
-*   commit 5be9e4f181a5b00be854b478e360131e470ddadf
-|\  Merge: e7a2fa8 9df545c
-| | Author: Lilywater <glili@5CG4381FZ2.nsn-intra.net>
-| | Date:   Tue Aug 16 14:01:25 2016 +0800
-| |
-| |     Merge branch 'master' of /cygdrive/d/userdata/glili/Downloads/test_git/Eve/../remoterep/my_project
-| |
-| * commit 9df545c2c9daabdc460fa6cb5a32c1a61b9af307
-| | Author: Lilywater <glili@5CG4381FZ2.nsn-intra.net>
-| | Date:   Tue Aug 16 14:00:04 2016 +0800
-| |
-| |     bob comments
-| |
-* | commit e7a2fa88e871d55a34be69354e0643980880a233
-|/  Author: Lilywater <glili@5CG4381FZ2.nsn-intra.net>
-|   Date:   Tue Aug 16 13:58:58 2016 +0800
-|
-|       eve add
-|
-*   commit b8e0d87bbcd9ae8d20da6e9e57558ea8339eed8d
-  Author: Lilywater <glili@5CG4381FZ2.nsn-intra.net>
-  Date:   Tue Aug 16 13:32:46 2016 +0800
+git log --all  ###plus --al means all
 
-      first editon
+#### all show format in oneline
+alias glog=`git log  --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%ci) %C(bold blue)<%an>%Creset' --abbrev-commit  `
+glog --graph 
+glog integration-180514..integration-180515
+
+
+
+***** git show tag relation
+-> git log --graph --decorate --oneline --simplify-by-decoration
+ *   273d9b3 (HEAD -> integration, tag: lime-180514, tag: integration-180514, tag: integration-180513, m/integration) Merge of commits 5cd2b48 and f8810a9
+ |\  
+ | *   5cd2b48 Merge of commits c780d10 and 7b1ad5a
+ | |\  
+ | | * 7b1ad5a (tag: sdwintegration-180511) PSSSW-76739: fix undefined behaviour uncovered by cppcheck
+ | | *   bafde95 (tag: sdwintegration-180510) Merge of commits a33811e and 2ce13e6
+ | | |\  
+ | * | \   c780d10 Merge of commits 01cd3bb and 0c11904
+ | |\ \ \  
+ | * \ \ \   01cd3bb Merge of commits a33811e and 2ce13e6
+ | |\ \ \ \  
+ | | |_|/ /  
+ | |/| | /   
+ | | | |/    
+ | | |/|     
+ | * | | a33811e (tag: sdwintegration-180509) PSSSW-67493: map some itxa defectsto OccInfo
+ | * | |   e541e2b (tag: sdwintegration-180508) Merge of commits 82a754e and 36d2421
+ | |\ \ \  
+ * | | | | f8810a9 (tag: integration-180512) PSSSW-78798: occ shall stuck in failure state
+ | |_|_|/  
+ |/| | |   
+ * | | | 0c11904 (tag: integration-180511) PSSSW-76209: commit message
+ 
+tag integration-date could be relied on each other
+
+***** git show detailed info with graph
+
+$ git log --graph --decorate 
+  *   commit 273d9b3ecb27003ce287b1accc29e5ea6e563db8 (HEAD -> integration, tag: lime-180514, tag: integration-180514, tag: integration-180513, m/integration)
+  |\  Merge: f8810a9 5cd2b48
+  | | Author: Herbert HOESS <herbert.hoess@nokia.com>
+  | | Date:   Sat May 12 20:42:02 2018 +0200
+  | | 
+  | |     Merge of commits 5cd2b48 and f8810a9
+  | |     
+  | *   commit 5cd2b481458ff5d7d838215b6e4f73557b6122cb
+  | |\  Merge: c780d10 7b1ad5a
+  | | | Author: Herbert HOESS <herbert.hoess@nokia.com>
+  | | | Date:   Sat May 12 20:30:31 2018 +0200
+  | | | 
+  | | |     Merge of commits c780d10 and 7b1ad5a
+  | | |     
+  | | |     Change-Id: I9c4cd8d9ea202a21ab88fe4f9e1e6ca54bbcb539
+  | | |     
+  | | |         deliver contents of sdwintegration-180511
+  | | |         PSSSW-76739: fix undefined behaviour uncovered by cppcheck
+  | | |         aligned with current integration-180511/12
+  | | |    
+  | | * commit 7b1ad5a1ee7fc3d2a8ca3dd75c42134548c2ec0d (tag: sdwintegration-180511)
+  | | | Author: Francesco Vincenti <francesco.vincenti@nokia.com>
+  | | | Date:   Fri May 11 11:46:21 2018 +0200
+  | | | 
+  | | |     PSSSW-76739: fix undefined behaviour uncovered by cppcheck
+  | | |     
+  | | |     Change-Id: I604d145aea3cd201ef4d83cc1109f1ba2325fe5d
+  | | |      
+  | | *   commit bafde953f9c6bf7ad0cceb14cad4c754d8f8ee85 (tag: sdwintegration-180510)
+  | | |\  Merge: a33811e 2ce13e6
+  | | | | Author: Herbert HOESS <herbert.hoess@nokia.com>
+  | | | | Date:   Thu May 10 21:28:53 2018 +0200
+  | | | | 
+  | | | |     Merge of commits a33811e and 2ce13e6
+  | | | |     
+  | | | |     Change-Id: I4fe2baed161807fa90b431b05523479c3800d5e7
+  | | | |       
+
+
+***** show all the commits of the  branch
+-> git log --pretty=format:"%d%h%x09%an%x09%ad%x09%s" integration
+5cd2b48 Herbert HOESS   Sat May 12 20:30:31 2018 +0200  Merge of commits c780d10 and 7b1ad5a
+f8810a9 Huabo Qiang     Fri May 11 18:31:36 2018 -0400  PSSSW-78798: occ shall stuck in failure state
+e77d997 ananth veerla   Fri May 11 18:17:57 2018 -0400  PSSSW-78796 : IRDM20 - OCM Testutils Hex/DEC formatting Issue - Refix
+0cdcec3 Mark Wehle      Fri May 11 17:53:48 2018 -0400  PSSSW-78666: SIM: S2AD200H WTE Output DC Actual Power never reaches Target
+b69da64 William Tang    Fri May 11 17:22:36 2018 -0400  PSSSW-77323: DA2C4 - Laser Case Temperature should be supported at line interface
+2ce6b03 Mutturaj Udeshi Fri May 11 17:14:38 2018 -0400  PSSSW-78799: S2AD200: OCC Test Defect Utility
+c780d10 Herbert HOESS   Fri May 11 22:21:51 2018 +0200  Merge of commits 01cd3bb and 0c11904
+a6f80f4 Pete Bartman    Fri May 11 15:48:13 2018 -0400  PSSSW-78781: Fix DspDispatch error in processing in UppHelperImpl1830.cc
+2068356 Mutturaj Udeshi Fri May 11 15:39:45 2018 -0400  PSSSW-78429: Wrong swing settings for BKP serdes in VEGA FPGA
+6cec4b9 Ivan Dsouza     Fri May 11 15:19:56 2018 -0400  PSSSW-78710: Actual Tilt for IPREAMP is shown as off
+3d735ef Peter ARSENEAU  Fri May 11 15:06:13 2018 -0400  PSSSW-78780: add abort_check for dbgCut compile step
+d729610 Riyas Abdulsalam        Fri May 11 14:52:54 2018 -0400  PSSSW-77595: S13X100: WANIF S/W Error LC changes
+da796b7 Mutturaj Udeshi Fri May 11 13:41:02 2018 -0400  PSSSW-77690: D5X500(Q) Overheating Prevention - False VEGA Temp Reads
+8405f39 Rob Bresalier   Fri May 11 13:33:59 2018 -0400  PSSSW-76345: P&HM - Line card to monitor per proc memory
+3b93fea Lesley Yang     Fri May 11 10:19:02 2018 -0400  PSSSW-75989 sync wtd process and ocm process
+01cd3bb Herbert HOESS   Thu May 10 21:28:53 2018 +0200  Merge of commits a33811e and 2ce13e6
+7b1ad5a Francesco Vincenti      Fri May 11 11:46:21 2018 +0200  PSSSW-76739: fix undefined behaviour uncovered by cppcheck
+39614ed Xiaolin LIU     Fri May 11 00:25:12 2018 -0400  PSSSW-78549: 14s dealy after shelfType received
+c8fc8f1 Lei D GAO       Fri May 11 01:32:39 2018 -0400  PSSSW-77928: PM add some defect detect for sync PM collection
+0c11904 Zhihong Chen    Thu May 10 22:40:02 2018 -0400  PSSSW-76209: commit message
+531ac8e YouLing Sha     Thu May 10 16:35:29 2018 -0400  PSSSW-78532: set SFP TX power to 8 dB
+17fc869 William Tang    Thu May 10 16:24:18 2018 -0400  PSSSW-73706: PM Telemetry - Cleanup of preFecBERAFEC and preFecBERSDFEC absolute/delta thresholds
+bafde95 Herbert HOESS   Thu May 10 21:28:53 2018 +0200  Merge of commits a33811e and 2ce13e6
+1e810c5 Pat Hickey      Thu May 10 15:25:30 2018 -0400  PSSSW-78714: PSI-L - 8 - eMini32GEquipmentController2Card
+d89c318 Sangeetha Ravichandran  Thu May 10 13:57:43 2018 -0400  PSSSW-78693: OPSB5-sim
+
+
+***** git show whcih branch contains the commmit
+-> git branch --contains 5cd2b48
+ * integration
+
 
 //$ git log --graph --abbrev-commit --decorate --format=format:'%C(bold blue)%h%C(reset) - %C(bold green)(%ar)%C(reset) %C(white)%s%C(reset) %C(dim white)- %an%C(reset)%C(bold yellow)%d%C(reset)' --all
 =====================================================
-$ git log --graph  --format=format:'%h - %cD %s%Creset --%an'
-*   5be9e4f - Tue, 16 Aug 2016 14:01:25 +0800 --Merge branch 'master' of /cygdrive/d/userdata/glili/Downloads/test_git/Eve/../remoterep/my_project
-|\
-| * 9df545c - Tue, 16 Aug 2016 14:00:04 +0800 --biob comments
-* | e7a2fa8 - Tue, 16 Aug 2016 13:58:58 +0800 --even add
-|/
-* 04ea21a - Tue, 16 Aug 2016 13:32:46 +0800 --first editon
+ $ git log --graph  --format=format:'%h - %cD %s%Creset --%an'
+ *   5be9e4f - Tue, 16 Aug 2016 14:01:25 +0800 --Merge branch 'master' of /cygdrive/d/userdata/glili/Downloads/test_git/Eve/../remoterep/my_project
+ |\
+ | * 9df545c - Tue, 16 Aug 2016 14:00:04 +0800 --biob comments
+ * | e7a2fa8 - Tue, 16 Aug 2016 13:58:58 +0800 --even add
+ |/
+ * 04ea21a - Tue, 16 Aug 2016 13:32:46 +0800 --first editon
 
 %h is hash, %c is commit date, %s is comment(reset means oneline)
+
+***** git show diff between two tags
+-> git log --pretty=format:"%h%x09%an%x09%ad%x09%s" integration-180512..integration-180514 
+273d9b3 Herbert HOESS   Sat May 12 20:42:02 2018 +0200  Merge of commits 5cd2b48 and f8810a9
+5cd2b48 Herbert HOESS   Sat May 12 20:30:31 2018 +0200  Merge of commits c780d10 and 7b1ad5a
+c780d10 Herbert HOESS   Fri May 11 22:21:51 2018 +0200  Merge of commits 01cd3bb and 0c11904
+01cd3bb Herbert HOESS   Thu May 10 21:28:53 2018 +0200  Merge of commits a33811e and 2ce13e6
+7b1ad5a Francesco Vincenti      Fri May 11 11:46:21 2018 +0200  PSSSW-76739: fix undefined behaviour uncovered by cppcheck
+bafde95 Herbert HOESS   Thu May 10 21:28:53 2018 +0200  Merge of commits a33811e and 2ce13e6
+a33811e Francesco Vincenti      Wed May 9 13:32:33 2018 +0200   PSSSW-67493: map some itxa defectsto OccInfo
+1a4c466 Gabor Greif     Wed May 9 10:33:40 2018 +0200   PSSSW-74104: Enter FAILED state of OM when module not defect-free
+e541e2b Herbert HOESS   Tue May 8 21:21:01 2018 +0200   Merge of commits 82a754e and 36d2421
+82a754e Klaus Schlitt   Tue May 8 12:38:39 2018 +0200   PSSSW-77734: 10AN400: Unexpected DATAERR reported after port deprovisioning
+0de5c8f Joerg DANNE     Tue May 8 10:15:43 2018 +0200   PSSSW-76169: Preparation for gcc sanitizers: Build Environment
+pss-gitbuild4!glili:Linux3.10.0-327.el7.x86_64/gitworkspace/glili/dwdm_1830-integration-180514/lc/fa_lxhrp_ot/internal/pkg/ot_driver/ot_8p20
 
 
 
@@ -445,11 +647,64 @@ Be careful with that last command: in addition to losing any changes in the work
  developers to clean up the history. If you need to undo changes that you have pushed, use git revert instead.
 
 
+*** git tag
+****  show all the tags 
+show tag
+------------
+integration-180514
+integration-180515
+
+**** show tag info of a specific tag 
+git show <aTag> 
+-> git show  integration-180514
+-------------------------------
+tag integration-180514
+Tagger: DWDMBUILD <ca_dwdmbuil@nokia.com.not.available>
+Date:   Tue May 15 04:40:24 2018 -0400
+
+integration-180514
+
+commit 273d9b3ecb27003ce287b1accc29e5ea6e563db8
+Merge: f8810a9 5cd2b48
+Author: Herbert HOESS <herbert.hoess@nokia.com>
+Date:   Sat May 12 20:42:02 2018 +0200
+
+    Merge of commits 5cd2b48 and f8810a9
+----------------------------
+
+****  diff different tags
+git  log integration-180514..integration-180515
+--------------
+commit 4a4caae8531d41650c28a23c87d0e616aee2eea0
+Author: Huabo Qiang <hua_bo.qiang@nokia.com>
+Date:   Mon May 14 12:01:58 2018 -0400
+
+    PSSSW-77049: raise mismatch if rx and tx channel not match for c2acod
+
+    Change-Id: Ifce2639afa77fc675629121ed582bba0a46dc1a7
+
+commit 6ca1adc1cb2e56284ed868f97f29d3811d746bf8
+Author: William Tang <william.s.tang@nokia.com>
+Date:   Mon May 14 11:50:50 2018 -0400
+
+    PSSSW-78802: No OTU/ODU BIP8 counts - Always 0 (M200-74)
+
+    Change-Id: I625d90cf1f443a09f4faef25f27f43fb31c45726
+
+commit 8622334e911913e4558bf5418e7b617258fcd8dc
+Author: Kathy Coleman <kathy.coleman@nokia.com>
+Date:   Mon May 14 10:57:37 2018 -0400
+
+    PSSSW-77795: IPREAMP: Add PM support for new pack
+
+    Change-Id: Ia2d9fc31a3db6ab6739e60139959bd78752295b
+----------------------------
+
 *** git grep
 The git grep command can search for strings in any version of your project, so
 
 $ git grep "hello" v2.5
-searches for all occurrences of "hello" in v2.5.
+searches for all occurrences of "hello" in v2.5. files
 
 If you leave out the commit name, git grep will search any of the files it manages in your current directory. So
 
@@ -751,3 +1006,113 @@ Your branch is forward 'origin/ns17' by 2 commits //since git local 2 commits be
 in  forward scenarios, you can git reset to which you want to.
 git reset HEAD~2 to back to discard your local commit
 
+* git deep into
+** blob, tree, commit conception
+when add two files(two blob objects), in one directory <tree hash>,  been commited in a commit hash.
+index.php(blob hash1)   README(blob hash2)
+
+commit hash                        <commit hash>
+                                        |
+                                        |
+                                       \|/
+tree hash                          <tree hash>
+                                    /         \     
+                                   /           \
+                                  /             \
+blob hash                      <blob hash1>     <blob hash2>
+
+           
+*** cat-file commit
+->git cat-file commit <sh>
+--------------------------------
+tree f89e64bdfcc08a8b371ee76a74775cfe096655ce
+author zspajich <zspajich@gmail.com> 1516710703 +0100
+committer zspajich <zspajich@gmail.com> 1516710703 +0100
+Initial Commit
+------------------------------------
+
+*** ls-tree tree
+tree is direcotry of the files, blob is the real file content
+
+->git ls-tree f89e64bdfcc08a8b371ee76a74775cfe096655ce
+------------------------
+100644 blob cf59e02c3d2a2413e2da9e535d3c116af1077906 README.md
+100644 blob 5d92c127156d3d86b70ae41c73973434bf4bf341 index.php
+----------------
+
+*** cat-file blob
+git cat-file blob 5d92c127156d3d86b70ae41c73973434bf4bf34
+------
+<?php
+ echo "Hello World";
+-----------
+when add a file, the blob objects created.
+for example: index.php file blob of this file is 5d92c127156d3d86b70ae41c73973434bf4bf34
+----------------------
+<?php
+echo "Hello World";
+---------------
+
+**** blob hash in the index
+the blob hash in the index in git diff
+diff --git a/fa_lxhrp_ot/internal/pkg/ot_driver/ot_8p20/CHyphy5451.cc b/fa_lxhrp_ot/internal/pkg/ot_driver/ot_8p20/CHyphy5451.cc
+index 2e06e7d..7ec3452 100755
+--- a/fa_lxhrp_ot/internal/pkg/ot_driver/ot_8p20/CHyphy5451.cc
++++ b/fa_lxhrp_ot/internal/pkg/ot_driver/ot_8p20/CHyphy5451.cc
+
+
+** organize multiple commits
+the same example, when modify one file index.php(blob hash1), then commit.
+and commit hash2 is based on commit hash1
+
+                                                     \
+commit hash                        <commit hash1>------ <commit hash2>
+                                                     /
+                                        |                    |
+                                        |                    |
+                                       \|/                  \|/
+tree hash                          <tree hash1>          <tree hash2>
+                                    /         \          /      \
+                                   /           \        /        \
+                                  /             \      /          \
+blob hash                      <blob hash1>     <blob hash2>   <blob hash3>
+
+then we can have branch and tags.
+
+Theoritically, we can checkout any commit
+git checkout <commit-hash>
+and we can switch to other branches 
+git checkout -b <branch-name>
+
+*** commits in different branch
+git branch <new_branchname> could create a new branch. 
+D---E, is branch release-kiwicake
+then git branch integration create a new branch named integration, then (A--B---C) commits are in integration branch, HEAD will be the newest commit in the branch
+
+                     A---B---C integration(A-B-C)(C is the HEAD of the branch integration) 
+                    /
+               D---E---F---G     realease-kiwicake(D-E-F-G) (G is the HEAD of the brach release-kiwicake)
+ 
+
+*** tags for commits
+tags could be regard as alias of a commit
+HEAD is another tags which is the newest commit in the branch
+
+                      tag3 tag4    HEAD->integration
+                        |    |     |
+                        |    |     |
+                        A---B------C integration(A-B-C)(C is the HEAD of the branch integration) 
+                       /
+                      /
+               D------E---F---G     realease-kiwicake(D-E-F-G) (G is the HEAD of the brach release-kiwicake)
+               |     |        | 
+               |     |        | 
+              tag1  tag2     HEAD->realeas-kiwicake
+
+*** update to the latest commits in remote
+when we git clone <addr> integration, we could use ->git fetch --all 
+to get all the commits in the remote of every branches.
+we could-> git checkout release-kiwickae (that means D---E----F-----G)
+or we could git chekout tag4 (that means D----E----A----B)
+
+then we could get to any commit using checkout(that means we could get any version 

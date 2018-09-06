@@ -3470,3 +3470,19 @@ if you want to run when computer startup, put in /etc/rc.lcoal file.
 
 
 
+* redirect linux graphic application to windows gui 
+** Xming could be use standalone with cygwin(ssh command)
+install xming
+right click the xming icon in the right bottom, it will show server:0.0
+in cygwin
+export export DISPLAY='localhost:0.0'
+ssh -X user@host
+gedit  #### gedit window will popup in windows
+
+** speed up the ssh X11 forwarding in SSH
+*** use the compression option of OpenSSH client. With "-C" option
+OpenSSH client will compress all data exchanged over SSH, including stdin, stdout, stderr and forwarded X11 sessions.
+
+*** consider using less computation-heavy ciphers in SSH, 
+so that less time is spent during encryption/decryption. The default AES cipher used by OpenSSH is known to be slow.
+According to SSH man page, blowfish is a fast block cipher which is also very secure. Meanwhile, arcfour stream cipher is known to be more vulnerable than common block ciphers

@@ -1358,6 +1358,11 @@ ctrl a S or | will split the region horizontally or vertically
 ctrl a X  will exit the regison
 ctrl a tab will jump between regsions
 
+*** screen buffer
+ctrl a :   enter edit mode:
+:hardcopy -h /tmp/buff_file
+## this will save the current entire buffer into a file
+
 *** send command to the nested screen
 ctrl+a a d will do ctrl+a d in the sub-screen (detaching it)
 
@@ -1452,6 +1457,18 @@ screen -S test -p 3 -X stuff "ls -l /tmp\n"
 
 * ssh into remote host without a password
 *** Create public and private keys using ssh-key-gen on local-host
+#in default, it will generate ~/.ssh/id_rsa.pub and id_rsa ,two files(public key and private key)
+#### public and private key will be matched in the future, copy pulic key to remote, when ssh then using private key to match that for authentication
+-> cat ~/.ssh/id_rsa
+-----BEGIN RSA PRIVATE KEY-----
+MIIEpAIBAAKCAQEAyhk8jSw00Vp37do/6mILgyhQJrhRymRnY118aPlUzaBxU1xO
+................
+SRKh+732YsXFCVxAr6B3H6JjsPgDcZNcvyN2j7kjLBJ3yN37CHfizQ==
+-----END RSA PRIVATE KEY-----
+pss-gitbuild4!glili:Linux3.10.0-327.el7.x86_64/home/glili
+->
+ cat /home/glili/.ssh/id_rsa.pub
+ ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDKGTyNLDTRWnft2j/qYguDKFAmuFHKZGdjXXxo+VTNoHFTXE7z4/KgvFptYoZ4zTN+8mrG083T42vkltGQVT0IpJoDBRZQa0BlDKqky7naklGiiIlXvcwkpGV/Cx+SZVc9Sqm585THzIcUac+K4Yv1q5bnhI9r3hrTsy8tf+N9Bf9e/kQGjDEqpgiXN8nFec9IxlMbg51v5gs+61sdJdYC1AF8xG7BAIyWDiOD0ySQzWJw6oOYNvbJnuuuft73JecgSSce8FHX1NA6Ekg8xpkvVKuhzMuHd6s5lq56OKnuoOE1wmhlCAyEFBN+aojtPCm7E9om6QRUk0YzkowiCxft glili@pss74-255
 
 jsmith@local-host$ ssh-keygen
 Generating public/private rsa key pair.
@@ -1464,8 +1481,11 @@ The key fingerprint is:
 33:b3:fe:af:95:95:18:11:31:d5:de:96:2f:f2:35:f9 jsmith@local-host
 
 *** Copy the public key to remote-host using ssh-copy-id
+#### only id_rsa.pub file will be paste to remote-host as /home/jmith/.ssh/author
+-> cat /home/glili/.ssh/authorized_keys
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDKGTyNLDTRWnft2j/qYguDKFAmuFHKZGdjXXxo+VTNoHFTXE7z4/KgvFptYoZ4zTN+8mrG083T42vkltGQVT0IpJoDBRZQa0BlDKqky7naklGiiIlXvcwkpGV/Cx+SZVc9Sqm585THzIcUac+K4Yv1q5bnhI9r3hrTsy8tf+N9Bf9e/kQGjDEqpgiXN8nFec9IxlMbg51v5gs+61sdJdYC1AF8xG7BAIyWDiOD0ySQzWJw6oOYNvbJnuuuft73JecgSSce8FHX1NA6Ekg8xpkvVKuhzMuHd6s5lq56OKnuoOE1wmhlCAyEFBN+aojtPCm7E9om6QRUk0YzkowiCxft glili@pss74-255
 
-jsmith@local-host$ ssh-copy-id -i ~/.ssh/id_rsa.pub remote-host
+jsmith@local-host$ ssh-copy-id -i ~/.ssh/id_rsa.pub jmith@remote-host
 jsmith@remote-host's password:
 
 Now try logging into the machine, with "ssh 'remote-host'", and check in:
@@ -1474,7 +1494,11 @@ to make sure we haven't added extra keys that you weren't expecting.
 Note: ssh-copy-id appends the keys to the remote-host’s .ssh/authorized_key.
 
 *** Login to remote-host without entering the password
-jsmith@local-host$ ssh remote-host
+@local-host$ ssh -v glili@remote-host 
+debug1: Next authentication method: publickey
+debug1: Offering RSA public key: /home/glili/.ssh/id_rsa
+debug1: Authentications that can continue: publickey,gssapi-keyex,gssapi-with-mic,password
+
 Last login: Sun Nov 16 17:22:33 2008 from 192.168.1.2
 
 * raspberry
@@ -1546,3 +1570,11 @@ Now the unit file has been defined we can tell systemd to start it during the bo
 
 sudo systemctl daemon-reload
 sudo systemctl enable sample.service
+
+
+gpg error:
+
+ apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys  B25B1A3D970AAB7E
+
+ apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys  B25B1A3D970AAB7E
+

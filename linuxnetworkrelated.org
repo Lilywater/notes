@@ -712,31 +712,56 @@ Use the following syntax to block 10.0.0.0/8 on eth1 public interface:
 
 How Do I Block and Log Dropped IP Address Information?
 
-You can turn on kernel logging of matching packets with LOG target as follows:
+*** LOG rule to traceroute the ip
+You can turn on kernel logging of matching packets with LOG target as follows using the same rule:
+### you will see /var/log/syslog  about this "IP DROP SPOOF A"
 # /sbin/iptables -i eth1 -A INPUT -s 10.0.0.0/8 -j LOG --log-prefix "IP DROP SPOOF A:"
+# /sbin/iptables -i eth1 -A INPUT -s 10.0.0.0/8 -j <jumprule>
+
+
 
 The next rule will actually drop the ip / subnet:
 # /sbin/iptables -i eth1 -A INPUT -s 10.0.0.0/8 -j DROP
 
-How Do I View Blocked IP Address?
+*** How Do I View IP rules?
+ iptables -L   --line-number -t  nat
+31   RETURN     all  --  anywhere             240.0.0.0/4
+32   LOG        tcp  --  anywhere             anywhere             LOG level warning prefix "rule fore"
+33   RETURN     all  --  anywhere             anywhere             match-set chnroute dst
+34   LOG        tcp  --  anywhere             anywhere             LOG level warning prefix "rule after"
+35   REDIRECT   tcp  --  anywhere             anywhere             redir ports 1085
 
-Simply use the following command:
-# /sbin/iptables -L -v
+### insert the LOG rule after 33
+root@wen-Default-string:/home/wen# iptables -t nat -I SHADOWSOCKS 33  -p tcp  -j LOG --log-prefix "rule after"
 
-OR
-# /sbin/iptables -L INPUT -v
-
-OR
-# /sbin/iptables -L INPUT -v -n
-
-Sample outputs:
-
-Chain INPUT (policy ACCEPT 3107K packets, 1847M bytes)
+ iptables -L  -v  --line-number -t  nat
+Chain SHADOWSOCKS (2 references)
  pkts bytes target     prot opt in     out     source               destination
-    0     0 DROP       all  --  br+    any     1.2.3.4              anywhere
-    0     0 DROP       all  --  !eth1  any     1.2.3.4              anywhere
-    0     0 DROP       all  --  !eth1  any     1.2.3.4              anywhere       
-How Do I Search For Blocked IP Address?
+    1    60 RETURN     all  --  any    any     anywhere             li1703-142.members.linode.com
+   1    60 RETURN     all  --  any    any     anywhere             api.dynu.com
+    0     0 RETURN     all  --  any    any     anywhere             api.dynu.com
+    0     0 RETURN     all  --  any    any     anywhere             api.dynu.com
+   0     0 RETURN     all  --  any    any     anywhere             240.0.0.0/4
+   61  3660 LOG        tcp  --  any    any     anywhere             anywhere             LOG level warning prefix "rule fore"
+    4   240 RETURN     all  --  any    any     anywhere             anywhere             match-set chnroute dst
+   48  2880 LOG        tcp  --  any    any     anywhere             anywhere             LOG level warning prefix "rule after"
+  121  7298 REDIRECT   tcp  --  any    any     anywhere             anywhere             redir ports 1085
+
+curl 172.217.160.68 #####google.com
+root@wen-Default-string:/home/wen/ruijian_cocimg# grep "172\.217\.160\.68"  /var/log/syslog
+Jul  2 14:15:01 wen-Default-string kernel: [316674.936638] rule foreIN= OUT=enp1s0 SRC=192.168.31.75 DST=172.217.160.68 LEN=60 TOS=0x00 PREC=0x00 TTL=64 ID=61558 DF PROTO=TCP SPT=59122 DPT=80 WINDOW=29200 RES=0x00 SYN URGP=0
+Jul  2 14:24:52 wen-Default-string kernel: [317265.612122] rule foreIN= OUT=enp1s0 SRC=192.168.31.75 DST=172.217.160.68 LEN=60 TOS=0x00 PREC=0x00 TTL=64 ID=27926 DF PROTO=TCP SPT=59740 DPT=80 WINDOW=29200 RES=0x00 SYN URGP=0
+Jul  2 14:24:52 wen-Default-string kernel: [317265.612142] rule afterIN= OUT=enp1s0 SRC=192.168.31.75 DST=172.217.160.68 LEN=60 TOS=0x00 PREC=0x00 TTL=64 ID=27926 DF PROTO=TCP SPT=59740 DPT=80 WINDOW=29200 RES=0x00 SYN URGP=0
+
+google ip wil reach to the next rule of REDIRECT to 1085 
+
+curl 182.140.245.49#####taobao.com
+root@wen-Default-string:/home/wen/ruijian_cocimg# grep "182\.140\.245\.49"  /var/log/syslog
+Jul  2 14:25:04 wen-Default-string kernel: [317277.679435] rule foreIN= OUT=enp1s0 SRC=192.168.31.75 DST=182.140.245.49 LEN=60 TOS=0x00 PREC=0x00 TTL=64 ID=61086 DF PROTO=TCP SPT=38608 DPT=80 WINDOW=29200 RES=0x00 SYN URGP=0
+
+taobao ip will only reach to match-set chnroute dst
+
+
 
 Use the grep command as follows:
 # /sbin/iptables -L INPUT -v -n | grep 1.2.3.4
@@ -1016,7 +1041,7 @@ output from A->B to C
 the packet will go through gateway 10.121.122.1
 So let A assume 10.121.122.1's mac is C's mac
 in c host#### arpsoof -t 10.121.122.12 10.121.122.1
-So every packet from A->B will go to C, and host C will forward this packet to gateway 10.121.122.1
+So every packet from A->B will go to C, and host C will orward this packet to gateway 10.121.122.1
 
 why is this working, cause arp reply will update the arp cache in the dstmac(12) host.
 So when it send some packet, it will search the cache to retrive the arp entry

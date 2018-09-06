@@ -1180,7 +1180,38 @@ testset(ont-600)--4b/L1---8p20bp1------8p20bp1/ts1-------8p20odukpp/chan1-------
         |________|
          client  
 
+***  client signal Fail 
 
+      ONT-600-testset
+      |          |
+      |         /|\
+     \/          | 
+         4b/L1  
+      |          | 
+      |         /|\
+      \/         |     
+         8p/BP1
+       |        /|\ 
+      \|/        |      
+       OTN8timeslot
+       |          |               
+       |          |
+       |         /|\odu0-csf     
+      \|/         |
+        ODUKPP8channel 
+        |        |
+       \|/       x   LOS in client signal
+        |        |
+        |________|
+         client-testset  
+
+alarm like this:
+------------------------------------------------------------------------------------
+ CR SA    18/04/17 07:58:04 OC3      LOS                 1/4/C1 In
+   Loss of signal                                                        11DPM8
+NR NSA   18/04/17 07:58:04 ODU0     CSFODU              ODU0 1/4/C1 In
+   Client Signal Failure -ODU                                            11DPM8
+------------------------------------------------------------------------------------
 
 *  timslot for OH PSI/MSI field
 PSI  payload structure Identifier 0x21 means: eight opu2 1.25G tributary slots 8 bytes of the PSI(PSI[2]-PSI[9])

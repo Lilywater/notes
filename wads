@@ -1,5 +1,7 @@
 load and configure PLL by open pen and select the new read_reg to init CDR
 
+leave request;   https://phoenix.int.net.nokia.com
+
 jtags -v -r /ffs/lib/8p20_fpga_ver2.tra
 
 set jtag chain on EC
@@ -493,6 +495,46 @@ show slot *
 
 
 config odukaps  odu0-1/3/C2 create odu2odu0-1/3/bp2/3 odu2odu0-1/3/bp1/3  bi
+config-odukaps-ODU1-1/5/C4  convertProt  ODU2ODU1-1/71/1/1 ODU2ODU1-1/71/2/1 ##convert the normal odukxc to be working in a group.
+
+21#PSS8_97.133(config-odukaps-ODU1-1/5/C4)# convertUnProt working 
+working             Configure working ODUk cross-connect to convert it to un-protected ODUk cross-connect and delete protection odukxc
+protection          Configure protection ODUk cross-connect to convert it to un-protected ODUk cross-connect  and delete working odukxc
+
+
+21#PSS8_97.133(config-odukaps-ODU1-1/5/C4)# forceswitch
+toprotection        Force a switch to the protection path
+toworking           Force a switch to the working path
+21#PSS8_97.133(config-odukaps-ODU1-1/5/C4)# forceswitch toprotection
+
+WARNING:  Performing a protection switch may be service affecting.
+
+Enter 'yes' to confirm, 'no' to cancel:  yes
+21#PSS8_97.133(config-odukaps-ODU1-1/5/C4)#
+21#PSS8_97.133(config-odukaps-ODU1-1/5/C4)# det
+Description            :
+Switching Type         : Uni
+Connection Type        : Bi
+Protection Type        : SNCN
+Revertive              : No
+Wait-To-Restore        : 5 minutes
+Sdenable               : No
+Group ID               : 1:1
+To Interface           : ODU1-1/5/C4
+
+Switch Request         : Near-End Forced       Active Side     : Protection
+
+
+Interface                         Protection Method       Current Status
+------------------------------------------------------------------------------
+
+Protection:  ODU2ODU1-1/71/2/1       PNIM                   None
+Working   :  ODU2ODU1-1/71/1/1       PNIM                   None
+
+
+
+
+
 
 
 pss8_168# show odukxc brief
@@ -962,7 +1004,7 @@ Office: F4, Building #8, Cheng Du, SiChuan
 
 
 Login ID: glili
-Password: Z#n7creSEC
+Z#n7creSECPassword: Z#n7creSEC
 Server name and IP: pss74-255.ongnj.us.alcatel-lucent.com, 135.104.255.74
 
 From: DANG Zhaiwei 
@@ -1264,7 +1306,8 @@ root@8EC2-81-1-ACT:~# /pureNeApp/EC/screen -x
 login: root
 Password: 
 ACT-OSE $  ecget -ec=RtrvShelfWtClk -oid=1/5
-
+ACT-OSE $ cli
+show version 
 
 EC show logs
 ======================================
@@ -1357,3 +1400,264 @@ xyz=1234
 
 reset NE:
 config admin resetNE cold yes
+
+
+==========================
+-> gt-commit -m  "PSSSW-80534: otu1 siganl warm reset fail"
+This operation will only run inside 'lc' repository. Proceed? (y/n)
+To run on whole workspace, run from top of ${ROOT_1830}
+y
+//if second time commit use gt-add2commit command only, no new gerrit review will be generated, stick to the first one genrated by the first commit with -m "PSSSW.."
+//then use
+-> gt-upload acos integration
+if "cannot Merge" show, then Rebase in the gerrit
+submmit in gerrit
+when nightly build is OK, then resolve the MR.
+
+
+-> git log --oneline
+c85ff53 PSSSW-80534: otu1 siganl warm reset fail
+f447126 PSSSW-80960: [Make default] New firmware baseline for 12CE120/121 (AM2.18), 1CE100 (AM1.10)
+b5c3254 PSSSW-80770: LC infrastructure for BucketTimers
+
+-> git log  CHyphy5451.cc 
+commit 61c6952760453d85b1c12462fd8fd4089646751a
+Author: hechun zhang <hechun.zhang@nokia-sbell.com>
+Date:   Fri Apr 27 02:05:43 2018 -0400
+
+    PSSSW-77864: workaround for BP2_N+1 path
+    
+    Change-Id: Id79d31a505b5c49e765649963596d381f5b4471e
+
+commit eaa9b0a172bfde2c39d24c4031300187fb68af34
+Author: DWDMBUILD <ca_dwdmbuil@nokia.com.not.available>
+Date:   Wed Apr 18 00:38:40 2018 +0200
+
+    cc_integration-180416
+    
+    BLD-dwdm_1830-lime-180416
+    
+    Change-Id: I3cc7de52ad677b6d4045433138d105a4dd2e4d2a
+
+-> git log --graph --oneline --decorate    ###all the branch shows
+
+
+
+
+
+
+
+-> git remote show
+acos
+pss-gitbuild4!glili:Linux3.10.0-327.el7.x86_64/gitworkspace/glili/dwdm_1830-integration-180514/lc/fa_lxhrp_ot/internal/pkg/ot_driver/ot_8p20
+-> git remote show acos
+X11 forwarding request failed on channel 0
+* remote acos
+  Fetch URL: ssh://glili@gerrit.ext.net.nokia.com:29418/DWDM1830/lc
+  Push  URL: ssh://glili@gerrit.ext.net.nokia.com:29418/DWDM1830/lc
+  HEAD branch: master
+  Remote branches:
+    clearcase/integration                tracked
+    continuous/release-lime              tracked
+    feature-pss12x-ptp-synce             tracked
+    git-annex                            tracked
+    integration                          tracked
+    master                               tracked
+    release-dummy                        tracked
+    release-kiwicake                     tracked
+    release-lime                         tracked
+=============================================================
+search the list
+
+History log of /sdwint-dwdm_1830-lime-newest/vobs/lc/fa_lxhrp_ot/internal/pkg/ot_driver/ot_11dpm8/CHyphy5451.cc
+Revision	 Compare 	Date	Author	Comments
+# /main/main-dwdm_1830/289	  	24-Apr-2018	GUO Lily (ZZ0067655) (glili)	
+# /main/main-dwdm_1830/288	  	23-Mar-2018	Dingpo Chen (CV0004327) (dingpoc)	
+# /main/main-dwdm_1830/solution-dm-test/0	  	22-Mar-2018	chen dingpo (dingpoc)	
+# /main/main-dwdm_1830/287	  	14-Mar-2018	JIANG Yizuo (ZZ0077531) (yizjiang)	
+
+lsatr ../ot_11dpm8/CHyphy5451.cc|grep 288  ####version
+../ot_11dpm8/CHyphy5451.cc@@/main/main-dwdm_1830/94     (MR="MUXmh28831")
+../ot_11dpm8/CHyphy5451.cc@@/main/main-dwdm_1830/104    (MR="MUXmh28811")
+../ot_11dpm8/CHyphy5451.cc@@/main/main-dwdm_1830/250    (MR="PSSSW-54288")
+../ot_11dpm8/CHyphy5451.cc@@/main/main-dwdm_1830/288    (MR="PSSSW-75738")
+
+
+
+
+------
+* 1b88077       GUO Lily (ZZ0067655)    Wed Jul 11 04:38:59 2018 -0400  PSSSW-82443: 8P20 DM Driver api
+| * 5fdb523     Lei D GAO       Tue Jul 10 23:28:59 2018 -0400  PSSSW-82389: PM change for FID-14205 ITU-T Sync OAM - time part LC2
+| * cf8fc27     Lv, Liang A     Tue Jul 10 21:53:51 2018 -0400  PSSSW-82081: IONPLM-15912:OPSFLEX: Optical Protection Switch for Coherent Optimized ROADM(WTE)
+| * 9e3e6f1     Weidong Liu     Tue Jul 10 16:31:31 2018 -0400  PSSSW-82414: Holdoff timer is not configured correctly if we do provision while a defect is present.
+| * 5ef3757     Lesley Yang     Tue Jul 10 15:32:56 2018 -0400  PSSSW-82365 change trace type
+| * b3b40fc     William Tang    Tue Jul 10 12:18:34 2018 -0400  PSSSW-82415: DA2C4 : 'Rx SM BIP8 Error Count' failed to report for otupm and oduptf - Port to R11.1
+| * d63e9c1     Herbert HOESS   Tue Jul 10 17:42:06 2018 +0200  fix typo in profile_1.1.1 and regenerate the corresponding tar ball 20AN80.tar
+| * 4d0c711     Huabo Qiang     Tue Jul 10 10:31:08 2018 -0400  PSSSW-82351: Egress Power Adjust fails with max interations
+| * c438838     YouLing Sha     Tue Jul 10 10:17:48 2018 -0400  PSSSW-81334: SIM IRDM32 - WSS SIM no initSWSSDevice
+| * 3155607     Francesco Vincenti      Tue Jul 10 11:56:22 2018 +0200  PSSSW-79485: exploit new OCCxs counter to read consistent PM data
+
+
+config cn netif 
+det
+add 1 otu-1/8/l1
+ONS-04-12# config cn netif det
+NETIF                   FACILITY
+-------------------------------------------------
+3                       OTU-1/7/L1
+4                       OTU-1/7/L2
+
+
+
+
+ONS-04-12# config cn netif 1 otu-1/8/l1
+ONS-04-12# config cn netif 1 otu-1/8/l1
+Error: invalid argument(s)
+
+ONS-04-12# config cn netif
+ONS-04-12(config-cn-netif)# 1
+Error:NETIF Index does not exist
+
+ONS-04-12(config-cn-netif)# add 1 otu-1/8/l1
+eccchnl             Enter eccchnl type
+ONS-04-12(config-cn-netif)# add 1 otu-1/8/l1 eccchnl gcc0
+ONS-04-12(config-cn-netif)#
+ONS-04-12(config-cn-netif)# add 2 otu-1/8/l2 eccchnl gcc0
+ONS-04-12(config-cn-netif)# det
+NETIF                   FACILITY
+-------------------------------------------------
+1                       OTU-1/8/L1
+2                       OTU-1/8/L2
+3                       OTU-1/7/L1
+4                       OTU-1/7/L2
+
+
+
+
+ONS-04-12(config-cn-netif)# 1 sta
+
+Administrative status : disabled
+
+ONS-04-12(config-cn-netif)# 1 sta en
+ONS-04-12(config-cn-netif)# 2 sta en
+ONS-04-12(config-cn-netif)#
+
+
+
+ sfp_Com_laserOn 0 0
+(<5 1 4 7 3 0>):(10:17:37.963746):(/gitworkspace/dwdmbuild/dwdm_1830-integration-180604/lc/fa_lxhrp_ot/internal/pkg/ot_driver/common/SfpComApi.C:283) sfp_Com_laserOff 1 0
+ sfp_Com_laserOff [2-7] 0
+
+when warm reboot the pack and not provision done or just cold reboot with configuration in database:
+the line port configuration is not the same as runtime.
+line port has two OTN_SIG_OTU2 and OTN_ODU_ODUTP_ODU2
+-------------------------------------------------------
+OT11DPM8_portSigTypeCfg#OTN_LIN_1#OTN_SIG_OTU2
+OT11DPM8_odukCreate#OTN_LIN_1-OTN_ODU_ODUTP_ODU2
+-------------------------------------------------------
+==========================================================================
+i                 [full matched] OT11DPM8_portSigTypeCfg#OTN_CLN_8#OTN_SIG_OC48
+screenlog.5|990| [full matched] OT11DPM8_portSigTypeCfg#OTN_LIN_1#OTN_SIG_OTU2
+screenlog.5|1005| [full matched] OT11DPM8_portSigTypeCfg#OTN_LIN_2#OTN_SIG_OTU2
+screenlog.5|1027| [full matched] OT11DPM8_odukCreate#OTN_LIN_1-OTN_ODU_ODUTP_ODU2-0-+0-1#0
+screenlog.5|1069| [full matched] OT11DPM8_odukCreate#OTN_LIN_1-OTN_ODU_ODU2ODU0-1-+1-1#0
+screenlog.5|1074| [full matched] OT11DPM8_odukCreate#OTN_LIN_1-OTN_ODU_ODU2ODU0-2-+2-1#0
+screenlog.5|1087| [full matched] OT11DPM8_odukCreate#OTN_LIN_2-OTN_ODU_ODUTP_ODU2-0-+0-1#0
+screenlog.5|1129| [full matched] OT11DPM8_odukCreate#OTN_LIN_2-OTN_ODU_ODU2ODU0-1-+1-1#0
+screenlog.5|1134| [full matched] OT11DPM8_odukCreate#OTN_LIN_2-OTN_ODU_ODU2ODU0-2-+2-1#0
+screenlog.5|1148| [full matched] OT11DPM8_odukCreate#OTN_CLN_1-OTN_ODU_ODU0-0-+0-1#0
+===================
+
+
+in the runtime:
+only config the otu2 type
+config inter 1/8/l1 type otu2
+--------------------------------------------------
+OT11DPM8_odukCreate#OTN_LIN_1-OTN_ODU_ODUTP_ODU2
+OT11DPM8_portSigTypeCfg#OTN_LIN_1#OTN_SIG_OTU2
+===================
+
+(<5 1 4 7 3 0>):(09:30:29.228561):(FmApi.cc:1787) OT11DPM8_otukCfg 1 3
+(<5 1 4 7 3 0>):(09:30:29.237182):(FmApi.cc:1406) OT11DPM8_odukCreate: portNo 1, oduType 19, oduId 0, tsMap , rowStatus 1
+[not matched] OT11DPM8_odukCreate#OTN_LIN_1-OTN_ODU_ODUTP_ODU2-0-+0-1#0
+(<5 1 4 7 3 0>):(09:30:31.748649):(OduObject.C:82) in OduObject::oduChgPldType()
+(<5 1 4 7 3 0>):(09:30:31.750126):(FmApi.cc:1527) OT11DPM8_odukPldTypeCfg 1 19 0 0x21
+(<5 1 4 7 3 0>):(09:30:31.801809):(FmApi.cc:1885) OT11DPM8_otukFecCfg 1 1
+(<5 1 4 7 3 0>):(09:30:31.824867):(FmApi.cc:1902) OT11DPM8_otukRateCfg 1 0
+(<5 1 4 7 3 0>):(09:30:31.848086):(FmApi.cc:1813) OT11DPM8_ttiOtuSetTxSapi 1 1 00000000000000000000000000000000
+(<5 1 4 7 3 0>):(09:30:32.688782):(FmApi.cc:1831) OT11DPM8_ttiOtuSetExpSapi 1 1 00000000000000000000000000000000
+(<5 1 4 7 3 0>):(09:30:33.478259):(FmApi.cc:1867) OT11DPM8_ttiOtuSetTimmRsp 1 1 0
+(<5 1 4 7 3 0>):(09:30:34.324144):(FmApi.cc:1849) OT11DPM8_ttiOtuSetTrccmp 1 1 0
+(<5 1 4 7 3 0>):(09:30:35.182947):(OduMdlStd.h:46) oduCreate#47: ERR! Cannot insert odu(port1-odu#0)
+(<5 1 4 0 8 0>):(09:30:35.221833):(LcConfigUtil.cc:1205)
+WARNING! Incoming OduApsRecord Size = 0; Expecting =144
+(<5 1 4 7 3 0>):(09:30:35.260636):(OduObject.C:82) in OduObject::oduChgPldType()
+(<5 1 4 7 3 0>):(09:30:35.262142):(FmApi.cc:1527) OT11DPM8_odukPldTypeCfg 1 19 0 0x21
+(<5 1 4 7 3 0>):(09:30:35.310709):(OduObject.C:107) in OduObject::oduChgPtmmRsp()
+(<5 1 4 7 3 0>):(09:30:35.312208):(FmApi.cc:1759) OT11DPM8_oduSetPtmmRsp 1 0 0
+(<5 1 4 7 3 0>):(09:30:36.174773):(FmApi.cc:1687) OT11DPM8_ttiOduSetTxSapi 1 0 2 00000000000000000000000000000000
+(<5 1 4 7 3 0>):(09:30:37.018752):(FmApi.cc:1705) OT11DPM8_ttiOduSetExpSapi 1 0 2 00000000000000000000000000000000
+(<5 1 4 7 3 0>):(09:30:37.862597):(FmApi.cc:1741) OT11DPM8_ttiOduSetTimmRsp 1 0 2 0
+(<5 1 4 7 3 0>):(09:30:38.701208):(FmApi.cc:1723) OT11DPM8_ttiOduSetTrccmp 1 0 2 0
+(<5 1 4 7 3 0>):(09:30:39.506664):(FmApi.cc:2515) OT11DPM8_setOduDmMode 1 0 0
+--->CPrfAgent::handleSetNumOduBins: hoOdu 1 portHasChan: 0 group 28, unit 1, subUnit 0, tcmLevel 0 numBins 33
+--->CPrfAgent::handleSetNumOduBins: hoOdu 1 portHasChan: 0 group 28, unit 1, subUnit 0, tcmLevel 0 numBins 8
+--->CPrfAgent::handleSetNumBins: portHasChan: 0 group 6, unit 1, subUnit 0, numBins 33
+--->CPrfAgent::handleSetNumBins: portHasChan: 0 group 6, unit 1, subUnit 0, numBins 8
+--->CPrfAgent::handleSetNumBins: portHasChan: 0 group 7, unit 1, subUnit 0, numBins 33
+--->CPrfAgent::handleSetNumBins: portHasChan: 0 group 7, unit 1, subUnit 0, numBins 8
+--->CPrfAgent::handleSetNumBins: portHasChan: 0 group 26, unit 1, subUnit 0, numBins 33
+--->CPrfAgent::handleSetNumBins: portHasChan: 0 group 26, unit 1, subUnit 0, numBins 8
+(<5 1 4 7 3 0>):(09:30:39.823156):(COtFltSupLinx.C:2306) COtFltSupLinx::setPortEC() ecid=ProgrammedPortType val=73 SET
+(<5 1 4 7 3 0>):(09:30:39.824740):(FmApi.cc:1299) OT11DPM8_portSigTypeCfg 1 2
+[not matched] OT11DPM8_portSigTypeCfg#OTN_LIN_1#OTN_SIG_OTU2
+MSGPRFPORTSTATE_ID : port=1, portType=73, portStateUneqpt=0
+For SIGTYPE_OTM02, Set port 1 OduType to eODUPTF
+_ec_Ec::TxPathAdminState[0]=0(Disable) (oidLine)#####Rej##### TxPathAdminState[0] rejected: oidLine is not consistent with XfpModeNone    {ac:none,  dc:none} (Current value held)
+(<5 1 4 7 3 0>):(09:30:41.627519):(COtFltSupLinx.C:3031) COtFltSupLinx::setPortEC() Invalid ecid=TxPathAdminState val=0 SET
+(<5 1 4 7 3 0>):(09:30:41.681545):(FmApi.cc:1787) OT11DPM8_otukCfg 1 3
+(<5 1 4 7 3 0>):(09:30:41.703882):(Ot11dpm8OtuOduFltLinx.C:629) createOtuk#629: ERR! Failed to insert otu object w/ id = 16842752
+(<5 1 4 7 3 0>):(09:30:41.788599):(OduMdlStd.h:46) oduCreate#47: ERR! Cannot insert odu(port1-odu#0)
+(<5 1 4 7 3 0>):(09:30:41.888374):(/gitworkspace/dwdmbuild/dwdm_1830-integration-180604/lc/fa_lxhrp_ot/internal/pkg/ot_driver/common/XfpComApi.C:696) xfp_Com_laserOff 0
+flag = lcdrv
+Mask = 0x20000
+##### Line port(RX_DIRN) auto Baselining : port=1 dir=1 value=-277 reason=10 #####
+
+
+
+===================
+config slot 1/3 opsb
+config aps group 1 create 1/3/a 1/3/b uni
+
+21#PSS8_97.133# config aps group *
+                                                   Switched   Switch
+Group ID  Description                              Interface  Request
+--------------------------------------------------------------------------------
+1                                                  None       No Request
+
+
+21#PSS8_97.133# show aps group 1
+
+APS Group Details  -  Group ID = 1
+--------------------------------------------------------------------------------
+Description       :
+Status Flags      :
+
+Protect Mode      :  1+1 OPS
+Revertive         :  No
+
+Direction         :  Uni                             Wait-To-Restore  :  5 minute(s)
+
+Switch Request    :  No Request                      Request For      :
+Interface         :  None                            Request From     :
+
+
+Members in this APS group
+
+Group ID  Interface   Channel     Switch Command   Local Status  Remote Status
+-------------------------------------------------------------------------------
+1         1/3/A       Protection  No Command       Unknown       Unknown
+1         1/3/B       Working     No Command       Unknown       Unknown
+
+21#PSS8_97.133# config aps group 1 wtr 1
+21#PSS8_97.133# config aps group 1 revertive

@@ -181,7 +181,7 @@ RETURN means stop traversing this chain and resume at the next rule in the previ
 
 
 *** overal table order from top to bottom
-Tables↓/Chains→ |  PREROUTING  INPUT  FORWARD   OUTPUT  POSTROUTING
+Tables/Chains|  PREROUTING  INPUT  FORWARD   OUTPUT  POSTROUTING
 -------------------------------------------------------------------------
 raw               |    ✓                             ✓      
 mangle            |    ✓           ✓        ✓        ✓         ✓
@@ -190,15 +190,167 @@ filter            |                ✓        ✓        ✓
 security          |                ✓        ✓        ✓   
 nat (SNAT)        |                ✓                          ✓
 ===========================================================================
-As a packet triggers a netfilter hook, the associated chains will be processed as they are listed in the table above from top-to-bottom. 
 The hooks (columns) that a packet will trigger depend on whether 
 it is an incoming or outgoing packet, the routing decisions that are made, and whether the packet passes filtering criteria.
+                                          __________________________
+                                          | stack    protocol       |
+                                          |-------------------------|
+                                          /|\                      |
+                                           |                   route choice  out=
+                                           |                       |
+                                         mangle                   raw
+                                         filter                   mangle
+                                           |                      nat
+                                           |                      filter
+                                           |                       |
+                                           |                      \|/
+                                       INPUT                      OUTPUT         
+                                          /|\                      |
+                                           |                       |
+                                           |                       |
+                                           |       mangle          |
+                                           |       filter         \|/
+       ingress interface----> PREROUTING---route--> FORWARD ----->POSTROUTING------>egress interface 
+                                         choice out=
+                                 raw                             mangle
+                                 mangle                           nat
+                                 nat
 
 
 *** chains tranverse order
     Incoming packets destined for the local system: PREROUTING -> INPUT
     Incoming packets destined to another host: PREROUTING -> FORWARD -> POSTROUTING
     Locally generated packets: OUTPUT -> POSTROUTING
+
+****
+Jul  6 10:48:36 wen-Default-string kernel: [ 3722.041065] TRACE: raw:OUTPUT:policy:2 IN= OUT=enp1s0 SRC=192.168.31.75 DST=192.168.31.88 LEN=84 TOS=0x00 PREC=0x00 TTL=64 ID=60361 DF PROTO=ICMP TYPE=8 CODE=0 ID=2565 SEQ=1 UID=0 GID=0
+Jul  6 10:48:36 wen-Default-string kernel: [ 3722.042291] TRACE: raw:PREROUTING:policy:2 IN=enp1s0 OUT= MAC=00:e0:4c:68:27:62:ce:81:da:91:eb:88:08:00 SRC=192.168.31.88 DST=192.168.31.75 LEN=84 TOS=0x00 PREC=0x00 TTL=64 ID=1476 PROTO=ICMP TYPE=0 CODE=0 ID=2565 SEQ=1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+**** an packet generated in the local host traverse route:
+packet seq=223235714
+OUTPUT              ->    POSTROUTING  
+(raw->nat->filter)       (nat)
+out=enp1s0 use nat
+ kernel: [49988.219931] TRACE: raw:OUTPUT:policy:2 IN= OUT=enp1s0 SRC=192.168.31.75 DST=216.58.200.36 LEN=60 TOS=0x00 PREC=0x00 TTL=64 ID=40719 DF PROTO=TCP SPT=56284 DPT=80 SEQ=2232357149 ACK=0 WINDOW=29200 RES=0x00 SYN URGP=0 OPT (020405B40402080A119B3B6D0000000001030307) UID=0 GID=0
+ kernel: [49988.219962] TRACE: nat:OUTPUT:rule:1 IN= OUT=enp1s0 SRC=192.168.31.75 DST=216.58.200.36 LEN=60 TOS=0x00 PREC=0x00 TTL=64 ID=40719 DF PROTO=TCP SPT=56284 DPT=80 SEQ=2232357149 ACK=0 WINDOW=29200 RES=0x00 SYN URGP=0 OPT (020405B40402080A119B3B6D0000000001030307) UID=0 GID=0
+ ####above rule will DNAT the addr to 127.0.0.1:1085
+ kernel: [49988.219988] TRACE: filter:OUTPUT:policy:1 IN= OUT=enp1s0 SRC=192.168.31.75 DST=127.0.0.1 LEN=60 TOS=0x00 PREC=0x00 TTL=64 ID=40719 DF PROTO=TCP SPT=56284 DPT=1085 SEQ=2232357149 ACK=0 WINDOW=29200 RES=0x00 SYN URGP=0 OPT (020405B40402080A119B3B6D0000000001030307) UID=0 GID=0
+ ------------------------------------------------------------------------------------------------------------------------------------
+ kernel: [49988.220001] TRACE: nat:POSTROUTING:policy:1 IN= OUT=lo SRC=192.168.31.75 DST=127.0.0.1 LEN=60 TOS=0x00 PREC=0x00 TTL=64 ID=40719 DF PROTO=TCP SPT=56284 DPT=1085 SEQ=2232357149 ACK=0 WINDOW=29200 RES=0x00 SYN URGP=0 OPT (020405B40402080A119B3B6D0000000001030307) UID=0 GID=0
+####above rule postrouting will check the route table to get the correct out interface 
+
+
+
+PREROUTING -> INPUT
+ kernel: [49988.220037] TRACE: raw:PREROUTING:policy:2 IN=lo OUT= MAC=00:00:00:00:00:00:00:00:00:00:00:00:08:00 SRC=192.168.31.75 DST=127.0.0.1 LEN=60 TOS=0x00 PREC=0x00 TTL=64 ID=40719 DF PROTO=TCP SPT=56284 DPT=1085 SEQ=2232357149 ACK=0 WINDOW=29200 RES=0x00 SYN URGP=0 OPT (020405B40402080A119B3B6D0000000001030307)
+ kernel: [49988.220053] TRACE: filter:INPUT:policy:1 IN=lo OUT= MAC=00:00:00:00:00:00:00:00:00:00:00:00:08:00 SRC=192.168.31.75 DST=127.0.0.1 LEN=60 TOS=0x00 PREC=0x00 TTL=64 ID=40719 DF PROTO=TCP SPT=56284 DPT=1085 SEQ=2232357149 ACK=0 WINDOW=29200 RES=0x00 SYN URGP=0 OPT (020405B40402080A119B3B6D0000000001030307)
+
+
+kernel: [49988.220124] TRACE: raw:OUTPUT:policy:2 IN= OUT=enp1s0 SRC=192.168.31.75 DST=216.58.200.36 LEN=52 TOS=0x00 PREC=0x00 TTL=64 ID=40720 DF PROTO=TCP SPT=56284 DPT=80 SEQ=2232357150 ACK=279668517 WINDOW=229 RES=0x00 ACK URGP=0 OPT (0101080A119B3B6E78DE73EE) UID=0 GID=0
+
+
+ kernel: [49988.220124] TRACE: raw:OUTPUT:policy:2 IN= OUT=enp1s0 SRC=192.168.31.75 DST=216.58.200.36 LEN=52 TOS=0x00 PREC=0x00 TTL=64 ID=40720 DF PROTO=TCP SPT=56284 DPT=80 SEQ=2232357150 ACK=279668517 WINDOW=229 RES=0x00 ACK URGP=0 OPT (0101080A119B3B6E78DE73EE) UID=0 GID=0
+ kernel: [49988.220141] TRACE: filter:OUTPUT:policy:1 IN= OUT=enp1s0 SRC=192.168.31.75 DST=127.0.0.1 LEN=52 TOS=0x00 PREC=0x00 TTL=64 ID=40720 DF PROTO=TCP SPT=56284 DPT=1085 SEQ=2232357150 ACK=279668517 WINDOW=229 RES=0x00 ACK URGP=0 OPT (0101080A119B3B6E78DE73EE) UID=0 GID=0
+ kernel: [49988.220159] TRACE: raw:PREROUTING:policy:2 IN=lo OUT= MAC=00:00:00:00:00:00:00:00:00:00:00:00:08:00 SRC=192.168.31.75 DST=127.0.0.1 LEN=52 TOS=0x00 PREC=0x00 TTL=64 ID=40720 DF PROTO=TCP SPT=56284 DPT=1085 SEQ=2232357150 ACK=279668517 WINDOW=229 RES=0x00 ACK URGP=0 OPT (0101080A119B3B6E78DE73EE)
+ kernel: [49988.220173] TRACE: filter:INPUT:policy:1 IN=lo OUT= MAC=00:00:00:00:00:00:00:00:00:00:00:00:08:00 SRC=192.168.31.75 DST=127.0.0.1 LEN=52 TOS=0x00 PREC=0x00 TTL=64 ID=40720 DF PROTO=TCP SPT=56284 DPT=1085 SEQ=2232357150 ACK=279668517 WINDOW=229 RES=0x00 ACK URGP=0 OPT (0101080A119B3B6E78DE73EE)
+ kernel: [49988.220268] TRACE: raw:OUTPUT:policy:2 IN= OUT=enp1s0 SRC=192.168.31.75 DST=216.58.200.36 LEN=129 TOS=0x00 PREC=0x00 TTL=64 ID=40721 DF PROTO=TCP SPT=56284 DPT=80 SEQ=2232357150 ACK=279668517 WINDOW=229 RES=0x00 ACK PSH URGP=0 OPT (0101080A119B3B6E78DE73EE) UID=0 GID=0
+ kernel: [49988.220285] TRACE: filter:OUTPUT:policy:1 IN= OUT=enp1s0 SRC=192.168.31.75 DST=127.0.0.1 LEN=129 TOS=0x00 PREC=0x00 TTL=64 ID=40721 DF PROTO=TCP SPT=56284 DPT=1085 SEQ=2232357150 ACK=279668517 WINDOW=229 RES=0x00 ACK PSH URGP=0 OPT (0101080A119B3B6E78DE73EE) UID=0 GID=0
+ kernel: [49988.220303] TRACE: raw:PREROUTING:policy:2 IN=lo OUT= MAC=00:00:00:00:00:00:00:00:00:00:00:00:08:00 SRC=192.168.31.75 DST=127.0.0.1 LEN=129 TOS=0x00 PREC=0x00 TTL=64 ID=40721 DF PROTO=TCP SPT=56284 DPT=1085 SEQ=2232357150 ACK=279668517 WINDOW=229 RES=0x00 ACK PSH URGP=0 OPT (0101080A119B3B6E78DE73EE)
+ kernel: [49988.220317] TRACE: filter:INPUT:policy:1 IN=lo OUT= MAC=00:00:00:00:00:00:00:00:00:00:00:00:08:00 SRC=192.168.31.75 DST=127.0.0.1 LEN=129 TOS=0x00 PREC=0x00 TTL=64 ID=40721 DF PROTO=TCP SPT=56284 DPT=1085 SEQ=2232357150 ACK=279668517 WINDOW=229 RES=0x00 ACK PSH URGP=0 OPT (0101080A119B3B6E78DE73EE)
+ kernel: [49990.360989] TRACE: raw:OUTPUT:policy:2 IN= OUT=enp1s0 SRC=192.168.31.75 DST=216.58.200.36 LEN=52 TOS=0x00 PREC=0x00 TTL=64 ID=40722 DF PROTO=TCP SPT=56284 DPT=80 SEQ=2232357227 ACK=279669057 WINDOW=237 RES=0x00 ACK URGP=0 OPT (0101080A119B43CA78DE7C4A) UID=0 GID=0
+ kernel: [49990.361079] TRACE: filter:OUTPUT:policy:1 IN= OUT=enp1s0 SRC=192.168.31.75 DST=127.0.0.1 LEN=52 TOS=0x00 PREC=0x00 TTL=64 ID=40722 DF PROTO=TCP SPT=56284 DPT=1085 SEQ=2232357227 ACK=279669057 WINDOW=237 RES=0x00 ACK URGP=0 OPT (0101080A119B43CA78DE7C4A) UID=0 GID=0
+
+**** local generated packet to local destination
+***** local genrated packet to be sent out
+OUTPUT              ->    POSTROUTING  
+(raw->mangle->filter)       (mangle)
+out=lo use mangle
+ kernel: [52679.696178] TRACE: raw:OUTPUT:policy:2 IN= OUT=lo SRC=127.0.0.1 DST=127.0.0.1 LEN=60 TOS=0x00 PREC=0x00 TTL=64 ID=3070 DF PROTO=TCP SPT=38932 DPT=80 SEQ=2191382873 ACK=0 WINDOW=43690 RES=0x00 SYN URGP=0 OPT (0204FFD70402080AAECEE2970000000001030307) UID=0 GID=0
+ kernel: [52679.696194] TRACE: mangle:OUTPUT:policy:1 IN= OUT=lo SRC=127.0.0.1 DST=127.0.0.1 LEN=60 TOS=0x00 PREC=0x00 TTL=64 ID=3070 DF PROTO=TCP SPT=38932 DPT=80 SEQ=2191382873 ACK=0 WINDOW=43690 RES=0x00 SYN URGP=0 OPT (0204FFD70402080AAECEE2970000000001030307) UID=0 GID=0
+ kernel: [52679.696207] TRACE: filter:OUTPUT:policy:1 IN= OUT=lo SRC=127.0.0.1 DST=127.0.0.1 LEN=60 TOS=0x00 PREC=0x00 TTL=64 ID=3070 DF PROTO=TCP SPT=38932 DPT=80 SEQ=2191382873 ACK=0 WINDOW=43690 RES=0x00 SYN URGP=0 OPT (0204FFD70402080AAECEE2970000000001030307) UID=0 GID=0
+ kernel: [52679.696219] TRACE: mangle:POSTROUTING:policy:1 IN= OUT=lo SRC=127.0.0.1 DST=127.0.0.1 LEN=60 TOS=0x00 PREC=0x00 TTL=64 ID=3070 DF PROTO=TCP SPT=38932 DPT=80 SEQ=2191382873 ACK=0 WINDOW=43690 RES=0x00 SYN URGP=0 OPT (0204FFD70402080AAECEE2970000000001030307) UID=0 GID=0
+
+***** when interface get the packet
+PREROUTING -> INPUT
+(raw->mangle)  (mangle->filter)
+ kernel: [52679.696249] TRACE: raw:PREROUTING:rule:1 IN=lo OUT= MAC=00:00:00:00:00:00:00:00:00:00:00:00:08:00 SRC=127.0.0.1 DST=127.0.0.1 LEN=60 TOS=0x00 PREC=0x00 TTL=64 ID=3070 DF PROTO=TCP SPT=38932 DPT=80 SEQ=2191382873 ACK=0 WINDOW=43690 RES=0x00 SYN URGP=0 OPT (0204FFD70402080AAECEE2970000000001030307)
+ kernel: [52679.696263] TRACE: raw:PREROUTING:policy:2 IN=lo OUT= MAC=00:00:00:00:00:00:00:00:00:00:00:00:08:00 SRC=127.0.0.1 DST=127.0.0.1 LEN=60 TOS=0x00 PREC=0x00 TTL=64 ID=3070 DF PROTO=TCP SPT=38932 DPT=80 SEQ=2191382873 ACK=0 WINDOW=43690 RES=0x00 SYN URGP=0 OPT (0204FFD70402080AAECEE2970000000001030307)
+ kernel: [52679.696276] TRACE: mangle:PREROUTING:policy:1 IN=lo OUT= MAC=00:00:00:00:00:00:00:00:00:00:00:00:08:00 SRC=127.0.0.1 DST=127.0.0.1 LEN=60 TOS=0x00 PREC=0x00 TTL=64 ID=3070 DF PROTO=TCP SPT=38932 DPT=80 SEQ=2191382873 ACK=0 WINDOW=43690 RES=0x00 SYN URGP=0 OPT (0204FFD70402080AAECEE2970000000001030307)
+kernel: [52679.696290] TRACE: mangle:INPUT:policy:1 IN=lo OUT= MAC=00:00:00:00:00:00:00:00:00:00:00:00:08:00 SRC=127.0.0.1 DST=127.0.0.1 LEN=60 TOS=0x00 PREC=0x00 TTL=64 ID=3070 DF PROTO=TCP SPT=38932 DPT=80 SEQ=2191382873 ACK=0 WINDOW=43690 RES=0x00 SYN URGP=0 OPT (0204FFD70402080AAECEE2970000000001030307)
+kernel: [52679.696304] TRACE: filter:INPUT:policy:1 IN=lo OUT= MAC=00:00:00:00:00:00:00:00:00:00:00:00:08:00 SRC=127.0.0.1 DST=127.0.0.1 LEN=60 TOS=0x00 PREC=0x00 TTL=64 ID=3070 DF PROTO=TCP SPT=38932 DPT=80 SEQ=2191382873 ACK=0 WINDOW=43690 RES=0x00 SYN URGP=0 OPT (0204FFD70402080AAECEE2970000000001030307)
+
+
+
+kernel: [52679.696340] TRACE: raw:OUTPUT:policy:2 IN= OUT=lo SRC=127.0.0.1 DST=127.0.0.1 LEN=60 TOS=0x00 PREC=0x00 TTL=64 ID=0 DF PROTO=TCP SPT=80 DPT=38932 SEQ=1168447734 ACK=2191382874 WINDOW=43690 RES=0x00 ACK SYN URGP=0 OPT (0204FFD70402080AAECEE297AECEE29701030307)
+kernel: [52679.696351] TRACE: mangle:OUTPUT:policy:1 IN= OUT=lo SRC=127.0.0.1 DST=127.0.0.1 LEN=60 TOS=0x00 PREC=0x00 TTL=64 ID=0 DF PROTO=TCP SPT=80 DPT=38932 SEQ=1168447734 ACK=2191382874 WINDOW=43690 RES=0x00 ACK SYN URGP=0 OPT (0204FFD70402080AAECEE297AECEE29701030307)
+kernel: [52679.696362] TRACE: filter:OUTPUT:policy:1 IN= OUT=lo SRC=127.0.0.1 DST=127.0.0.1 LEN=60 TOS=0x00 PREC=0x00 TTL=64 ID=0 DF PROTO=TCP SPT=80 DPT=38932 SEQ=1168447734 ACK=2191382874 WINDOW=43690 RES=0x00 ACK SYN URGP=0 OPT (0204FFD70402080AAECEE297AECEE29701030307)
+kernel: [52679.696372] TRACE: mangle:POSTROUTING:policy:1 IN= OUT=lo SRC=127.0.0.1 DST=127.0.0.1 LEN=60 TOS=0x00 PREC=0x00 TTL=64 ID=0 DF PROTO=TCP SPT=80 DPT=38932 SEQ=1168447734 ACK=2191382874 WINDOW=43690 RES=0x00 ACK SYN URGP=0 OPT (0204FFD70402080AAECEE297AECEE29701030307)
+
+*** redirect target is similar to DNAT target
+nat table:
+Chain OUTPUT (policy ACCEPT 1797 packets, 108K bytes)
+ pkts bytes target     prot opt in     out     source               destination
+     6   360 REDIRECT   tcp  --  any    any     anywhere             anywhere             match-set gfwlist dst redir ports 1085
+
+raw table:
+root@wen-Default-string:/home/wen/ruijian_cocimg# iptables -v -L -t raw
+Chain PREROUTING (policy ACCEPT 9 packets, 640 bytes)
+ pkts bytes target     prot opt in     out     source               destination
+     0     0 TRACE      all  --  any    any     anywhere             anywhere             ctstate DNAT
+
+     Chain OUTPUT (policy ACCEPT 8 packets, 840 bytes)
+      pkts bytes target     prot opt in     out     source               destination
+     141 18467 TRACE      tcp  --  any    any     anywhere             anywhere             match-set gfwlist dst
+-------------------------------------------------------------------------------
+curl 207.38.70.46   ##triger the OUTPUT rule 1 since this ip is in gfwlist
+
+**** generate the packet by curl
+OUTPUT------------------------------------>POSTROUTING
+(raw->mangle->nat->filter)               (mangle-->nat)
+Jul  5 14:38:59 wen-Default-string kernel: [64365.700752] TRACE: raw:OUTPUT:policy:2 IN= OUT=enp1s0 SRC=192.168.31.75 DST=207.38.70.46 LEN=60 TOS=0x00 PREC=0x00 TTL=64 ID=9195 DF PROTO=TCP SPT=60772 DPT=80 SEQ=2711700657 ACK=0 WINDOW=29200 RES=0x00 SYN URGP=0 OPT (020405B40402080ABC2B5F6B0000000001030307) UID=1000 GID=1000
+Jul  5 14:38:59 wen-Default-string kernel: [64365.700783] TRACE: mangle:OUTPUT:policy:1 IN= OUT=enp1s0 SRC=192.168.31.75 DST=207.38.70.46 LEN=60 TOS=0x00 PREC=0x00 TTL=64 ID=9195 DF PROTO=TCP SPT=60772 DPT=80 SEQ=2711700657 ACK=0 WINDOW=29200 RES=0x00 SYN URGP=0 OPT (020405B40402080ABC2B5F6B0000000001030307) UID=1000 GID=1000
+Jul  5 14:38:59 wen-Default-string kernel: [64365.700797] TRACE: nat:OUTPUT:rule:1 IN= OUT=enp1s0 SRC=192.168.31.75 DST=207.38.70.46 LEN=60 TOS=0x00 PREC=0x00 TTL=64 ID=9195 DF PROTO=TCP SPT=60772 DPT=80 SEQ=2711700657 ACK=0 WINDOW=29200 RES=0x00 SYN URGP=0 OPT (020405B40402080ABC2B5F6B0000000001030307) UID=1000 GID=1000
+Jul  5 14:38:59 wen-Default-string kernel: [64365.700822] TRACE: filter:OUTPUT:policy:1 IN= OUT=enp1s0 SRC=192.168.31.75 DST=127.0.0.1 LEN=60 TOS=0x00 PREC=0x00 TTL=64 ID=9195 DF PROTO=TCP SPT=60772 DPT=1085 SEQ=2711700657 ACK=0 WINDOW=29200 RES=0x00 SYN URGP=0 OPT (020405B40402080ABC2B5F6B0000000001030307) UID=1000 GID=1000
+Jul  5 14:38:59 wen-Default-string kernel: [64365.700834] TRACE: mangle:POSTROUTING:policy:1 IN= OUT=lo SRC=192.168.31.75 DST=127.0.0.1 LEN=60 TOS=0x00 PREC=0x00 TTL=64 ID=9195 DF PROTO=TCP SPT=60772 DPT=1085 SEQ=2711700657 ACK=0 WINDOW=29200 RES=0x00 SYN URGP=0 OPT (020405B40402080ABC2B5F6B0000000001030307) UID=1000 GID=1000
+Jul  5 14:38:59 wen-Default-string kernel: [64365.700846] TRACE: nat:POSTROUTING:policy:1 IN= OUT=lo SRC=192.168.31.75 DST=127.0.0.1 LEN=60 TOS=0x00 PREC=0x00 TTL=64 ID=9195 DF PROTO=TCP SPT=60772 DPT=1085 SEQ=2711700657 ACK=0 WINDOW=29200 RES=0x00 SYN URGP=0 OPT (020405B40402080ABC2B5F6B0000000001030307) UID=1000 GID=1000
+
+###### since out=lo, the packet will be in the lo interface and trigger PREROUTING 
+
+**** ss-redir get the packet from lo
+PREROUTING -> INPUT
+(raw->mangle)  (mangle->filter)
+Jul  5 14:38:59 wen-Default-string kernel: [64365.700882] TRACE: raw:PREROUTING:rule:1 IN=lo OUT= MAC=00:00:00:00:00:00:00:00:00:00:00:00:08:00 SRC=192.168.31.75 DST=127.0.0.1 LEN=60 TOS=0x00 PREC=0x00 TTL=64 ID=9195 DF PROTO=TCP SPT=60772 DPT=1085 SEQ=2711700657 ACK=0 WINDOW=29200 RES=0x00 SYN URGP=0 OPT (020405B40402080ABC2B5F6B0000000001030307)
+Jul  5 14:38:59 wen-Default-string kernel: [64365.700896] TRACE: raw:PREROUTING:policy:2 IN=lo OUT= MAC=00:00:00:00:00:00:00:00:00:00:00:00:08:00 SRC=192.168.31.75 DST=127.0.0.1 LEN=60 TOS=0x00 PREC=0x00 TTL=64 ID=9195 DF PROTO=TCP SPT=60772 DPT=1085 SEQ=2711700657 ACK=0 WINDOW=29200 RES=0x00 SYN URGP=0 OPT (020405B40402080ABC2B5F6B0000000001030307)
+Jul  5 14:38:59 wen-Default-string kernel: [64365.700910] TRACE: mangle:PREROUTING:policy:1 IN=lo OUT= MAC=00:00:00:00:00:00:00:00:00:00:00:00:08:00 SRC=192.168.31.75 DST=127.0.0.1 LEN=60 TOS=0x00 PREC=0x00 TTL=64 ID=9195 DF PROTO=TCP SPT=60772 DPT=1085 SEQ=2711700657 ACK=0 WINDOW=29200 RES=0x00 SYN URGP=0 OPT (020405B40402080ABC2B5F6B0000000001030307)
+Jul  5 14:38:59 wen-Default-string kernel: [64365.700926] TRACE: mangle:INPUT:policy:1 IN=lo OUT= MAC=00:00:00:00:00:00:00:00:00:00:00:00:08:00 SRC=192.168.31.75 DST=127.0.0.1 LEN=60 TOS=0x00 PREC=0x00 TTL=64 ID=9195 DF PROTO=TCP SPT=60772 DPT=1085 SEQ=2711700657 ACK=0 WINDOW=29200 RES=0x00 SYN URGP=0 OPT (020405B40402080ABC2B5F6B0000000001030307)
+Jul  5 14:38:59 wen-Default-string kernel: [64365.700939] TRACE: filter:INPUT:policy:1 IN=lo OUT= MAC=00:00:00:00:00:00:00:00:00:00:00:00:08:00 SRC=192.168.31.75 DST=127.0.0.1 LEN=60 TOS=0x00 PREC=0x00 TTL=64 ID=9195 DF PROTO=TCP SPT=60772 DPT=1085 SEQ=2711700657 ACK=0 WINDOW=29200 RES=0x00 SYN URGP=0 OPT (020405B40402080ABC2B5F6B0000000001030307)
+
+#######finally, INPUT in filter ACCEPT, then the packet can get the server port 1085, then server reply with ACK
+like IN= OUT=lo SRC=127.0.0.1 SPT=1085, DST=192.168.31.75, DPORT=60772, ACK=62711700657 
+and coverted by dnat with SRC=207.38.70.46 SPT=80 DST=192.168.31.75, DPORT=60772, ACK=62711700657
+**** get the packet generated by ss-redir
+Jul  5 14:38:59 wen-Default-string kernel: [64365.700991] TRACE: raw:PREROUTING:policy:2 IN=lo OUT= MAC=00:00:00:00:00:00:00:00:00:00:00:00:08:00 SRC=207.38.70.46 DST=192.168.31.75 LEN=60 TOS=0x00 PREC=0x00 TTL=64 ID=0 DF PROTO=TCP SPT=80 DPT=60772 SEQ=1918215521 ACK=2711700658 WINDOW=43690 RES=0x00 ACK SYN URGP=0 OPT (0204FFD70402080A79B9D5F6BC2B5F6B01030307)
+Jul  5 14:38:59 wen-Default-string kernel: [64365.701006] TRACE: mangle:PREROUTING:policy:1 IN=lo OUT= MAC=00:00:00:00:00:00:00:00:00:00:00:00:08:00 SRC=207.38.70.46 DST=192.168.31.75 LEN=60 TOS=0x00 PREC=0x00 TTL=64 ID=0 DF PROTO=TCP SPT=80 DPT=60772 SEQ=1918215521 ACK=2711700658 WINDOW=43690 RES=0x00 ACK SYN URGP=0 OPT (0204FFD70402080A79B9D5F6BC2B5F6B01030307)
+Jul  5 14:38:59 wen-Default-string kernel: [64365.701020] TRACE: mangle:INPUT:policy:1 IN=lo OUT= MAC=00:00:00:00:00:00:00:00:00:00:00:00:08:00 SRC=207.38.70.46 DST=192.168.31.75 LEN=60 TOS=0x00 PREC=0x00 TTL=64 ID=0 DF PROTO=TCP SPT=80 DPT=60772 SEQ=1918215521 ACK=2711700658 WINDOW=43690 RES=0x00 ACK SYN URGP=0 OPT (0204FFD70402080A79B9D5F6BC2B5F6B01030307)
+Jul  5 14:38:59 wen-Default-string kernel: [64365.701034] TRACE: filter:INPUT:policy:1 IN=lo OUT= MAC=00:00:00:00:00:00:00:00:00:00:00:00:08:00 SRC=207.38.70.46 DST=192.168.31.75 LEN=60 TOS=0x00 PREC=0x00 TTL=64 ID=0 DF PROTO=TCP SPT=80 DPT=60772 SEQ=1918215521 ACK=2711700658 WINDOW=43690 RES=0x00 ACK SYN URGP=0 OPT (0204FFD70402080A79B9D5F6BC2B5F6B01030307)
+
+
+
 
 *** rules order within a specific chain
 **** rules order in a chain generally
@@ -238,34 +390,256 @@ but ACCEPT(all other rules in this chain will be ignored),
     DROP(all other rules in this chain,other chains/tables will be ignored) 
     <user-defined chain name>  (jump to this sub chain)
 
-** IPTables and Connection Tracking
+**  Extensions to iptables: New Matches
+iptables is extensible, meaning that both the kernel and the iptables tool can be extended to provide new features.
 
-We introduced the connection tracking system implemented on top of the netfilter framework when we discussed the raw table and connection state matching criteria. Connection tracking allows iptables to make decisions about packets viewed in the context of an ongoing connection. The connection tracking system provides iptables with the functionality it needs to perform "stateful" operations.
+Some of these extensions are standard, and other are more exotic. Extensions can be made by other people and distributed separately for niche users.
 
-Connection tracking is applied very soon after packets enter the networking stack. The raw table chains and some basic sanity checks are the only logic that is performed on packets prior to associating the packets with a connection.
+Kernel extensions normally live in the kernel module subdirectory, such as /lib/modules/2.4.0-test10/kernel/net/ipv4/netfilter. They are demand loaded if your kernel was compiled with CONFIG_KMOD set, so you should not need to manually insert them.
 
-The system checks each packet against a set of existing connections. It will update the state of the connection in its store if needed and will add new connections to the system when necessary. Packets that have been marked with the NOTRACK target in one of the raw chains will bypass the connection tracking routines.
+Extensions to the iptables program are shared libraries which usually live in /usr/local/lib/iptables/, although a distribution would put them in /lib/iptables or /usr/lib/iptables.
 
-** Available States
+Extensions come in two types: new targets, and new matches (we'll talk about new targets a little later). Some protocols automatically offer new tests: currently these are TCP, UDP and ICMP as shown below.
+
+For these you will be able to specify the new tests on the command line after the `-p' option, which will load the extension. For explicit new tests, use the `-m' option to load the extension, after which the extended options will be available.
+
+To get help on an extension, use the option to load it (`-p', `-j' or `-m') followed by `-h' or `--help', eg:
+
+    # iptables -p tcp --help
+    #
+
+
+
+*** IPTables and Connection Tracking
+
+We introduced the connection tracking system implemented on top of the netfilter framework when we discussed the raw table and connection state matching criteria.
+Connection tracking allows iptables to make decisions about packets viewed in the context of an ongoing connection. The connection tracking system provides iptables
+with the functionality it needs to perform "stateful" operations.
+
+Connection tracking is applied very soon after packets enter the networking stack. The raw table chains and some basic sanity checks are the only logic that is
+performed on packets prior to associating the packets with a connection.
+
+The system checks each packet against a set of existing connections. It will update the state of the connection in its store if needed and will add new 
+connections to the system when necessary. Packets that have been marked with the NOTRACK target in one of the raw chains will bypass the connection tracking routines.
+
+
+*** The State Match of conntrack
+
+The most useful match criterion is supplied by the `state' extension, which interprets the connection-tracking analysis of the `ip_conntrack' module. This is highly recommended.
+
+Specifying `-m state' allows an additional `--state' option, which is a comma-separated list of states to match (the `!' flag indicates not to match those states). These states are:
+
+NEW
+
+    A packet which creates a new connection.
+ESTABLISHED
+
+    A packet which belongs to an existing connection (i.e., a reply packet, or outgoing packet on a connection which has seen replies).
+RELATED
+
+    A packet which is related to, but not part of, an existing connection, such as an ICMP error, or (with the FTP module inserted), a packet establishing an ftp data connection.
+INVALID
+
+    A packet which could not be identified for some reason: this includes running out of memory and ICMP errors which don't correspond to any known connection. 
+    Generally these packets should be dropped.
+
+An example of this powerful match extension would be:
+
+    # iptables -A FORWARD -i ppp0 -m state ! --state NEW -j DROP
+
+
+**** Available States
 
 Connections tracked by the connection tracking system will be in one of the following states:
 
-    NEW: When a packet arrives that is not associated with an existing connection, but is not invalid as a first packet, a new connection will be added to the system with this label. This happens for both connection-aware protocols like TCP and for connectionless protocols like UDP.
-    ESTABLISHED: A connection is changed from NEW to ESTABLISHED when it receives a valid response in the opposite direction. For TCP connections, this means a SYN/ACK and for UDP and ICMP traffic, this means a response where source and destination of the original packet are switched.
-    RELATED: Packets that are not part of an existing connection, but are associated with a connection already in the system are labeled RELATED. This could mean a helper connection, as is the case with FTP data transmission connections, or it could be ICMP responses to connection attempts by other protocols.
-    INVALID: Packets can be marked INVALID if they are not associated with an existing connection and aren't appropriate for opening a new connection, if they cannot be identified, or if they aren't routable among other reasons.
+    NEW: When a packet arrives that is not associated with an existing connection, but is not invalid as a first packet, a new connection will be added to the system with this label.
+          This happens for both connection-aware protocols like TCP and for connectionless protocols like UDP.
+    ESTABLISHED: A connection is changed from NEW to ESTABLISHED when it receives a valid response in the opposite direction. For TCP connections, 
+                 this means a SYN/ACK and for UDP and ICMP traffic, this means a response where source and destination of the original packet are switched.
+    RELATED: Packets that are not part of an existing connection, but are associated with a connection already in the system are labeled RELATED. This could mean a 
+              helper connection, as is the case with FTP data transmission connections, or it could be ICMP responses to connection attempts by other protocols.
+    INVALID: Packets can be marked INVALID if they are not associated with an existing connection and aren't appropriate for opening a new connection, if they
+             cannot be identified, or if they aren't routable among other reasons.
     UNTRACKED: Packets can be marked as UNTRACKED if they've been targeted in a raw table chain to bypass tracking.
-    SNAT: A virtual state set when the source address has been altered by NAT operations. This is used by the connection tracking system so that it knows to change the source addresses back in reply packets.
-    DNAT: A virtual state set when the destination address has been altered by NAT operations. This is used by the connection tracking system so that it knows to change the destination address back when routing reply packets.
+    SNAT: A virtual state set when the source address has been altered by NAT operations. This is used by the connection tracking system so that it knows to 
+          change the source addresses back in reply packets.
+    DNAT: A virtual state set when the destination address has been altered by NAT operations. This is used by the connection tracking system so that it knows to 
+          change the destination address back when routing reply packets.
 
-The states tracked in the connection tracking system allow administrators to craft rules that target specific points in a connection's lifetime. This provides the functionality needed for more thorough and secure rules.
+The states tracked in the connection tracking system allow administrators to craft rules that target specific points in a connection's lifetime. This provides the
+functionality needed for more thorough and secure rules.
+
+
+
+
+*** TCP Extensions
+
+The TCP extensions are automatically loaded if `-p tcp' is specified. It provides the following options (none of which match fragments).
+
+--tcp-flags
+
+    Followed by an optional `!', then two strings of flags, allows you to filter on specific TCP flags. The first string of flags is the mask: a list of flags you want to examine. The second string of flags tells which one(s) should be set. For example,
+
+        # iptables -A INPUT --protocol tcp --tcp-flags ALL SYN,ACK -j DROP
+
+    This indicates that all flags should be examined (`ALL' is synonymous with `SYN,ACK,FIN,RST,URG,PSH'), but only SYN and ACK should be set. There is also an argument `NONE' meaning no flags.
+--syn
+
+    Optionally preceded by a `!', this is shorthand for `--tcp-flags SYN,RST,ACK SYN'.
+--source-port
+
+    followed by an optional `!', then either a single TCP port, or a range of ports. Ports can be port names, as listed in /etc/services, or numeric. Ranges are either two port names separated by a `:', or (to specify greater than or equal to a given port) a port with a `:' appended, or (to specify less than or equal to a given port), a port preceded by a `:'.
+--sport
+
+    is synonymous with `--source-port'.
+--destination-port
+
+    and
+--dport
+
+    are the same as above, only they specify the destination, rather than source, port to match.
+--tcp-option
+
+    followed by an optional `!' and a number, matches a packet with a TCP option equaling that number. A packet which does not have a complete TCP header is dropped automatically if an attempt is made to examine its TCP options.
+
+**** An Explanation of TCP Flags
+
+It is sometimes useful to allow TCP connections in one direction, but not the other. For example, you might want to allow connections to an external WWW server, but not connections from that server.
+
+The naive approach would be to block TCP packets coming from the server. Unfortunately, TCP connections require packets going in both directions to work at all.
+
+The solution is to block only the packets used to request a connection. These packets are called SYN packets (ok, technically they're packets with the SYN flag set, and the RST and ACK flags cleared, but we call them SYN packets for short). By disallowing only these packets, we can stop attempted connections in their tracks.
+
+The `--syn' flag is used for this: it is only valid for rules which specify TCP as their protocol. For example, to specify TCP connection attempts from 192.168.1.1:
+
+    -p TCP -s 192.168.1.1 --syn
+
+This flag can be inverted by preceding it with a `!', which means every packet other than the connection initiation.
+
+*** UDP Extensions
+
+These extensions are automatically loaded if `-p udp' is specified. It provides the options `--source-port', `--sport', `--destination-port' and `--dport' as detailed for TCP above.
+ICMP Extensions
+
+This extension is automatically loaded if `-p icmp' is specified. It provides only one new option:
+
+--icmp-type
+
+    followed by an optional `!', then either an icmp type name (eg `host-unreachable'), or a numeric type (eg. `3'), or a numeric type and code separated by a `/' (eg. `3/3'). A list of available icmp type names is given using `-p icmp --help'.
+
+*** Other Match Extensions
+
+The other extensions in the netfilter package are demonstration extensions, which (if installed) can be invoked with the `-m' option.
+
+**** mac
+
+    This module must be explicitly specified with `-m mac' or `--match mac'. It is used for matching incoming packet's source Ethernet (MAC) address, and thus only useful for packets traversing the PREROUTING and INPUT chains. It provides only one option:
+
+    --mac-source
+
+        followed by an optional `!', then an ethernet address in colon-separated hexbyte notation, eg `--mac-source 00:60:08:91:CC:B7'.
+
+**** limit
+
+    This module must be explicitly specified with `-m limit' or `--match limit'. It is used to restrict the rate of matches, such as for suppressing log messages. It will only match a given number of times per second (by default 3 matches per hour, with a burst of 5). It takes two optional arguments:
+
+    --limit
+
+        followed by a number; specifies the maximum average number of matches to allow per second. The number can specify units explicitly, using `/second', `/minute', `/hour' or `/day', or parts of them (so `5/second' is the same as `5/s').
+    --limit-burst
+
+        followed by a number, indicating the maximum burst before the above limit kicks in.
+
+    This match can often be used with the LOG target to do rate-limited logging. To understand how it works, let's look at the following rule, which logs packets with the default limit parameters:
+
+        # iptables -A FORWARD -m limit -j LOG
+
+    The first time this rule is reached, the packet will be logged; in fact, since the default burst is 5, the first five packets will be logged. After this, it will be twenty minutes before a packet will be logged from this rule, regardless of how many packets reach it. Also, every twenty minutes which passes without matching a packet, one of the burst will be regained; if no packets hit the rule for 100 minutes, the burst will be fully recharged; back where we started.
+
+    Note: you cannot currently create a rule with a recharge time greater than about 59 hours, so if you set an average rate of one per day, then your burst rate must be less than 3.
+
+    You can also use this module to avoid various denial of service attacks (DoS) with a faster rate to increase responsiveness.
+
+    Syn-flood protection:
+
+        # iptables -A FORWARD -p tcp --syn -m limit --limit 1/s -j ACCEPT
+
+    Furtive port scanner:
+
+        # iptables -A FORWARD -p tcp --tcp-flags SYN,ACK,FIN,RST RST -m limit --limit 1/s -j ACCEPT
+
+    Ping of death:
+
+        # iptables -A FORWARD -p icmp --icmp-type echo-request -m limit --limit 1/s -j ACCEPT
+
+    This module works like a "hysteresis door", as shown in the graph below.
+
+               rate (pkt/s)  
+                     ^        .---.
+                     |       / DoS \
+                     |      /       \
+        Edge of DoS -|.....:.........\.......................
+         = (limit *  |    /:          \
+        limit-burst) |   / :           \         .-.
+                     |  /  :            \       /   \
+                     | /   :             \     /     \
+        End of DoS  -|/....:..............:.../.......\..../.
+         = limit     |     :              :`-'         `--'
+        -------------+-----+--------------+------------------> time (s)
+           LOGIC =>  Match | Didn't Match |    Match
+
+    Say we say match one packet per second with a five packet burst, but packets start coming in at four per second, for three seconds, then start again in another three seconds.
+
+
+
+                <--Flood 1-->           <---Flood 2--->
+
+        Total  ^                   Line  __--      YNNN
+        Packets|               Rate  __--      YNNN
+               |            mum  __--      YNNN
+            10 |        Maxi __--         Y
+               |         __--            Y
+               |     __--               Y
+               | __--    YNNN           
+               |-    YNNN
+             5 |    Y    
+               |   Y                                Key:  Y -> Matched Rule
+               |  Y                                       N -> Didn't Match Rule
+               | Y
+               |Y 
+             0 +-------------------------------------------------->  Time (seconds)
+                0   1   2   3   4   5   6   7   8   9  10  11  12
+
+    You can see that the first five packets are allowed to exceed the one packet per second, then the limiting kicks in. If there is a pause, another burst is allowed but not past the maximum rate set by the rule (1 packet per second after the burst is used).
+*** owner
+
+    This module attempts to match various characteristics of the packet creator, for locally-generated packets. It is only valid in the OUTPUT chain, and even then some packets (such as ICMP ping responses) may have no owner, and hence never match.
+
+    --uid-owner userid
+
+        Matches if the packet was created by a process with the given effective (numerical) user id.
+    --gid-owner groupid
+
+        Matches if the packet was created by a process with the given effective (numerical) group id.
+    --pid-owner processid
+
+        Matches if the packet was created by a process with the given process id.
+    --sid-owner sessionid
+
+        Matches if the packet was created by a process in the given session group.
+
+*** unclean
+
+    This experimental module must be explicitly specified with `-m unclean or `--match unclean'. It does various random sanity checks on packets. This module has not been audited, and should not be used as a security device (it probably makes things worse, since it may well have bugs itself). It provides no options.
+
+
 
 * iptables flag some sort of packets
 ** capture packets with some specific address attribute
         Capture tcp packets from/to port 80 
         # iptables -A INPUT -p tcp -m tcp --sport 80 -j NFLOG --nflog-group 40
         # iptables -A OUTPUT -p tcp -m tcp --dport 80 -j NFLOG --nflog-group 40
-        # dumpcap -i nflog:40 -w port-80.pcap
+        # tmpdump -i nflog:40 -w port-80.pcap
 
 **  capture packets form/to a program
 
@@ -288,6 +662,63 @@ iptables -A OUTPUT -m owner --pid-owner 13 -j CONNMARK --set-mark 2
      iptables -A INPUT -m connmark --mark 33 -j NFLOG --nflog-group 40 
      iptables -A OUTPUT -m connmark --mark 2 -j NFLOG --nflog-group 40 
          dumpcap -i nflog:40 -w port-80.pcap
+
+
+
+**  TARGET LOG example
+ iptables -L   --line-number -t  nat
+31   RETURN     all  --  anywhere             240.0.0.0/4
+32   LOG        tcp  --  anywhere             anywhere             LOG level warning prefix "rule fore"
+33   RETURN     all  --  anywhere             anywhere             match-set chnroute dst
+34   LOG        tcp  --  anywhere             anywhere             LOG level warning prefix "rule after"
+35   REDIRECT   tcp  --  anywhere             anywhere             redir ports 1085
+
+### insert the LOG rule after 33
+root@wen-Default-string:/home/wen# iptables -t nat -I SHADOWSOCKS 33  -p tcp  -j LOG --log-prefix "rule after"
+
+ iptables -L  -v  --line-number -t  nat
+Chain SHADOWSOCKS (2 references)
+ pkts bytes target     prot opt in     out     source               destination
+    1    60 RETURN     all  --  any    any     anywhere             li1703-142.members.linode.com
+   1    60 RETURN     all  --  any    any     anywhere             api.dynu.com
+    0     0 RETURN     all  --  any    any     anywhere             api.dynu.com
+    0     0 RETURN     all  --  any    any     anywhere             api.dynu.com
+   0     0 RETURN     all  --  any    any     anywhere             240.0.0.0/4
+   61  3660 LOG        tcp  --  any    any     anywhere             anywhere             LOG level warning prefix "rule fore"
+    4   240 RETURN     all  --  any    any     anywhere             anywhere             match-set chnroute dst
+   48  2880 LOG        tcp  --  any    any     anywhere             anywhere             LOG level warning prefix "rule after"
+  121  7298 REDIRECT   tcp  --  any    any     anywhere             anywhere             redir ports 1085
+
+curl 172.217.160.68 #####google.com
+root@wen-Default-string:/home/wen/ruijian_cocimg# grep "172\.217\.160\.68"  /var/log/syslog
+Jul  2 14:15:01 wen-Default-string kernel: [316674.936638] rule foreIN= OUT=enp1s0 SRC=192.168.31.75 DST=172.217.160.68 LEN=60 TOS=0x00 PREC=0x00 TTL=64 ID=61558 DF PROTO=TCP SPT=59122 DPT=8
+Jul  2 14:24:52 wen-Default-string kernel: [317265.612122] rule foreIN= OUT=enp1s0 SRC=192.168.31.75 DST=172.217.160.68 LEN=60 TOS=0x00 PREC=0x00 TTL=64 ID=27926 DF PROTO=TCP SPT=59740 DPT=8
+Jul  2 14:24:52 wen-Default-string kernel: [317265.612142] rule afterIN= OUT=enp1s0 SRC=192.168.31.75 DST=172.217.160.68 LEN=60 TOS=0x00 PREC=0x00 TTL=64 ID=27926 DF PROTO=TCP SPT=59740 DPT=
+
+google ip wil reach to the next rule of REDIRECT to 1085
+
+curl 182.140.245.49#####taobao.com
+root@wen-Default-string:/home/wen/ruijian_cocimg# grep "182\.140\.245\.49"  /var/log/syslog
+Jul  2 14:25:04 wen-Default-string kernel: [317277.679435] rule foreIN= OUT=enp1s0 SRC=192.168.31.75 DST=182.140.245.49 LEN=60 TOS=0x00 PREC=0x00 TTL=64 ID=61086 DF PROTO=TCP SPT=38608 DPT=8
+
+taobao ip will only reach to match-set chnroute dst
+
+
+** TARGET TRACE example
+sudo iptables -t raw -A PREROUTING -p tcp --dport 25 -j TRACE
+sudo iptables -t raw -A OUTPUT -p tcp --dport 25 -j TRACE
+modprobe ipt_LOG
+modprobe nf_log_ipv4
+sysctl net.netfilter.nf_log.2=nf_log_ipv4
+
+/var/log/syslog
+will show the packet firstly from raw table PREROUTING:
+----------------------------------------------
+Jul  4 16:53:34 wen-Default-string kernel: [498977.349233] TRACE: mangle:PREROUTING:policy:1 IN=enp1s0 OUT= MAC=00:e0:4c:68:27:62:f0:b4:29:d7:c3:c6:08:00 SRC=101.204.228.187 DST=192.168.31.75 LEN=80 TOS=0x00 PREC=0x00 TTL=50 ID=11478 PROTO=TCP SPT=16337 DPT=22 SEQ=2610936745 ACK=4213764086 WINDOW=65535 RES=0x00 ACK PSH URGP=0 OPT (0101080AE0639FA0598E5567)
+Jul  4 16:53:34 wen-Default-string kernel: [498977.349317] TRACE: mangle:INPUT:policy:1 IN=enp1s0 OUT= MAC=00:e0:4c:68:27:62:f0:b4:29:d7:c3:c6:08:00 SRC=101.204.228.187 DST=192.168.31.75 LEN=80 TOS=0x00 PREC=0x00 TTL=50 ID=11478 PROTO=TCP SPT=16337 DPT=22 SEQ=2610936745 ACK=4213764086 WINDOW=65535 RES=0x00 ACK PSH URGP=0 OPT (0101080AE0639FA0598E5567) UID=0 GID=0
+Jul  4 16:53:34 wen-Default-string kernel: [498977.349388] TRACE: filter:INPUT:policy:1 IN=enp1s0 OUT= MAC=00:e0:4c:68:27:62:f0:b4:29:d7:c3:c6:08:00 SRC=101.204.228.187 DST=192.168.31.75 LEN=80 TOS=0x00 PREC=0x00 TTL=50 ID=11478 PROTO=TCP SPT=16337 DPT=22 SEQ=2610936745 ACK=4213764086 WINDOW=65535 RES=0x00 ACK PSH URGP=0 OPT (0101080AE0639FA0598E5567) UID=0 GID=0
+-------------------------------------
+
 
 * how to configure a linux server as a router
 if the destination ip address is not the local system, then it will through
@@ -464,7 +895,7 @@ id -u proxy
 
 * linux new kernel support TRACE in /var/log/kern.log or /var/log/syslog
  modprobe nf_log_ipv4 
- sysctl net.netfilter.nf_log.2=nf_log_ipv4 
+ sysctl net.netilter.nf_log.2=nf_log_ipv4 f
 
 * Iptables further reference
 7. Using iptables
@@ -592,207 +1023,6 @@ As an example, the following rule will drop any fragments going to 192.168.1.1:
 
     # iptables -A OUTPUT -f -d 192.168.1.1 -j DROP
     #
-
-Extensions to iptables: New Matches
-
-iptables is extensible, meaning that both the kernel and the iptables tool can be extended to provide new features.
-
-Some of these extensions are standard, and other are more exotic. Extensions can be made by other people and distributed separately for niche users.
-
-Kernel extensions normally live in the kernel module subdirectory, such as /lib/modules/2.4.0-test10/kernel/net/ipv4/netfilter. They are demand loaded if your kernel was compiled with CONFIG_KMOD set, so you should not need to manually insert them.
-
-Extensions to the iptables program are shared libraries which usually live in /usr/local/lib/iptables/, although a distribution would put them in /lib/iptables or /usr/lib/iptables.
-
-Extensions come in two types: new targets, and new matches (we'll talk about new targets a little later). Some protocols automatically offer new tests: currently these are TCP, UDP and ICMP as shown below.
-
-For these you will be able to specify the new tests on the command line after the `-p' option, which will load the extension. For explicit new tests, use the `-m' option to load the extension, after which the extended options will be available.
-
-To get help on an extension, use the option to load it (`-p', `-j' or `-m') followed by `-h' or `--help', eg:
-
-    # iptables -p tcp --help
-    #
-
-TCP Extensions
-
-The TCP extensions are automatically loaded if `-p tcp' is specified. It provides the following options (none of which match fragments).
-
---tcp-flags
-
-    Followed by an optional `!', then two strings of flags, allows you to filter on specific TCP flags. The first string of flags is the mask: a list of flags you want to examine. The second string of flags tells which one(s) should be set. For example,
-
-        # iptables -A INPUT --protocol tcp --tcp-flags ALL SYN,ACK -j DROP
-
-    This indicates that all flags should be examined (`ALL' is synonymous with `SYN,ACK,FIN,RST,URG,PSH'), but only SYN and ACK should be set. There is also an argument `NONE' meaning no flags.
---syn
-
-    Optionally preceded by a `!', this is shorthand for `--tcp-flags SYN,RST,ACK SYN'.
---source-port
-
-    followed by an optional `!', then either a single TCP port, or a range of ports. Ports can be port names, as listed in /etc/services, or numeric. Ranges are either two port names separated by a `:', or (to specify greater than or equal to a given port) a port with a `:' appended, or (to specify less than or equal to a given port), a port preceded by a `:'.
---sport
-
-    is synonymous with `--source-port'.
---destination-port
-
-    and
---dport
-
-    are the same as above, only they specify the destination, rather than source, port to match.
---tcp-option
-
-    followed by an optional `!' and a number, matches a packet with a TCP option equaling that number. A packet which does not have a complete TCP header is dropped automatically if an attempt is made to examine its TCP options.
-
-An Explanation of TCP Flags
-
-It is sometimes useful to allow TCP connections in one direction, but not the other. For example, you might want to allow connections to an external WWW server, but not connections from that server.
-
-The naive approach would be to block TCP packets coming from the server. Unfortunately, TCP connections require packets going in both directions to work at all.
-
-The solution is to block only the packets used to request a connection. These packets are called SYN packets (ok, technically they're packets with the SYN flag set, and the RST and ACK flags cleared, but we call them SYN packets for short). By disallowing only these packets, we can stop attempted connections in their tracks.
-
-The `--syn' flag is used for this: it is only valid for rules which specify TCP as their protocol. For example, to specify TCP connection attempts from 192.168.1.1:
-
-    -p TCP -s 192.168.1.1 --syn
-
-This flag can be inverted by preceding it with a `!', which means every packet other than the connection initiation.
-UDP Extensions
-
-These extensions are automatically loaded if `-p udp' is specified. It provides the options `--source-port', `--sport', `--destination-port' and `--dport' as detailed for TCP above.
-ICMP Extensions
-
-This extension is automatically loaded if `-p icmp' is specified. It provides only one new option:
-
---icmp-type
-
-    followed by an optional `!', then either an icmp type name (eg `host-unreachable'), or a numeric type (eg. `3'), or a numeric type and code separated by a `/' (eg. `3/3'). A list of available icmp type names is given using `-p icmp --help'.
-
-Other Match Extensions
-
-The other extensions in the netfilter package are demonstration extensions, which (if installed) can be invoked with the `-m' option.
-
-mac
-
-    This module must be explicitly specified with `-m mac' or `--match mac'. It is used for matching incoming packet's source Ethernet (MAC) address, and thus only useful for packets traversing the PREROUTING and INPUT chains. It provides only one option:
-
-    --mac-source
-
-        followed by an optional `!', then an ethernet address in colon-separated hexbyte notation, eg `--mac-source 00:60:08:91:CC:B7'.
-
-limit
-
-    This module must be explicitly specified with `-m limit' or `--match limit'. It is used to restrict the rate of matches, such as for suppressing log messages. It will only match a given number of times per second (by default 3 matches per hour, with a burst of 5). It takes two optional arguments:
-
-    --limit
-
-        followed by a number; specifies the maximum average number of matches to allow per second. The number can specify units explicitly, using `/second', `/minute', `/hour' or `/day', or parts of them (so `5/second' is the same as `5/s').
-    --limit-burst
-
-        followed by a number, indicating the maximum burst before the above limit kicks in.
-
-    This match can often be used with the LOG target to do rate-limited logging. To understand how it works, let's look at the following rule, which logs packets with the default limit parameters:
-
-        # iptables -A FORWARD -m limit -j LOG
-
-    The first time this rule is reached, the packet will be logged; in fact, since the default burst is 5, the first five packets will be logged. After this, it will be twenty minutes before a packet will be logged from this rule, regardless of how many packets reach it. Also, every twenty minutes which passes without matching a packet, one of the burst will be regained; if no packets hit the rule for 100 minutes, the burst will be fully recharged; back where we started.
-
-    Note: you cannot currently create a rule with a recharge time greater than about 59 hours, so if you set an average rate of one per day, then your burst rate must be less than 3.
-
-    You can also use this module to avoid various denial of service attacks (DoS) with a faster rate to increase responsiveness.
-
-    Syn-flood protection:
-
-        # iptables -A FORWARD -p tcp --syn -m limit --limit 1/s -j ACCEPT
-
-    Furtive port scanner:
-
-        # iptables -A FORWARD -p tcp --tcp-flags SYN,ACK,FIN,RST RST -m limit --limit 1/s -j ACCEPT
-
-    Ping of death:
-
-        # iptables -A FORWARD -p icmp --icmp-type echo-request -m limit --limit 1/s -j ACCEPT
-
-    This module works like a "hysteresis door", as shown in the graph below.
-
-               rate (pkt/s)  
-                     ^        .---.
-                     |       / DoS \
-                     |      /       \
-        Edge of DoS -|.....:.........\.......................
-         = (limit *  |    /:          \
-        limit-burst) |   / :           \         .-.
-                     |  /  :            \       /   \
-                     | /   :             \     /     \
-        End of DoS  -|/....:..............:.../.......\..../.
-         = limit     |     :              :`-'         `--'
-        -------------+-----+--------------+------------------> time (s)
-           LOGIC =>  Match | Didn't Match |    Match
-
-    Say we say match one packet per second with a five packet burst, but packets start coming in at four per second, for three seconds, then start again in another three seconds.
-
-
-
-                <--Flood 1-->           <---Flood 2--->
-
-        Total  ^                   Line  __--      YNNN
-        Packets|               Rate  __--      YNNN
-               |            mum  __--      YNNN
-            10 |        Maxi __--         Y
-               |         __--            Y
-               |     __--               Y
-               | __--    YNNN           
-               |-    YNNN
-             5 |    Y    
-               |   Y                                Key:  Y -> Matched Rule
-               |  Y                                       N -> Didn't Match Rule
-               | Y
-               |Y 
-             0 +-------------------------------------------------->  Time (seconds)
-                0   1   2   3   4   5   6   7   8   9  10  11  12
-
-    You can see that the first five packets are allowed to exceed the one packet per second, then the limiting kicks in. If there is a pause, another burst is allowed but not past the maximum rate set by the rule (1 packet per second after the burst is used).
-owner
-
-    This module attempts to match various characteristics of the packet creator, for locally-generated packets. It is only valid in the OUTPUT chain, and even then some packets (such as ICMP ping responses) may have no owner, and hence never match.
-
-    --uid-owner userid
-
-        Matches if the packet was created by a process with the given effective (numerical) user id.
-    --gid-owner groupid
-
-        Matches if the packet was created by a process with the given effective (numerical) group id.
-    --pid-owner processid
-
-        Matches if the packet was created by a process with the given process id.
-    --sid-owner sessionid
-
-        Matches if the packet was created by a process in the given session group.
-
-unclean
-
-    This experimental module must be explicitly specified with `-m unclean or `--match unclean'. It does various random sanity checks on packets. This module has not been audited, and should not be used as a security device (it probably makes things worse, since it may well have bugs itself). It provides no options.
-
-The State Match
-
-The most useful match criterion is supplied by the `state' extension, which interprets the connection-tracking analysis of the `ip_conntrack' module. This is highly recommended.
-
-Specifying `-m state' allows an additional `--state' option, which is a comma-separated list of states to match (the `!' flag indicates not to match those states). These states are:
-
-NEW
-
-    A packet which creates a new connection.
-ESTABLISHED
-
-    A packet which belongs to an existing connection (i.e., a reply packet, or outgoing packet on a connection which has seen replies).
-RELATED
-
-    A packet which is related to, but not part of, an existing connection, such as an ICMP error, or (with the FTP module inserted), a packet establishing an ftp data connection.
-INVALID
-
-    A packet which could not be identified for some reason: this includes running out of memory and ICMP errors which don't correspond to any known connection. Generally these packets should be dropped.
-
-An example of this powerful match extension would be:
-
-    # iptables -A FORWARD -i ppp0 -m state ! --state NEW -j DROP
 
 7.4 Target Specifications
 
@@ -955,4 +1185,29 @@ The policy can be either ACCEPT or DROP, for example:
     #
 
 
+
+* tcpdump to capture packets generated recently
+** capture tcp flags with Sync and Final
+in raspberry, 
+216.58.194.164 is www.google.com
+it will be dnat to redirect to 1085
+/usr/bin/ss-redir -s us0.0bad.com -p 31856 -l 1085 ####(us0.0bad.com)45.79.93.169.31856
+
+curl 216.58.194.164
+
+root@wen-Default-string:/home/wen# tcpdump -i any -n 'tcp[tcpflags] & (tcp-syn|tcp-fin) != 0'
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on any, link-type LINUX_SLL (Linux cooked), capture size 262144 bytes
+15:58:28.296597 IP 192.168.31.75.42606 > 127.0.0.1.1085: Flags [S], seq 944619112, win 29200, options [mss 1460,sackOK,TS val 1742167111 ecr 0,nop,wscale 7], length 0
+15:58:28.296643 IP 216.58.194.164.80 > 192.168.31.75.42606: Flags [S.], seq 3860745401, ack 944619113, win 43690, options [mss 65495,sackOK,TS val 1378123321 ecr 1742167111,nop,wscale 7], length 0
+15:58:28.296856 IP 192.168.31.75.48540 > 45.79.93.169.31856: Flags [S], seq 3907401065, win 29200, options [mss 1460,sackOK,TS val 2208452572 ecr 0,nop,wscale 7], length 0
+15:58:28.513248 IP 45.79.93.169.31856 > 192.168.31.75.48540: Flags [S.], seq 2870573123, ack 3907401066, win 63443, options [mss 1460,nop,wscale 6,nop,nop,sackOK], length 0
+15:58:28.764522 IP 192.168.31.75.42606 > 127.0.0.1.1085: Flags [F.], seq 944619191, ack 3860745942, win 237, options [nop,nop,TS val 1742167579 ecr 1378123788], length 0
+15:58:28.765153 IP 192.168.31.75.48540 > 45.79.93.169.31856: Flags [F.], seq 102, ack 557, win 237, length 0
+15:58:28.765307 IP 216.58.194.164.80 > 192.168.31.75.42606: Flags [F.], seq 541, ack 80, win 342, options [nop,nop,TS val 1378123789 ecr 1742167579], length 0
+15:58:28.980662 IP 45.79.93.169.31856 > 192.168.31.75.48540: Flags [F.], seq 557, ack 103, win 16407, length 0
+^C
+8 packets captured
+12 packets received by filter
+0 packets dropped by kernel
 
