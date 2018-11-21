@@ -562,7 +562,7 @@ ODU2ODU0-1/8/BP2/1      ODU0-1/8/C3            1:2      ODU0         Bidirection
 
 
 pss160-255!zhiqianh:Linux3.10.0-327.el7.x86_64/vobs/pss/node(zhiqianh-kiwicake)
--> ../tools/imtool/sub/1830-imgen ot.8p20 1 1 1
+-> ../tools/imtool/sub/1831-imgen ot.8p20 1 1 1
 ENTRY: ----------------------- ot.8p20 1 1 1 ---------------------
 ##### INVOKING ../tools/imtool/sub/1830-imgen #####
 
@@ -1411,6 +1411,7 @@ y
 //then use
 -> gt-upload acos integration
 if "cannot Merge" show, then Rebase in the gerrit
+-> gt-pull-rebase acos integration
 submmit in gerrit
 when nightly build is OK, then resolve the MR.
 
@@ -1661,3 +1662,18 @@ Group ID  Interface   Channel     Switch Command   Local Status  Remote Status
 
 21#PSS8_97.133# config aps group 1 wtr 1
 21#PSS8_97.133# config aps group 1 revertive
+
+
+aps/pcc will insert aps/pcc bytes in the hight order odu header of aps/pcc position
+###this will insert opukcsf in the opuk head of low order odu
+ OT11DPM8_insertCSF 3 0
+(<5 1 2 7 3 0>):(09:51:56.827642):(CHyphy5451.cc:7748) CHyphy5451.cc(7748) enableCsfInertion: assert failed!
+(<5 1 2 7 3 0>):(09:51:56.835683):(CHyphy5451.cc:7616) CHyphy5451.cc(7616) sendApsPccCsfClient: assert failed!
+
+
+Config interface 1/9/l1 type otu2
+Config odukxc otuodu2-1/9/l1 odupool-1-1 create odu2 bi
+Config interface 1/9/c6 type 1gbe
+Config odukxc odu2odu0-1/71/1/1 odu0-1/9/c6 create odu0 bi
+
+Config odukxc otuodu2-1/9/l1 odupool-1-1 create odu2 bi

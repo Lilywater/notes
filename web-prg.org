@@ -138,3 +138,11 @@ PHP的empty()函数 判断值为否为空
 若变量不存在则返回 TRUE
 若变量存在且其值为""、0、"0"、NULL、、FALSE、array()、var $var; 以及没有任何属性的对象，则返回 TURE
 若变量存在且值不为""、0、"0"、NULL、、FALSE、array()、var $var; 以及没有任何属性的对象，则返回 FALSE 
+
+
+** run php command line 
+*** command line
+ php-cgi tt_2.php time_start=2018-09-26 time_end=2018-09-28 cbox2%5B%5D=Chengdu cbox%5B%5D=PM25
+
+*** web url 
+http://127.0.0.1:3579/tt_2.php?time_start=2018-09-26&time_end=2018-09-28&cbox2%5B%5D=Chengd

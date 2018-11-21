@@ -489,6 +489,15 @@ files in this dir to check the crontab task of each user
 输入crontab -e 编辑crontab 计划任务，Ubuntu里默认编辑器是Nano，如何使用Nano可以参考Nano 快捷键
 
 # m h dom mon dowcommand
+*     *     *   *    *   command to be executed
+-     -     -   -    -
+|     |     |   |    |
+|     |     |   |    +----- day of week (0-6) (Sunday=0)
+|     |     |   +------- month (1-12)
+|     |     +--------- day of month (1-31)
+|     +----------- hour (0-23)
+|
+
 
 #分         时     日       月       周  执行命令
 *           *       *       *        *

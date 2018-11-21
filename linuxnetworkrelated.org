@@ -2352,6 +2352,16 @@ So, it appears -q would have to be passed to the dnsmasq startup to get a cache 
 
 logs in file /var/log/syslog
 
+*** dnsmasq configuration
+**** dnsmasq upper stream nameserver
+dnsmasq use default /etc/resolv.conf as the upper stream nameserver. 
+use no-resolve and nameserver=ip#port for stream nameserver instead in /etc/dnsmaq.conf .
+
+**** dnsmasq can designate some ip for some upper stream nameserver
+cat /etc/dnsmasq.d/gfwlist.conf   ### it means use 0.0.0.0#5037 as upperstream nameserver for google.com, then add the ip queried from this nameserver to gfwlist####
+server=/.google.com/0.0.0.0#5037
+ipset=/.google.com/gfwlist
+
 
 
 * trace all the file/socket handls opened  by a prog
