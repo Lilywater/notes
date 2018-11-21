@@ -125,6 +125,15 @@ this is \n not your fault
 >>> '<' + word*5 + '>'
 '<HelpAHelpAHelpAHelpAHelpA>'
 
+*** format string
+>>> "My name is %s and i'm %d" % ('john', 12) 
+"My name is john and i'm 12"
+
+>>> "My name is %s"  % 'john'
+'My name is john'
+>>>
+
+
 *** raw string
 >>> hello=r"this is \n not your fault"
 >>> hello
@@ -425,6 +434,31 @@ When the keys are simple strings, it is sometimes easier to specify pairs using 
 >>>
 >>> dict(sape=4139, guido=4127, jack=4098)
 {'sape': 4139, 'jack': 4098, 'guido': 4127}
+
+*** update the dictionary
+
+>>> dict={'Name':'Zara', 'Age':7, }
+>>> dict2={'gender':'female', 'Age':9 }
+>>> dict2.update(dict)  ###update dict2 with dict, if anything confilict use parmameter dict's.
+>>> dict2
+{'gender': 'female', 'Age': 7, 'Name': 'Zara'}
+>>>
+
+*** complicit dictionary
+dictionary's element could be any data structure of python such as list, tuple or another dictionary.
+>>> dic3={('Zara',1) :"Fast fashion" ,('HM',2) :"Also unethic" }
+>>> dic3
+{('Zara', 1): 'Fast fashion', ('HM', 2): 'Also unethic'}
+
+>>> dic4={('Zara',1) :{'a':20,'z':50 },('HM',2) :{'b':30,'y':60 } }
+>>>
+>>> dic4
+{('Zara', 1): {'a': 20, 'z': 50}, ('HM', 2): {'y': 60, 'b': 30}}
+>>> dic4[('Zara', 1)]
+{'a': 20, 'z': 50
+
+
+ print 'res: %s' %'\n'.join([ '%s: %s' % (k, v) for k, v in res.items()])
 
 ** zip two lists into a list with element of tuple
 >>> b=['a','b','c']
@@ -770,10 +804,11 @@ matchObj = re.match( r'(.*) are (.*?) .*', line, re.M|re.I)
         split    Split a string by the occurrences of a pattern.
         compile  Compile a pattern into a RegexObject.
 
+*** compile usage
+ pattern = re.compile('href="((.*).TTCN3.(%s).log)"' % '|'.join(component_names))
+ for m in pattern.finditer(self._read_url(self._basepath)):
+       yield m.group(1), m.group(2), m.group(3)
 
-This function attempts to match RE pattern to string with optional flags.
-
-Here is the syntax for this function:
 
 
 
@@ -1236,4 +1271,76 @@ py_compile.compile("file.py")
 pip install --upgrade setuptools
 pip install 'Someproject==1.4'
 
+
+* advancde function for performance
+** key yield
+
+Simply put, yield gives you a generator. You'd use it where you would normally use a return in a function. As a really contrived example cut and pasted from a prompt...
+
+>>> def get_odd_numbers(i):
+...     return range(1, i, 2)
+... 
+>>> def yield_odd_numbers(i):
+...     for x in range(1, i, 2):
+...             yield x
+... 
+>>> foo = get_odd_numbers(10)
+>>> bar = yield_odd_numbers(10)
+>>> foo
+[1, 3, 5, 7, 9]
+>>> bar
+<generator object yield_odd_numbers at 0x1029c6f50>
+>>> bar.next()
+1
+>>> bar.next()
+3
+>>> bar.next()
+5
+
+*** yield usage
+
+def get_lines(files):
+    for f in files:
+        for line in f:
+            yield line
+
+
+for line in get_lines(files):
+    #process line
+this will avoid too many lines in files and all lines won't be stored in the memory at once, it will only store one line in memory every time.
+
+**** yield a tuple
+def get_lines_row(files):
+    for f in files:
+        row = 0
+        for line in f:
+            row = row + 1
+            yield line, row 
+
+
+for line,row in get_lines_rows(files):
+    #process line
+    print 'line are %s:%d' % (line,row)
+
+** python classes
+python class is similar to C++ class, _init_ is the constructor function, it will be invoked everytime the object hasb been created.
+parameter self is the this pointer in C++ conception
+=======================================================
+class Dog:
+
+    kind = 'canine'         # class variable shared by all instances
+
+    def __init__(self, name): ##constructor function
+        self.name = name    # instance variable unique to each instance
+    
+    def parse(self,...):  ##any other member function should use self as the first parameter
+   
+  def parse(self, num):  ##any other member function should use self as the first parameter
+        num_par = num
+        print "name is %s and %s then %d" % (self.name,self.kind, num_par)
+
+dog=Dog("Ugly")
+dog.parse(5)
+
+====================================================================
 
