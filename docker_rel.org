@@ -1,0 +1,482 @@
+* docker basic usage
+** docker basic concepts
+docker run -it --name=<containername> mysql:5.5 /bin/bash    //run image, the container name parameter could be omitted.
+*** docker image
+image format <imagename>:<version>
+docker image is an image which could be run as a container
+docker image could be pull from docker hub.
+**** docker login
+to login into docker hub--------- https://hub.docker.com/
+
+
+**** docker pull
+docker pull mysql:<version>
+or
+docker pull mysql   ### this will pull the latest mysql version
+
+**** docker search <image_name>
+root@wen-Default-string:/home/wen# docker search mysql
+NAME                                                   DESCRIPTION                                     STARS               OFFICIAL            AUTOMATED
+mysql                                                  MySQL is a widely used, open-source relation…   6851                [OK]
+mysql/mysql-router                                     MySQL Router provides transparent routing be…   4
+jelastic/mysql                                         An image of the MySQL database server mainta…   1
+openzipkin/zipkin-mysql                                Mirror of https://quay.io/repository/openzip…   1
+
+root@wen-Default-string:/home/wen# docker search mqyyy777
+NAME                           DESCRIPTION         STARS               OFFICIAL            AUTOMATED
+mqyyy777/offi_ubu                                  0
+mqyyy777/deb_8_mysql                               0
+mqyyy777/ubu-1604-armv7-root                       0
+
+**** docker images
+show all the images created
+
+root@wen-Default-string:/home/wen# docker images
+REPOSITORY                      TAG                 IMAGE ID            CREATED             SIZE
+mqyyy777/apache2_php7_ubu1804   latest              a6d87831de86        11 days ago         239MB
+mqyyy7777/mysql_aicq            latest              a745c1291fb0        12 days ago         484MB
+mqyyy777/ubuntu_18_tt           latest              29730938da29        2 weeks ago         184MB
+
+**** docker remove the image
+docker rmi <imagename>
+docker rmi -f <imagename>   ##### images used by a stopped container
+root@wen-Default-string:/home/wen# docker rmi mqyyy777/ubuntu_18_tt
+Untagged: mqyyy777/ubuntu_18_tt:latest
+Deleted: sha256:29730938da297176dc67572fa4ca0488ccb9fef453911b77f123c0c628e01f85
+Deleted: sha256:f0ca1a57f1703319a281c4c46d65a8d5c96114b44d76c339cdddd22ce4c5f614
+
+
+*** docker container
+**** docker contaner is an instance whenever the docker image has been run
+docker run --name=mysql8  -it  mysql:5.5 /bin/bash   ###### -t alloca a tty, -i interactive for bash
+
+docker run   mysql:5.5         ##### run    the default entrypoint or the CMD instruction when built in Dockerfile
+docker run --rm    mysql:5.5   ### The --rm flag in docker 1.12 is implemented client side; once the connection with the container is stopped, the client does a rm call to cleanup the container. There are cases where this is known to not work.
+                                 ###Docker 1.13 moves --rm to the daemon, which also allows you to use --rm with "detached" containers 
+
+***** run -d means detach the tty stdin/stdout/sterr 
+docker run --name=mysql8  -itd  mysql:5.5 /bin/bash   ###### -t alloca a tty, -i interactive for bash
+-d always with -it, since -it will allocate the tty for stdin/out/err, or there's no point for it.
+
+***** attach the container
+when a container which allocate the tty for shell, and run -d to detach when running it,
+then you can attach to the container.
+#docker run --name=ubu  -itd  ubuntu:18.04 /bin/bash   ###### -t alloca a tty, -i interactive for bash
+#docker ps 
+CONTAINER ID        IMAGE                     COMMAND                  CREATED             STATUS              PORTS                               NAMES
+45223918b04f        ubuntu:18.04              "/bin/bash"              12 seconds ago      Up 11 seconds                                           ubu
+#docker attach ubu
+--------------------------------
+root@45223918b04f:/# ls
+bin  boot  dev  etc  home  lib  lib64  media  mnt  opt  proc  root  run  sbin  srv  sys  tmp  usr  var
+root@45223918b04f:/# exit
+exit
+----------------------------------
+in this case the container ubu will exit, so ubu contaner won't show in docker ps, this is not like exec -it to run something in container
+root@wen-Default-string:/home/wen/aicq/dock_ssev# docker ps
+CONTAINER ID        IMAGE                     COMMAND                  CREATED             STATUS              PORTS                               NAMES
+
+
+
+
+**** docker ps
+docker ps  #### will list all the container up and running 
+root@wen-Default-string:/home/wen# docker ps
+CONTAINER ID        IMAGE                   COMMAND                  CREATED             STATUS              PORTS                               NAMES
+c1e4e6a66afd        mqyyy777/aicq_sql:1.0   "docker-entrypoint.s…"   5 days ago          Up 5 days           33060/tcp, 0.0.0.0:3307->3306/tcp   mysql8
+
+
+docker ps -a   ### will list all the containter has been running and exited ones also
+root@wen-Default-string:/home/wen# docker ps -a
+CONTAINER ID        IMAGE                   COMMAND                  CREATED             STATUS                        PORTS                               NAMES
+c1e4e6a66afd        mqyyy777/aicq_sql:1.0   "docker-entrypoint.s…"   5 days ago          Up 5 days                    33060/tcp, 0.0.0.0:3307->3306/tcp   mysql8
+c1e4e6a66afe        mqyyy777/aicq_sql:1.0   "docker-entrypoint.s…"   5 days ago          Exited(0) 5 days  agon       33060/tcp, 0.0.0.0:3307->3306/tcp   mysql7
+
+**** docker logs <container>
+docker logs --tail=50 <container id> for the last fifty lin
+when docker run as a daemon, -d parameter,  check docker logs if the daemon start successfully since there's no input/output
+
+
+**** docker start <container-id>
+start a container which has exited or stop 
+ docker start -ai b09b09c81342  //start container
+
+**** docker stop <container-id>
+ docker stop <container id showed in ps>
+
+docker commit [OPTIONS] CONTAINER [REPOSITORY[:TAG]]
+
+**** dcoker exec <container>
+docker exec -it <containerIdOrName>  <cmd>
+
+**** docker rename <container> <new-containername>
+docker run --name=mysql8  -it  mysql:5.5 /bin/bash   ###### -t alloca a tty, -i interactive for bash
+root@wen-Default-string:/home/wen# docker ps -a
+7CONTAINER ID        IMAGE                   COMMAND                  CREATED             STATUS                        PORTS                               NAMES
+7c1e4e6a66afd        mqyyy777/aicq_sql:1.0   "docker-entrypoint.s…"   5 days ago          Up 5 days                    33060/tcp, 0.0.0.0:3307->3306/tcp   mysql8
+
+docker rename mysql8 mysql8_bak
+root@wen-Default-string:/home/wen# docker ps -a
+7CONTAINER ID        IMAGE                   COMMAND                  CREATED             STATUS                        PORTS                               NAMES
+7c1e4e6a66afd        mqyyy777/aicq_sql:1.0   "docker-entrypoint.s…"   5 days ago          Up 5 days                    33060/tcp, 0.0.0.0:3307->3306/tcp   mysql8_bak
+
+
+
+
+**** docker rm <container>
+remove a container which created by docker run....
+remove all exited containers
+ docker rm $(docker ps  -q -f status=exited)
+
+* docker advanced Dockerfile instructions
+Usually, a docker image is built by the Dockerfile which compose a set of INSTRUCTIONS.
+** Docker file instruction
+a typical Dockerfile is similar to this:
+==========================================
+FROM ubuntu:18.04
+
+RUN apt-get update
+ENV DEBIAN_FRONTEND noninteractive
+RUN apt-get install -y --no-install-recommends  apache2 libapache2-mod-php7.2     python-mysqldb python php7.2-mysql
+
+RUN useradd -r wen
+RUN mkdir -p /home/wen/aicq
+COPY wserv.py /home/wen/aicq/
+
+RUN mkdir -p $APACHE_LOCK_DIR
+
+COPY html/ /var/www/html/
+
+EXPOSE 80/tcp
+
+CMD ["/usr/sbin/apache2", "-D",  "FOREGROUND"]
+================================================
+
+docker build -t <tagname> <the directory which Dockerfile in>
+<tagname> could be your own like mqyyy777/image_name:version
+
+docker push  mqyyy777/image_name:version   #### this will push your image to docker hub in network when you docker login with mqyyy777 username
+
+
+
+*** FROM
+FROM ubuntu:<version>
+the docker image which this build will be based on
+
+*** ENV
+set the enviramental variable
+the enviroment scope will take effect all the way down to the whole build process unless it has been set to another value
+----------------------------------
+ENV DEBIAN_FRONTEND noninteractive
+RUN  echo $DEBIAN_FRONTEND
+
+ENV DEBIAN_FRONTEND  interactive
+RUN  echo  $DEBIAN_FRONTEND
+--------------------------------
+*** RUN
+run command like in shell but with ENV sets variable.
+RUN mkdr /tmp/aa
+
+RUN set -x  &&
+   \ apt-get update &&
+   \ apt-get install -y --no-install-recommends ca-certificates wget 
+### this will be run in a shell with && 
+
+*** COPY
+copy files from local dir to directory within image
+**** copy a file to a dir
+COPY wserv.py /home/wen/aicq/
+
+**** copy files in a srcdir to dstdir
+COPY html/ /var/www/html/    #### copy all files under build dir html, to image dir /var/www/html/
+
+*** EXPOSE
+expose the port in the docker container
+EXPOSE <port> [<port>/<protocol>...]
+EXPOSE 12345
+if no protocol specified, tcp port in default, if want expose a udp port instead of tcp port using
+EXPOSE 12345/udp
+EXPOSE 12345/tcp    #### expose both tcp and udp ports 12345
+when run image use -p to publish the host port and mapping the host port to the exposed docker container port
+docker run -p <host-publish-port>:<dockercontiner-exposed-port>/<protocol>
+
+docker run -p 1080:12345/tcp -p 280:12345/udp my_app   ##### publish host port and map the exposed port in docker image
+
+**** PORTS exposed and publish checked in docker ps
+root@wen-Default-string:/home/wen# docker ps
+CONTAINER ID               PORTS                               NAMES
+c1e4e6a66afd                3306/tcp, 0.0.0.0:3307->3306/tcp   mysql8
+                            exposed,  publish->exposed/<protocol>
+
+
+*** VOLUME
+VOLUME [/var/www/html]
+**** VOLUME means container will expose the volume to host, 
+the source will be in ./var/lib/docker/volumes/...(this will be created automatically when run image)
+an anonymous volume will be created 
+when inspect the image
+                "Name": "hashstring........",
+                "Source": "/var/lib/docker/volumes/hashstring/_data",
+                "Destination": "/var/www/html",
+
+**** a named volume
+docker volume create vol-nc
+docker volume ls
+vol-nc will be listed.
+docker run -v vol-nc:/var/www/html
+
+when inspect the image
+                "Name": "vol-nc",
+                "Source": "/var/lib/docker/volumes/vol-nc/_data",
+                "Destination": "/var/www/html",
+
+this means the container /var/www/html will be the master directory when run -v <host-dir>:/var/www/html
+it means the host-dir /mnt/udisk/ncloud_data will be the same content with the container folder. 
+
+****  bind mount a volume
+-v, --volume=[host-src:]container-dest[:<options>]: Bind mount a volume.
+if container-dest is  the volume in container which has been specified in docker build instruction 
+VOLUME [/var/www/html]
+
+/mnt/udisk/ncloud_data is the restored data directory, the content of this directory will be in /var/www/html
+
+docker run --name=ncloud5  -v /mnt/udisk/ncloud_data:/var/www/html    nextcloud  /bin/sh
+     "Mounts": [
+            {
+                "Type": "bind",
+                "Source": "/mnt/udisk/ncloud_data",
+                "Destination": "/var/www/html",
+                "Mode": "",
+                "RW": true,
+                "Propagation": "rprivate"
+            }
+        ],
+ 
+
+**** bind a directory of host , dst in container is not a volume, just a normal dir
+docker run --name=ncloud4  -v /mnt/udisk/ebook:/mnt  -d  nextcloud    ### -v src of the host mount type is bind , dst-contianer dir /mnt is not volume
+here, /mnt/udisk/ebook is the master directory, /mnt in dst will be the exact same content with the source dir in host.
+ "Mounts": [
+            {
+                "Type": "bind",
+                "Source": "/mnt/udisk/ebook",
+                "Destination": "/mnt",
+                "Mode": "",
+                "RW": true,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "volume",
+                "Name": "4c1c7cef30323f3b2ba7abdaea2adc8c0355e783d59a38e9e37f1c7539cafd1f",
+                "Source": "/var/lib/docker/volumes/4c1c7cef30323f3b2ba7abdaea2adc8c0355e783d59a38e9e37f1c7539cafd1f/_data",
+                "Destination": "/var/www/html",
+                "Driver": "local",
+                "Mode": "",
+                "RW": true,
+                "Propagation": ""
+            }
+**** volume will exist even the container which created it has been removed
+docker volume prune
+this will del all the volum created by the continaer which has been removed, the exit container's volume won't be deleted
+
+*** ENTRYPOINT  and CMD
+docker inspect  <imagename>
+ ],
+            "Cmd": [
+                "apache2-foreground"
+            ],
+            "ArgsEscaped": true,
+            "Image": "nextcloud",
+            "Volumes": {
+                "/var/www/html": {}
+            },
+            "WorkingDir": "/var/www/html",
+            "Entrypoint": [
+                "/entrypoint.sh"
+            ],
+----------------------------------------------------------------------------
+The ENTRYPOINT of an image is similar to a COMMAND because it specifies what executable to run when the container starts, but it is (purposely) more difficult to override
+
+**** in default run 
+docker run .... <imagename>    ###  then the <imagename> run will execute "Entrypoint Cmd" like "/entrypoint.sh apache2-foreground"
+
+
+**** CMD override in run command
+docker run -it <imagename> ls -l / #### this run will execute "/entrypoint.sh ls -l /"
+
+
+**** entrypoint override in run command
+--entrypoint  ""
+docker run   -it  --entrypoint "/bin/ls" <imagename>  -l /var/www/html/
+### this will execute "/bin/ls -l /var/www/html"
+
+
+** docker file instru advanced
+*** execute instructions as other user instead of root
+in default, all the command will be executed as root
+if you want to change a user to execute something, use gosu, which is a packet
+
+root@wen-Default-string:/home/wen# gosu wen whoami
+wen
+
+*** install and use gosu
+ 5 weeks ago         /bin/sh -c set -x  && apt-get update && apt-get install -y --no-install-recommends ca-certificates wget && rm -rf /var/lib/apt/lists/*  && wget -O /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-$(dpkg --print-architecture)"  && wget -O /usr/local/bin/gosu.asc "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-$(dpkg --print-architecture).asc"  && export GNUPGHOME="$(mktemp -d)"  && gpg --keyserver ha.pool.sks-keyservers.net --recv-keys B42F6819007F00F88E364FD4036A9C25BF357DD4  && gpg --batch --verify /usr/local/bin/gosu.asc /usr/local/bin/gosu  && gpgconf --kill all  && rm -rf "$GNUPGHOME" /usr/local/bin/gosu.asc  && chmod +x /usr/local/bin/gosu  && gosu nobody true  && apt-get purge -y --auto-remove ca-certificates wget   4.44MB
+ 6 weeks ago         /bin/sh -c #(nop)  ENV GOSU_VERSION=1.7                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  0B
+ 6 weeks ago         /bin/sh -c apt-get update && apt-get install -y --no-install-recommends gnupg dirmngr && rm -rf /var/lib/apt/lists/*                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     10.2MB
+ 6 weeks ago         /bin/sh -c groupadd -r mysql && useradd -r -g mysql mysql                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                329kB
+ 6 weeks ago         /bin/sh -c #(nop)  CMD ["bash"]                                                                                                                                                                                                                               
+
+
+
+* docker check a img or container information
+** docker history --no-trunc <dockimg>/<dockcontainer>
+get all the docker build instructions from a docker image or container
+all the command executed in build. like
+ 6 weeks ago         /bin/sh -c apt-get update && apt-get install -y --no-install-recommends gnupg dirmngr && rm -rf /var/lib/apt/lists/*                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     10.2MB
+ 6 weeks ago         /bin/sh -c groupadd -r mysql && useradd -r -g mysql mysql                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                329kB
+ 6 weeks ago         /bin/sh -c #(nop)  CMD ["bash"]                                                                                                                                                                                                                               
+
+
+
+** docker inspect
+docker inspect <imagename>/<continaername>
+all the mounts volume detail , ports published or ip addr....
+-------------------------------------------------------
+"Mounts": [
+            {
+                "Type": "volume",
+                "Name": "4ffe4e57658f17d1db2bd2f0c16e147b3b0793d13db5f0f6d3f450454ca90017",
+                "Source": "/var/lib/docker/volumes/4ffe4e57658f17d1db2bd2f0c16e147b3b0793d13db5f0f6d3f450454ca90017/_data",
+                "Destination": "/var/lib/mysql",
+                "Driver": "local",
+                "Mode": "",
+                "RW": true,
+                "Propagation": ""
+            }
+        ],
+        "Config": {
+            "Hostname": "c1e4e6a66afd",
+            "Domainname": "",
+            "User": "",
+            "AttachStdin": false,
+            "AttachStdout": false,
+            "AttachStderr": false,
+            "ExposedPorts": {
+                "3306/tcp": {},
+                "33060/tcp": {}
+            },
+ "NetworkSettings": {
+            "Bridge": "",
+            "SandboxID": "f4f62c012a4501c0c79268d6be8c427992cd2bc2d59a784ce9baed76764ffac9",
+            "HairpinMode": false,
+            "LinkLocalIPv6Address": "",
+            "LinkLocalIPv6PrefixLen": 0,
+            "Ports": {
+                "3306/tcp": [
+                    {
+                        "HostIp": "0.0.0.0",
+                        "HostPort": "3307"
+                    }
+                ],
+                "33060/tcp": null
+            },
+            "SandboxKey": "/var/run/docker/netns/f4f62c012a45",
+            "SecondaryIPAddresses": null,
+            "SecondaryIPv6Addresses": null,
+            "EndpointID": "1af932dca1aa2e407c9b18a6d978c122eef763684899007710f9a6b407491521",
+            "Gateway": "172.17.0.1",
+            "GlobalIPv6Address": "",
+            "GlobalIPv6PrefixLen": 0,
+            "IPAddress": "172.17.0.2",
+            "IPPrefixLen": 16,
+            "IPv6Gateway": "",
+            "MacAddress": "02:42:ac:11:00:02",
+            "Networks": {
+                "bridge": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": null,
+                    "NetworkID": "b6f79cf56a7993cd08a615aee0a268f63ec5f909f360fad3137cbea0f2fd4af0",
+                    "EndpointID": "1af932dca1aa2e407c9b18a6d978c122eef763684899007710f9a6b407491521",
+                    "Gateway": "172.17.0.1",
+                    "IPAddress": "172.17.0.2",
+                    "IPPrefixLen": 16,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "MacAddress": "02:42:ac:11:00:02",
+                    "DriverOpts": null
+                }
+            }
+======================================================================================================
+
+
+ docker inspect -f "{{ .Mounts }}" <container-name>
+ ===================================================
+ [{bind  /mnt/udisk/data_aicq /mnt   true rprivate} {volume 682b01cbec8ec6a5b33f5b91f620b115e5b121671ab53748760201b101491e01 /var/lib/docker/volumes/682b01cbec8ec6a5b33f5b91f620b115e5b121671ab53748760201b101491e01/_data /var/lib/mysql local  true }]
+----------------------------------------------
+
+root@cc60cfa38907:/# cat /var/spool/cron/crontabs/root
+# m h  dom mon dow   command
+@reboot  /home/wen/wen-d/mdisk.sh >/tmp/mdisk.log 2>&1
+10 */1 * * * /home/wen/aicq/t2.sh >/tmp/ai.log 2>&1
+~
+Ubuntu 16.04+, CentOS   Use the command journalctl -u docker.servicei
+
+ file sql.script
+===================================
+CREATE USER 'wen' IDENTIFIED BY '123';
+GRANT ALL PRIVILEGES ON * . * TO 'wen';
+FLUSH PRIVILEGES;
+create database aicq;
+use aicq;
+source /mnt/aicq.sql;
+++++++++++++++++++++++++++++++++++++++
+
+docker exec -it mysql1 mysql -uroot -p <sql.script
+docker exec mysql8 sh -c 'exec mysqldump aicq -uroot -p"123"' >  /mnt/udisk/data_aicq/aicq_docker.sql
+ docker run --name=mysql8  -e MYSQL_ROOT_PASSWORD=123 -p 3307:3306 -v /mnt/udisk/data_aicq:/mnt  -d mysql:latest
+
+docker run  -p 8008:80 -v /mnt/udisk/youtu/xiaoshuo:/mnt -d mqyyy777/apache2_php7_ubu1804:2.0
+docker run --name=mysqltt8  -e MYSQL_ROOT_PASSWORD=123 -p 3307:3306 -d mqyyy777/aicq_sql:1.0
+
+docker run --name=mysql8  --restart=unless-stopped  -e MYSQL_ROOT_PASSWORD=123 -p 3307:3306  -v /mnt/udisk/data_aicq:/mnt/host_aicq -d mqyyy777/mysql_aicq:4.0
+docker run --name=ncl  --restart=unless-stopped -v /mnt/udisk/ncloud_data:/var/www/html -p 80:80 -d nextcloud:13.0.6
+docker run --name=webaicq2 -d  --restart=unless-stopped -p 8008:80  mqyyy777/webaicq:2.0     
+
+
+
+** docker process checking
+all docker process will be shown in the ps aux executed in host:
+
+t@wen-Default-string:/home/wen/aicq/dock_mysql# ps aux |grep mysql
+vin      27071  2.0 10.8 1928252 427988 ?      Ssl  15:20   0:05 mysqld
+root     27374  0.0  0.0  21536  1028 pts/1    S+   15:24   0:00 grep --color=auto mysql
+
+root@wen-Default-string:/home/wen# pstree -aps 27071
+systemd,1 splash
+  └─dockerd,15056 -H fd://
+      └─docker-containe,15077 --config /var/run/docker/containerd/containerd.toml
+          └─docker-containe,27049 -namespace moby -workdir ...
+              └─mysqld,27071
+                  ├─cron,27133
+
+
+docker run --name=ncloud  --restart=unless-stopped -v /mnt/udisk/nextcloud:/var/www/html -d  nextcloud
+
+** docker container to image transfer
+when run an image, there will be a cotainer.
+when save a continaer to image, using   
+docker commit <continer-name> <imgname>
+
+
+** docker container using  proxy
+/etc/default/docker : you should have a line to uncomment (and maybe adjust) to get your proxy settings applied automatically. Then restart the Docker server:
+service docker restart
+
+
+** docker update
+docker update --restart=unless-stopped <container-id>
+docker run --privileged -d --restart=unless-stopped --name=dns_ssev1 -p 5037:5037/udp -p 8888:8888/tcp -v /home/pi/dock_ssev:/mnt mqyyy777/dns_ssev_rasp:1.0
+
+
