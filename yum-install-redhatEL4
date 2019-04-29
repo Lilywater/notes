@@ -1,3 +1,4 @@
+ 
  there's no yum installed on redhatEL4
 The rpm package to be prepared
   
@@ -384,6 +385,14 @@ ifconfig eth0 down             then      ifconfig eth0 up
 /etc/init.d/network restart  
 service network restart
 
+call a function in gdb
+////notice: don't use ; in the end of a gdb command, 
+(gdb)call func(...)
+if the function has a retrun value
+(gdb)set ret=func(...)
+(gdb)print ret
+// print a variable value 
+(gdb)ptye a_variable_unknow_type
 
 ddd --args MMETester -t3tclog-hide string -t3tclog-suppress message_decode_failure -t3rt "-parfile ../run/default/TesterModPar.par -parfile ../run/default/Verification.par -par TesterModPars.mp_test_case_name \"tc_BssgpSndcpSnData\" -file ../run/default/TesterConfig.txt" -t3tclog-dir ../run/log/ "$@" 2> ../run/log/Error.log | tee  ../run/log/run.log
 
@@ -1949,3 +1958,79 @@ ZWSD:STAT=BU;
 13:21
 
 BU就是ns17的
+
+
+
+** binary string and iter
+type = struct t3rt_binary_string_iter_internal_t {
+    t3rt_binary_string_t string;
+    long unsigned int bit_index;
+} *
+
+///get binary string iter current value and rewind the position to original
+s_pos = bsi->bit_index;
+bsi_get_int (bsi, &asnbwmt3_int_val, 8, ctx); 
+t3rt_binary_string_set_at (bsi->string, s_pos, bsi, ctx);  // intialize bsi with bsi->string's current read pos and string
+////notice that a binary string from the decode/encode function's parameter couldn't be written.
+////so if you want to modify the binary string, you need to construct or allocate a new one
+///fill this one with the value you wanted, and put this new binarystring to the decode/encode parameter
+///trick some value of the default encoded hexstring
+lt_t t3asn_S1AP_per_al_encode_S1APExtendedBitRate(t3rt_value_t value, t3rt_binary_string_t encoded_data, t3rt_context_t ctx)
+{
+3rt_binary_string_t tmp_bstr = t3rt_binary_string_allocate (t3rt_temp_alloc_c, 0, ctx);  //initialize the binary string tmp_bstr
+t3rt_binary_string_iter_t iter;    // declare iter.
+///////if you want to modify the default encoded message, you must use a new allocate string
+
+  asn2t3_encode_put_bstring(&encodingBuffer, &codec_result, tmp_bstr, ctx);   // encode the value into a binary string tmp_bstr
+  t3rt_binary_string_start (tmp_bstr, &iter, ctx);                          // initialize the iter with tmp_bstr current pos,
+  msg_len = t3rt_bstring_iter_remaining_room (&iter, ctx)/8;                 // msg length to get from iter
+  input  = (unsigned char*) malloc (msg_len + 1);
+  c = t3rt_bstring_iter_get_1byte(&iter, ctx);
+  t3rt_binary_string_append_1byte (encoded_data,(unsigned char) 0x40 ,  ctx);  //encode function's real t3rt_binary_string_t  encoded_data in function parameter
+   t3rt_bstring_iter_get_nbytes(&iter,msg_len-1 ,input , ctx);
+  t3rt_binary_string_append_nbytes (encoded_data, input ,msg_len-1,  ctx);
+}
+
+
+///trick some value before decoding
+t3rt_codecs_result_t t3asn_S1AP_per_al_decode_S1APExtendedBitRate(t3rt_binary_string_iter_t * encoded_data, t3rt_type_t type, t3rt_alloc_strategy_t strategy, t3rt_value_t * decoded_value, t3rt_context_t ctx)
+{
+  S1APExtendedBitRate *home;
+  unsigned char c;
+  unsigned char* input;
+  unsigned char* output;
+  unsigned long s_pos,len;
+  t3rt_binary_string_t tmp_bstr; // = t3rt_binary_string_allocate (t3rt_temp_alloc_c, 0, ctx);  //initialize the binary string tmp_bstr
+  t3rt_binary_string_iter_t iter;    // declare iter.
+
+  t3rt_codecs_result_t codec_result = t3rt_codecs_result_succeeded_c;
+
+  t3rt_targetcode_location_push("t3asn_S1AP_per_al_decode_S1APExtendedBitRate",__FILE__, __LINE__, ctx);
+  codg.asnuti = &utig;
+  initStack (&utig);
+  home = createHandle (NULL, &handle, S1APExtendedBitRate);
+  pushHome(&utig, handle);
+  s_pos = encoded_data->bit_index;
+  //c = t3rt_bstring_iter_get_1byte(encoded_data, ctx);
+//  t3rt_binary_string_set_at (encoded_data->string, s_pos, &iter, ctx);
+//  t3rt_binary_string_append_1byte (iter.string,(unsigned char) 0x80 ,  ctx);  // the encode_data's string couldn't be modified
+//  c = t3rt_bstring_iter_get_1byte(iter->string, ctx);
+
+
+  len = t3rt_bstring_iter_remaining_room(encoded_data,ctx)/8;
+  input  = (unsigned char*) malloc (len + 1);
+ s_pos = encoded_data->bit_index;
+  t3rt_bstring_iter_get_nbytes(encoded_data,len ,input , ctx);   // put what you want to a new constructed binary string
+  if (input[0] != (unsigned char) 0x80)
+  {
+    output  = (unsigned char*) malloc (len + 1);
+    memset (output, 0x80, 1);
+    memcpy(output+1,input+1, len-1);
+    tmp_bstr =  t3rt_binary_string_construct(t3rt_perm_alloc_c,len*8,output, ctx);
+    t3rt_binary_string_start (tmp_bstr, &iter, ctx);
+  }
+
+ if (asn2t3_decode_set_buf_and_decode_per(&codg, &decodingBuffer, &errorHandlerBuf, &codec_result, &iter,  // use the iter of this new constructed binary string to get decode value
+       (asn2t3_per_decoder)&pdc_alS1APExtendedBitRate, home, ctx))
+///////////////////////////
+

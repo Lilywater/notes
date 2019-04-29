@@ -26,6 +26,7 @@ gid add .
 git commit
 git remote add origin ../my_project.git
 git remote -v   ### for verification what is the remote addr
+do some changes in my_project, add ,commit
 git push origin master
 
 

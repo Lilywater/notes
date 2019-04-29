@@ -100,6 +100,194 @@ when received the icmp response from PubHost in WLAN host, it will lookup the fi
 
 
 
+*** switch VS. bridge
+An ethernet switch is a multiport ethernet bridge. A bridge is a device that splits collision domains but not broadcast domains. A switch is simply a bridge with lots of ports.
+And bridge only have two ports to connected in the data link layer as ethernet protocol.
+
+take kvm's virbr0 as example: TeamCI is the host OS while tetcos7 is vm
+
+**** physical network device list  /sys/class/net
+#### this list the real physical layer interface(real pci network adapter) and data link layer interface(network bridge) also.
+[root@TeamCI-1 HSS]# ls -l /sys/class/net/
+total 0
+lrwxrwxrwx 1 root root 0 Mar 14 08:26 eno1 -> ../../devices/pci0000:00/0000:00:07.0/0000:10:00.0/net/eno1
+lrwxrwxrwx 1 root root 0 Mar 14 08:26 eno2 -> ../../devices/pci0000:00/0000:00:07.0/0000:10:00.1/net/eno2
+lrwxrwxrwx 1 root root 0 Mar 14 08:27 enp0s26f0u2 -> ../../devices/pci0000:00/0000:00:1a.0/usb3/3-2/3-2:1.0/net/enp0s26f0u2
+lrwxrwxrwx 1 root root 0 Mar 14 08:26 enp21s0f0 -> ../../devices/pci0000:00/0000:00:03.0/0000:15:00.0/net/enp21s0f0
+lrwxrwxrwx 1 root root 0 Mar 14 08:26 enp21s0f1 -> ../../devices/pci0000:00/0000:00:03.0/0000:15:00.1/net/enp21s0f1
+lrwxrwxrwx 1 root root 0 Mar 14 08:26 lo -> ../../devices/virtual/net/lo
+lrwxrwxrwx 1 root root 0 Mar 14 08:27 virbr0 -> ../../devices/virtual/net/virbr0
+lrwxrwxrwx 1 root root 0 Mar 14 08:27 virbr0-nic -> ../../devices/virtual/net/virbr0-nic
+lrwxrwxrwx 1 root root 0 Mar 15 08:38 vnet0 -> ../../devices/virtual/net/vnet0
+
+[root@TeamCI-1 HSS]# ip link show
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+2: eno1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP mode DEFAULT group default qlen 1000
+    link/ether 5c:f3:fc:1c:de:c4 brd ff:ff:ff:ff:ff:ff
+3: eno2: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP mode DEFAULT group default qlen 1000
+    link/ether 5c:f3:fc:1c:de:c6 brd ff:ff:ff:ff:ff:ff
+4: enp21s0f0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP mode DEFAULT group default qlen 1000
+    link/ether 00:00:c9:cc:df:ea brd ff:ff:ff:ff:ff:ff
+5: enp21s0f1: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc mq state DOWN mode DEFAULT group default qlen 1000
+    link/ether 00:00:c9:cc:df:ee brd ff:ff:ff:ff:ff:ff
+6: enp0s26f0u2: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast state UNKNOWN mode DEFAULT group default qlen 1000
+    link/ether 5e:f3:fc:1f:3f:87 brd ff:ff:ff:ff:ff:ff
+7: virbr0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP mode DEFAULT group default qlen 1000
+    link/ether 52:54:00:2b:0b:09 brd ff:ff:ff:ff:ff:ff
+8: virbr0-nic: <BROADCAST,MULTICAST> mtu 1500 qdisc pfifo_fast master virbr0 state DOWN mode DEFAULT group default qlen 1000
+    link/ether 52:54:00:2b:0b:09 brd ff:ff:ff:ff:ff:ff
+12: vnet0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast master virbr0 state UNKNOWN mode DEFAULT group default qlen 1000
+    link/ether fe:54:00:ab:b5:60 brd ff:ff:ff:ff:ff:ff
+
+**** show bridge info which two interface to connect
+[root@TeamCI-1 HSS]# brctl show bridge virbr0     #### this means that the bridge will connect between interface virbr0-nic and vnet0
+bridge name     bridge id               STP enabled     interfaces
+bridge          can't get info No such device
+virbr0          8000.5254002b0b09       yes             virbr0-nic
+                                                        vnet0
+ 
+
+**** packet from host to guest VM
+in host, when send a packet to 192.168.122.14, it will be sent from interface virbr0 from route table 
+[root@TeamCI-1 HSS]# route
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+default         10.56.233.130   0.0.0.0         UG    100    0        0 eno1
+192.168.122.0   0.0.0.0         255.255.255.0   U     0      0        0 virbr0
+
+then src ip[122.1] mac[0b:09] is the virbr0, and dst ip is 192.168.122.14, from arp cache to lookup the mac of 192.168.122.14, then a ethernet packet is sent via virbr0;
+
+[root@TeamCI-1 HSS]# arp -n
+Address                  HWtype  HWaddress           Flags Mask            Iface
+192.168.122.14           ether   52:54:00:ab:b5:60   C                     virbr0
+
+then this ethernet packet will arive in interface vnet0 via bridge virbr0, vm centos wil get this packet since its IP  is the dstip.
+
+[root@TeamCI-1 HSS]#ifconfig
+virbr0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.122.1  netmask 255.255.255.0  broadcast 192.168.122.255
+        ether 52:54:00:2b:0b:09  txqueuelen 1000  (Ethernet)
+        RX packets 467065  bytes 32258006 (30.7 MiB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 571845  bytes 813645205 (775.9 MiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+vnet0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500               #####vnet0 has no ip, since it's a layer two port, not care layer three
+        inet6 fe80::fc54:ff:feab:b560  prefixlen 64  scopeid 0x20<link>
+        ether fe:54:00:ab:b5:60  txqueuelen 1000  (Ethernet)
+        RX packets 386638  bytes 31063064 (29.6 MiB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 675794  bytes 559302482 (533.3 MiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+===================
+vnet0 is guest vm's interface, virbr0 is the host's interface, (it connect virbr0-nic and vnet0)
+
+
+[root@TeamCI-1 HSS]# tcpdump -i any -e host 192.168.122.14
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on any, link-type LINUX_SLL (Linux cooked), capture size 262144 bytes
+09:33:52.712674   P 52:54:00:ab:b5:60 (oui Unknown) ethertype IPv4 (0x0800), length 68: 192.168.122.14.ssh > 192.168.122.1.51112: Flags [.], ack 1716807910, win 363, options [nop,nop,TS val 415941840 ecr 522138951], length 0
+09:33:52.712674  In 52:54:00:ab:b5:60 (oui Unknown) ethertype IPv4 (0x0800), length 68: 192.168.122.14.ssh > 192.168.122.1.51112: Flags [.], ack 1, win 363, options [nop,nop,TS val 415941840 ecr 522138951], length 0
+09:33:52.712714 Out 52:54:00:2b:0b:09 (oui Unknown) ethertype IPv4 (0x0800), length 68: 192.168.122.1.51112 > 192.168.122.14.ssh: Flags [.], ack 1, win 1424, options [nop,nop,TS val 522143959 ecr 415759352], length 0
+09:33:52.712718 Out 52:54:00:2b:0b:09 (oui Unknown) ethertype IPv4 (0x0800), length 68: 192.168.122.1.51112 > 192.168.122.14.ssh: Flags [.], ack 1, win 1424, options [nop,nop,TS val 522143959 ecr 415759352], length 0
+
+
+**** packet sent to VM from host
+***** configuration in guest vm
+[centos@testcos7 ~]$ ls -l /sys/class/net/
+total 0
+lrwxrwxrwx. 1 root root 0 Mar 15 11:26 eth0 -> ../../devices/pci0000:00/0000:00:03.0/virtio0/net/eth0
+lrwxrwxrwx. 1 root root 0 Mar 15 11:26 lo -> ../../devices/virtual/net/lo
+[centos@testcos7 ~]$
+[centos@testcos7 ~]$ ifconfig
+eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.122.14  netmask 255.255.255.0  broadcast 192.168.122.255
+        inet6 fe80::5054:ff:feab:b560  prefixlen 64  scopeid 0x20<link>
+        ether 52:54:00:ab:b5:60  txqueuelen 1000  (Ethernet)
+        RX packets 432739  bytes 25712096 (24.5 MiB)
+        RX errors 0  dropped 6  overruns 0  frame 0
+        TX packets 220537  bytes 15709417 (14.9 MiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+        inet6 ::1  prefixlen 128  scopeid 0x10<host>
+        loop  txqueuelen 1000  (Local Loopback)
+        RX packets 54470563  bytes 5293360299 (4.9 GiB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 54470563  bytes 5293360299 (4.9 GiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+[centos@testcos7 ~]$ route -n
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+0.0.0.0         192.168.122.1   0.0.0.0         UG    0      0        0 eth0
+192.168.122.0   0.0.0.0         255.255.255.0   U     0      0        0 eth0
+
+when send a packet to a www.baidu.com within vm. a packet will be sent via eth0 with(srcmac[eth0:b5:60],srcip[eth0.122.14], dstmac[192.168.122.1's mac:0b:09],dstip[www.baidu.com])
+
+then guest virbr0 get the packet, check the dstip, it will be forward to host's default gateway via eno1 interface(srcmac[eno1],srcip[eno1], dstmac[10.56.233.130's mac], dstip[baidu]
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+6 156 default         10.56.233.130   0.0.0.0         UG    100    0        0 eno1
+
+*** network interface card (NIC) alias
+NIC's alias could get more ip address in the same subnet wiht NIC ip, and mac address is as the same as the NIC
+
+eno1: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 10.56.233.181  netmask 255.255.255.128  broadcast 10.56.233.255
+        inet6 1000:1000:1000:1000::4  prefixlen 64  scopeid 0x0<global>
+        inet6 fe80::644:de67:e82f:99d2  prefixlen 64  scopeid 0x20<link>
+        ether 5c:f3:fc:1c:de:c4  txqueuelen 1000  (Ethernet)
+        RX packets 36045242  bytes 8236779107 (7.6 GiB)
+        RX errors 0  dropped 20978434  overruns 0  frame 0
+        TX packets 13644698  bytes 16884418576 (15.7 GiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+eno1:1: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 10.56.233.220  netmask 255.255.255.128  broadcast 10.56.233.255
+        ether 5c:f3:fc:1c:de:c4  txqueuelen 1000  (Ethernet)
+
+eno1:2: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 10.56.233.221  netmask 255.255.255.128  broadcast 10.56.233.255
+        ether 5c:f3:fc:1c:de:c4  txqueuelen 1000  (Ethernet)
+
+eno1:3: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 10.56.233.222  netmask 255.255.255.128  broadcast 10.56.233.255
+        ether 5c:f3:fc:1c:de:c4  txqueuelen 1000  (Ethernet)
+
+****  the loop interface
+when ping a alias ip of the host's NIC, loop interface used, and mac is all zeros
+[root@TeamCI-1 HSS]# ping 10.56.233.220
+PING 10.56.233.220 (10.56.233.220) 56(84) bytes of data.
+64 bytes from 10.56.233.220: icmp_seq=1 ttl=64 time=0.074 ms
+
+[root@TeamCI-1 HSS]# tcpdump -n -e -i lo host 10.56.233.220
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on lo, link-type EN10MB (Ethernet), capture size 262144 bytes
+12:45:49.755210 00:00:00:00:00:00 > 00:00:00:00:00:00, ethertype IPv4 (0x0800), length 98: 10.56.233.181 > 10.56.233.220: ICMP echo request, id 33190, seq 1, length 64
+12:45:49.755234 00:00:00:00:00:00 > 00:00:00:00:00:00, ethertype IPv4 (0x0800), length 98: 10.56.233.220 > 10.56.233.181: ICMP echo reply, id 33190, seq 1, length 64
+
+loop interface ip is 127.0.0.1, and mac is all zeros "00:00:00:00:00:00".
+
+why srcip using 181? instedof 221?
+
+all ip in this host's interface is the local ip, when dstip is that, the loop interface used, and the default interface is eno1 instead of other aliases
+
+***** use the src by designated the src ip
+[root@TeamCI-1 HSS]# nc -v 10.56.233.220 -s 10.56.233.221   ### use 221 as source ip, the default ip is 181
+Ncat: Version 7.50 ( https://nmap.org/ncat )
+Ncat: Connection refused.
+
+
+[root@TeamCI-1 HSS]# tcpdump -n -e -i lo host 10.56.233.220
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on lo, link-type EN10MB (Ethernet), capture size 262144 bytes
+12:53:54.176157 00:00:00:00:00:00 > 00:00:00:00:00:00, ethertype IPv4 (0x0800), length 74: 10.56.233.221.39544 > 10.56.233.220.31337: Flags [S], seq 3115292391, win 43690, options [mss 65495,sackOK,TS val 534145422 ecr 0,nop,wscale 7], length 0
+12:53:54.176189 00:00:00:00:00:00 > 00:00:00:00:00:00, ethertype IPv4 (0x0800), length 54: 10.56.233.220.31337 > 10.56.233.221.39544: Flags [R.], seq 0, ack 3115292392, win 0, length 0
+
+
 **** in NAT two host use the same src port to connect to the same dstport and dstip 
 Private host                Router                 Public host  
 
@@ -1661,6 +1849,24 @@ in this case, the deligated port and actual port are in the same host, but it ro
 
 
 * nc(NetCat) : an advanced command 
+** command usage
+*** server side
+nc -l <ip> <port>  
+### means listen on the ip and port
+[root@CD-MME-1 ~]# nc -l 10.56.233.220 12345 -v
+Ncat: Version 7.50 ( https://nmap.org/ncat )
+Ncat: Listening on 10.56.233.220:12345
+Ncat: Connection from 10.56.233.222.
+Ncat: Connection from 10.56.233.222:12333.
+
+
+
+*** client side
+### means connect the server-ip and port
+nc <server-ip> <port>
+nc 10.56.233.220 12345 -s 10.56.233.222 -p 12333
+-s/-p could be omit if you don't care the ip and port
+
 **  scan the port
 while nc -zv 127.0.0.1 2222; do sleep 20;done
 scan port means, send tcp SYN to port, if the connection could be estatblished, nc will shutdown it,
@@ -1690,7 +1896,7 @@ nc host 3333 > tests
 
 ** transfer massive file
 # nc -l -p 1234 | dd of=/dev/sda
-server1上执行传输，即可完成从server1克隆sda硬盘到server2的任务：
+server2上执行传输，即可完成从server1克隆sda硬盘到server2的任务：
 
 # dd if=/dev/sda | nc 192.168.228.222 1234
 
@@ -2364,18 +2570,115 @@ ipset=/.google.com/gfwlist
 
 
 
-* trace all the file/socket handls opened  by a prog
-
+* trace all the opend netwrok sockets by a prog
+** strace all the file/socket handls opened  by a prog
 
 To start and monitor an new process:
 
+-f means trace the child process generated by fork
+-F means trace the child process generated by vfork
+
+-e trace=network #### means only the network traffic such as open socket sendmsg ....
+
 strace -f -e trace=network -s 10000 PROCESS ARGUMENTS
 
+-s strsize  Specify the maximum string size to print (the default is 32).  Note that filenames are not considered strings and are always printed in full.
+
+
+-p attach to the current pid of running process
 To monitor an existing process with a known PID:
 
 strace -p $PID -f -e trace=network -s 10000
 
+*** other useful options for strace
+       -t          Prefix each line of the trace with the wall clock time.
 
+       -tt         If given twice, the time printed will include the microseconds.
+
+       -ttt        If given thrice, the time printed will include the microseconds and the leading portion will be printed as the number of seconds  since
+                   the epoch.
+
+when see all the output, you can tcpdump the ports the program used
+
+** lsof -i
+lsof -i ###show all the network sockets opend 
+wen@wen-Default-string:~$ sudo lsof -i
+COMMAND     PID            USER   FD   TYPE DEVICE SIZE/OFF NODE NAME
+systemd-r   371 systemd-resolve   12u  IPv4  16711      0t0  UDP localhost:domain
+avahi-dae   628           avahi   14u  IPv4  21373      0t0  UDP *:49826
+avahi-dae   628           avahi   15u  IPv6  21374      0t0  UDP *:45325
+cups-brow   662            root    7u  IPv4  22566      0t0  UDP *:ipp
+ss-server   760          nobody    5u  IPv4  21479      0t0  TCP localhost:8388 (LISTEN)
+ss-server   760          nobody    6u  IPv4  21482      0t0  UDP localhost:8388
+sshd        769            root    3u  IPv4  32516      0t0  TCP *:ssh (LISTEN)
+sshd        769            root    4u  IPv6  32518      0t0  TCP *:ssh (LISTEN)
+dhclient    803            root    6u  IPv4  23792      0t0  UDP *:bootpc
+nmbd       1001            root   15u  IPv4  27285      0t0  UDP *:netbios-ns
+nmbd       1001            root   16u  IPv4  27286      0t0  UDP *:netbios-dgm
+shd       4800             wen    3u  IPv4  50645      0t0  TCP wen-Default-string.lan:ssh->116.246.26.28:51795 (ESTABLISHED)
+sshd       4800             wen    9u  IPv6  52379      0t0  TCP ip6-localhost:6010 (LISTEN)
+sshd       4800             wen   10u  IPv4  52380      0t0  TCP localhost:6010 (LISTEN)
+ss-tunnel 10700            root    5u  IPv4  68326      0t0  TCP *:5037 (LISTEN)
+ss-tunnel 10700            root    6u  IPv4  68329      0t0  UDP *:5037
+ss-tunnel 10700            root    7u  IPv4  68530      0t0  UDP *:50096
+
+*** show numeric host and port
+root@wen-Default-string:/home/wen/iftop-0.17# lsof -i -n -P
+COMMAND     PID USER   FD   TYPE DEVICE SIZE/OFF NODE NAME
+sshd        769 root    3u  IPv4  32516      0t0  TCP *:22 (LISTEN)
+sshd        769 root    4u  IPv6  32518      0t0  TCP *:22 (LISTEN)
+dhclient    803 root    6u  IPv4  23792      0t0  UDP *:68
+master     1598 root   13u  IPv4  28153      0t0  TCP *:25 (LISTEN)
+master     1598 root   14u  IPv6  28154      0t0  TCP *:25 (LISTEN)
+docker-pr  2624 root    4u  IPv6  35112      0t0  TCP *:3307 (LISTEN)
+docker-pr  2663 root    4u  IPv6  37002      0t0  TCP *:80 (LISTEN)
+docker-pr  2687 root    4u  IPv6  37022      0t0  TCP *:8008 (LISTEN)
+sshd       4719 root    3u  IPv4  50645      0t0  TCP 192.168.31.75:22->116.246.26.28:51795 (ESTABLISHED)
+sshd       4800  wen    3u  IPv4  50645      0t0  TCP 192.168.31.75:22->116.246.26.28:51795 (ESTABLISHED)
+sshd       4800  wen    9u  IPv6  52379      0t0  TCP [::1]:6010 (LISTEN)
+sshd       4800  wen   10u  IPv4  52380      0t0  TCP 127.0.0.1:6010 (LISTEN)
+ssh       12797  wen    3u  IPv4  80522      0t0  TCP 192.168.31.75:35672->192.168.31.1:22 (ESTABLISHED)
+ss-tunnel 12907 root    5u  IPv4  81599      0t0  TCP *:5037 (LISTEN)
+ss-tunnel 12907 root    6u  IPv4  81602      0t0  UDP *:5037
+smbd      13164 root   32u  IPv6  83269      0t0  TCP *:445 (LISTEN)
+
+
+** netstat
+wen@wen-Default-string:~$ sudo netstat -t -u -a -p
+Active Internet connections (servers and established)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name
+tcp        0      0 0.0.0.0:netbios-ssn     0.0.0.0:*               LISTEN      1310/smbd
+tcp        0      0 0.0.0.0:5037            0.0.0.0:*               LISTEN      10700/ss-tunnel
+tcp        0      0 localhost:domain        0.0.0.0:*               LISTEN      371/systemd-resolve
+tcp        0      0 0.0.0.0:ssh             0.0.0.0:*               LISTEN      769/sshd
+tcp        0      0 localhost:ipp           0.0.0.0:*               LISTEN      3952/cupsd
+tcp        0      0 0.0.0.0:smtp            0.0.0.0:*               LISTEN      1598/master
+tcp        0      0 localhost:6010          0.0.0.0:*               LISTEN      4800/sshd: wen@pts/
+tcp        0      0 0.0.0.0:microsoft-ds    0.0.0.0:*               LISTEN      1310/smbd
+tcp        0      0 localhost:8388          0.0.0.0:*               LISTEN      760/ss-server
+tcp        0     28 wen-Default-string.:ssh 116.246.26.28:51795     ESTABLISHED 4719/sshd: wen [pri
+tcp        0      0 wen-Default-strin:59370 api.snapcraft.io:https  ESTABLISHED 578/snapd
+udp        0      0 localhost:domain        0.0.0.0:*                           371/systemd-resolve
+udp        0      0 0.0.0.0:bootpc          0.0.0.0:*                           803/dhclient
+udp        0      0 172.17.255.2:netbios-ns 0.0.0.0:*                           1001/nmbd
+dp        0      0 wen-Default:netbios-dgm 0.0.0.0:*                           1001/nmbd
+udp        0      0 0.0.0.0:netbios-dgm     0.0.0.0:*                           1001/nmbd
+udp        0      0 localhost:8388          0.0.0.0:*                           760/ss-server
+
+
+wen@wen-Default-string:~$ sudo netstat -t -u -a -p  --numeric-ports --numeric-host
+Active Internet connections (servers and established)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name
+tcp        0      0 0.0.0.0:139             0.0.0.0:*               LISTEN      1310/smbd
+tcp        0      0 0.0.0.0:5037            0.0.0.0:*               LISTEN      10947/ss-tunnel
+tcp        0      0 127.0.0.53:53           0.0.0.0:*               LISTEN      371/systemd-resolve
+tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN      769/sshd
+dp        0      0 127.0.0.1:8388          0.0.0.0:*                           760/ss-server
+udp        0      0 0.0.0.0:631             0.0.0.0:*                           662/cups-browsed
+udp        0      0 0.0.0.0:49826           0.0.0.0:*                           628/avahi-daemon: r
+udp        0      0 0.0.0.0:5037            0.0.0.0:*                           10947/ss-tunnel
+udp        0      0 0.0.0.0:5353            0.0.0.0:*                           628/avahi-daemon: r
+udp6       0      0 :::45325                :::*                                628/avahi-daemon: r
 
 * route table and find out the interface and src adress of a specific ip addr
 ** interface configuration
@@ -2522,3 +2825,139 @@ pi@raspberrypi:~/ruijian_cocimg $ sudo iptables -t nat -A PREROUTING -p tcp -j S
 
 sudo service netfilter-persistent save // restart the setting will be there
 iptables-save > iptables，然后编辑iptables，再iptables-restore < iptables
+
+*  firwall control
+** redhat
+*** dis/en able firewall
+in redhat linux /etc/init.d/iptables   /etc/init.d/ip6tables will disable or enable the firewall
+
+*** put the server in chkconfig to manage when start any runlevel (eg. when reboot)
+[root@TeamCI-17 sgsn]# chkconfig --list
+NetworkManager  0:off   1:off   2:off   3:off   4:off   5:off   6:off
+httpd           0:off   1:off   2:off   3:off   4:off   5:off   6:off
+ip6tables       0:off   1:off   2:off   3:off   4:off   5:off   6:off
+iptables        0:off   1:off   2:off   3:off   4:off   5:off   6:off
+
+
+[root@TeamCI-17 sgsn]# chkconfig ip6tables off
+
+[root@TeamCI-17 sgsn]# chkconfig ip6tables --list
+ip6tables       0:off   1:off   2:off   3:off   4:off   5:off   6:off
+
+** ubuntu
+*** enable/disable firewall
+###list the iptables content
+wen@wen-Default-string:~$ sudo ufw status verbose
+Status: inactive
+wen@wen-Default-string:~$ sudo ufw start
+ERROR: Invalid syntax
+
+Usage: ufw COMMAND
+
+Commands:
+ enable                          enables the firewall
+ disable                         disables the firewall
+ default ARG                     set default policy
+ logging LEVEL                   set logging to LEVEL
+ allow ARGS                      add allow rule
+ deny ARGS                       add deny rule
+ reject ARGS                     add reject rule
+ limit ARGS                      add limit rule
+ delete RULE|NUM                 delete RULE
+ insert NUM RULE                 insert RULE at NUM
+ route RULE                      add route RULE
+ route delete RULE|NUM           delete route RULE
+ route insert NUM RULE           insert route RULE at NUM
+ reload                          reload firewall
+ reset                           reset firewall
+ status                          show firewall status
+ status numbered                 show firewall status as numbered list of RULES
+ status verbose                  show verbose firewall status
+ show ARG                        show firewall report
+ version                         display version information
+
+* Routing Principles
+The place to start our discussion of IP routing is to understand what is maintained by the
+kernel in its routing table. The information contained in the routing table drives all the
+routing decisions made by IP.
+1. Search for a matching host address.
+2. Search for a matching network address.
+3. Search for a default entry. (The default entry is normally specified in the routing
+table as a network entry, with a network ID of 0.)
+A matching host address is always used before a matching network address.
+The routing done by IP, when it searches the routing table(route -n) and decides which interface to send a packet out, is a routing mechanism. This differs from a routing policy(iptables), which is a set
+of rules that decides which routes go into the routing table. .
+
+The complexity of a host's routing table depends on the topology of the networks to which
+the host has access.
+1. The simplest (but least interesting) case is a host that is not connected to any
+networks at all. The TCP/IP protocols can still be used on the host, but only to
+communicate with itself! The routing table in this case consists of a single entry for
+the loopback interface.
+2. Next is a host connected to a single LAN, only able to access hosts on that LAN.
+The routing table consists of two entries: one for the loopback interface and one for
+the LAN (such as an Ethernet).
+3. The next step occurs when other networks (such as the Internet) are reachable
+through a single router. This is normally handled with a default entry pointing to that
+router.
+4. The final step is when other host-specific or network-specific routes are added. In
+our example the route to the host slip, through the router bsdi, is an example of
+this.
+
+** route -n 
+[root@TeamCI-1 ~]# netstat -rn
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags   MSS Window  irtt Iface
+0.0.0.0         10.56.233.130   0.0.0.0         UG        0 0          0 eno1
+10.56.233.128   0.0.0.0         255.255.255.128 U         0 0          0 eno1
+
+U The route is up.
+G The route is to a gateway (router). If this flag is not set, the destination is directly
+connected.
+H The route is to a host, that is, the destination is a complete host address. If this flag is not
+set, the route is to a network, and the destination is a network address: a net ID, or a
+combination of a net ID and a subnet ID.
+D The route was created by a redirect (Section 9.5).
+M The route was modified by a redirect (Section 9.5).
+
+*** G flag
+if a route mechnical with G means it is a gateway,  it means the mac adress and ip address within one packet belongs to different hosts.
+if no G, means it is a direct route, within one LAN, it means the mac adress and ip address within one packet belongs to the same hosts.
+in this direct route case, arp is the way to get the mac adress throug ip address.
+
+** arp mechanism
+*** clear the arp cache
+$ip  neigh flush all
+
+****  ip command to show 
+ip - show / manipulate routing, devices, policy routing and tunnels
+
+SYNOPSIS
+       ip [ OPTIONS ] OBJECT { COMMAND | help }
+
+       ip [ -force ] -batch filename
+
+       OBJECT := { link | address | addrlabel | route | rule | neigh | ntable | tunnel | tuntap | maddress | mroute | mrule | monitor | xfrm | netns | l2tp | tcp_metrics | token | macsec
+               }
+
+       OPTIONS := { -V[ersion] | -h[uman-readable] | -s[tatistics] | -d[etails] | -r[esolve] | -iec | -f[amily] { inet | inet6 | ipx | dnet | link } | -4 | -6 | -I | -D | -B | -0 |
+               -l[oops] { maximum-addr-flush-attempts } | -o[neline] | -rc[vbuf] [size] | -t[imestamp] | -ts[hort] | -n[etns] name | -a[ll] | -c[olor] }
+
+*** ip link show
+this will list all the physical link including vlan:
+
+
+*** 
+*** how to get the mac by ip address by sending broadcast packets in the LAN
+$arp -a     ### check if arp cache is clear 
+######arp will get the actual mac address of the ip with broadcast address(FF:FF:FF:FF:FF:FF)
+######this means all hosts connected within one switch will get this broadcast message
+
+[root@TeamCI-1 ~]# tcpdump -e  -i eno1 host 10.56.233.175
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on eno1, link-type EN10MB (Ethernet), capture size 262144 bytes
+12:12:44.661984 5c:f3:fc:1c:de:c4 (oui Unknown) > Broadcast, ethertype ARP (0x0806), length 42: Request who-has 10.56.233.175 tell TeamCI-1, length 28
+12:12:44.662168 5c:f3:fc:1c:a5:c0 (oui Unknown) > 5c:f3:fc:1c:de:c4 (oui Unknown), ethertype ARP (0x0806), length 60: Reply 10.56.233.175 is-at 5c:f3:fc:1c:a5:c0 (oui Unknown), length 46
+
+
+

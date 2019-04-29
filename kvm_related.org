@@ -1,0 +1,548 @@
+* Kvm and qemu
+This kvm/qemu is a linux based on app, similar to vmware app based on windows.
+it will control the cpu number, disk space and network precisely compare to docker, and performance is better than docker
+
+
+guide: https://www.cyberciti.biz/faq/how-to-install-kvm-on-centos-7-rhel-7-headless-server/
+
+** install kvm/qemu in the centos
+yum install qemu-kvm libvirt libvirt-python libguestfs-tools virt-install
+
+Start the libvirtd service:
+# systemctl enable libvirtd
+# systemctl start libvirtd
+
+
+** verify kvm installation
+*** kvm loaded module in kernel
+lsmod | grep -i kvm
+//if no output means cpu not support kvm
+ modprobe kvm
+
+
+*** bios enabled cpu virtulizaion
+egrep  "svm|vmx"  /proc/cpuinfo
+// if no info found, means you need to enable bios cpu virtulization
+
+** graphic gui to mange all domain(guest hosts)
+virt-manager 
+
+
+
+
+**  Configure bridged networking
+*** configure all vms have network access to other VMs on the same server
+**** bridge created by qemu
+By default dhcpd based network bridge configured by libvirtd. You can verify that with the following commands:
+# brctl show
+[root@controller images]#  brctl show
+bridge name     bridge id               STP enabled     interfaces
+virbr0          8000.525400eadd3a       yes             virbr0-nic
+                                                        vnet5
+
+**** get the network list 
+# virsh net-list
+[root@controller images]# virsh net-list
+ Name                 State      Autostart     Persistent
+----------------------------------------------------------
+ default              active     yes           yes
+
+
+**** get the network configuration
+All VMs (guest machine) only have network access to other VMs on the same server. A private network 192.168.122.0/24 created for you. Verify it:
+[root@controller images]# virsh net-dumpxml default
+<network>
+  <name>default</name>
+  <uuid>2d6a0195-f617-430d-8a64-c4ccc613274f</uuid>
+  <forward mode='nat'>
+    <nat>
+      <port start='1024' end='65535'/>
+    </nat>
+  </forward>
+  <bridge name='virbr0' stp='on' delay='0'/>
+  <mac address='52:54:00:ea:dd:3a'/>
+  <ip address='192.168.122.1' netmask='255.255.255.0'>
+    <dhcp>
+      <range start='192.168.122.2' end='192.168.122.254'/>
+    </dhcp>
+  </ip>
+</network>
+
+
+*** make VMs avilable to other servers on your LAN
+****  br0 configuration
+[root@controller images]# cat  /etc/sysconfig/network-scripts/ifcfg-br0
+TYPE=Bridge
+BOOTPROTO=static
+DEFROUTE=yes
+NAME=br0
+DEVICE=br0
+ONBOOT=yes
+IPADDR=10.56.233.175
+GATEWAY=10.56.233.130
+PREFIX=25
+DNS1=8.8.8.8
+
+****  make the interface using this bridge
+[root@controller images]# cat /etc/sysconfig/network-scripts/ifcfg-eno1
+TYPE=Ethernet
+BOOTPROTO=static
+NAME=eno1
+UUID=b097193c-6f20-42ac-85dd-e0bbb206f936
+DEVICE=eno1
+ONBOOT=yes
+BRIDGE=br0         /////this br0 as BRIDGE
+HWADDR=5C:F3:FC:1C:A5:C0
+NM_CONTROLLED=no
+[root@controller images]#
+
+
+[root@controller images]# brctl  show
+bridge name     bridge id               STP enabled     interfaces
+br0             8000.5cf3fc1ca5c0       no              eno1
+                                                        vnet0
+                                                        vnet1
+                                                        vnet2
+                                                        vnet3
+                                                        vnet4
+
+# systemctl restart NetworkManager  
+
+** Create centos 7 VM from cdrom iso
+# virt-install \
+--virt-type=kvm \
+--name centos7 \
+--ram 2048 \
+--vcpus=1 \
+--os-variant=centos7.0 \
+--cdrom=/var/lib/libvirt/boot/CentOS-7-x86_64-Minimal-1708.iso \
+--network=bridge=br0,model=virtio \
+--graphics vnc \
+--disk path=/var/lib/libvirt/images/centos7.qcow2,size=40,bus=virtio,format=qcow2
+
+# virsh dumpxml centos7 | grep vnc
+<graphics type='vnc' port='5901' autoport='yes' listen='127.0.0.1'>
+
+
+    <graphics type='vnc' port='5901' autoport='yes' listen='0.0.0.0'>
+      <listen type='address' address='0.0.0.0'/>
+    </graphics>
+
+
+Please note down the port value (i.e. 5901). You need to use an SSH client to setup tunnel and a VNC client to access the remote vnc server. Type the following SSH port forwarding command from your client/desktop/macbook pro system:
+$ ssh vivek@server1.cyberciti.biz -L 5901:127.0.0.1:5901
+
+vnc client host: localhost, port: 5901
+
+
+
+** create centos from qcow2 file
+*** Grab CentOS 7 cloud image
+
+# cd /var/lib/libvirt/boot
+# wget http://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud.qcow2
+Create required directories
+
+*** meta-data and user-data
+# D=/var/lib/libvirt/images
+# VM=centos7-vm1 ## vm name ##
+# mkdir -vp $D/$VM
+mkdir: created directory '/var/lib/libvirt/images/centos7-vm1'
+Create meta-data file
+
+# cd $D/$VM
+# vi meta-data
+
+Append the following:
+
+instance-id: centos7-vm1
+local-hostname: centos7-vm1
+
+sh-keygen -t ed25519 -C "VM Login ssh key"
+
+# cd $D/$VM
+# vi user-data
+cp the public key genrated by ssh-keygen to  ssh-authorized-keys
+Add as follows (replace hostname, users, ssh-authorized-keys as per your setup):
+====================================================
+#cloud-config
+ 
+# Hostname management
+preserve_hostname: False
+hostname: centos7-vm1
+fqdn: centos7-vm1.nixcraft.com
+ 
+# Users
+users:
+    - default
+    - name: vivek
+      groups: ['wheel']
+      shell: /bin/bash
+      sudo: ALL=(ALL) NOPASSWD:ALL
+      ssh-authorized-keys:
+        - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIMP3MOF2ot8MOdNXCpHem0e2Wemg4nNmL2Tio4Ik1JY VM Login ssh key
+ 
+# Configure where output will go
+output:
+  all: ">> /var/log/cloud-init.log"
+ 
+# configure interaction with ssh server
+ssh_genkeytypes: ['ed25519', 'rsa']
+ 
+# Install my public ssh key to the first user-defined user configured
+# in cloud.cfg in the template (which is centos for CentOS cloud images)
+ssh_authorized_keys:
+  - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIMP3MOF2ot8MOdNXCpHem0e2Wemg4nNmL2Tio4Ik1JY VM Login ssh key
+ 
+# set timezone for VM
+timezone: Asia/Kolkata
+ 
+# Remove cloud-init 
+runcmd:
+  - systemctl stop network && systemctl start network
+  - yum -y remove cloud-init
+========================================
+
+*** Creating a cloud-init ISO from the meta and user data
+# mkisofs -o $VM-cidata.iso -V cidata -J -r user-data meta-data
+
+*** change the password 
+#virt-customize -a testcos7.qcow2 --root-password random
+[   0.0] Examining the guest ...
+[  19.3] Setting a random seed
+[  19.3] Setting passwords
+virt-customize: Setting random password of root to E2VfVti05MsGYI8f
+[  21.3] Finishing off
+
+
+
+*** Copy cloud image
+
+# cd $D/$VM
+# cp /var/lib/libvirt/boot/CentOS-7-x86_64-GenericCloud.qcow2 $VM.qcow2
+
+**** enlarge the iamge size to 20GB (optional)
+Create 20GB disk image
+
+# cd $D/$VM
+# export LIBGUESTFS_BACKEND=direct
+# qemu-img create -f qcow2 -o preallocation=metadata $VM.new.image 20G
+# virt-resize --quiet --expand /dev/sda1 $VM.qcow2 $VM.new.image
+
+Overwrite it resized image:
+# cd $D/$VM
+# mv $VM.new.image $VM.qcow2
+
+
+*** Creating a pool
+# virsh pool-create-as --name $VM --type dir --target $D/$VM
+Pool centos7-vm1 created
+Installing a CentOS 7 VM
+
+
+
+*** install the qcow2 file
+# cd $D/$VM
+# virt-install --import --name $VM \
+--memory 1024 --vcpus 1 --cpu host \
+--disk $VM.qcow2,format=qcow2,bus=virtio \
+--disk $VM-cidata.iso,device=cdrom \
+--network bridge=virbr0,model=virtio \
+--os-type=linux \
+--os-variant=centos7.0 \
+--graphics spice \
+--noautoconsole
+
+Delete unwanted files:
+# cd $D/$VM
+# virsh change-media $VM hda --eject --config
+# rm meta-data user-data centos7-vm1-cidata.iso
+Find out IP address of KVM VM (dhcp address)
+
+*** Log in to your VM
+# virsh net-dhcp-leases default
+[root@controller testcos7]# virsh  net-dhcp-leases default
+ Expiry Time          MAC address        Protocol  IP address                Hostname        Client ID or DUID
+-------------------------------------------------------------------------------------------------------------------
+ 2019-03-01 16:03:57  52:54:00:4a:c0:6c  ipv4      192.168.122.189/24        testcos7        -
+get the ipaddr of the VM using
+
+*** Use ssh command:
+# ssh vivek@192.168.122.85
+
+
+** build a qcow2 image files from  vir-builder list
+*** using existing VM images from various linux distribution
+
+**** List VM images
+virt-builder --list
+fedora-29                ppc64le    Fedora® 29 Server (ppc64le)
+fedora-29                x86_64     Fedora® 29 Server
+freebsd-11.1             x86_64     FreeBSD 11.1
+scientificlinux-6        x86_64     Scientific Linux 6.5
+ubuntu-10.04             x86_64     Ubuntu 10.04 (Lucid)
+ubuntu-12.04             x86_64     Ubuntu 12.04 (Precise)
+ubuntu-14.04             x86_64     Ubuntu 14.04 (Trusty)
+ubuntu-16.04             x86_64     Ubuntu 16.04 (Xenial)
+ubuntu-18.04             x86_64     Ubuntu 18.04 (bionic)
+
+**** virt build a image qcow2 files 
+# virt-builder ubuntu-16.04 \
+--size=20G --format qcow2 -o /var/lib/libvirt/images/ncbz01-disk01.qcow2 \
+--hostname ncbz01 --network --timezone Asia/Kolkata \
+--firstboot-command "dpkg-reconfigure openssh-server" \
+--edit '/etc/default/grub:
+s/^GRUB_CMDLINE_LINUX_DEFAULT=.*/GRUB_CMDLINE_LINUX_DEFAULT="console=tty0 console=ttyS0,115200n8"/' \
+--run-command update-grub
+===================================
+[   5.2] Downloading: http://libguestfs.org/download/builder/ubuntu-16.04.xz
+######################################################################## 100.0%
+[ 167.5] Planning how to build this image
+[ 167.5] Uncompressing
+[ 175.5] Resizing (using virt-resize) to expand the disk to 20.0G
+[ 425.8] Opening the new disk
+[ 478.5] Setting a random seed
+[ 479.1] Setting the machine ID in /etc/machine-id
+[ 479.2] Setting the hostname: ncbz01
+[ 515.1] Setting the timezone: Asia/Kolkata
+[ 515.6] Installing firstboot command: dpkg-reconfigure openssh-server
+[ 517.3] Editing: /etc/default/grub
+[ 518.7] Running: update-grub
+[ 591.0] Setting passwords
+virt-builder: Setting random password of root to eLf4sRM1V7Hv6zu0
+[ 623.0] Finishing off
+                   Output file: /var/lib/libvirt/images/ncbz01-disk01.qcow2
+                   Output size: 20.0G
+                 Output format: qcow2
+            Total usable space: 18.6G
+                    Free space: 17.7G (94%)
+==========================================================================
+
+**** virt install a qcow2 files
+virt-install --import --name ncbz01 \
+--ram 2048 \
+--vcpu 1 \
+--disk path=/var/lib/libvirt/images/ncbz01-disk01.qcow2,format=qcow2 \
+--os-variant ubuntu16.04 \
+--network=bridge=virbr0,model=virtio \
+--noautoconsole
+
+ERROR    Error validating install location: Distro 'ubuntu17.04' does not exist in our dictionary
+[root@localhost ~]# virt-install --import --name ncbz01 --ram 2048 --vcpu 1 --disk path=/var/lib/libvirt/images/ncbz01-disk01.qcow2,format=qcow2 --os-variant ubuntu16.04 --network=bridge=virbr0,model=virtio --noautoconsole
+WARNING  KVM acceleration not available, using 'qemu'
+
+Starting install...
+Domain creation completed.
+
+[root@localhost ~]# virsh list
+ Id    Name                           State
+----------------------------------------------------
+ 4     ncbz01                         running
+
+
+* various virt-install
+** real cdrom, installed to a blank qcow2 file container img
+# qemu-img create -f qcow2 /tmp/centos.qcow2 10G
+# virt-install --virt-type kvm --name centos --ram 1024 \
+  --disk /tmp/centos.qcow2,format=qcow2 \
+  --network network=default \
+  --graphics vnc,listen=0.0.0.0 --noautoconsole \
+  --os-type=linux --os-variant=centos7.0 \
+  --location=/data/isos/CentOS-7-x86_64-NetInstall-1611.iso
+
+
+** exsisting qcow2 files which has a OS on it already
+ virt-install --import --name testcos7 \
+--memory 1024 --vcpus 1 --cpu host \
+--disk testcos7.qcow2,format=qcow2,bus=virtio \
+--disk testcos7-cidata.iso,device=cdrom \
+--network bridge=virbr0,model=virtio \
+--os-type=linux \
+--os-variant=centos7.0 \
+--graphics spice \
+--noautoconsole
+
+
+
+Run the osinfo-query os command to see a range of allowed --os-variant options.
+
+Use the virsh vncdisplay vm-name command to get the VNC port number.
+
+# virsh vncdisplay centos
+:1
+
+
+* how to connect a installed VM domain
+** console connection with VM (text based/non graphic)
+
+virsh console <VM-name>
+
+====================================
+[root@localhost ~]# virsh console ncbz01
+Connected to domain ncbz01
+Escape character is ^]
+//  Ctrl+]    English keyboard
+Password:
+
+Login incorrect
+ncbz01 login:
+Login timed out after 60 seconds.
+
+Ubuntu 16.04 LTS ncbz01 ttyS0
+
+ncbz01 login: root
+Password:
+Welcome to Ubuntu 16.04 LTS (GNU/Linux 4.4.0-21-generic x86_64)
+
+ * Documentation:  https://help.ubuntu.com/
+========================
+    Open a shell prompt or login using ssh.
+    Login to a host server called server1.
+    Use the virsh console command to log in to a running VM called ‘centos7’ type: virsh console centos7
+    To exit a virsh console session, type CTRL+Shift followed by ].
+
+How to exit a “virsh console”?
+
+The keyboard shortcuts are as follows if you are using English keyboard i.e. Escape character is ^]:
+
+    CTRL+Shift+5
+    CTRL+Shift+]
+
+*** cretae a centos 7.5 using virt-build
+root@dlp ~]# export LIBGUESTFS_BACKEND=direct
+
+[root@dlp ~]# virt-builder centos-7.5 --format qcow2 --size 20G -o centos75.qcow2 --root-password password
+
+[   3.8] Downloading: http://libguestfs.org/download/builder/centos-7.5.xz
+[  74.0] Planning how to build this image
+[  74.0] Uncompressing
+.....
+.....
+                   Output file: centos75.qcow2
+                   Output size: 20.0G
+                 Output format: qcow2
+            Total usable space: 19.4G
+                    Free space: 18.3G (94%)
+
+***  configure VM with the image above, run virt-install
+
+virt-install \
+--name centos-75 \
+--ram 1024 \
+--disk path=/var/lib/libvirt/images/centos75.qcow2 \
+--vcpus 1 \
+--os-type linux \
+--os-variant rhel7.5 \
+--network bridge=virbr0 \
+--graphics none \
+--serial pty \
+--console pty \
+--boot hd \
+--import
+
+this centos75.qcow2 is the harddisk image of all your os files. the ram, cpu, netwrok, graphics could be reconfigured using virt-install
+
+** delete vm 
+
+ virsh shutdown VM_NAME
+# virsh shutdown --domain VM_NAME
+# virsh shutdown --domain openbsd
+
+You can force a guest virtual machine to stop with the virsh destroy command:
+# virsh destroy VM_NAME
+# virsh destroy --domain VM_NAME
+# virsh destroy --domain openbsd
+Step 3: Deleting a virtual machine
+
+To delete a VM Guest with virsh run
+# virsh undefine VM_NAME
+# virsh undefine --domain VM_NAME
+# virsh undefine --domain openbsd
+
+root passwd:
+qcRJ95akTHIVBcKn
+
+
+** create a new bridge on ubuntu
+https://www.cyberciti.biz/faq/how-to-configuring-bridging-in-debian-linux/
+
+*** find out the physical interface
+2: enp1s0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel master br0 state UP group default qlen 1000
+    inet 192.168.31.75/24 brd 192.168.31.255 scope global dynamic noprefixroute enp1s0
+       valid_lft 26302sec preferred_lft 26302sec
+
+***  Update /etc/network/interface file
+
+Make sure only lo (loopback is active in /etc/network/interface). Remove any config related to eno1. Here is my config file printed using cat command:
+$ cat /etc/network/interfaces
+
+# This file describes the network interfaces available on your system
+# and how to activate them. For more information, see interfaces(5).
+ 
+source /etc/network/interfaces.d/*
+ 
+# The loopback network interface
+auto lo
+iface lo inet loopback
+
+*** Configuring bridging (br0) in /etc/network/interfaces.d/br0
+
+Create a text file using a text editor such as vi command:
+$ sudo vi /etc/network/interfaces.d/br0
+
+Append the following config:
+
+****  static ip config file for br0 ##
+auto br0
+iface br0 inet static
+    address 192.168.2.23
+    broadcast 192.168.2.255
+    netmask 255.255.255.0
+    gateway 192.168.2.254
+    # If the resolvconf package is installed, you should not edit 
+        # the resolv.conf configuration file manually. Set name server here
+        #dns-nameservers 192.168.2.254
+        # If you have muliple interfaces such as eth0 and eth1
+        # bridge_ports eth0 eth1  
+    bridge_ports eno1
+    bridge_stp off       # disable Spanning Tree Protocol
+        bridge_waitport 0    # no delay before a port becomes available
+        bridge_fd 0          # no forwarding delay
+
+If you want bridge to get an IP address using DHCP:
+
+**** DHCP ip config file for br0 ##
+auto br0
+ 
+# Bridge setup
+ iface br0 inet dhcp
+    bridge_ports enp1s0
+
+
+*** systemctl restart networking
+systemctl restart networking
+------------------------------------------------------------------------
+wen@wen-Default-string:~$  brctl show
+bridge name     bridge id               STP enabled     interfaces
+br0             8000.00e04c682762       no              enp1s0
+                                                        vnet0
+---------------------------------------------------------------------
+
+wen@wen-Default-string:~$ ifconfig
+br0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.31.75  netmask 255.255.255.0  broadcast 192.168.31.255
+        inet6 fe80::2e0:4cff:fe68:2762  prefixlen 64  scopeid 0x20<link>
+        ether 00:e0:4c:68:27:62  txqueuelen 1000  (Ethernet)
+        RX packets 280618  bytes 127935286 (127.9 MB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 111496  bytes 449802769 (449.8 MB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+-----------------------------------------
+
+virt-install ..
+--network bridge=br0 
+in the guest, will get the ifaddr as a LAN addr, 
+[root@localhost ~]# ifconfig
+eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.31.197  netmask 255.255.255.0  broadcast 192.168.31.255
+

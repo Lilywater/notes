@@ -3486,3 +3486,21 @@ OpenSSH client will compress all data exchanged over SSH, including stdin, stdou
 *** consider using less computation-heavy ciphers in SSH, 
 so that less time is spent during encryption/decryption. The default AES cipher used by OpenSSH is known to be slow.
 According to SSH man page, blowfish is a fast block cipher which is also very secure. Meanwhile, arcfour stream cipher is known to be more vulnerable than common block ciphers
+
+** redirect output from one host to another server
+<command> | ssh user@remote-server "cat > output.txt"
+
+It saves output of <command> to output.txt file in remote server.
+
+In your case, on Server-1:
+
+echo "qwerty" | ssh user@Server-2 "cat > output.txt"
+
+If two servers have no connectivity, but you can ssh to both servers, then from local machine, you can do:
+
+ssh user@Server-1 "<command>" | ssh user@Server-2 "cat > output.txt"
+
+** run multiple commands in one line
+A ; B ---Run command A, then run command B.
+A && B ----Run B only if A succeeded
+A || B ----Run B only if A failed

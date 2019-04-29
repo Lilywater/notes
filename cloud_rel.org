@@ -1,0 +1,46 @@
+* OpenStack Introduction
+** opentack command line env
+Command Line tools
+
+Make sure you have the Openstack command line tools installed. Follow the official openstack guide here. If you have pip installed you can use that to install the tools:
+
+pip install python-novaclient
+pip install python-cinderclient
+pip install python-glanceclient
+pip install python-keystoneclient
+pip install python-neutronclient
+pip install python-swiftclient
+
+
+export OS_AUTH_URL="https://identity.stack.cloudvps.com/v2.0"
+export OS_TENANT_NAME="<tenant name>"
+export OS_USERNAME="<username>"
+export OS_PASSWORD="<password>"
+export OS_TENANT_ID="<tenant id>"
+
+When you are going to do stuff with the Openstack command line clients, load this file:
+
+source computerc
+
+That way, your authentication data are loaded and you don't have to give parameters like --os-username and such.
+
+
+** Openstack modules Overview
+
+Openstack is a datacenter virtualization plaform consisting out of many different tools and services. Here is a short overview of the different services you might encounter.
+
+*** Compute (Nova)
+This is the virtualization service. It works with a hypervisor to create and manage virtual machines. You can create a VM based on a specific "Flavour",
+which is just a definition of specs like disk, cpu and ram.
+
+*** Block Storage (Cinder)
+This is the service which makes block devices (volumes) available to services. A flavour can not be changed, just resized. If you want extra storage 
+you need to create a volume, attach it to the VM and mount it there for use.
+
+*** Images (Glance)
+This is the service which holds all the images. Images can be used to boot a VM from. Images can be prepared with tools like cloud-init to make them
+behave better in a cloud environment, for example, setting an SSH key or password at boot.
+
+**** Listing images
+When you've created a computerc file and loaded it up in your shell you can start the process. You need the UUID of the image you want to download. 
+Get a list of all images using the glance image-list command:

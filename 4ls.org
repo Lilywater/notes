@@ -1,0 +1,119 @@
+* LTE emulaor 
+LTE emulator software(LTE_emu_May15_v100_64-bit.tgz) can be found:
+\\135.252.110.138\documentation_4ls\Test Tools\LTE emulator\
+
+The user guide(LTE_emulators_users_manual_v280.pdf) can be found:
+\\135.252.110.138\documentation_4ls\Test Tools\LTE emulator\LTE_emu_2015_May15_v100_64-bit\LTE_emu_May15_v100\doc 
+
+This version has already deployed on 135.252.110.138: /home/TestTool/LTEEMU/LTE_emu_May15_v100
+
+If you want to install a new one, you need to:
+1.  Extract the software package
+2.  Define the NEs in /scripts/emumgr.sh (change FG_EMU_LIST)
+3.  Configure the emulator IPs and MME IPs in /config/parameters.ini
+4.  ./emumgr.sh start
+5.  Run related cmd in related NE, you can find the cmd in the chapter 6 of LTE_emulators_users_manual_v280.pdf
+6.  ./ emumgr.sh stopall
+
+* NLG 
+I used NLG151 to simulate ENB and SGW:
+
+IP：135.252.110.151 
+Username/password: ltemme/ltemme1
+
+Usage:
+
+
+cd /local/ltemme/loadGen/NLGv3_wo_hss_emu
+./nlgcmd configOnly cprtemplate/usrCfg.v4.tcl nokia_ipdef_pet5.tcl
+./nlgcmd up       
+./nlgcmd start   //start NLG
+./nlgcmd state  //check ongoing procedures measurement
+./nlgcmd down  //stop NLG
+
+    我们本地HSS emulator 的地址：
+
+    135.252.110.138   root/123456
+    Path: /root/HSS
+
+    运行步骤：
+    1.  ./hss_sim
+    2.  到本地ATCA 上运行ZOHS:HSS.NLG151:2:C;   (本地ATCA IP: 135.252.110.137  SYSTEM/SYSTEM)
+    3.  当HSS emulator 侧提示‘SCTP_COMM_UP: : 10.56.243.34 port: 2006’表示S6A 链接已经建好
+
+
+    HSS 的配置信息在/root/HSS/subscriber.dat 下面
+    针对5元组加密算法，以下两个值是HSS 提供给UE的：
+
+       OP = dbc59adcb6f9a0ef735477b7fadf8374
+          K  = fec86ba6eb707ed08905757b1bb44b8f
+
+          该HSS 下可使用的IMSI 范围是：
+          262101100000001 – 262101199999999
+RAND  cae86c27a8cb486097b17c5e4137ced3
+SQN  6ae4d185d275
+AMF 825d 
+
+
+Authentication output parameters
+op = db c5 9a dc b6 f9 a0 ef 73 54 77 b7 fa df 83 74
+opc = 10 06 02 0f 0a 47 8b f6 b6 99 f1 5c 06 2e 42 b3
+key = fe c8 6b a6 eb 70 7e d0 89 05 75 7b 1b b4 4b 8f
+rand = ca e8 6c 27 a8 cb 48 60 97 b1 7c 5e 41 37 ce d3
+sqn = 6a e4 d1 85 d2 75
+amf = 82 5d
+-- Milenage --
+res = 0e 95 3e ef 6a a2 fa 37
+ck = d2 9f 7b df a6 21 46 3e cf 54 d8 fb b4 05 89 ef
+ik = 70 49 14 98 bd bb 55 64 d6 93 61 e7 5c 1a 61 88
+ak = 6a e4 d1 af 62 80
+autn = 00 00 00 2a b0 f5 82 5d a8 93 bb 2e 0e 90 10 b0 
+
+
+
+
+3gpp33401
+A.2 KASME derivation function
+When deriving a KASME from CK, IK and SN id when producing authentication vectors, and when the UE computes KASME during AKA, the following parameters shall be used to form the input S to the KDF.
+-   P0 = SN id,
+-   L0 = length of SN id (i.e. 0x00 0x03),
+-   P1 = SQN  AK
+-   L1 = length of SQN  AK (i.e. 0x00 0x06) 
+The exclusive or of the Sequence Number (SQN) and the Anonymity Key (AK) is sent to the UE as a part of the Authentication Token (AUTN), see TS 33.102. If AK is not used, AK shall be treated in accordance with TS 33.102, i.e. as 000…0.
+The SN id consists of MCC and MNC, and shall be encoded as an octet string according to Figure A.2-1.
+
+8   7   6   5   4   3   2   1   
+
+MCC digit 2 
+MCC digit 1 
+octet 1
+
+MNC digit 3 
+MCC digit 3 
+octet 2
+
+MNC digit 2 
+MNC digit 1 
+octet 3
+
+Figure A.2-1 Encoding of SN id as an octet string
+The coding of the digits of MCC and MNC shall be done according to TS 24.301 [9].
+The input key Key shall be equal to the concatenation CK || IK of CK and IK.
+ 
+
+** NLG OP and K configuration
+AuthrizationKey=fec86ba6eb707ed08905757b1bb44b8f   usrCfg.v4.tcl
+OP_AKA=dbc59adcb6f9a0ef735477b7fadf8374   .sim-hss
+tcfg1.sim-hss
+
+
+* install ATCA
+in 4booking web page
+https://4booking.int.net.nokia.com/4booking/Reservation/viewresultsTimeline.action
+Name: IPC-ATCA-136   search
+
+Builds Build Date Com # Com time 
+Reserve only ADX FLEXI_NS N8_1_12_0_DX_FLEXI_NS_0 14.01.2019 14:10 0 0h 0min 0sec N7_5_21_1_DX_FLEXI_NS_0 10.01.2019 16:05 1 2h 6min 52sec 
+
+*** marco
+https://svne1.access.nokiasiemensnetworks.com/isource/svnroot/sgsn_testware/trunk/serlab/comission

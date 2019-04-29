@@ -1,0 +1,647 @@
+* 
+
+S1 10.56.233.133 USERID/PASSW0RD
+S3 10.56.233.130 , 密码: nokialab
+S1通过PORT 20连接到S3的port 5上
+为什么什么S1的port 20改成trunk mode网络就不通了
+
+S1: http://note.youdao.com/noteshare?id=1cfcab9ac2489c274ac2b55a44718f63&sub=C79DE4F0C6D5422AA08CD7EF817BE59E
+
+
+S3 note: http://note.youdao.com/noteshare?id=8c00397e7d33c48df667171c6703f80e&sub=A4DEC5094761441E85793DE27FF5F8E7
+
+* 802.1q tag used to support the VLAN
+802.1q defines a 16-bit tag added between the source MAC and ethertype fields. Within these 16 bits, 12 describe the VLAN tag. The presence of this tag indicates
+which the VLAN to which a given frame belongs.
+
+port configured as trunk mode will use 802.1q protocol
+** trunk mode port received  untagged frame
+
+In general terms, what tends to happen is that a standard (untagged) frame is received on a port that’s logically associated with the VLAN.
+If the destination address of this frame is known via an untagged/access port in the same VLAN on the same switch then it will be forwarded as-is.
+(it means that the des mac is the  port in this switch[directed connect to other hosts mac] which configured as access mode )
+If the destination is known a tagged/trunk port then an 802.1q tag is added to the packet before transmission.
+
+(des mac/ip is the SVI addr in which vlan is configured by vlan ip in switch as:)[note the mac address are the same for different vlan SVI]
+lookup dest ip is in which subnetwork vlan, then tag it as that vlanid
+
+show interface ### this will list the SVI of Vlan    
+Vlan1705 is up, line protocol is up Hardware is Ethernet SVI, address is 001a.2fa2.b17f (bia 001a.2fa2.b17f)
+  Internet address is 10.56.243.1/29
+  MTU 1500 bytes, BW 1000000 Kbit, DLY 10 usec,
+     reliability 255/255, txload 1/255, rxload 1/255
+
+Vlan1706 is up, line protocol is up
+  Hardware is Ethernet SVI, address is 001a.2fa2.b17f (bia 001a.2fa2.b17f)
+  Internet address is 10.56.233.1/24
+
+
+
+** trunk mode port received  tagged frame
+Upon receiving a frame with a tag applied on a known tagged/trunked port, a receiving switch will use that tag plus the destination address 
+to determine where to forward that frame - which could be another tagged/trunk port (with 802.1q tag intact / re-applied[stripped if the tag equal to native vlan tag])
+or an untagged/access port (wth tag stripped).
+
+
+* Overview of VTP(VLAN Trunking Protocol)
+
+VTP is a Layer 2 messaging protocol that maintains VLAN configuration consistency by managing the addition, deletion, and renaming of VLANs within a VTP domain. 
+A VTP domain (also called a VLAN management domain) is made up of one or more network devices that share the same VTP domain name and that are interconnected with trunks. 
+VTP minimizes misconfigurations and configuration inconsistencies that can result in a number of problems, such as duplicate VLAN names, incorrect VLAN-type specifications, 
+and security violations.
+
+Before you create VLANs, you must decide whether you want to use VTP in your network. With VTP, you can make configuration changes centrally on one or more network 
+devices and have those changes automatically communicated to all the other network devices in the network
+
+
+**  Understanding the VTP Domain
+
+ A VTP domain is made up of one or more interconnected network devices that share the same VTP domain name. A network device can be configured to be 
+ in only one VTP domain. You make global VLAN configuration changes for the domain using either the command-line interface (CLI) or 
+ Simple Network Management Protocol (SNMP).
+
+ By default, the Catalyst 4500 series switch is in VTP transparent mode and is in the no-management domain state until the switch receives
+ an advertisement for a domain over a trunk link or you configure a management domain. You cannot create or modify VLANs on a VTP server until the management domain name is specified 
+ or learned.
+
+ If the switch receives a VTP advertisement over a trunk link, it inherits the management domain name and the VTP configuration revision number. The switch ignores advertisements 
+ with a different management domain name or an earlier configuration revision number.
+
+ If you configure the switch as VTP transparent, you can create and modify VLANs, but the changes affect only the individual switch.
+ When you make a change to the VLAN configuration on a VTP server, the change is propagated to all network devices in the VTP domain. VTP advertisements are transmitted out
+ all Inter-Switch Link (ISL) and IEEE 802.1Q trunk connections.
+
+ VTP maps VLANs dynamically across multiple LAN types with unique names and internal index associations. Mapping eliminates unnecessary device administration for network administrators.
+ 
+ 
+** Understanding VTP Modes
+ You can configure a Catalyst 4500 series switch to operate in any one of these VTP modes:
+ •Server—In VTP server mode, you can create, modify, and delete VLANs and specify other configuration parameters (such as VTP version and VTP pruning) for the entire VTP domain. 
+ VTP servers advertise their VLAN configuration to other network devices in the same VTP domain and synchronize their VLAN configuration with other network devices based on advertisements received over trunk links.
+
+ •Client—VTP clients behave the same way as VTP servers, but you cannot create, change, or delete VLANs on a VTP client.
+
+ •Transparent—VTP transparent network devices do not participate in VTP. A VTP transparent network device does not advertise its VLAN configuration and does not synchronize its 
+ VLAN configuration based on received advertisements. However, in VTP version 2, transparent network devices do forward VTP advertisements that they receive on their 
+ trunking LAN interfaces. VTP transparent is the default mode. 
+
+
+
+mmeswitch  show arp
+ Internet  10.56.243.1             -   001a.2fa2.b17f  ARPA   Vlan1705
+
+
+
+interface GigabitEthernet0/15
+ description mgmt1
+ switchport trunk allowed vlan 1
+ switchport mode trunk
+ switchport nonegotiate
+ spanning-tree cost 100
+
+!
+interface GigabitEthernet0/20
+ description extern4
+ switchport access vlan 2
+ switchport trunk native vlan 2
+ switchport mode access
+
+https://www.cisco.com/c/en/us/td/docs/switches/lan/catalyst4500/12-2/25ew/configuration/guide/conf/vlans.html#wp1037080
+https://www.cisco.com/c/en/us/td/docs/switches/datacenter/nexus5000/sw/configuration/guide/cli/CLIConfigurationGuide/AccessTrunk.html
+
+* Configuring Access and truck interfaces
+** configure a LAN interface as an Ethernet Access point
+configure an Ethernet port as an access port. An access port transmits packets on only one, untagged VLAN.
+You specify which VLAN traffic that the interface carries. If you do not specify a VLAN for an access port, the interface carries traffic only 
+on the default VLAN that is VLAN1.
+
+*** configure an Ethernet access port, perform this task:
+
+
+switch# configure terminal
+
+
+switch(config)# interface {{ type slot / port } | { port-channel number }}
+    
+
+switch(config-if)# switchport mode { access | trunk }
+By default, an access port carries traffic for VLAN1; 
+To set the access port to carry traffic for a different VLAN, use the switchport access vlan command.
+
+    
+switch(config-if)# switchport access vlan vlan-id
+Specifies the VLAN for which this access port will carry traffic. 
+If you do not enter this command, the access port carries traffic on VLAN1 only;
+
+This example shows how to set Ethernet 1/10 as an Ethernet access port that carries traffic for VLAN 5 only:
+switch# configure terminal
+switch(config)# interface ethernet 1/10
+switch(config-if)# switchport mode access
+switch(config-if)# switchport access vlan 5 
+
+***   Configuring Access Host Ports
+Note You should apply the switchport host command only to interfaces connected to an end station.
+You can optimize performance on access ports that are connected to end stations by simultaneously setting that port as an access port. An access host port handles the Spanning Tree Protocol (STP) like an edge port and immediately moves to the forwarding state without passing through the blocking and learning states. Configuring an interface as an access host port also disables port channeling on that interface.
+Note See Chapter 1, “Configuring Port Channels” for information on port channel interfaces and Chapter 1, “Configuring Rapid PVST+” for complete information on the Spanning Tree Protocol.
+
+Ensure that you are configuring the correct interface to an interface that is an end station.
+
+To configure an access host port, perform this task:
+
+switch(config)# interface type slot / port
+switch(config-if)# switchport host
+Sets the interface to be an access host port, which immediately moves to the spanning tree forwarding state and disables port channeling on this interface.
+
+This example shows how to set Ethernet 1/10 as an Ethernet access port with PortFast enabled and port channel disabled:
+switch# configure terminal
+switch(config)# interface ethernet 1/10
+switch(config-if)# switchport host 
+
+*** Configuring Trunk Ports
+You can configure an Ethernet port as a trunk port; a trunk port transmits untagged packets for the native VLAN plus encapsulated, tagged, packets for multiple VLANs.  
+This example shows how to set Ethernet 3/1 as an Ethernet trunk port:
+switch# configure terminal
+switch(config)# interface ethernet 3/1
+switch(config-if)# switchport mode trunk 
+
+**** Configuring the Native VLAN for 802.1Q Trunking Ports
+
+If you do not configure this parameter, the trunk port uses the default VLAN as the native VLAN ID.
+
+To configure native VLAN for a 802.1Q trunk port, perform this task:
+
+switch# configure terminal
+switch(config)# interface { type slot / port | port-channel number }
+switch(config-if)# switchport trunk native vlan vlan-id
+Sets the native VLAN for the 802.1Q trunk. Valid values are from 1 to 4094, except those VLANs reserved for internal use. The default value is VLAN1.
+
+This example shows how to set the native VLAN for Ethernet 3/1 Ethernet trunk port to VLAN 5:
+switch# configure terminal
+switch(config)# interface ethernet 3/1
+switch(config-if)# switchport trunk native vlan 5 
+
+**** Configuring the Allowed VLANs for Trunking Ports
+
+You can specify the IDs for the VLANs that are allowed on the specific trunk port.
+
+Before you configure the allowed VLANs for the specified trunk ports, ensure that you are configuring the correct interfaces and that the interfaces are trunks.
+To configure the allowed VLAN for a trunk port, perform this task:
+switch# configure terminal
+switch(config)# interface { type slot / port | port-channel number }
+switch(config-if)# switchport trunk allowed vlan { vlan-list all | none [ add |except | none | remove { vlan-list }]}
+switchport trunk allow vlan 2,7,10-13,15,16,1705-1725
+
+Sets allowed VLANs for the trunk interface. The default is to allow all VLANs on the trunk interface: 1 to 3967 and 4048 to 4094. VLANs 3968 to 4047 are the default VLANs reserved for internal use by default; this group of VLANs is configurable. By default, all VLANs are allowed on all trunk interfaces.
+Note You cannot add internally allocated VLANs as allowed VLANs on trunk ports. The system returns a message if you attempt to list an internally allocated VLAN as an allowed VLAN.
+
+This example shows how to add VLANs 15 to 20 to the list of allowed VLANs on the Ethernet 3/1 Ethernet trunk port:
+switch# configure terminal
+switch(config)# interface ethernet 3/1
+switch(config-if)# switchport trunk allow vlan 15-20 
+
+
+
+
+*** Verifying Interface Configuration
+
+
+switch# show interface
+    
+
+Displays the interface configuration
+
+switch# show interface switchport
+    
+
+Displays information for all Ethernet interfaces, including access and trunk interfaces.
+
+switch# show interface brief
+    
+
+Displays interface configuration information.
+
+
+***********
+swithch3(mmeswitch 10.56.233.130)
+
+interface Vlan1705
+ ip address 10.56.243.1 255.255.255.248
+ !
+
+interface GigabitEthernet1/11
+ switchport access vlan 1705
+ switchport trunk encapsulation dot1q
+ switchport trunk allowed vlan 2,10-13,15,16,1705-1725
+ switchport mode access
+
+
+interface Vlan10
+ ip address 10.56.233.130 255.255.255.0
+ ipv6 address 1000:1000:1000:1000::1/64
+ ipv6 enable
+
+interface Vlan13
+ ip address 10.10.0.1 255.255.0.0
+
+
+interface GigabitEthernet1/2
+ switchport access vlan 10
+ switchport trunk encapsulation dot1q
+ switchport trunk allowed vlan 2,10-13,15,16,1705-1725
+ switchport mode access
+!
+interface GigabitEthernet1/5
+ switchport access vlan 10
+ switchport trunk encapsulation dot1q
+ switchport trunk allowed vlan 2,10-13,15,16,1705-1725
+ switchport mode access
+!
+interface GigabitEthernet1/7
+ switchport access vlan 13
+ switchport trunk encapsulation dot1q
+ switchport trunk allowed vlan 2,10-13,15,16,1705-1725
+ switchport mode access
+!
+
+ip default-gateway 10.56.233.1
+ip route 0.0.0.0 0.0.0.0 10.56.233.129   ####upper router of this switcher
+
+$show arp
+Internet  10.56.233.139          62   e41f.1378.9538  ARPA   Vlan10
+Internet  10.56.233.136           9   e41f.137b.d33c  ARPA   Vlan10 
+Internet  10.56.233.199          26   000c.298f.940b  ARPA   Vlan10
+Internet  10.56.233.198          24   000c.2948.6d78  ARPA   Vlan10
+Internet  10.56.233.197         138   e41f.1339.815c  ARPA   Vlan10
+
+Internet  10.56.243.1             -   001a.2fa2.b17f  ARPA   Vlan1705
+Internet  10.56.243.2            16   00a0.a568.b46c  ARPA   Vlan1705
+
+
+ 
+
+mmeswitch>show ip route static
+S*   0.0.0.0/0 [1/0] via 10.56.233.129
+
+
+
+mmeswitch#show ip interface brief
+Interface              IP-Address      OK? Method Status                Protocol
+Vlan10                 10.56.233.130   YES NVRAM  up                    up
+Vlan1705               10.56.243.1     YES NVRAM  up                    up
+GigabitEthernet1/1     unassigned      YES unset  up                    up
+
+SVI: Switch Virtual Interface
+mmeswitch#show interface vlan  10
+Vlan10 is up, line protocol is up
+  Hardware is Ethernet SVI, address is 001a.2fa2.b17f (bia 001a.2fa2.b17f)
+  Internet address is 10.56.233.130/24
+  MTU 1500 bytes, BW 1000000 Kbit, DLY 10 usec,
+     reliability 255/255, txload 1/255, rxload 1/255
+  Encapsulation ARPA, loopback not set
+  ARP type: ARPA, ARP Timeout 04:00:00
+  Last input 00:00:00, output never, output hang never
+  Last clearing of "show interface" counters never
+  Input queue: 0/75/0/0 (size/max/drops/flushes); Total output drops: 0
+  Queueing strategy: fifo
+  Output queue: 0/40 (size/max)
+  5 minute input rate 1000 bits/sec, 1 packets/sec
+  5 minute output rate 499000 bits/sec, 40 packets/sec
+  L3 in Switched: ucast: 572582 pkt, 513552799 bytes - mcast: 0 pkt, 0 bytes
+  L3 out Switched: ucast: 164038 pkt, 195903827 bytes - mcast: 0 pkt, 0 bytes
+
+     581520 packets input, 516471107 bytes, 0 no buffer
+     Received 8938 broadcasts (829 IP multicasts)
+     0 runts, 0 giants, 0 throttles
+     0 input errors, 0 CRC, 0 frame, 0 overrun, 0 ignored
+     634549 packets output, 677024051 bytes, 0 underruns
+     0 output errors, 0 interface resets
+     0 output buffer failures, 0 output buffers swapped out
+mmeswitch#
+
+mmeswitch>show interface vlan 1705
+Vlan1705 is up, line protocol is up
+  Hardware is Ethernet SVI, address is 001a.2fa2.b17f (bia 001a.2fa2.b17f)
+  Internet address is 10.56.243.1/29
+  MTU 1500 bytes, BW 1000000 Kbit, DLY 10 usec,
+     reliability 255/255, txload 1/255, rxload 1/255
+  Encapsulation ARPA, loopback not set
+  ARP type: ARPA, ARP Timeout 04:00:00
+  Last input 00:00:30, output never, output hang never
+  Last clearing of "show interface" counters never
+  Input queue: 0/75/0/0 (size/max/drops/flushes); Total output drops: 0
+  Queueing strategy: fifo
+  Output queue: 0/40 (size/max)
+  5 minute input rate 0 bits/sec, 0 packets/sec
+  5 minute output rate 0 bits/sec, 0 packets/sec
+  L3 in Switched: ucast: 123683 pkt, 114836458 bytes - mcast: 0 pkt, 0 bytes
+  L3 out Switched: ucast: 98551 pkt, 48697885 bytes - mcast: 0 pkt, 0 bytes
+     132402 packets input, 117691544 bytes, 0 no buffer
+     Received 8719 broadcasts (766 IP multicasts)
+     0 runts, 0 giants, 0 throttles
+     0 input errors, 0 CRC, 0 frame, 0 overrun, 0 ignored
+     98696 packets output, 48705305 bytes, 0 underruns
+     0 output errors, 0 interface resets
+     0 output buffer failures, 0 output buffers swapped out
+mmeswitch>
+
+
+*** 
+** configure interVLAN Routing
+a switcher with route function.
+devide the ports into two different vlan.  some ports in vlan1, some ports in vlan2.
+vlan1 and vlan2 has different ip subnets, ports in vlan1 could be reached with each other, and ports in vlan2 could be reahed with each otherho
+hosts in a LAN/VLAN, should be assigned in the same subnet ip address, thus when broadcast ethernet address, all the hosts within one ipsubnet should received the packets. 
+
+How vlan1 and vlan2 reach each other?
+We need ip route.
+*** Configure vlan with ip address
+Switch#configure terminal
+Enter configuration commands, one per line.  End with CNTL/Z.
+Switch(config)#interface Vlan2
+Switch(config-if)#ip address 10.1.2.1 255.255.255.0
+Switch(config-if)#no shutdown
+
+Repeat this process for all VLANs identified in Vlan1 with ip 10.1.3.1 
+
+
+*** Configure the interface to the default router. In this scenario you have a Layer 3 FastEthernet port.
+
+Switch(config)#interface FastEthernet 0/1
+Switch(config-if)#no switchport
+Switch(config-if)#ip address 200.1.1.1 255.255.255.0
+Switch(config-if)#no shutdown
+
+
+Configure the default route for the switch.
+
+Switch(config)#ip route 0.0.0.0 0.0.0.0 200.1.1.2
+
+
+switch_134(config)#int vlan7
+switch_134(config-if)#no ipaddress
+
+
+SW1(config)#vlan 11
+SW1(config-vlan)#name Accounting
+SW1(config-vlan)#exit
+SW1(config)#int fa1/0
+SW1(config-if)#switchport mode access
+SW1(config-if)#switchport access vlan 11
+SW1(config-if)#end
+
+
+
+mmeswitch#show cdp neighbors
+Capability Codes: R - Router, T - Trans Bridge, B - Source Route Bridge
+                  S - Switch, H - Host, I - IGMP, r - Repeater, P - Phone
+
+                  Device ID        Local Intrfce     Holdtme    Capability  Platform  Port ID
+                  4900M.nokia.lab  Ten 1/49          159          R S I     WS-C4900M Ten 1/3
+                  switch_134       Gig 1/2           145           S I      OS-CIGESM Gig 0/19
+                  switch_133       Gig 1/11          139           S I      OS-CIGESM Gig 0/19
+                  switch_133       Gig 1/7           139           S I      OS-CIGESM Gig 0/17
+                  switch_133       Gig 1/5           139           S I      OS-CIGESM Gig 0/20
+                  mmeswitch#
+
+
+* respond broadcast ping 
+when you ping a broadcast addr, the dest mac will be all F,  shall be like this:
+[root@localhost ~]# tcpdump -i eno2.8 -en
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on eno2.8, link-type EN10MB (Ethernet), capture size 262144 bytes
+11:16:36.196030 e4:1f:13:7b:d3:3e > Broadcast, ethertype IPv4 (0x0800), length 98: 192.168.7.2 > 192.168.7.255: ICMP echo request, id 25371, seq 8, length 64
+
+[root@localhost ~]# sysctl net.ipv4.icmp_echo_ignore_broadcasts
+net.ipv4.icmp_echo_ignore_broadcasts = 1
+#### when this is 1, the broadcast package  will be dropped, however this will not effect arp protocol, only icmp broadcast frame will be dropped.
+
+[root@localhost ~]# echo "0" > /proc/sys/net/ipv4/icmp_echo_ignore_broadcasts
+with this option 0, it will respond the broadcast package
+ 
+** 
+https://unix.stackexchange.com/questions/205708/linux-does-not-reply-to-arp-request-messages-if-requested-ip-address-is-associat
+
+* vlan only within one switch
+** two ports configured as access mode and in the same access vlan
+configuration as follow:
+when no vlan 9 exist in the switch( no vlan 9 configured)
+the access mode's access vlan must exists, if not system will create this vlan9 for you.
+-------------------------------------------------
+  g0/5 access mode(access vlan 9)
+  g0/10 access mode(access vlan 9)
+----------------------------------------------
+
+*** arp not respond in linux host even it has that ip
+[root@compute1 ~]#  ifconfig
+
+eno2: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 14.1.1.17  netmask 255.255.255.0  broadcast 14.1.1.255
+        ether e4:1f:13:7b:d3:3e  txqueuelen 1000  (Ethernet)
+eno2.10: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 14.1.1.31  netmask 255.255.255.0  broadcast 14.1.1.255
+        ether e4:1f:13:7b:d3:3e  txqueuelen 1000  (Ethernet)
+
+[root@compute1 ~]#  ip route show table local
+broadcast 14.1.1.0 dev eno2 proto kernel scope link src 14.1.1.17
+local 14.1.1.17 dev eno2 proto kernel scope host src 14.1.1.17
+broadcast 14.1.1.255 dev eno2 proto kernel scope link src 14.1.1.17
+
+[root@compute1 ~]#  ip route show table local
+broadcast 14.1.1.0 dev eno2.10 proto kernel scope link src 14.1.1.31
+broadcast 14.1.1.0 dev eno2 proto kernel scope link src 14.1.1.17
+local 14.1.1.17 dev eno2 proto kernel scope host src 14.1.1.17
+local 14.1.1.31 dev eno2.10 proto kernel scope host src 14.1.1.31
+broadcast 14.1.1.255 dev eno2.10 proto kernel scope link src 14.1.1.31
+broadcast 14.1.1.255 dev eno2 proto kernel scope link src 14.1.1.17
+
+
+
+** two ports configured as trunk mode but allow vlan tag not exists
+assume vlan9 exist in switch, but vlan20 not exists, you could configure as follow without vlan 20 created.
+configuration as follow:
+-----------------------------------
+  g0/5 trunk mode(allow vlan 9,20)
+  g0/10 trunk mode(allow vlan 9,20)
+----------------------------------
+but in this trunk mode, if vlan 20 not exists, then vlan20's hosts could not communicate each other unless you created vlan 20 in the switch.
+
+
+
+** port mode trunk/access configration in layer two.
+configuration as follow:
+-----------------------------------
+  g0/1 trunk mode(allow vlan 9,20)
+  g0/2 trunk mode(allow vlan 9,20)
+  g0/3 access mode(access vlan 20)
+-------------------------------------
+*** tagged frame received in the trunk port
+when g0/1 received a ethernet frame with 802.1q vlan tag 20, it could be broadcast to other g0/2 and g0/3 ports.
+and g0/2 will forward it to the downstream with this tag 20 in 802.1q ethernet frame, 
+while g0/3  will forward it to the downstream without tag as a normal ethernet frame.
+
+*** untagged frame received in the access mode
+when g0/3 received an untagged ethernet frame, it could be broadcast to other g0/2 and g0/3 ports.
+and g0/2 will forward it to the downstream with added vlan tag 20 802.1q frame . 
+and g0/3 will forward it to the downstream with added vlan tag 20 802.1q frame . 
+
+you can see that the frame outgoing from port g0/3 will be added vlan tag when it through trunk port, since port g0/3 is access vlan20,
+all port allowed by vlan 20(trunk/access) could receive this ethernet frame, different is in trunk mode, it will be tagged. which number to tag?
+when ports configured allow/access vlan, these ports will be added into different LAN topology.
+vlan20: g0/1, g0/2, g0/3   [these ports within one LAN in layer two broadcast domain]
+vlan9: g0/1, g0/2
+
+
+** native vlan tag
+when a trunk port received a untagged frame, what tag the frame will be added?
+this is the native vlan tag usage.
+it will be added the native lan tag.
+-------------------------------------
+  g0/1 access mode(access vlan 20)
+  g0/2 trunk mode(allow vlan 9,20)
+  g0/3 trunk mode(allow vlan 9,20)(nativ vlan tag 20)
+-------------------------------------
+when g0/3 receive an untagged frame, itw will add tag 20 to the frame, and broadcast to g0/2 and g0/3 since they are both in vlan 20,
+when g0/2 receive this tag20 802.1q frame, it will forward it downstream.
+when g0/1 receive this tag20 802.1q frame, iw wil strip the tag 20 and forward it downstream.
+
+when a trunk port received the tagged frame, the vlan tag which is equal to native vlan tag  will be stripped.
+
+
+
+
+* vlan accross two switches
+** a virtual lan across two switches
+mmeswitch g1, switch 134 g0
+
+  g1/10[trunk allow valn 8,10]         g1/2 [trunk allow vlan 7,8]         
+    | native vlan 10]                    |
+    |                                    |
+    |                                    |
+  host controller[ens255f0.8]         g0/19[trunk allow vlan 7,8]         g0/5[trunk allow vlan7, native vlan 7]
+                                                                           |
+                                                                           |
+                                                                           |
+                                                                           host B[eno2.8]
+hostB
+eno2.8: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.7.2  netmask 255.255.255.0  broadcast 192.168.7.255
+        ether e4:1f:13:7b:d3:3e  txqueuelen 1000  (Ethernet)
+    
+host controller  
+ens255f0.8: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.7.15  netmask 255.255.255.0  broadcast 192.168.7.255
+        ether d8:c4:97:a7:1e:83  txqueuelen 1000  (Ethernet)
+        
+
+[root@controller ~]# ping 192.168.7.2
+[root@controller ~]# tcpdump -i ens255f0 -n -e host 192.168.7.2
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on ens255f0, link-type EN10MB (Ethernet), capture size 262144 bytes
+17:09:49.285961 d8:c4:97:a7:1e:83 > Broadcast, ethertype 802.1Q (0x8100), length 46: vlan 8, p 0, ethertype ARP, Request who-has 192.168.7.2 tell 192.168.7.15, l8
+17:09:49.286145 e4:1f:13:7b:d3:3e > d8:c4:97:a7:1e:83, ethertype 802.1Q (0x8100), length 64: vlan 8, p 0, ethertype ARP, Reply 192.168.7.2 is-at e4:1f:13:7b:d3:36
+17:09:49.286168 d8:c4:97:a7:1e:83 > e4:1f:13:7b:d3:3e, ethertype 802.1Q (0x8100), length 102: vlan 8, p 0, ethertype IPv4, 192.168.7.15 > 192.168.7.2: ICMP echo 4
+17:09:49.286288 e4:1f:13:7b:d3:3e > d8:c4:97:a7:1e:83, ethertype 802.1Q (0x8100), length 102: vlan 8, p 0, ethertype IPv4, 192.168.7.2 > 192.168.7.15: ICMP echo 4
+
+[root@compute1 ~]# tcpdump -i eno2 host 192.168.7.2 -n -e
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on eno2, link-type EN10MB (Ethernet), capture size 262144 bytes
+17:09:50.043145 d8:c4:97:a7:1e:83 > Broadcast, ethertype 802.1Q (0x8100), length 60: vlan 8, p 0, ethertype ARP, Request who-has 192.168.7.2 tell 192.168.7.15, length 42
+17:09:50.043176 e4:1f:13:7b:d3:3e > d8:c4:97:a7:1e:83, ethertype 802.1Q (0x8100), length 46: vlan 8, p 0, ethertype ARP, Reply 192.168.7.2 is-at e4:1f:13:7b:d3:3e, length 28
+17:09:50.043282 d8:c4:97:a7:1e:83 > e4:1f:13:7b:d3:3e, ethertype 802.1Q (0x8100), length 102: vlan 8, p 0, ethertype IPv4, 192.168.7.15 > 192.168.7.2: ICMP echo request, id 29045, seq 1, length 64
+17:09:50.043340 e4:1f:13:7b:d3:3e > d8:c4:97:a7:1e:83, ethertype 802.1Q (0x8100), length 102: vlan 8, p 0, ethertype IPv4, 192.168.7.2 > 192.168.7.15: ICMP echo reply, id 29045, seq 1, length 64
+
+
+==================================================================================================================================================================
+we can see both hosts's mac address is the real terminal host's mac and ip since its a layer 2 swich, we configure vlan tag to control hostB and host controller will be conneted even
+across the two switches.
+If a layer 3 switch invloved, then the mac address and ip adress will not match.
+for example, when ip switch, SNAT using, the actual mac address will be replace with gateway's mac 
+
+
+** inter vlan communicate with each other via two switches
+here from host controller in vlan10 in mmeswith, ping a host B(connected through other switch134) in vlan7
+*** siwtch 1 mmeswitch
+-------------------------
+mmeswitch#show ip route
+Codes: C - connected, S - static, R - RIP, M - mobile, B - BGP
+Gateway of last resort is 10.56.233.129 to network 0.0.0.0
+
+C       10.56.243.0/29 is directly connected, Vlan1705
+C       10.56.233.0/24 is directly connected, Vlan10
+C       10.56.243.56/29 is directly connected, Vlan1710
+     14.0.0.0/24 is subnetted, 1 subnets            
+C       14.1.1.0 is directly connected, Vlan7  [vlan7's network is 14.1.1.0, and all the host not directely connected with this switch's port, but conected with the next switch's ports]
+S*   0.0.0.0/0 [1/0] via 10.56.233.129
+-------------------------------------------------------------
+mmeswitch g1, switch 134 g0
+
+  g1/10[access valn 10]             g1/2 [trunk allow vlan 7,8]         
+    |                                    |
+    |                                    |
+    |                                    |
+  host controller[ens255f0]         g0/19[trunk allow vlan 7,8]         g0/5[trunk allow vlan7, native vlan 7]
+                                                                           |
+                                                                           |
+                                                                           |
+                                                                           host B[eno2]
+                                                                               
+
+
+*** host controller source host
+a host connected to a port access vlan10 with route table:
+[root@controller ~]# route -n
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+0.0.0.0         10.56.233.130   0.0.0.0         UG    0      0        0 ens255f0
+10.56.233.128   0.0.0.0         255.255.255.128 U     0      0        0 ens255f0
+[root@controller ~]# ifconfig
+ens255f0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 10.56.233.135 
+
+
+***  switch 2 134switch
+---------------------------------------
+this local port 2(mmeswitch) connected to next switch's(134switch) port 19 which is also a trunked port with allow vlan7.
+in this 134 switch, local port 5 trunk allow vlan7(port 5 trunk native vlan7). 
+----------------------------------
+
+*** host B 
+so the vlan tag will be stripped, when it arrive host B
+[hostB ~]# ifconfig
+eno2: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 14.1.1.17  
+
+
+**** from src to dst path
+-------------------------------------------
+when ping address 14.1.1.7 from this host, the packet will get the default gateway 10.56.233.130's ip layer vlan10's interface [through vlan10 lan],
+then it find dest ip 14.1.1.7 is in vlan7, it will forward(SNAT ip addr) this ip packet to vlan7. 
+in this switch only a trunked local port g1/2 configured allow vlan 7, so this will be tagged with vlan7 and through to g0/19
+g0/5 will get the packet, check ths 802.1q vlan7 frame should be stripped since its native vlan is 7
+then host B receive a normal frame.
+[root@hostB ~]# tcpdump -i eno2 host 14.1.1.17 -n -e
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on eno2, link-type EN10MB (Ethernet), capture size 262144 bytes
+14:28:21.719359 00:1a:2f:a2:b1:7f > e4:1f:13:7b:d3:3e, ethertype IPv4 (0x0800), length 98: 10.56.233.135 > 14.1.1.17: ICMP echo request, id 10950, seq 1, length 64
+
+ 
+**** from dst to src path
+now hostB's route is 
+[hostB ~]# route -n
+10.56.233.135   0.0.0.0         255.255.255.255 UH    0      0        0 eno2
+
+[mmeswitch]$show vlan10 
+lan10 is up, line protocol is up
+Hardware is Ethernet SVI, address is 001a.2fa2.b17f (bia 001a.2fa2.b17f)
+Internet address is 10.56.233.130/24
+
+
+so the icmp echo packet will be sent via eno2.
+but it has no idea of mac of 10.56.233.135 then arp broadcast with src 14.1.1.17 who knows address 10.56.233.135 tell 14.1.1.17,
+the arp frame will be tagged with tag7, and it will get to g1/2, interface vlan* will get this frame, and it will reply with ip 10.56.233.135 is at 001a.2fa2.b17f
+
+then hostB will send icmp echo response dstmac(001a.2fa2.b17f) dstip(10.56.233.130) to g1/2 inter vlan7 in ip layer and it will forward it to inter vlan10 since dstip is 10.56.233.130
+this forword is a snat process. 
+
+
+

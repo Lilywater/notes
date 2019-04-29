@@ -301,6 +301,7 @@ makefile to print the goal and target
 
 
 
+
 * implicit default target
 ==============================================
 The implicit default target of the makefile
@@ -1629,6 +1630,130 @@ all:
 
 
 * 源代码预处理技术（gcc和Make）
+** compile 32 bit prg in a 64bit sytem
+*** gcc/g++ option -v 
+[admin1@prot-ttcn-test64 test]$ g++ -m32 -march=i686  -v -o test t.c
+
+==========================================================================
+
+gcc version 4.8.5 20150623 (Red Hat 4.8.5-28) (GCC)
+COLLECT_GCC_OPTIONS='-m32' '-march=i686' '-v' '-o' 'test' '-shared-libgcc'
+ /usr/libexec/gcc/x86_64-redhat-linux/4.8.5/cc1plus -quiet -v -imultilib 32 -D_GNU_SOURCE t.c -quiet -dumpbase t.c -m32 -march=i686 -auxbase t -version -o /tmp/ccUT83tL.s
+GNU C++ (GCC) version 4.8.5 20150623 (Red Hat 4.8.5-28) (x86_64-redhat-linux)
+        compiled by GNU C version 4.8.5 20150623 (Red Hat 4.8.5-28), GMP version 6.0.0, MPFR version 3.1.1, MPC version 1.0.1
+GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
+ignoring nonexistent directory "/usr/lib/gcc/x86_64-redhat-linux/4.8.5/include-fixed"
+ignoring nonexistent directory "/usr/lib/gcc/x86_64-redhat-linux/4.8.5/../../../../x86_64-redhat-linux/include"
+#include "..." search starts here:
+#include <...> search starts here:
+ /usr/lib/gcc/x86_64-redhat-linux/4.8.5/../../../../include/c++/4.8.5
+ /usr/lib/gcc/x86_64-redhat-linux/4.8.5/../../../../include/c++/4.8.5/x86_64-redhat-linux/32
+ /usr/lib/gcc/x86_64-redhat-linux/4.8.5/../../../../include/c++/4.8.5/backward
+ /usr/lib/gcc/x86_64-redhat-linux/4.8.5/include
+ /usr/local/include
+ /usr/include
+End of search list.
+GNU C++ (GCC) version 4.8.5 20150623 (Red Hat 4.8.5-28) (x86_64-redhat-linux)
+        compiled by GNU C version 4.8.5 20150623 (Red Hat 4.8.5-28), GMP version 6.0.0, MPFR version 3.1.1, MPC version 1.0.1
+GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
+Compiler executable checksum: 4cfbd2f800ae2948023dedd74ee01997
+COLLECT_GCC_OPTIONS='-m32' '-march=i686' '-v' '-o' 'test' '-shared-libgcc'
+ as -v --32 -o /tmp/ccS2jJjy.o /tmp/ccUT83tL.s
+GNU assembler version 2.27 (x86_64-redhat-linux) using BFD version version 2.27-28.base.el7_5.1
+COMPILER_PATH=/usr/libexec/gcc/x86_64-redhat-linux/4.8.5/:/usr/libexec/gcc/x86_64-redhat-linux/4.8.5/:/usr/libexec/gcc/x86_64-redhat-linux/:/usr/lib/gcc/x86_64-redhat-linux/4.8.5/:/usr/lib/gcc/x86_64-redhat-linux/
+LIBRARY_PATH=/usr/lib/gcc/x86_64-redhat-linux/4.8.5/32/:/usr/lib/gcc/x86_64-redhat-linux/4.8.5/../../../../lib/:/lib/../lib/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-redhat-linux/4.8.5/:/usr/lib/gcc/x86_64-redhat-linux/4.8.5/../../../:/lib/:/usr/lib/
+COLLECT_GCC_OPTIONS='-m32' '-march=i686' '-v' '-o' 'test' '-shared-libgcc'
+ /usr/libexec/gcc/x86_64-redhat-linux/4.8.5/collect2 --build-id --no-add-needed --eh-frame-hdr --hash-style=gnu -m elf_i386 -dynamic-linker /lib/ld-linux.so.2 -o test /usr/lib/gcc/x86_64-redhat-linux/4.8.5/../../../../lib/crt1.o /usr/lib/gcc/x86_64-redhat-linux/4.8.5/../../../../lib/crti.o /usr/lib/gcc/x86_64-redhat-linux/4.8.5/32/crtbegin.o -L/usr/lib/gcc/x86_64-redhat-linux/4.8.5/32 -L/usr/lib/gcc/x86_64-redhat-linux/4.8.5/../../../../lib -L/lib/../lib -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-redhat-linux/4.8.5 -L/usr/lib/gcc/x86_64-redhat-linux/4.8.5/../../.. /tmp/ccS2jJjy.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-redhat-linux/4.8.5/32/crtend.o /usr/lib/gcc/x86_64-redhat-linux/4.8.5/../../../../lib/crtn.o
+==============================================================================================================
+
+g++ -v -o test t.c  ####without m32 option
+===========================
+#include "..." search starts here:
+#include <...> search starts here:
+ /usr/lib/gcc/x86_64-redhat-linux/4.8.5/../../../../include/c++/4.8.5
+ /usr/lib/gcc/x86_64-redhat-linux/4.8.5/../../../../include/c++/4.8.5/x86_64-redhat-linux
+ /usr/lib/gcc/x86_64-redhat-linux/4.8.5/../../../../include/c++/4.8.5/backward
+ /usr/lib/gcc/x86_64-redhat-linux/4.8.5/include
+ /usr/local/include
+ /usr/include
+End of search list.
+GNU C++ (GCC) version 4.8.5 20150623 (Red Hat 4.8.5-28) (x86_64-redhat-linux)
+        compiled by GNU C version 4.8.5 20150623 (Red Hat 4.8.5-28), GMP version 6.0.0, MPFR version 3.1.1, MPC version 1.0.1
+GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
+Compiler executable checksum: 4cfbd2f800ae2948023dedd74ee01997
+COLLECT_GCC_OPTIONS='-v' '-o' 'test' '-shared-libgcc' '-mtune=generic' '-march=x86-64'
+ as -v --64 -o /tmp/ccpjvjz8.o /tmp/ccAUzE2Y.s
+GNU assembler version 2.27 (x86_64-redhat-linux) using BFD version version 2.27-28.base.el7_5.1
+COMPILER_PATH=/usr/libexec/gcc/x86_64-redhat-linux/4.8.5/:/usr/libexec/gcc/x86_64-redhat-linux/4.8.5/:/usr/libexec/gcc/x86_64-redhat-linux/:/usr/lib/gcc/x86_64-redhat-linux/4.8.5/:/usr/lib/gcc/x86_64-redhat-linux/
+LIBRARY_PATH=/usr/lib/gcc/x86_64-redhat-linux/4.8.5/:/usr/lib/gcc/x86_64-redhat-linux/4.8.5/../../../../lib64/:/lib/../lib64/:/usr/lib/../lib64/:/usr/lib/gcc/x86_64-redhat-linux/4.8.5/../../../:/lib/:/usr/lib/
+COLLECT_GCC_OPTIONS='-v' '-o' 'test' '-shared-libgcc' '-mtune=generic' '-march=x86-64'
+ /usr/libexec/gcc/x86_64-redhat-linux/4.8.5/collect2 --build-id --no-add-needed --eh-frame-hdr --hash-style=gnu -m elf_x86_64 -dynamic-linker /lib64/ld-linux-x86-64.so.2 -o test /usr/lib/gcc/x86_64-redhat-linux/4.8.5/../../../../lib64/crt1.o /usr/lib/gcc/x86_64-redhat-linux/4.8.5/../../../../lib64/crti.o /usr/lib/gcc/x86_64-redhat-linux/4.8.5/crtbegin.o -L/usr/lib/gcc/x86_64-redhat-linux/4.8.5 -L/usr/lib/gcc/x86_64-redhat-linux/4.8.5/../../../../lib64 -L/lib/../lib64 -L/usr/lib/../lib64 -L/usr/lib/gcc/x86_64-redhat-linux/4.8.5/../../.. /tmp/ccpjvjz8.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-redhat-linux/4.8.5/crtend.o /usr/lib/gcc/x86_64-redhat-linux/4.8.5/../../../../lib64/crtn.o
+=============================
+
+*** ld option -m  elf_i386 ###to generate i386 executable files
+ [admin1@prot-ttcn-test64 test]$ ld -m elf_i386 -s -o hello hello.o
+
+*** gcc/g++ compile option -m32
+      -m32
+     -m64
+       -mx32
+           Generate code for a 32-bit or 64-bit environment.  The -m32 option sets "int", "long", and pointer types to 32 bits, and generates code that runs
+           on any i386 system.
+
+           The -m64 option sets "int" to 32 bits and "long" and pointer types to 64 bits, and generates code for the x86-64 architecture.  For Darwin only
+           the -m64 option also turns off the -fno-pic and -mdynamic-no-pic options.
+
+           The -mx32 option sets "int", "long", and pointer types to 32 bits, and generates code for the x86-64 architecture.
+in a 64bit system
+------------------------------------------
+[admin1@prot-ttcn-test64 test]$ cat t.c
+#include <stdio.h>
+int main()
+{
+  printf("size of int is %d\n",sizeof(long));
+-------------------------------------------------
+gcc -o t -m32 t.c
+./t
+long is 8 bytes
+
+
+gcc -o t2 -m32 t.c
+./t2
+long is 4 bytes
+
+
+[admin1@prot-ttcn-test64 test]$ readelf -h t2
+ELF Header:
+  Magic:   7f 45 4c 46 01 01 01 00 00 00 00 00 00 00 00 00
+  Class:                             ELF32
+admin1@prot-ttcn-test64 test]$ readelf -h t
+ELF Header:
+  Magic:   7f 45 4c 46 02 01 01 00 00 00 00 00 00 00 00 00
+  Class:                             ELF64
+
+*** g++ for linking
+when link using g++ -o execfile s.o with -m32 will generate the 32 bit 
+
+*** gcc Assembler Option
+           -Wa,option  -Xassembler option
+
+-Wa,option
+           Pass option as an option to the assembler.  If option contains commas, it is split into multiple options at the commas.
+
+-Xassembler option
+           Pass option as an option to the assembler.  You can use this to supply system-specific assembler options that GCC does not recognize.
+
+gcc -Wa, --32  ### means assemble with 32 bit
+-Wa,--32 -march=i686  ### means pass --32 and -march=i686 to as programe for assebler in gcc
+
+*** as is assembler man as option
+as --32 file.s
+as --32 ... -march=
+          [--32|--x32|--64] [-n]
+          [-march=CPU[+EXTENSION...]] [-mtune=CPU]
+
+
+
 ** gcc preprocess
 gcc preprocess option
 -E  Stop after the preprocessing stage; do not run the compiler proper.  The output is in the form of preprocessed source code, which is sent to output

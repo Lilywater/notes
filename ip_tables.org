@@ -705,6 +705,11 @@ taobao ip will only reach to match-set chnroute dst
 
 
 ** TARGET TRACE example
+this only works in filter table
+---------------------------------
+x_tables: ip_tables: TRACE target: only valid in raw table, not nat
+---------------------------------------------------------------------
+
 sudo iptables -t raw -A PREROUTING -p tcp --dport 25 -j TRACE
 sudo iptables -t raw -A OUTPUT -p tcp --dport 25 -j TRACE
 modprobe ipt_LOG
@@ -1211,3 +1216,153 @@ listening on any, link-type LINUX_SLL (Linux cooked), capture size 262144 bytes
 12 packets received by filter
 0 packets dropped by kernel
 
+
+* iptables for docker packet flow
+docker container and docker host share the same iptables configuration.
+docker0 and eth0 are both interfaces in host and docker container
+
+** docker container confi
+--------------------------
+[root@0593e928b872 /]# route -n
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+0.0.0.0         172.17.0.1      0.0.0.0         UG    0      0        0 eth0
+172.17.0.0      0.0.0.0         255.255.0.0     U     0      0        0 eth0
+[root@0593e928b872 /]# ifconfig
+eth0      Link encap:Ethernet  HWaddr 02:42:AC:11:00:02
+          inet addr:172.17.0.2  Bcast:172.17.255.255  Mask:255.255.0.0
+----------------------------------------------------
+
+** docker host confi
+---------------------
+[root@TeamCI-1 ~]# route -n
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+0.0.0.0         10.56.233.130   0.0.0.0         UG    100    0        0 eno1
+172.17.0.0      0.0.0.0         255.255.0.0     U     0      0        0 docker0
+[root@TeamCI-1 ~]# ifconfig |head -14
+docker0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 172.17.0.1  netmask 255.255.0.0  broadcast 172.17.255.255
+eno1: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 10.56.233.181  netmask 255.255.255.128  broadcast 10.56.233.255
+
+----------------------=
+
+
+**  iptables confiuration same in container and host
+root@TeamCI-1 ~]# iptables -t filter -L -v
+Chain INPUT (policy ACCEPT 2155K packets, 193M bytes)
+ pkts bytes target     prot opt in     out     source               destination
+    0     0 ACCEPT     udp  --  virbr0 any     anywhere             anywhere             udp dpt:domain
+    0     0 ACCEPT     tcp  --  virbr0 any     anywhere             anywhere             tcp dpt:domain
+    0     0 ACCEPT     udp  --  virbr0 any     anywhere             anywhere             udp dpt:bootps
+    0     0 ACCEPT     tcp  --  virbr0 any     anywhere             anywhere             tcp dpt:bootps
+
+Chain FORWARD (policy ACCEPT 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination
+    4   336 DOCKER-USER  all  --  any    any     anywhere             anywhere
+    4   336 DOCKER-ISOLATION-STAGE-1  all  --  any    any     anywhere             anywhere
+    2   168 ACCEPT     all  --  any    docker0  anywhere             anywhere             ctstate RELATED,ESTABLISHED
+    0     0 DOCKER     all  --  any    docker0  anywhere             anywhere
+    2   168 ACCEPT     all  --  docker0 !docker0  anywhere             anywhere
+    0     0 ACCEPT     all  --  docker0 docker0  anywhere             anywhere
+    0     0 ACCEPT     all  --  any    virbr0  anywhere             192.168.122.0/24     ctstate RELATED,ESTABLISHED
+    0     0 ACCEPT     all  --  virbr0 any     192.168.122.0/24     anywhere
+    0     0 REJECT     all  --  any    virbr0  anywhere             anywhere             reject-with icmp-port-unreachable
+    0     0 REJECT     all  --  virbr0 any     anywhere             anywhere             reject-with icmp-port-unreachable
+
+Chain OUTPUT (policy ACCEPT 347K packets, 5088M bytes)
+ pkts bytes target     prot opt in     out     source               destination
+    0     0 ACCEPT     udp  --  any    virbr0  anywhere             anywhere             udp dpt:bootpc
+
+Chain DOCKER (1 references)
+ pkts bytes target     prot opt in     out     source               destination
+
+
+[root@TeamCI-1 ~]# iptables -t nat -L -v
+Chain PREROUTING (policy ACCEPT 42392 packets, 3349K bytes)
+ pkts bytes target     prot opt in     out     source               destination
+ 8411  496K DOCKER     all  --  any    any     anywhere             anywhere             ADDRTYPE match dst-type LOCAL
+
+Chain INPUT (policy ACCEPT 8427 packets, 499K bytes)
+ pkts bytes target     prot opt in     out     source               destination
+
+Chain OUTPUT (policy ACCEPT 1564 packets, 94986 bytes)
+ pkts bytes target     prot opt in     out     source               destination
+    1    84 DOCKER     all  --  any    any     anywhere            !loopback/8           ADDRTYPE match dst-type LOCAL
+
+Chain POSTROUTING (policy ACCEPT 1563 packets, 94902 bytes)
+ pkts bytes target     prot opt in     out     source               destination
+    2   168 MASQUERADE  all  --  any    !docker0  172.17.0.0/16        anywhere
+    6  1255 RETURN     all  --  any    any     192.168.122.0/24     224.0.0.0/24
+    0     0 RETURN     all  --  any    any     192.168.122.0/24     255.255.255.255
+    0     0 MASQUERADE  tcp  --  any    any     192.168.122.0/24    !192.168.122.0/24     masq ports: 1024-65535
+    0     0 MASQUERADE  udp  --  any    any     192.168.122.0/24    !192.168.122.0/24     masq ports: 1024-65535
+    0     0 MASQUERADE  all  --  any    any     192.168.122.0/24    !192.168.122.0/24
+
+Chain DOCKER (2 references)
+ pkts bytes target     prot opt in     out     source               destination
+    1    84 RETURN     all  --  docker0 any     anywhere             anywhere
+
+
+** an icmp message sent in the docker container to internet ip
+when docker container send a ping <ip-addr> message, it will route to docker0-ip according to iptables
+
+*** docker container send packet out, through OUTPUT and POSTROUTING
+
+( <docker--continer-ip>,<internet-ip> )---------> nat OUTPUT
+    1    84 DOCKER     all  --  any    any     anywhere            !loopback/8           ADDRTYPE match dst-type LOCAL
+hit the target DOCKER packet is 1.
+Chain DOCKER (2 references)
+ pkts bytes target     prot opt in     out     source               destination
+    1    84 RETURN     all  --  docker0 any     anywhere             anywhere
+hit the target RETURN.
+
+------------------------>nat  POSTROUTING()
+    2   168 MASQUERADE  all  --  any    !docker0  172.17.0.0/16        anywhere
+hit target MASQUERADE, the destination is eth0, not docker0, masquerade the source ip with out interface ip
+
+( <docker0-ip>,<internet-ip> )---------> egress eth0 
+
+*** docker daemon will forward this ( <docker0-ip>,<internet-ip> ) in egress eth0 docker container  to docker0 ingress in the host  
+
+*** docker host receive the packet at interface ingress docker0, through PREROUTING, FORWARD, POSTROUTING  
+
+Chain PREROUTING (policy ACCEPT 42392 packets, 3349K bytes)
+ 8411  496K DOCKER     all  --  any    any     anywhere             anywhere             ADDRTYPE match dst-type LOCAL
+not hit since dst is internet-ip
+
+Chain FORWARD (policy ACCEPT 0 packets, 0 bytes)
+    4   336 DOCKER-USER  all  --  any    any     anywhere             anywhere
+    4   336 DOCKER-ISOLATION-STAGE-1  all  --  any    any     anywhere             anywhere
+    2   168 ACCEPT     all  --  any    docker0  anywhere             anywhere             ctstate RELATED,ESTABLISHED
+ 
+------------------------>nat  POSTROUTING()
+Chain POSTROUTING (policy ACCEPT 1563 packets, 94902 bytes)
+    2   168 MASQUERADE  all  --  any    !docker0  172.17.0.0/16        anywhere
+src is 172.17. dst is eno1, hit the target MASQUERADE, the destination is eth0, not docker0, masquerade the source ip with out interface ip eno1
+(<host-ip>,<internet-ip>)
+packets has been sent to the internet ip via host eno1 egress interface
+
+
+*** docker host receive the packet at interface ingress eno1, through PREROUTING, FORWARD, POSTROUTING  
+ (<internet-ip>, <host-ip>)                               
+                                           
+       ingress interface----> PREROUTING---route--> FORWARD ----->POSTROUTING------>egress interface 
+ NO PRROUTING rule hit, 
+then route, since MASQUERADE using(SNAT), the dst<host-ip>  will be replaced with <docker0-ip>
+here, since dst is not eno1, then FORWARD it.
+Chain POSTROUTING (policy ACCEPT 1563 packets, 94902 bytes)
+ pkts bytes target     prot opt in     out     source               destination
+    2   168 MASQUERADE  all  --  any    !docker0  172.17.0.0/16        anywhere      ###since dst is <docker0-ip>, out interface is docker0, not hit this,
+    6  1255 RETURN     all  --  any    any     192.168.122.0/24     224.0.0.0/24     ### it will return
+so (<internet-ip>, <docker0-ip>) will egress via docker0 interface
+
+*** docker container receive the packet at interface eth0 through PREROUTING, INPUT 
+(<internet-ip>, <docker0-ip>) will be received at eth0 in docker container
+  
+       ingress interface----> PREROUTING---route--> INPUT 
+
+ NO PRROUTING rule hit,
+ then route, since MASQUERADE using(SNAT), the dst<docker0-ip>  will be replaced with <docker-continer-ip>
+INPUT to the stack protocel with send ping message

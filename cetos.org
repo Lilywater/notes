@@ -1,0 +1,80 @@
+* centos yum  install the package which no repo has without networking
+** yum install offline method
+baseurl is the local files
+*** download all related rpm package in online host
+yum install yum-plugin-downloadonly yum-utils createrepo
+export PKG=docker_cs # NAME OF THE PACKAGE TO INSTALL ON OFFLINE MACHINE
+yum install --downloadonly --nogpgcheck --installroot=/tmp/$PKG-installroot --releasever=7 --downloaddir=/tmp/$PKG $PKG
+createrepo --database /tmp/$PKG
+rm -rf /tmp/$PKG-installroot
+
+rsync -arv /tmp/$PKG/ [IP of the machine]:/tmp/$PKG
+##########
+ls /tmp/docker-ce
+diffutils-3.3-4.el7.x86_64.rpm                      libpwquality-1.2.3-5.el7.x86_64.rpm              readline-6.2-10.el7.x86_64.rpm
+docker-ce-18.09.1-3.el7.x86_64.rpm                  libseccomp-2.3.1-3.el7.x86_64.rpm                repodata
+
+*** install in offline host
+export PKG=docker_cs # NAME OF THE PACKAGE
+echo "[offline-$PKG]
+name=CentOS-\$releasever - $PKG
+baseurl=file:///tmp/$PKG/
+enabled=0
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7" >  /etc/yum.repos.d/offline-$PKG.repo
+
+# install package offline:
+yum --disablerepo=\* --enablerepo=offline-$PKG install --nogpgcheck $PKG
+
+
+*** using a specific repo to search a package
+yum --disablerepo="*" --enablerepo="base" search znc
+yum repolist
+--------------------------------------------
+ * base: artfiles.org
+ * extras: centos.mirror.iphh.net
+ * updates: centos.mirror.iphh.net
+repo id                                                                      repo name                                                                      status
+!base/7/x86_64                                                               CentOS-7 - Base                                                                10,019
+!extras/7/x86_64                                                             CentOS-7 - Extras                                                                 321
+!updates/7/x86_64                                                            CentOS-7 - Updates                                                                647empolist
+  
+
+* centos yum  install the package which no repo has with network
+baseurl is the remote server
+** find out the package's real location with url
+*** list the base url in the host who has this package
+[root@linux-node1 project]# repoquery  -a --location |grep docker-ce
+https://download.docker.com/linux/centos/7/x86_64/edge/Packages/docker-ce-18.09.1-3.el7.x86_64.rpm
+https://download.docker.com/linux/centos/7/x86_64/edge/Packages/docker-ce-cli-18.09.1-3.el7.x86_64.rpm
+https://download.docker.com/linux/centos/7/x86_64/edge/Packages/docker-ce-selinux-17.05.0.ce-1.el7.centos.noarch.rpm
+
+*** user defined repo using baseurl in another host
+[root@linux-node1 project]# repoquery  -a --location |grep docker-ce
+#########No result
+[root@prot-ttcn-test64 yum.repos.d]# cat dag.repo
+[remote-docker-ce]
+name=CentOS-cker-ce
+baseurl=https://download.docker.com/linux/centos/7/x86_64/edge
+enabled=0
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+[root@prot-ttcn-test64 yum.repos.d]#
+
+
+[root@prot-ttcn-test64 yum.repos.d]# yum --disablerepo=\* --enablerepo=remote-docker-ce search docker-ce
+Loaded plugins: fastestmirror
+Loading mirror speeds from cached hostfile
+remote-docker-ce                                                                                           | 3.5 kB  00:00:00
+(1/2): remote-docker-ce/updateinfo                                                                         |   55 B  00:00:01
+(2/2): remote-docker-ce/primary_db                                                                         |  24 kB  00:00:01
+===================================================== N/S matched: docker-ce =====================================================
+docker-ce.x86_64 : The open-source application container engine
+docker-ce-cli.x86_64 : The open-source application container engine
+docker-ce-selinux.noarch : SELinux Policies for the open-source application container engine
+
+  Name and summary matches only, use "search all" for everything.
+[root@prot-ttcn-test64 yum.repos.d]#
+
+**** install the package
+yum --disablerepo=\* --enablerepo=remote-docker-ce install --nogpgcheck  docker-ce

@@ -442,7 +442,7 @@ docker run --name=mysqltt8  -e MYSQL_ROOT_PASSWORD=123 -p 3307:3306 -d mqyyy777/
 
 docker run --name=mysql8  --restart=unless-stopped  -e MYSQL_ROOT_PASSWORD=123 -p 3307:3306  -v /mnt/udisk/data_aicq:/mnt/host_aicq -d mqyyy777/mysql_aicq:4.0
 docker run --name=ncl  --restart=unless-stopped -v /mnt/udisk/ncloud_data:/var/www/html -p 80:80 -d nextcloud:13.0.6
-docker run --name=webaicq2 -d  --restart=unless-stopped -p 8008:80  mqyyy777/webaicq:2.0     
+docker run --name=webaicq2 -d  --restart=unless-stopped -p 8008:80 -v /mnt/udisk/youtu/xiaoshuo:/mnt   mqyyy777/webaicq:2.0     
 
 
 
@@ -471,12 +471,41 @@ docker commit <continer-name> <imgname>
 
 
 ** docker container using  proxy
+*** method 1
 /etc/default/docker : you should have a line to uncomment (and maybe adjust) to get your proxy settings applied automatically. Then restart the Docker server:
+
 service docker restart
+
+*** method 2
+[root@localhost ~]# cat  /etc/systemd/system/docker.service.d/http-proxy.conf
+[Service]
+Environment="HTTP_PROXY=http://135.245.48.34:8000/" "HTTPS_PROXY=http://135.245.48.34:8000/"
+[root@localhost ~]# systemctl daemon-reload
+[root@linux-node1 ~]# systemctl restart docker
 
 
 ** docker update
 docker update --restart=unless-stopped <container-id>
 docker run --privileged -d --restart=unless-stopped --name=dns_ssev1 -p 5037:5037/udp -p 8888:8888/tcp -v /home/pi/dock_ssev:/mnt mqyyy777/dns_ssev_rasp:1.0
+
+** docker container executing iptables
+when run container, execting iptables inside container, there'll be premission denied.
+ADD extra run flag to run the container
+--ipc host --cap-add SYS_ADMIN --privileged
+
+** 
+youtube-dl -F --proxy ... "url"
+https://www.youtube.com/watch?v=aFlgm6G59fw&list=PLwmPBqRou8AOb_RPjM4gwTqPkzmXcpQB8
+249 webm
+
+
+** docker save image as a tar file
+sudo docker save -o /home/matrix/matrix-data.tar matrix-data
+docker save <image> | bzip2 | ssh user@host 'bunzip2 | docker load'
+
+
+** load a tar file which generated from image 
+Copy the image from the path to any host. Now import to your local Docker installation using:
+
 
 

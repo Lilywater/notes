@@ -1,0 +1,4 @@
+* basic ecnomic conception
+** production possibilities curve
+PPC shows the different combinations of two goods that can be produced using full employment of resources.
+

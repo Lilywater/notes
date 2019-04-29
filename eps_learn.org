@@ -1,5 +1,5 @@
-* identification of mme and mobile subscriber
-** MSISDN:  phone number
+identification of mme and mobile subscriber
+** MSISDN(Mobile Station International Subscriber Directory Number):  phone number
 the real phone number, it is stored with other information in HLR indexed by imsi of each entry
 MSISDN = CC + NDC + SN
 CC = Country Code
@@ -127,6 +127,9 @@ is currently attached or registered. The HSS may also integrate the authenticati
   Next, MME goes ahead with establishing security context. After the security context is established MME will send a NAS message “ESM Information Request” asking UE for APN and PCO. 
   Then, the UE will send an “ESM Information Response” with APN and PCO, encrypted. Finally, once MME receives this response it will go ahed with establishing the EPS bearers.
   If the response doesn’t include APN then default APN shall be used by MME.
+  
+  "ESM Information Request" will be sent by MME when attach request's 
+       eSMInformationTransferFlag { eIT e_esm_information_transfer_required(1) }   #### when this flag is not omitted.
 
 *** EPS Session
 
@@ -326,7 +329,7 @@ ue                     enb                              mme                     
 guti,talist            none                  imsi,guti,mme-teid,sgw-teid(u/c)          imsi,mme-teid,sgw-teid(u/c)
 |                        |                                       |                                      |
 | service requst(S-TMSI) |                                       |                                      |
-|------------------------+---------------------------------------+--------------------------------------|
+|----------------------->|                                       |                                      |
 |                        | [enb-s1ap-id]                         |                                      |
 |                        |                                       |                                      |
 |                        | initial ue message(enb-s1ap-id,       |                                      |
@@ -2970,7 +2973,7 @@ So in fact, they already had a common private key.
 | Authentication Resp(RES)                                                | output: KASME                 
 |check if RES is equal to XRES to ensure if they use the same K           |                               
 |                                                                         |                               
-
+KDF described in 33220
 if RES equal to XRES,then, MME and UE has the same KASME key for other integrity/encryption key. and authentication has been done also.
 
 ** integrity/encryption key generated from KASME
@@ -2985,3 +2988,7 @@ A.7 Algorithm key derivation functions(Introduce how to generate the integrity/c
 ** mme tester simpfy the whole process
 testser will provide KASME for a initiating value in ENB, and provide a KASME also in HSS component
 
+
+* bearer and session
+session--> PDN ---> DNN
+bearer--->Qos 

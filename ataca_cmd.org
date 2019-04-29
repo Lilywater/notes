@@ -1,0 +1,1272 @@
+p
+* package installation in ATCA 
+** check the install image in atca with status BU or NW
+ZWQO:CR;
+LOADING PROGRAM VERSION 14.32-0
+
+PACKAGES CREATED IN OMU:
+
+    SW-PACKAGE     STATUS   DIRECTORY           ENVIRONMENT     
+    FB65210        FB       FB6_5_21_0          N6 5.21-0             -    Y 
+                            N6 5.21-0           CID000NX 12.21-0  
+                                                          
+
+    N81120         BU       N8_1_12_0           N8 1.12-0             -    Y 
+                                                          
+
+    N75320         NW       N7_5_32_0           N7 5.32-0             Y    Y 
+                            N7 5.32-0           CID000NX 14.31-0  
+                                                          
+
+    BERND213       UT       Y1_2_13_0           Y1 2.13-0             -    Y 
+                            Y1 2.13-0           CNR75456 12.7-0   
+                                                          
+
+    N75300         UT       N7_5_30_0           N7 5.30-0             -    Y 
+                            N7 5.30-0           CID000NX 14.29-0  
+                                                          
+
+    N81110         UT       N8_1_11_0           N8 1.11-0             -    Y 
+                            N8 1.11-0           CID000NX 15.12-0  
+                                                          
+
+    N75310         UT       N7_5_31_0           N7 5.31-0             -    Y 
+                            N7 5.31-0           CID000NX 14.30-0  
+                                                          
+
+
+** swithc the package 
+only BU/NW could be swithed to
+ZWSD:NAME=xxxx:;
+ZWSD:STAT=NW/BU
+
+
+** modify the package 
+#### modify the package name to status NW/BU form UT
+ZWSC:NAME=xxx:STAT=NW;
+
+
+
+** check if ataca restart ready status
+#####ZUSI:COMP;
+
+WORKING STATE OF UNITS
+ UNIT       PHYS STATE LOCATION              INFO
+ OMU-0      0000 WO-EX                        -                            
+ OMU-1      0001 SP-EX                        -                            
+ MCHU-0     0004 WO-EX                        -                            
+ MCHU-1     0005 SP-EX                        -                            
+ SMMU-0     0010 WO-EX                        -                            
+ SMMU-1     0011 WO-EX                        -                            
+ SMMU-2     0012 SP-EX                       IDLE                          
+ MMDU-0     001A WO-EX                        -                            
+ MMDU-1     001B WO-EX                        -                            
+ MMDU-2     001C WO-EX                        -                            
+ MMDU-3     001D WO-EX                        -                            
+ PAPU-0     0020 WO-EX                        -                            
+ PAPU-1     0021 WO-EX                        -                            
+ PAPU-2     0022 WO-EX                        -                            
+ PAPU-3     0023 WO-EX                        -                            
+ PAPU-4     0024 SP-EX                       IDLE                          
+ IPDU-0     0040 WO-EX                        -                            
+ IPDU-1     0041 SP-EX                       IDLE                          
+ CPPU-0     0042 WO-RE                       RP 3 CTOT SRES                
+ CPPU-1     0043 WO-RE                       RP 3 CTOT SRES                
+ CPPU-2     0044 WO-RE                       RP 3 CTOT SRES                
+ IPPU-0     0080 WO-EX                       GRNP                          
+ IPPU-1     0081 WO-EX                       GRNP                          
+ GBU-0      00A0 WO-EX                        -                            
+ GBU-1      00A1 WO-EX                        -                            
+ GBU-2      00A2 WO-EX                        -                            
+ GBU-3      00A3 SP-EX                       IDLE    
+SOFTWARE PACKAGE ADMINISTRATION COMMAND <WQ_>
+< 
+
+
+Flexi NS  IPC-ATCA136               2019-01-03  09:58:25
+
+WORKING STATE OF UNITS
+ UNIT       PHYS STATE LOCATION              INFO
+ OMU-0      0000 WO-EX                        -                            
+ OMU-1      0001 SP-EX                        -                            
+ MCHU-0     0004 WO-EX                        -                            
+ MCHU-1     0005 SP-EX                        -                            
+ SMMU-1     0011 WO-EX                        -                            
+ SMMU-2     0012 SP-EX                       IDLE                          
+ MMDU-1     001B WO-EX                        -                            
+ MMDU-2     001C WO-EX                        -                            
+ MMDU-3     001D WO-EX                        -                            
+ PAPU-0     0020 WO-EX                        -                            
+ PAPU-1     0021 WO-EX                        -                            
+ PAPU-2     0022 WO-EX                        -                            
+ PAPU-3     0023 WO-EX                        -                            
+ PAPU-4     0024 SP-EX                       IDLE                          
+ IPDU-1     0041 SP-EX                       IDLE                          
+ CPPU-0     0042 WO-EX                        -                            
+ CPPU-1     0043 WO-EX                        -                            
+ CPPU-2     0044 WO-EX                        -                            
+ IPPU-0     0080 WO-EX                       GRNP                          
+ IPPU-1     0081 WO-EX                       GRNP                          
+ GBU-0      00A0 WO-EX                        -                            
+ GBU-1      00A1 WO-EX                        -                            
+ GBU-2      00A2 WO-EX                        -                            
+ GBU-3      00A3 SP-EX                       IDLE                          
+
+TOTAL OF 27    UNITS
+ GROUP OF N+ COMPLEMENTARY   2                                                 
+
+COMMAND EXECUTED
+
+
+WORKING STATE AND RESTART HANDLING COMMAND <US_>
+< ZWQO:?
+
+LOADING PROGRAM VERSION 14.32-0
+
+/* INFORMATION TYPE
+
+   CR .... CREATED PACKAGES
+   RUN ... RUNNING PACKAGE IN UNITS
+   EX .... EXISTING PACKAGES
+   ; ..... ALL                          */
+
+WQO:
+
+** reset ataca unit/system form disk
+####ZUSU:MMDU,0:C=DSK
+####ZUSS:SYM,0:C=DSK
+
+
+** IP configureation checking
+ZKAI;
+
+ZQAI;
+
+*** for diameter interface
+< ZOHI:::FULL;
+
+
+LOADING PROGRAM VERSION 4.18-0
+
+Flexi NS  Local-ATCA                2019-02-19  15:09:09
+
+ ORIGIN HOST NAME : originhost.mme.com
+ ORIGIN REALM NAME: originrealmnsn.com
+
+
+   DIAMETER CONNECTIONS OF HSS.ttcn3:
+
+DESTINATION NAME   : HSS.ttcn3
+
+DESTINATION INDEX  : 0
+DESTINATION REALM  : test.nsn.com
+ORIGIN REALM       : originrealmnsn.com
+
+ CONNECTION INDEX  : 1
+
+  UNIT             : IPDU-0
+  ORIGIN HOST NAME : originhost.mme.com
+  DIAMETER ROLE    : CLIENT
+  APPLICATION ID   : S6A
+  MULTI CONN MODE  : LOAD BALANCING
+
+     DEFINED IP-ADDRESSES AND PORTS:
+
+  PATH ID.    CONNECTION NAME   PROTOCOL   CONNECTION STATUS
+  ----------- ----------------- ---------- ------------------
+  1           PRIPATH           SCTP       DISCONNECTED
+
+    PRIMARY LOCAL ADDRESS:    10.56.243.34                             2002
+    PRIMARY REMOTE ADDRESS:   10.10.100.9                              3868
+
+   DIAMETER CONNECTIONS OF HSS.NLG151:
+
+DESTINATION NAME   : HSS.NLG151
+
+DESTINATION INDEX  : 1
+DESTINATION REALM  : epc.mnc000.mcc460.3gppnetwork.org
+ORIGIN REALM       : originrealmnsn.com
+
+ CONNECTION INDEX  : 1
+
+  UNIT             : IPDU-0
+  ORIGIN HOST NAME : originhost.mme.com
+  DIAMETER ROLE    : CLIENT
+  APPLICATION ID   : S6A
+  MULTI CONN MODE  : LOAD BALANCING
+
+     DEFINED IP-ADDRESSES AND PORTS:
+
+  PATH ID.    CONNECTION NAME   PROTOCOL   CONNECTION STATUS
+  ----------- ----------------- ---------- ------------------
+  3           PRIPATH           SCTP       DISCONNECTED
+
+    PRIMARY LOCAL ADDRESS:    10.56.243.34                             2003
+    PRIMARY REMOTE ADDRESS:   10.10.0.10                               3868
+
+ CONNECTION INDEX  : 2
+
+  UNIT             : IPDU-0
+  ORIGIN HOST NAME : originhost.mme.com
+  DIAMETER ROLE    : CLIENT
+  APPLICATION ID   : S6A
+  MULTI CONN MODE  : LOAD BALANCING
+
+     DEFINED IP-ADDRESSES AND PORTS:
+
+  PATH ID.    CONNECTION NAME   PROTOCOL   CONNECTION STATUS
+  ----------- ----------------- ---------- ------------------
+  5           PRIPATH           SCTP       DISCONNECTED
+
+    PRIMARY LOCAL ADDRESS:    10.56.243.34                             2006
+    PRIMARY REMOTE ADDRESS:   10.56.233.181                            3869
+
+COMMAND EXECUTED
+
+
+** UNIT shell   
+
+ZDDS;
+
+DDS:MMDU,::?
+
+Flexi NS  IPC-ATCA136               2019-01-22  07:36:15
+001A-$ cli 
+MME CLI>help
+
+    SET OF AVAILABLE COMMANDS:   <Case Insensitive>
+    addzone               <to add a zone file >
+    clear-counter-history <clear counter history>
+    clear-logs            <removes the log file in the specified component>
+    clearsgwtable         <clears SGW data internal to MME from the
+                          specified component>
+    clearnonciotsgwlist   <clears the TrHandler internal structure holding
+                          the non-CIoT capable SGW IP addresses
+    dns                   <clear blacklisted SGW IP, clear DNS Cache, clear
+                          alarm map or display contents of DNS Cache>
+    get-counter           <list counter information>
+    getctr                <to query a particular counter>
+    get-log-level         <show the loglevel for trhandler, s1handler,
+                          s1lbs, subshandler, sgshandler or dbhandler>
+    getparameter          <get ini parameter dynamically data>
+    help                  <show list of commands and their descriptions>
+    imsitrace             <to enable or disable IMSI tracing on an IMSI>
+    imeitrace             <to enable or disable IMEI tracing on an IMEI>
+    msisdntrace           <to enable or disable MSISDN tracing on an MSISDN>
+    set-if-trace          <to enable or disable live traffic tracing>
+    perf                  
+    print-logs            <print log summary from selected process>
+    quit                  <exit from prompt>
+    reloadzone            <to reload the edited zone file >
+    removezone            <to remove a zone from APPZONE.TXT>
+    resetctr              <resets the counter values>
+    ringbuffer            <get the no: of items in the ring buffer,persist
+                          ring buffer in file,filter on message field>
+    save-parameter        <save parameters of fmaServer, fmcClient or
+                          logsHandler to configuration file>
+    saveparameter         <save ini parameter from cache to specified
+                          component>
+    set-counter           <change counter value>
+    set-counter-history   <change counter history settings>
+    set-counter-monitor   <change counter monitoring settings>
+    set-log-fragments     <set the properties of the log fragments>
+    set-log-replication   <set the properties for log replication>
+    set-log-level         <set the loglevel for trhandler, s1handler, s1lbs,
+                          subshandler, sgshandler or dbhandler>
+    setparameter          <set ini parameter dynamically data>
+    showinternal          <to show internal data from process>
+    showloglevel          <show the loglevel for trhandler, s1handler,
+                          s1lbs, subshandler, sgshandler or dbhandler
+    tracecache            <create object to enable or disable IMSI tracing
+                          on subscriber>
+    trscache              <gets the cache details from specified process>
+    writelogfile          <to write test name into logs>
+    clearblacklisthist    <clears history of blacklisted SGW and PGW>
+    set-log-streaming     <set the properties for log streaming>
+    set-log-files         <sets the file size and count of log files>
+    heap-monitor          <activate heap monitoring>
+    set-sub-trace         <set subscriber tracing parameters>
+    clearmgwtable         <clears MGW data internal to MME from the
+                          specified component>
+    clear-sessions        <clears all eMBMS active sessions in
+                          lnx-mmeM3Handler>
+    loggerimpr            <loads classes log level values from json
+                          configuration file>
+
+    Type <commandname -h> or <commandname --help> to find the syntax of each
+    of the above commands.
+
+
+
+MME CLI>freeids -subs
+Free GUTIs: 3020000
+Free S1APIDs: 3020000
+Free TEIDs: 2010001
+MME CLI>
+
+*** ZDDS:CPPU::;
+**** tr handler ini file
+*SEND* sed -i 's/^SUBSCRIBEREVICTIONTIME=.*$/SUBSCRIBEREVICTIONTIME=120/g' /opt/mme/conf/mmeTrHandler-0x0924.ini    
+-sh-4.4#"
+
+
+**** tr handler paramter  
+14:55:44.756    INFO    cli setparameter -tr SUBSCRIBEREVICTIONTIME 120
+SUBSCRIBEREVICTIONTIME Parameter updated.
+*SEND* cli saveparameter -tr    
+14:55:44.756    INFO    cli saveparameter -tr
+Parameters Saved
+
+
+*** ZDDS:MMDU::;
+<Detach=0/g' /opt/mme/conf/mmeSubsHandler-0x0934.ini
+-sh-4.4#
+<DxMml.connections.telnet.DxSshConnection instance at 0xa3dbecc> " <Detach=0/g' /opt/mme/conf/mmeSubsHandler-0x0934.ini
+-sh-4.4#"   
+14:55:49.681    INFO    cli setparameter -subs SlowLoopDetach 0
+SlowLoopDetach Parameter updated.
+-sh-4.4#
+<DxMml.connections.telnet.DxSshConnection instance at 0xa3d7aec> " cli setparameter -subs SlowLoopDetach 0
+   cli saveparameter -sub
+
+
+    cli setparameter -tr DNSCacheLimit 512
+DNSCacheLimit Parameter updated.
+-sh-4.4#
+<DxMml.connections.telnet.DxSshConnection instance at 0xa3cc2ac> " cli setparameter -tr DNSCacheLimit 512
+DNSCacheLimit Parameter updated.
+-sh-4.4#"
+*SEND* cli saveparameter -tr    
+14:56:01.360    INFO    <eLimit=512/g' /opt/mme/conf/mmeTrHandler-0x0924.ini
+-sh-4.4#
+<DxMml.connections.telnet.DxSshConnection instance at 0xa3cf5cc> " <eLimit=512/g' /opt/mme/conf/mmeTrHandler-0x0924.ini
+-sh-4.4#"   
+14:56:01.360    INFO    cli saveparameter -tr
+Parameters Saved
+-sh-4.4#
+<DxMml.connections.telnet.DxSshConnection instance at 0xa3cc2ac> " cli saveparameter -tr
+
+***     ZDDS:IPDU,0;
+
+LOADING PROGRAM VERSION 8.26-0
+
+Flexi NS  IPC-ATCA136               2018-12-14  08:56:02
+
+0040-$
+<DxMml.connections.telnet.DxTelnetConnection instance at 0xa3cc7ac> "ZDDS:IPDU,0;
+
+LOADING PROGRAM VERSION 8.26-0
+
+Flexi NS  IPC-ATCA136               2018-12-14  08:56:02
+
+0040-$"
+*SEND* lnx-launcher -L  
+14:56:02.205    INFO    lnx-launcher -L
+lnx-mmeS102LBS-d       20670  98F    0  Y  3  running 
+lnx-mmeCepEngine-d     7214   AB4    0  N  3  finished
+lnx-mmeDiaLBSHandler-d 363    967    0  Y  3  running 
+lnx-fmaServer-d        15043  935    0  Y  3  running 
+lnx-ethmana-d          498    3CA    0  Y  1  running 
+lnx-mmeGTPLBS          20477  968    0  Y  3  running 
+lnx-fu-rcy-d           387    A0     2  N  0  running 
+lnx-swlist-d           489    205    0  Y  1  running 
+lnx-dxdiag-d           565    A3     0  Y  1  running 
+lnx-lalarm-d           424    143    1  N  0  running 
+lnx-lm-d               500    91D    0  Y  1  running 
+lnx-tpm-d              7688   A8D    0  Y  3  running 
+lnx-csagent-d          494    671    0  Y  1  running 
+lnx-jre                3552          1  N  2  finished
+lnx-random-writer      594    AB7    1  N  1  finished
+lnx-mmeSLsLBS-d        20846  986    0  Y  3  running 
+lnx-mmeS1LBS           21086  92D    2  N  3  running 
+lnx-log-syslog-d       281           0  Y  0  running 
+lnx-mmeJpcap-d         5958          0  N  2  finished
+lnx-dxfile-iomana-d    459    F      0  Y  1  running 
+lnx-dxerr-load         457           0  N  1  finished
+lnx-dmxrtemu-d         383    0      0  Y  0  running 
+lnx-sysmon-lmp-d       619    47B    0  Y  1  running 
+lnx-sysmon-diq-d       596    626    0  Y  1  running 
+lnx-rsterm-d-be        454    BE     0  Y  0  running 
+lnx-rsterm-d-bf        453    BF     0  Y  0  running 
+lnx-setup              282           1  N  0  finished
+lnx-lrm-d              620    13B    0  Y  1  running 
+lnx-blackbox-d         566    978    0  Y  1  running 
+lnx-dmxmsg-epo-d       337    66B    2  N  0  running 
+lnx-dmxmsg-distmon-d   456    C1     0  Y  1  running 
+lnx-mmeSSH-d           3550          0  N  2  dead    
+lnx-ns-d               487    260    0  Y  1  running 
+lnx-mmeLibLBS-d        20629  A92    0  Y  3  running 
+lnx-mmeLogsHandler-d   7213   926    0  Y  3  running 
+lnx-ieu-d              12530  B24    0  Y  3  running 
+lnx-lieser-d           395    43B    1  N  0  running 
+lnx-mmeSBcHandler      21679  985    0  Y  3  running 
+lnx-fu-fuzzi-d         384    103    2  N  0  running 
+lnx-mmeDNS-d           16375  96C    0  Y  3  running 
+lnx-dxfile-loader      428    705    1  N  0  finished
+lnx-hwapi-rps-enabler  396           0  N  0  finished
+lnx-sysmon-d           455    777    1  N  1  running 
+lnx-mmeM3Handler       21848  AA7    0  Y  3  running 
+lnx-mmeMonitoring-d    7215   AAE    0  Y  3  running 
+lnx-mmeRpcapd-d        5957          0  N  2  finished
+lnx-dxfile-rmemfs-d    427    2A0    0  Y  0  running 
+lnx-ikeconf-d          7680   617    0  Y  3  running 
+lnx-unabom-d           386    A1     0  Y  0  running 
+lnx-log-klog-d         283           0  Y  0  running 
+lnx-sysmon-cpupro-d    618    FF     0  Y  1  running 
+lnx-dik-d              586    72C    0  Y  1  running 
+lnx-mmeSGsLBS          938    969    0  Y  3  running 
+lnx-mmeParaHandler-d   12533  923    0  Y  3  running 
+lnx-mmeSzLBS           20309  AB8    0  Y  3  running 
+lnx-dxfile-femser-d    426    90     0  Y  0  running 
+lnx-log-sender-d       483    3BD    0  Y  1  running 
+lnx-ipconf-d           462    43E    0  Y  1  running 
+lnx-suy-d              589    72E    0  Y  1  running 
+
+
+<DxMml.connections.telnet.DxSshConnection instance at 0xa3e272c> " cli setparameter -bind LogLevel 6
+Value of Parameter (LogLevel) is set to 6.
+-sh-4.4#"
+*SEND* cli saveparameter -bind  
+14:56:07.205    INFO    cli saveparameter -bind
+Parameters are Saved.
+-sh-4.4#
+<DxMml.connections.telnet.DxSshConnection instance at 0xa3e272c> " cli saveparameter -bind
+
+** check s1ap enb related
+
+ZB6I;
+
+LOADING PROGRAM VERSION 7.11-0
+
+COMMAND EXECUTION STARTED
+
+ENB:
+
+MCC  MNC  ENB ID-TYPE   ENB IP                                   S1 CONN AMOUNT
+===  ===  ============  =======================================  ===============
+ENB NAME
+================================================================================
+
+TOTAL NUMBER OF ENBS: 00000
+TOTAL NUMBER OF S1 CONNECTIONS: 00000000
+TOTAL NUMBER OF DISCONNECTED ENBS: 00002
+
+
+** check PLMN
+CFI::;
+
+IMSI NUMBER ANALYSES
+
+
+IMSI NUMBER            PLMN             GT               NP     TON  NI   SPC
+
+26200                  ETPLMN           26200            E.212  INT  -    -   
+26213                  ETPLMN           26213            E.212  INT  -    -   
+36213                  ROAMINGPLMN      36213            E.212  INT  -    -   
+
+COMMAND EXECUTED
+
+
+MSC/VLR DIGIT ANALYSIS HANDLING COMMAND <CF_>
+< 
+
+** query vlan
+ ZQRI
+
+
+** check subscriber 
+ZMM?
+->N  ###number of the subscribers
+ZMMN;
+
+LOADING PROGRAM VERSION 10.9-0
+
+Flexi NS  IPC-ATCA110               2019-01-11  09:41:15
+
+        SUBSCRIBERS IN MME:
+
+        MMDU-0  & MMDU-1           0
+        MMDU-2  & MMDU-3           0
+        ----------------------------
+        TOTAL                      0
+->ZMMO:
+   PARAMETER NAME:
+
+   IMSI ..... INTERNATIONAL MOBILE SUBSCRIBER IDENTITY
+   MSISDN ... MOBILE STATION ISDN NUMBER
+   S1APID ... MME S1 APPLICATION PROTOCOL IDENTIFIER
+   MTMSI .... MME TEMPORARY MOBILE SUBSCRIBER IDENTIFIER
+   TEID ..... MME TUNNEL ENDPOINT IDENTIFIER
+   IMEI ..... INTERNATIONAL MOBILE EQUIPMENT IDENTITY
+
+*** imsi/sub info
+ZMMO:IMSI=262136000000001;
+
+LOADING PROGRAM VERSION 10.9-0
+
+Flexi NS  IPC-ATCA136               2019-01-03  08:44:04
+
+        SUBSCRIBER INFORMATION:
+
+        INTERNATIONAL MOBILE SUBSCRIBER IDENTITY ...... 262136000000001
+        MOBILE SUBSCRIBER INTERNATIONAL ISDN NUMBER ... 358610000000001
+        ADDITIONAL MOBILE SUBSCRIBER INTERNATIONAL ISDN
+        NUMBER ........................................
+        INTERNATIONAL MOBILE EQUIPMENT IDENTITY .......
+        MME S1 APPLICATION PROTOCOL IDENTIFIER ........ 22H
+        ENB S1 APPLICATION PROTOCOL IDENTIFIER ........ D8H
+        MME TEMPORARY MOBILE SUBSCRIBER IDENTIFIER .... C1000011H
+        MME TUNNEL ENDPOINT IDENTIFIER ................ 8H
+        RADIO ACCESS TYPE ............................. EUTRAN
+        SERVING MMDU UNIT INDEX ....................... 00
+        EPS CONNECTION MANAGEMENT STATE ............... CONNECTED
+        EPS MOBILITY MANAGEMENT STATE ................. REGISTERED
+        MOBILE COUNTRY CODE ........................... 262
+        MOBILE NETWORK CODE ........................... 136
+        TRACKING AREA CODE ............................ 0001H
+        TRACKING AREA CODE LIST ....................... 0001H
+        CELL IDENTITY ................................. EAH
+        GLOBALLY UNIQUE MME IDENTIFIER ................ 626231C3D833H
+        GLOBALLY UNIQUE TEMPORARY IDENTITY ............ 626231C3D833C1000011H
+        GLOBAL ENB IDENTIFIER ......................... 6262310004BCDAH
+        NETWORK ACCESS MODE ........................... PACKET AND CIRCUIT
+        TERMINAL TYPE ................................. LTE
+        NAS SECURITY PARAMETERS
+          EPS INTEGRITY CHECK ALGORITHM ............... AES
+          EPS CIPHERING ALGORITHM ..................... NULL
+        DRX PARAMETER
+          SPLIT PG CYCLE CODE ......................... 0  
+          NON DRX TIMER ............................... 00
+          SPLIT ON CCCH ............................... N
+        MS NETWORK CAPABILITY
+          EPC CAPABILITY .............................. N
+          SRVCC TO GERAN UTRAN CAPABILITY ............. N
+          ISR SUPPORT ................................. N
+          CSFB CAPABILITY ............................. N
+          PS IRAT HO (GERAN TO EUTRAN) S1 CAPABILITY .. Y
+          PS IRAT HO (GERAN TO UTRAN) IU CAPABILITY ... Y
+          LCS VA CAPABILITY ........................... Y
+          GERAN CIPHERING ALGORITHM ................... GEA2
+          PFC FEATURE ................................. N
+          REV LEVEL ................................... Y
+          SOLSA CAPABILITY ............................ N
+          SS SCREENING INDICATOR ...................... Y
+          UCS2 SUPPORT ................................ Y
+          SM CAPABILITIES VIA GPRS CHANNELS ........... Y
+          SM CAPABILITIES VIA DEDICATED CHANNELS ...... N
+        UE SECURITY CAPABILITY
+          UE EPS ENCRYPTION CAPABILITY
+            EEA3 (ZUC) ................................ N
+            EEA2 (AES) ................................ Y
+            EEA1 (SNOW 3G) ............................ N
+            EEA0 (NULL) ............................... Y
+          UE EPS INTEGRITY CAPABILITY
+            EIA3 (ZUC) ................................ N
+            EIA2 (AES) ................................ Y
+            EIA1 (SNOW 3G) ............................ N
+            EIA0 (NULL) ............................... N
+          UE UMTS ENCRYPTION CAPABILITY
+            UEA3 ...................................... N
+            UEA2 ...................................... Y
+            UEA1 ...................................... N
+            UEA0 ...................................... Y
+          UE UMTS INTEGRITY CAPABILITY
+            UIA3 ...................................... N
+            UIA2 ...................................... N
+            UIA1 ...................................... N
+            UIA0 ...................................... N
+          LTE POSITIONING PROTOCOL (LPP) CAPABILITY ... N
+          1xSRVCC CAPABILITY .......................... N
+          UE PROXIMITY SERVICES CAPABILITY ............ N
+          UE PROXIMITY DIRECT DISCOVERY CAPABILITY .... N
+          UE PROXIMITY DIRECT COMMUNICATION CAPABILITY  N
+        ATTACH TYPE ................................... EPS
+        CS FALLBACK ................................... NOT SUPPORTED
+        SESSION TRANSFER NUMBER FOR SRVCC .............
+        ICS INDICATOR ................................. N
+        HSS IDENTITY .................................. HSS.ttcn3
+        URRP-MME ...................................... NOT SET
+        VLR RELIABLE .................................. N
+        CALL CANCELLED ................................ N
+        NON-EPS ALERT FLAG (NEAF) ..................... N
+        VLR OFFLOAD ................................... N
+        SUBSCRIBER TO BE RESTORED IN HSS .............. N
+        PTAU TIMER (T3412) ............................ 0000-54-00 hhhh-mm-ss
+        UE SUPPORT FOR EXTENDED PTAU TIMER ............ N
+        ACTIVE TIME (T3324) ........................... NOT SET
+
+**  check remote server ipaddr
+ZVBI:LIA=SGSN;
+
+Flexi NS  ATH-ATCA122               2019-01-04  12:04:36
+
+LAWFUL INTERCEPTION CONFIGURATION PARAMETERS:
+
+USE OF LIE ..................................... ON
+SGSN IDENTITY ......................... 2A00:8A00:6000:4000:0000:0000:6E11:9642
+TX1 NOMSG ......................................  180 seconds
+TX2 NORMAL .....................................   30 seconds
+TX2 CHECKSTATE .................................  600 seconds
+TX3 NORMAL .....................................  100 seconds
+X INTERFACE PROBLEM ALARM ...................... GENERAL
+X3 INTERFACE RESOURCE UNAVAILABLE ALARM ........ GENERAL
+IPPU ROUTER RESTARTED ALARM .................... GENERAL
+NE RESTARTED ALARM ............................. GENERAL
+NE SWITCHOVER ALARM ............................ GENERAL
+TEMPORARY BREAK IN INTERCEPTION HANDLER ALARM .. GENERAL
+INTERCEPTION FAILED ALARM ...................... GENERAL
+CONGESTED ALARM ................................ GENERAL
+ROUTER IPPU INDEX .............................. 0
+LIC IDENTITY ................................... 0102030405
+MCHU X1 PORT NUMBER ............................ 50001
+IPPU START PORT NUMBER ......................... 50002
+LIC X1 IP ADDRESS ..................... 2A00:8A00:6000:4000:0000:0000:1019:016B
+X1 PASSWORD .................................... 1234567812345678
+X1 SQN GROUP NUMBER ............................ 5
+X1 AUTHENTICATION KEY .......................... 1234567812345678
+LIC X2 IP ADDRESS ..................... 2A00:8A00:6000:4000:0000:0000:1019:016C
+X2 PORT NUMBER ................................. 50002
+X2 PASSWORD .................................... 1234567812345678
+X2 SQN GROUP NUMBER ............................ 5
+X2 AUTHENTICATION KEY .......................... 1234567812345678
+LIC X3 IP ADDRESS ..................... 2A00:8A00:6000:4000:0000:0000:1019:016C
+X3 PORT NUMBER ................................. 50010
+
+COMMAND EXECUTED
+
+** ping in atca unit
+ZQRX:IPPU,0::PING6:IP="2A00:8A00:6000:4000:0000:0000:1019:016C",SRC="2A00:8A00
+:6000:4000:0000:0000:6E11:9648";
+
+
+
+** OMU
+OMU IP: 10.85.235.71
+TTCN3 IP: 10.85.235.181
+
+* general ATCA command
+** top level command
+MAIN LEVEL COMMAND <___>
+< ?
+
+
+Flexi NS  IPC-ATCA136               2019-01-10  09:15:24
+                MAIN LEVEL
+
+                ? ..... DISPLAY MENU
+                A ..... ALARM SYSTEM ADMINISTRATION
+                B ..... MME ADMINISTRATION
+                C ..... ROUTING STATE ADMINISTRATION
+                D ..... SYSTEM SUPPORT AND COMMUNICATION
+                E ..... CELLULAR RADIO NETWORK ADMINISTRATION
+                F ..... FRAME RELAY ADMINISTRATION
+                G ..... CHARGING ADMINISTRATION
+                I ..... I/O SYSTEM ADMINISTRATION
+                K ..... ADVANCED SERVICES ADMINISTRATION
+                M ..... GSM SUBSCRIBER ADMINISTRATION
+                N ..... SS7 NETWORK ADMINISTRATION
+                O ..... SUPPLEMENTARY SS7 NETWORK ADMINISTRATION
+                Q ..... O&M NETWORK ADMINISTRATION
+                T ..... TRAFFIC ADMINISTRATION
+                U ..... UNIT ADMINISTRATION
+                W ..... SYSTEM CONFIGURATION ADMINISTRATION
+                Y ..... SYSTEM SUPERVISION
+                Z; .... END DIALOGUE
+
+MAIN LEVEL COMMAND <___>
+
+
+** sublevel command
+< ZWQ
+
+
+LOADING PROGRAM VERSION 14.32-0
+
+SOFTWARE PACKAGE ADMINISTRATION COMMAND <WQ_>
+< ZWS
+
+LOADING PROGRAM VERSION 6.12-0
+
+SOFTWARE PACKAGE STATUS HANDLING COMMAND <WS_>
+< ?
+
+Flexi NS  IPC-ATCA136               2019-01-10  09:11:41
+
+
+
+          SOFTWARE PACKAGE STATUS HANDLING COMMANDS
+
+
+          ?  ..... DISPLAY MENU
+          D: ..... SELECT DEFAULT SOFTWARE PACKAGE
+          C: ..... CHANGE STATUS OF TWO SOFTWARE PACKAGES
+          S: ..... SWITCH ACTIVE PACKAGE IN DIRECTORY
+          A: ..... ALLOW AUTOMATIC RETURN TO SPARE PACKAGE
+          B: ..... DENY AUTOMATIC RETURN TO SPARE PACKAGE
+          R: ..... ROLLBACK STATUSES OF CREATED PACKAGES
+          I; ..... INTERROGATE AUTOMATIC RETURN SETTINGS
+          Z; ..... RETURN TO MAIN LEVEL
+
+SOFTWARE PACKAGE STATUS HANDLING COMMAND <WS_>
+< D:
+
+/* IDENTIFY SOFTWARE PACKAGE
+
+   PARAMETER NAMES:
+
+   STAT ... STATUS OF PACKAGE
+   NAME ... NAME OF PACKAGE
+
+   PARAMETERS ARE ALTERNATIVE */
+
+WSD:STAT
+
+/* DEFINE STATUS OF SW-PACKAGE
+
+   PARAMETERS:
+
+   BU ... BACKUP
+   FB ... FALLBACK
+   NW ... NEW */
+
+WSD:STAT=
+
+
+** unit
+REMOTE DEBUGGER SESSION COMMAND <DD_>
+< S:
+
+/* IDENTIFY UNIT TYPE:
+   OMU ... OPERATION AND MAINTENANCE UNIT
+   GBU ... GB INTERFACE HANDLING UNIT
+   MMDU .. MOBILITY MANAGEMENT & DB UNIT
+   CPPU .. CONTROL PLANE PROCESSING UNIT
+   MCHU .. MARKER AND CHARGING UNIT
+   PAPU .. PACKET PROCESSING UNIT
+   SMMU .. SIGNALING AND MOBILITY MANAGEMENT UNIT
+   IPPU .. IP PACKET PROCESSING UNIT
+   IPDU .. IP DIRECTOR UNIT
+
+** HSS SCTP connection
+ZOHI:HSS.ttcn3
+
+/* SPECIFY CONNECTION INDEX:
+
+   DECIMAL NUMBER  1 ... 20   */
+
+   OHI:HSS.ttcn3:;
+
+   Flexi NS  IPC-ATCA136               2019-01-21  08:30:47
+
+
+       ------------ ----------- ------------- ----------------
+         S6A          1           DISCONNECTED  HSS.ttcn3
+
+ZOHS:HSS.ttcn3:1:C;
+
+Flexi NS  IPC-ATCA136               2019-01-21  08:31:13
+
+   CURRENT TRANSFER PATH OF HSS.ttcn3:
+
+   DESTINATION NAME   : HSS.ttcn3
+
+   DESTINATION INDEX  : 1
+   DESTINATION REALM  : test.nsn.com
+
+    CONNECTION INDEX  : 1
+
+      UNIT             : IPDU-0
+        ORIGIN HOST NAME : originhost.mme.com
+          DIAMETER ROLE    : CLIENT
+            APPLICATION ID   : S6A
+              MULTI CONN MODE  : LOAD BALANCING
+
+                PATH ID.    CONNECTION NAME   PROTOCOL   CONNECTION STATUS
+                  ----------- ----------------- ---------- ------------------
+                    3           PRIPATH           SCTP       CONNECTED
+
+                        PRIMARY LOCAL ADDRESS:    10.255.38.137                            2001
+                            PRIMARY REMOTE ADDRESS:   10.102.43.203                            3868
+
+** ZMMO
+ZMMO:IMSI=262110000000001;  ##outuput the info of imsi
+
+
+** ZB6I   ##check s1ap connection exist
+ZB6I;   
+14:43:37.872    INFO    ZB6I;
+
+LOADING PROGRAM VERSION 7.11-0
+
+COMMAND EXECUTION STARTED
+
+ENB:
+
+MCC  MNC  ENB ID-TYPE   ENB IP                                   S1 CONN AMOUNT
+===  ===  ============  =======================================  ===============
+ENB NAME
+================================================================================
+
+TOTAL NUMBER OF ENBS: 00000
+TOTAL NUMBER OF S1 CONNECTIONS: 00000000
+TOTAL NUMBER OF DISCONNECTED ENBS: 00002
+
+** DNS server configuration
+KAH:PRIP=;
+
+DNS SERVER PARAMETERS:
+
+PRIMARY EXTERNAL DNS IP ADDRESS...(PRIP) -
+SECONDARY EXTERNAL DNS IP ADDRESS.(SEIP) 10.102.190.7
+
+"ZKAH:SEIP="10.102.190.7";
+
+LOADING PROGRAM VERSION 15.19-0
+
+DNS SERVER PARAMETERS:
+
+PRIMARY EXTERNAL DNS IP ADDRESS...(PRIP) 10.102.190.7
+SECONDARY EXTERNAL DNS IP ADDRESS.(SEIP) 10.102.190.7
+
+
+** ssh into OMU
+username：dcif_sg
+password:abcd1234
+cli ...
+
+
+**  MME log operation
+
+0000-MAS> ZMD:W0-*.TGZ
+
+/*** FILES NOT FOUND
+0000-MAS> ZMD:W0-*.TXT
+
+/*** FILES NOT FOUND
+
+*SEND* ZIDE:,,ULCUNTRG:PRTNR=1,OUTFILE=BOTH,CMNDS=YES;
+20181214 08:58:57.005 - INFO - ZIDE:,,ULCUNTRG:PRTNR=1,OUTFILE=BOTH,CMNDS=YES;
+
+LOADING PROGRAM VERSION 9.1-0
+
+ULCUNTRG
+ZDDE:IPDU,*:"cd /opt/mme/scripts/","chmod 0777 LOGCOLT.sh","./LOGCOLT.sh &","exit";
+### cli print-logs then gzip them then cp to OMU
+/*   CPPU-1   */
+
+Flexi NS  IPC-ATCA136               2019-01-23  05:24:58
+Last login: Wed Jan 23 01:34:28 on pts/0
+0043-$ cd /opt/mme/scripts/
+0043-$ chmod 0777 LOGCOLT.sh
+0043-$ ./LOGCOLT.sh &
+[1] 18858
+0043-$ exit
+logout
+
+*** shells in every unit
+======================
+0040-$ cat LOGCOLT.sh 
+#!/bin/bash
+####################################################
+# COPYRIGHT 2015 BY NOKIA NETWORKS                 #
+# Author : Avinash K N                             #
+# Version: 1.0-0                                   #
+# Date   : 29/12/2015                              #
+# Desc   : Collects from IPDU, MMDU & IPDU and     #
+#          copies to OMU. Old logs will be removed #
+#          once copying is done.                   #
+####################################################
+UNIT_NAME=`lnx-pubvar own_unit | awk -F "-" '{ print $1 }'`
+UNIT_IND=`lnx-pubvar own_unit|sed 's/-//'`
+rm $UNIT_IND".TXT"
+rm -rf /var/log/*
+now="$(date +"%r")"
+echo "Log collection started from unit $UNIT_IND at $now" >> $UNIT_IND".TXT"
+cli print-logs -o /var/log/fmaServer -f lnx-fmaServer-d
+cli print-logs -o /var/log/mmeLogsHandler -f lnx-mmeLogsHandler-d
+cli print-logs -o /var/log/mmeParaHandler -f lnx-mmeParaHandler-d
+cli print-logs -o /var/log/mmeStatHandler -f lnx-mmeStatHandler-d
+cli print-logs -o /var/log/mmeMonitoring -f lnx-mmeMonitoring-d
+cli print-logs -o /var/log/fmcClient -f lnx-fmcClient-d
+
+if [ "$UNIT_NAME" = "IPDU" ]; then
+        cli print-logs -o /var/log/mmeDNS -f lnx-mmeDNS-d
+        cli print-logs -o /var/log/mmeGTPLBS -f lnx-mmeGTPLBS
+        cli print-logs -o /var/log/SBcHandler -f lnx-mmeSBcHandler
+        cli print-logs -o /var/log/SGsLBS -f lnx-mmeSGsLBS
+        cli print-logs -o /var/log/SLsLBS -f lnx-mmeSLsLBS-d
+        cli print-logs -o /var/log/S102LBS -f lnx-mmeS102LBS-d
+        cli print-logs -o /var/log/mmeM3Handler -f lnx-mmeM3Handler
+        cli print-logs -o /var/log/mmeSzLBS -f lnx-mmeSzLBS
+        cli print-logs -o /var/log/S1LBS -f lnx-mmeS1LBS
+        cli print-logs -o /var/log/mmeLibLBS -f lnx-mmeLibLBS-d
+        cli print-logs -o /var/log/mmeDiaLBS -f lnx-mmeDiaLBSHandler-d
+fi;
+
+if [ "$UNIT_NAME" = "MMDU" ]; then
+        cli print-logs -o /var/log/mmeDiaHandler -f lnx-mmeDiaHandler-d
+        cli print-logs -o /var/log/mmeSubsHandler -f lnx-mmeSubsHandler-d
+        cli print-logs -o /var/log/mmeTrafHandler -f lnx-mmeTrafHandler-d
+        cli print-logs -o /var/log/mmeDBHandler -f lnx-mmeDBHandler-d
+fi;
+
+if [ "$UNIT_NAME" = "CPPU" ]; then
+        cli print-logs -o /var/log/mmeTrHandler -f lnx-mmeTrHandler-d
+        cli print-logs -o /var/log/mmeSLsHandler -f lnx-mmeSLsHandler-d
+        cli print-logs -o /var/log/mmeS1Handler -f lnx-mmeS1Handler
+fi;
+
+fhead=`lnx-pubvar own_unit`"_"
+ftail=".log"
+cur_dir = `pwd`
+cd /var/log/
+for file in * ; do
+echo $file 
+    if [[ -f $file ]]; then
+            mv $file $fhead${file}$ftail
+    fi
+done
+cd $cur_dir
+
+if [ "$UNIT_NAME" = "IPDU" ]; then
+        cat /ipdu_bind.log > /var/log/$fhead"ipdu_bind.log"
+        cat /mmeSynapse0.log > /var/log/$fhead"mmeSynapse.log"
+        cat /SynapseSnapshot0.log > /var/log/$fhead"SynapseSnapshot.log"
+        cat /SynapseSystemLog0.txt > /var/log/$fhead"SynapseSystemLog.log"
+        tar --exclude=*lastlog* -czvf $UNIT_IND".tgz" /var/log/* >> $UNIT_IND".T
+XT"
+fi;
+
+if [ "$UNIT_NAME" = "MMDU" ]; then
+        cat /SubsHandlerSnapshot0.log > /var/log/$fhead"SubsHandlerSnapshot.log"
+        cat /SubsHandlerSnapshot_Proc0.log > /var/log/$fhead"SubsHandlerSnapshot
+_Proc.log"
+        cat /LibHandlerFileLog0.txt > /var/log/$fhead"lib.log"
+        cat /DBHandlerSystemLog0.txt > /var/log/$fhead"dbsy.log"
+        cat /DBHandlerSnapshot0.log > /var/log/$fhead"DBHandlerSnapshot.log"
+        tar --exclude=*lastlog* -czvf $UNIT_IND".tgz" /var/log/* >> $UNIT_IND".T
+XT"
+fi;
+
+if [ "$UNIT_NAME" = "CPPU" ]; then
+        cat /mmeRohcHandler0.log > /var/log/$fhead"mmeRohcHandler.log"
+        cat /mmeIFMonitor0.log > /var/log/$fhead"mmeIFMonitor.log"
+        cat /IFMonitorSnapshot0.log > /var/log/$fhead"IFMonitorSnapshot.log"
+        cat /TrHandlerSnapshot0.log > /var/log/$fhead"TrHandlerSnapshot.log"
+        tar --exclude=*lastlog* -czvf $UNIT_IND".tgz" /var/log/* >> $UNIT_IND".T
+XT"
+fi;
+
+
+lnx-dxfile-cp -f $UNIT_IND".tgz" OMU:W0-$UNIT_IND".tgz"
+now="$(date +"%r")"
+echo "Log collection ended from unit $UNIT_IND at $now" >> $UNIT_IND".TXT"
+lnx-dxfile-cp -f $UNIT_IND".TXT" OMU:W0-$UNIT_IND".TXT"
+
+
+#CLEAR LOGS
+cli clear-logs -a
+
+if [ "$UNIT_NAME" = "IPDU" ]; then
+        cat /dev/null >/ipdu_bind.log
+        cat /dev/null >/mmeSynapse0.log
+        cat /dev/null >/SynapseSnapshot0.log
+fi;
+
+if [ "$UNIT_NAME" = "MMDU" ]; then
+        cat /dev/null >/SubsHandlerSnapshot0.log
+        cat /dev/null >/SubsHandlerSnapshot_Proc0.log
+        cat /dev/null >/LibHandlerFileLog0.txt
+fi;
+
+if [ "$UNIT_NAME" = "CPPU" ]; then
+        cat /dev/null >/mmeRohcHandler0.log
+        cat /dev/null >/mmeIFMonitor0.log
+        cat /dev/null >/IFMonitorSnapshot0.log
+        cat /dev/null >/TrHandlerSnapshot0.log
+fi;
+
+rm -f $UNIT_IND".tgz"
+rm -rf /var/log/*
+rm $UNIT_IND".TXT"
+0040-$ 
+
+*** ln-dxfile-cp from IPDU to OMU
+in IPDU
+0040-$ lnx-dxfile-cp -f IPDU0.TXT OMU:DW0-qqt
+0040-$ lnx-dxfile-cp -f IPDU0.TXT OMU:W0-tbc 
+
+
+lnx-dxfile-cp -f c.fl OMU:lfiles/D.FL
+==================
+*** check which package is using
+< ZWQO:CR;
+
+LOADING PROGRAM VERSION 14.32-0
+
+PACKAGES CREATED IN OMU:
+
+    SW-PACKAGE     STATUS   DIRECTORY           ENVIRONMENT          DEF  ACT
+                            PACKAGE-ID (REP-ID) DELIVERY
+                                                CD-ID
+
+    FB65210        FB       FB6_5_21_0          N6 5.21-0             -    Y
+                            N6 5.21-0           CID000NX 12.21-0
+
+
+    N81130         BU       N8_1_13_0           N8 1.13-0             Y    Y
+                            N8 1.13-0           CID000NX 15.14-0
+
+
+*** get files from OMU in current packeage dir
+ftp into OMU 10.102.43.201 with SYSTEM/SYSTEM
+ls /N7_5_21_1/LFILES/ 
+00.00:00 00.00.0000  00.00:00 00.00.0000  0000000023 EMU.CAP
+00.00:00 00.00.0000  00.00:00 00.00.0000  0000000023 EMU.PCAP
+00.00:00 00.00.0000  00.00:00 00.00.0000  0000000001 C.FL
+00.00:00 00.00.0000  00.00:00 00.00.0000  0000000001 D.FL
+00.00:00 00.00.0000  00.00:00 00.00.0000  0000000016 C068.PCAP
+
+200 PORT command successful.
+150 Starting BINARY transfer of 'DW0-/N8_1_13_0/TBC'
+
+ftp> ls /N7_5_21_1
+200 PORT command successful.
+150 Starting ASCII transfer.
+00.00:00 00.00.0000  00.00:00 00.00.0000  0000000257 N7_5_21_1.DIR
+226 Transfer complete
+ftp> ls /N7_5_21_1/
+200 PORT command successful.
+150 Starting ASCII transfer.
+00.00:00 00.00.0000  00.00:00 00.00.0000  0000000257 N7_5_21_1.DIR
+00.00:00 00.00.0000  00.00:00 00.00.0000  0000000257 BLCODE.DIR
+00.00:00 00.00.0000  00.00:00 00.00.0000  0000000257 CONVPR.DIR
+00.00:00 00.00.0000  00.00:00 00.00.0000  0000000257 ESYMAC.DIR
+00.00:00 00.00.0000  00.00:00 00.00.0000  0000000257 LFILES.DIR
+00.00:00 00.00.0000  00.00:00 00.00.0000  0000000257 LINDIR.DIR
+00.00:00 00.00.0000  00.00:00 00.00.0000  0000000257 MMDIRE.DIR
+00.00:00 00.00.0000  00.00:00 00.00.0000  0000000257 WEBFIL.DIR
+00.00:00 00.00.0000  00.00:00 00.00.0000  0000000257 ASWDIR.DIR
+00.00:00 00.00.0000  00.00:00 00.00.0000  0000000018 SVN.INFO
+00.00:00 00.00.0000  00.00:00 00.00.0000  0000000026 spool.DIR
+00.00:00 00.00.0000  00.00:00 00.00.0000  0000000004 FSRTRANS.FER
+00.00:00 00.00.0000  00.00:00 00.00.0000  0000000005 SIKTRANS.FER
+00.00:00 00.00.0000  00.00:00 00.00.0000  0000000513 LICENCE.DIR
+00.00:00 00.00.0000  00.00:00 00.00.0000  0000000023 EMU.PCAP
+00.00:00 00.00.0000  00.00:00 00.00.0000  0000000001 AAA
+00.00:00 00.00.0000  00.00:00 00.00.0000  0000000001 BBB
+00.00:00 00.00.0000  00.00:00 00.00.0000  0000000001 _BUILD.6
+00.00:00 00.00.0000  00.00:00 00.00.0000  0000000001 CCC
+226 Transfer complete
+ftp>
+
+
+* LTE emulator using
+[root@TeamCI-136 ~]# cd /home/admin1/lauran/LTE_emu_May15_v100/scripts/
+[root@TeamCI-136 scripts]# ls
+emumgr.sh   runemu.sh         start_gui_bsu.sh   start_gui_hss.sh  start_gui_pcrf.sh   start_gui_sgsn.sh  start_gui_upe.sh
+gui_dir.sh  rungdb.sh         start_gui_cbc.sh   start_gui_ims.sh  start_gui_pgw.sh    start_gui_uec.sh   start_gui_vlr.sh
+README.TXT  start_gui_bsc.sh  start_gui_erim.sh  start_gui_mme.sh  start_gui_ranpt.sh  start_gui_ueu.sh
+[root@TeamCI-136 scripts]# ./emumgr.sh start
+[root@TeamCI-136 scripts]# ./emumgr.sh stopall
+
+
+
+
+
+** configure hss.ttcn3 when atca freshly installed
+ZOHC:HSS.ttcn3:IPDU,0:S6,C,test.nsn.com:PRIPATH:L;
+ZOHP:HSS.ttcn3:1,1:SP="10.102.43.203",SPORT=3868::CP="10.255.38.137",PORT=2001 :;
+
+
+** delete all the subscribers in mme
+KEYWORD: NsMml.Delete All Subscribers From Sut
+Documentation:  
+Delete range of IMSIs according TTCN3 par file with ZMMD.
+Start / End / Elapsed:  20190320 17:30:41.903 / 20190320 17:30:43.309 / 00:00:01.406
+17:30:43.308    INFO    *SEND* ZMMN;    
+17:30:43.308    INFO    ZMMN;
+
+LOADING PROGRAM VERSION 12.5-0
+
+Flexi NS  IPC-ATCA136               2019-03-20  11:30:42
+
+        SUBSCRIBERS IN SGSN/MME:
+
+        MMDU-0  & MMDU-1           1
+        MMDU-2  & MMDU-3           0
+        ----------------------------
+        TOTAL                      1
+
+
+COMMAND EXECUTED
+
+
+SUBSCRIBER DATA HANDLING COMMAND <MM_>
+<
+<DxMml.connections.telnet.DxTelnetConnection instance at 0xb77806c> "ZMMN;
+
+LOADING PROGRAM VERSION 12.5-0
+
+Flexi NS  IPC-ATCA136               2019-03-20  11:30:42
+
+        SUBSCRIBERS IN SGSN/MME:
+
+        MMDU-0  & MMDU-1           1
+        MMDU-2  & MMDU-3           0
+        ----------------------------
+        TOTAL                      1
+
+
+COMMAND EXECUTED
+
+
+SUBSCRIBER DATA HANDLING COMMAND <MM_>
+< "
+*SEND* ZMMO:IMSI=262136000000001;   
+17:30:43.308    INFO    ZMMO:IMSI=262136000000001;
+
+LOADING PROGRAM VERSION 12.5-0
+
+Flexi NS  IPC-ATCA136               2019-03-20  11:30:42
+
+        SUBSCRIBER INFORMATION:
+
+        INTERNATIONAL MOBILE SUBSCRIBER IDENTITY ...... 262136000000001
+        MOBILE SUBSCRIBER INTERNATIONAL ISDN NUMBER ... 358610000000001
+        ADDITIONAL MOBILE SUBSCRIBER INTERNATIONAL ISDN
+        NUMBER ........................................
+        INTERNATIONAL MOBILE EQUIPMENT IDENTITY .......
+        MME S1 APPLICATION PROTOCOL IDENTIFIER ........
+        ENB S1 APPLICATION PROTOCOL IDENTIFIER ........
+        MME TEMPORARY MOBILE SUBSCRIBER IDENTIFIER .... C0C00002H
+        MME TUNNEL ENDPOINT IDENTIFIER ................ 2H
+        RADIO ACCESS TYPE ............................. EUTRAN
+        SERVING MMDU UNIT INDEX ....................... 00
+        EPS CONNECTION MANAGEMENT STATE ............... IDLE
+        EPS MOBILITY MANAGEMENT STATE ................. DEREGISTERED
+        MOBILE COUNTRY CODE ........................... 262
+        MOBILE NETWORK CODE ........................... 136
+        TRACKING AREA CODE ............................ 0001H
+        TRACKING AREA CODE LIST ....................... 0001H
+        CELL IDENTITY ................................. EAH
+        GLOBALLY UNIQUE MME IDENTIFIER ................ 626231C3D833H
+        GLOBALLY UNIQUE TEMPORARY IDENTITY ............ 626231C3D833C0C00002H
+        GLOBAL ENB IDENTIFIER ......................... 6262310004BCDAH
+        NETWORK ACCESS MODE ........................... PACKET AND CIRCUIT
+        TERMINAL TYPE ................................. LTE
+        NAS SECURITY PARAMETERS
+          EPS INTEGRITY CHECK ALGORITHM ............... AES
+          EPS CIPHERING ALGORITHM ..................... NULL
+        DRX PARAMETER
+          SPLIT PG CYCLE CODE ......................... 0  
+          NON DRX TIMER ............................... 00
+          SPLIT ON CCCH ............................... N
+        MS NETWORK CAPABILITY
+          EPC CAPABILITY .............................. N
+          SRVCC TO GERAN UTRAN CAPABILITY ............. N
+          ISR SUPPORT ................................. N
+          CSFB CAPABILITY ............................. N
+          PS IRAT HO (GERAN TO EUTRAN) S1 CAPABILITY .. Y
+          PS IRAT HO (GERAN TO UTRAN) IU CAPABILITY ... Y
+          LCS VA CAPABILITY ........................... Y
+          GERAN CIPHERING ALGORITHM ................... GEA2
+          PFC FEATURE ................................. N
+          REV LEVEL ................................... Y
+          SOLSA CAPABILITY ............................ N
+          SS SCREENING INDICATOR ...................... Y
+          UCS2 SUPPORT ................................ Y
+          SM CAPABILITIES VIA GPRS CHANNELS ........... Y
+          SM CAPABILITIES VIA DEDICATED CHANNELS ...... N
+        UE SECURITY CAPABILITY
+          UE EPS ENCRYPTION CAPABILITY
+            EEA3 (ZUC) ................................ N
+            EEA2 (AES) ................................ Y
+            EEA1 (SNOW 3G) ............................ N
+            EEA0 (NULL) ............................... Y
+          UE EPS INTEGRITY CAPABILITY
+            EIA3 (ZUC) ................................ N
+            EIA2 (AES) ................................ Y
+            EIA1 (SNOW 3G) ............................ N
+            EIA0 (NULL) ............................... N
+          UE UMTS ENCRYPTION CAPABILITY
+            UEA3 ...................................... N
+            UEA2 ...................................... Y
+            UEA1 ...................................... N
+            UEA0 ...................................... Y
+          UE UMTS INTEGRITY CAPABILITY
+            UIA3 ...................................... N
+            UIA2 ...................................... N
+            UIA1 ...................................... N
+            UIA0 ...................................... N
+          LTE POSITIONING PROTOCOL (LPP) CAPABILITY ... N
+          1xSRVCC CAPABILITY .......................... N
+          UE PROXIMITY SERVICES CAPABILITY ............ N
+          UE PROXIMITY DIRECT DISCOVERY CAPABILITY .... N
+          UE PROXIMITY DIRECT COMMUNICATION CAPABILITY  N
+        ATTACH TYPE ................................... EPS
+        CS FALLBACK ................................... NOT SUPPORTED
+        SESSION TRANSFER NUMBER FOR SRVCC .............
+        ICS INDICATOR ................................. N
+        HSS IDENTITY .................................. HSS.ttcn3
+        URRP-MME ...................................... NOT SET
+        VLR RELIABLE .................................. N
+        CALL CANCELLED ................................ N
+        NON-EPS ALERT FLAG (NEAF) ..................... N
+        VLR OFFLOAD ................................... N
+        SUBSCRIBER TO BE RESTORED IN HSS .............. N
+        PTAU TIMER (T3412) ............................ 0000-54-00 hhhh-mm-ss
+        UE SUPPORT FOR EXTENDED PTAU TIMER ............ N
+        ACTIVE TIME (T3324) ........................... NOT SET
+
+
+
+
+SUBSCRIBER DATA HANDLING COMMAND <MM_>
+<
+<DxMml.connections.telnet.DxTelnetConnection instance at 0xb77806c> "ZMMN;
+
+LOADING PROGRAM VERSION 12.5-0
+
+Flexi NS  IPC-ATCA136               2019-03-20  11:30:42
+
+        SUBSCRIBERS IN SGSN/MME:
+
+        MMDU-0  & MMDU-1           1
+        MMDU-2  & MMDU-3           0
+        ----------------------------
+        TOTAL                      1
+
+
+COMMAND EXECUTED
+
+
+
+<DxMml.connections.telnet.DxTelnetConnection instance at 0xb77806c> "ZMMD:IMSI=262136000000001;
+
+LOADING PROGRAM VERSION 12.5-0
+
+Flexi NS  IPC-ATCA136               2019-03-20  11:30:43
+
+DELETING OF MME SUBSCRIBER DATA STARTED
+
+MME SUBSCRIBER DATA DELETED
+
+COMMAND EXECUTED
+
+
+SUBSCRIBER DATA HANDLING COMMAND <MM_>
+< "
+*SEND* ZMMN;    
+17:30:43.308    INFO    ZMMN;
+
+LOADING PROGRAM VERSION 12.5-0
+
+Flexi NS  IPC-ATCA136               2019-03-20  11:30:43
+
+        SUBSCRIBERS IN SGSN/MME:
+
+        MMDU-0  & MMDU-1           0
+        MMDU-2  & MMDU-3           0
+        ----------------------------
+        TOTAL                      0
