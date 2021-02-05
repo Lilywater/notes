@@ -1127,6 +1127,8 @@ APPS='/home/zxx/UI/UI'
 
 (for X in $APPS ; do ($X &) ; sleep $DELAY ; done) &
 * grep or/and usage
+** grep pattern 
+*** grep pattern or
 if the two patterns have or relation ship
 grep -e "pa1" -e  "pa2"
 grep "\(pa1\|pa2\)samepattern3" 
@@ -1142,6 +1144,53 @@ ab-5
 [admin1@TeamCI-136 MME_SGSN_tester]$ grep  "\([^-]\|^\)ab\([^-]\|$\)"  ta
 ab
 
+** grep include/exclude ceratin file to search
+$ grep -irnH  -l  "ABCQQQ" ./
+./atest/test.jsp
+./btest/test.txt
+
+*** exclude files with the suffix pattern
+$ grep -irnH  -l --exclude=*.txt  "ABCQQQ" ./
+./atest/test.jsp
+
+$ grep -irnH   --exclude=test.*  "ABCQQQ" ./
+
+*** include files with the suffix pattern
+$ grep -irnH --include=test.jsp  "QQ" ./
+./atest/test.jsp:1:ABCQQQ
+
+
+** grep exlude-dir to excluding the directory to search
+$ grep -irnH --exclude-dir=atest "ABCQQQ" ./
+./btest/test.txt:1:ABCQQQ
+##since atest folder has been excluded, then only btest folder in result
+
+$ grep -irnH --exclude-dir=btest "ABCQQQ" ./
+./atest/test.jsp:1:ABCQQQ
+
+
+*** multiple dirs 
+$ grep -irnH --exclude-dir={atest,btest} "ABCQQQ" ./
+### no result
+
+
+** supress grep output
+*** show the file results with the pattern hit once then stopped
+this will avoid too many outputs in the result, only show file name which contain the pattern
+-l
+$ grep -irnH  -l --exclude=*.txt  "ABCQQQ" ./
+./atest/test.jsp
+
+
+*** show the file results without the pattern
+-L 
+the supplement files from -l option
+
+
+*** -c match counts then stop
+-c2  ## match twice then stop search in the same file
+
+*** -s supress errors like "Permission denied" output 
 
 ** glob(Programmming) vs. regular exp
 *** *(all character)    vs  .*(all character)

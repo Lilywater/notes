@@ -811,7 +811,9 @@ Why ack and FIN not in one message, for after the first two steps, the connectio
 It means the one who was closed passively may have more data to send to the peer, so it will delay to 
 send FIN M, before that it may send some datat to the peer.
 FIN means no more data to be sent in this side, but it can accept data from the peer.
-       
+
+  INITIATOR for closing connection              RECEIVER
+
   ESTABLISHED                                  ESTABLISHED     
         |                                            |
         |     FIN  N                                 |
@@ -929,7 +931,7 @@ DNS could be ride either on TCP or UDP, in default it's on UDP, but when DNS mes
 
 ** How large will be a tcp packet?
 *** limitaions on three layers
-1.data link layer: there's on lenght field for the erthenet frame, in the slip
+1.data link layer: there's on length field for the erthenet frame, in the slip
 there's no even slip header for the packet at all, but there's a limit on the packet on the network, MTU, the is the hardware limitation.
 netstat -in
 Iface   MTU
@@ -947,7 +949,7 @@ udp has a 16-bit length field for the entire udp packet
 
 *** MSS(maximum segment size)
 MSS the longest packet length for tcp packet
-IN SYN phase, each endpoint will tell the peer its nown packet length.
+IN SYN phase, each endpoint will tell the peer its own packet length.
 MSS is limited to the outlet interface's MTU value and its window buffer size
 
              SLIP             MTU=1500         |MTU=1500   
@@ -1359,4 +1361,291 @@ And then a data should be sent, but the primary/last used path is unavailable,
 
 http://www.linuxjournal.com/article/9784 multiple asscociations with SCTP
 
+
+
+
+* traffic control(tc)
+** Synopsis and description 
+
+tc qdisc [ add | change | replace | link ] dev DEV [ parent qdisc-id | root ] [ handle qdisc-id ] qdisc [ qdisc specific parameters ]
+tc class [ add | change | replace ] dev DEV parent qdisc-id [ classid class-id ] qdisc [ qdisc specific parameters ]
+tc filter [ add | change | replace ] dev DEV [ parent qdisc-id | root ] protocol protocol prio priority filtertype [ filtertype specific parameters ] flowid flow-id
+tc [ FORMAT ] qdisc show [ dev DEV ]
+tc [ FORMAT ] class show dev DEV
+tc filter show dev DEV
+
+tc qdisc del dev DEV root  ## this will delete current configuration and restore the default one
+
+FORMAT := { -s[tatistics] | -d[etails] | -r[aw] | -p[retty] | i[ec] }
+
+Tc is used to configure Traffic Control in the Linux kernel. Traffic Control consists of the following:
+SHAPING
+    When traffic is shaped, its rate of transmission is under control. Shaping may be more than lowering the available bandwidth - it is also used to smooth out bursts in traffic for better network behaviour. Shaping occurs on egress. 
+SCHEDULING
+    By scheduling the transmission of packets it is possible to improve interactivity for traffic that needs it while still guaranteeing bandwidth to bulk transfers. Reordering is also called prioritizing, and happens only on egress. 
+POLICING
+    Where shaping deals with transmission of traffic, policing pertains to traffic arriving. Policing thus occurs on ingress. 
+DROPPING
+    Traffic exceeding a set bandwidth may also be dropped forthwith, both on ingress and on egress. 
+Processing of traffic is controlled by three kinds of objects: qdiscs, classes and filters.
+
+*** Qdiscs
+qdisc is short for 'queueing discipline' and it is elementary to understanding traffic control. Whenever the kernel needs to send a packet to an interface, it is enqueued to the qdisc configured for that interface. Immediately afterwards, the kernel tries to get as many packets as possible from the qdisc, for giving them to the network adaptor driver.
+A simple QDISC is the 'pfifo' one, which does no processing at all and is a pure First In, First Out queue. It does however store traffic when the network interface can't handle it momentarily.
+
+*** Classes
+Some qdiscs can contain classes, which contain further qdiscs - traffic may then be enqueued in any of the inner qdiscs, which are within the classes. When the kernel tries to dequeue a packet from such a classful qdisc it can come from any of the classes. A qdisc may for example prioritize certain kinds of traffic by trying to dequeue from certain classes before others.
+
+*** Filters
+A filter is used by a classful qdisc to determine in which class a packet will be enqueued. Whenever traffic arrives at a class with subclasses, it needs to be classified. Various methods may be employed to do so, one of these are the filters. All filters attached to the class are called, until one of them returns with a verdict. If no verdict was made, other criteria may be available. This differs per qdisc.
+
+*** Classless Qdiscs
+
+The classless qdiscs are:
+
+[p|b]fifo
+    Simplest usable qdisc, pure First In, First Out behaviour. Limited in packets or in bytes. 
+pfifo_fast
+    Standard qdisc for 'Advanced Router' enabled kernels. Consists of a three-band queue which honors Type of Service flags, as well as the priority that may be assigned to a packet. 
+red
+Random Early Detection simulates physical congestion by randomly dropping packets when nearing configured bandwidth allocation. Well suited to very large bandwidth applications.
+
+sfq
+Stochastic Fairness Queueing reorders queued traffic so each 'session' gets to send a packet in turn.
+
+tbf
+The Token Bucket Filter is suited for slowing traffic down to a precisely configured rate. Scales well to large bandwidths.
+
+
+
+The pfifo_fast qdisc is the automatic default in the absence of a configured qdisc.
+
+*** Classful Qdiscs
+The classful qdiscs are:
+CBQ
+Class Based Queueing implements a rich linksharing hierarchy of classes. It contains shaping elements as well as prioritizing capabilities. Shaping is performed using link idle time calculations based on average packet size and underlying link bandwidth. The latter may be ill-defined for some interfaces.
+
+HTB
+The Hierarchy Token Bucket implements a rich linksharing hierarchy of classes with an emphasis on conforming to existing practices. HTB facilitates guaranteeing bandwidth to classes, while also allowing specification of upper limits to inter-class sharing. It contains shaping elements, based on TBF and can prioritize classes.
+PRIO
+
+PRIO 
+qdisc is a non-shaping container for a configurable number of classes which are dequeued in order. This allows for easy prioritization of traffic, where lower classes are only able to send if higher ones have no packets available. To facilitate configuration, Type Of Service bits are honored by default.
+
+Theory Of Operation
+
+Classes form a tree, where each class has a single parent. A class may have multiple children. Some qdiscs allow for runtime addition of classes (CBQ, HTB) while others (PRIO) are created with a static number of children.
+
+Qdiscs which allow dynamic addition of classes can have zero or more subclasses to which traffic may be enqueued.
+
+Furthermore, each class contains a leaf qdisc which by default has pfifo behaviour though another qdisc can be attached in place. This qdisc may again contain classes, but each class can have only one leaf qdisc.
+
+When a packet enters a classful qdisc it can be classified to one of the classes within. Three criteria are available, although not all qdiscs will use all three:
+
+tc filters
+    If tc filters are attached to a class, they are consulted first for relevant instructions. Filters can match on all fields of a packet header, as well as on the firewall mark applied by ipchains or iptables. 
+Type of Service
+    Some qdiscs have built in rules for classifying packets based on the TOS field. 
+skb->priority
+    Userspace programs can encode a class-id in the 'skb->priority' field using the SO_PRIORITY option. 
+Each node within the tree can have its own filters but higher level filters may also point directly to lower classes.
+
+If classification did not succeed, packets are enqueued to the leaf qdisc attached to that class. Check qdisc specific manpages for details, however.
+
+Naming
+All qdiscs, classes and filters have IDs, which can either be specified or be automatically assigned.
+IDs consist of a major number and a minor number, separated by a colon.
+
+QDISCS
+A qdisc, which potentially can have children, gets assigned a major number, called a 'handle', leaving the minor number namespace available for classes. The handle is expressed as '10:'. It is customary to explicitly assign a handle to qdiscs expected to have children.
+CLASSES
+    Classes residing under a qdisc share their qdisc major number, but each have a separate minor number called a 'classid' that has no relation to their parent classes, only to their parent qdisc. The same naming custom as for qdiscs applies. 
+FILTERS
+    Filters have a three part ID, which is only needed when using a hashed filter hierarchy. 
+
+
+
+example:  Simulate network latency on specific port using tc
+
+sudo tc qdisc add dev eth1 root handle 1: prio priomap 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+sudo tc qdisc add dev eth1 parent 1:2 handle 20: netem delay 3000ms
+sudo tc filter add dev eth1 parent 1:0 protocol ip u32 match ip sport 7000 0xffff flowid 1:2
+
+** qdisc (queue discipline)
+*** Synopsis
+tc qdisc ... dev <dev_name> ( parent classid | root) [ handle major: ] prio [ bands bands ] [ priomap band,band,band... ] [ estimator interval timeconstant ] 
+
+pi@raspberrypi:~ $ sudo tc qdisc show dev eth0
+qdisc pfifo_fast 0: root refcnt 2 bands 3 priomap  1 2 2 2 1 2 0 0 1 1 1 1 1 1 1 1
+bands 3 means there are 3 bands in this eth0 dev
+
+**** add new qdisc prio firtly for root
+sudo tc qdisc add dev eth1 root handle 1: prio priomap 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+### here major=1, priomap with 16 bits all is the same band 0
+
+$tc qdisc ls
+qdisc prio 1: dev eth0 root refcnt 2 bands 3 priomap  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+
+[root@TeamCI-1 ~]# tc qdisc show dev eno1
+qdisc prio 1: root refcnt 9 bands 3 priomap  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+[root@TeamCI-1 ~]# tc class show dev eno1    ### with 3 bands of qdisc prio handle 1, three classes will be generated antomatically
+class prio 1:1 parent 1:   # band 0
+class prio 1:2 parent 1:   # band 1
+class prio 1:3 parent 1:   # band 2
+
+
+**** add parent classid with another handle
+sudo tc qdisc add dev eth1 parent 1:2 handle 20: netem delay 3000ms
+[root@TeamCI-1 ~]# tc class show dev eno1
+class prio 1:1 parent 1:
+class prio 1:2 parent 1: leaf 20:
+class prio 1:3 parent 1:
+
+
+sudo tc filter add dev eth1 parent 1:0 protocol ip u32 match ip dport 9899 0xffff flowid 1:2
+[root@TeamCI-1 ~]# tc filter show dev eno1
+filter parent 1: protocol ip pref 49152 u32
+filter parent 1: protocol ip pref 49152 u32 fh 800: ht divisor 1
+filter parent 1: protocol ip pref 49152 u32 fh 800::800 order 2048 key ht 800 bkt 0 flowid 1:2 not_in_hw
+  match 000026ab/0000ffff at 20
+
+
+****  show statistics
+[root@TeamCI-1 ~]# tc -s -d qdisc show dev eno1
+qdisc prio 1: root refcnt 9 bands 3 priomap  0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+ Sent 24301746 bytes 29607 pkt (dropped 0, overlimits 0 requeues 0)
+ backlog 0b 0p requeues 0
+qdisc netem 20: parent 1:2 limit 1000 delay 500.0ms
+ Sent 0 bytes 0 pkt (dropped 0, overlimits 0 requeues 0)
+ backlog 0b 0p requeues 0
+[root@TeamCI-1 ~]# tc -s -d class show dev eno1
+class prio 1:1 parent 1:
+ Sent 24314925 bytes 29670 pkt (dropped 0, overlimits 0 requeues 0)
+ backlog 0b 0p requeues 0
+class prio 1:2 parent 1: leaf 20:
+ Sent 0 bytes 0 pkt (dropped 0, overlimits 0 requeues 0)
+ backlog 0b 0p requeues 0
+class prio 1:3 parent 1:
+ Sent 0 bytes 0 pkt (dropped 0, overlimits 0 requeues 0)
+ backlog 0b 0p requeues 0
+[root@TeamCI-1 ~]#
+no 7000 port packet been sent
+
+
+***  Algorithom
+When dequeueing, band 0 is tried first and only if it did not deliver a packet does PRIO try band 1, and so onwards. Maximum reliability packets should therefore go to band 0,
+minimum delay to band 1 and the rest to band 2.
+
+As the PRIO qdisc itself will have minor number 0, band 0 is actually major:1, band 1 is major:2, etc. For major, substitute the major number assigned to the qdisc on 'tc qdisc add'
+with the handle parameter. 
+
+
+*** Classification
+Three methods are available to PRIO to determine in which band a packet will be enqueued.
+From userspace:     A process with sufficient privileges can encode the destination class directly with SO_PRIORITY, see tc(7). 
+with a tc filter:   A tc filter attached to the root qdisc can point traffic directly to a class 
+with the priomap:   Based on the packet priority, which in turn is derived from the Type of Service assigned to the packet.  Only the priomap is specific to this qdisc. 
+
+
+** htb
+*** Synopsis
+tc qdisc ... dev dev ( parent classid | root) [ handle major: ] htb [ default minor-id ]
+
+tc class ... dev dev parent major:[minor] [ classid major:minor ] htb rate rate [ ceil rate ] burst bytes [ cburst bytes ] [ prio priority ] 
+use one physical link to simulate serveral slower links 
+
+prio priority:  In the round-robin process, classes with the lowest priority field are tried for packets first. Mandatory. 
+rate rate:  Maximum rate this class and all its children are guaranteed. Mandatory. 
+ceil rate:  Maximum rate at which a class can send, if its parent has bandwidth to spare. Defaults to the configured rate, which implies
+    no borrowing 
+burst bytes:   Amount of bytes that can be burst at ceil speed, in excess of the configured rate. Should be at least as high as the highest burst of all children. 
+cburst bytes:    Amount of bytes that can be burst at 'infinite' speed, in other words, as fast as the interface can transmit them. For perfect evening out, should be equal to at most one average packet. Should be at least as high as the highest cburst of all children
+
+The ceil argument specifies the maximum bandwidth that a class can use. This limits how much bandwidth that class can borrow. 
+The default ceil is the same as the rate. (That's why we had to specify it in the examples above to show borrowing.)
+
+*** qdisc htb three flow within a parent(min 100, max100)          
+tc qdisc add dev eth0 root handle 1: htb default 12
+# root means eth0's egreess queue, ingress means eth0's ingress queue.
+# This command attaches queue discipline HTB to eth0 and gives it the "handle" 1:. This is just a name or identifier with which to refer to it below. The default 12 means that any traffic that is not otherwise classified will be assigned to class 1:12.
+
+Note: In general (not just for HTB but for all qdiscs and classes in tc), handles are written x:y where x is an integer identifying
+a qdisc and y is an integer identifying a class belonging to that qdisc. The handle for a qdisc must have zero for its y value and 
+the handle for a class must have a non-zero value for its y value. The "1:" above is treated as "1:0".
+
+tc class add dev eth0 parent 1: classid 1:1 htb rate 100kbps ceil 100kbps 
+tc class add dev eth0 parent 1:1 classid 1:10 htb rate 30kbps ceil 100kbps
+tc class add dev eth0 parent 1:1 classid 1:11 htb rate 10kbps ceil 100kbps
+tc class add dev eth0 parent 1:1 classid 1:12 htb rate 60kbps ceil 100kbps
+
+tc filter add dev eth0 protocol ip parent 1:0 prio 1 u32 match ip src 1.2.3.4 match ip dport 80 0xffff flowid 1:10 ##for http
+tc filter add dev eth0 protocol ip parent 1:0 prio 1 u32 match ip src 1.2.3.4 flowid 1:11    #for smtp
+in default all other traffic go to 1:12, 
+
+                           eth0 interface egress handle 1: htb default 12
+                                             |
+                                             |
+                                             |
+                            classid 1:1  parent 1:   htb rate 100, ceil 100                         
+                            /                |                             \
+                           /                 |                              \
+                          /                  |                               \
+ classid 1:10  parenet 1:1  htb(30,100)    cid(1:11)[pid 1:1] htb(10,100)    cid(1:12)[pid 1:1] htb(60 100)          
+                
+
+
+*** qdisc htb three flow within a parent(min 100, max100) in different hierarchy        
+
+tc class add dev eth0 parent 1: classid 1:1 htb rate 100kbps ceil 100kbps
+tc class add dev eth0 parent 1:1 classid 1:2 htb rate 40kbps ceil 100kbps
+tc class add dev eth0 parent 1:2 classid 1:10 htb rate 30kbps ceil 100kbps
+tc class add dev eth0 parent 1:2 classid 1:11 htb rate 10kbps ceil 100kbps
+tc class add dev eth0 parent 1:1 classid 1:12 htb rate 60kbps ceil 100kbps
+
+                           eth0 interface egress handle 1: htb default 12
+                                             |
+                                             |
+                                             |
+                            classid 1:1  parent 1:   htb rate 100, ceil 100                         
+                                     /                                      \
+                                    /                                        \
+                                   /                                          \
+                                   
+                classid 1:2  parent 1:1 htb rate 40, ceil 100              cid(1:12)[pid 1:1] htb(60 100)             
+                         /                   |                               
+                        /                    |                                 
+                       /                     |                                 
+ classid 1:10  parenet 1:1  htb(30,100)     cid(1:11)[pid 1:1] htb(10,100)                   
+ 
+
+*** rate ceiling limited effective in the process firstly
+
+                           eth0 interface egress handle 1: htb default 12
+                                             |
+                                             |
+                                             |
+                            classid 1:1  parent 1:   htb rate 100, ceil 100                         
+                                     /                                      \
+                                    /                                        \
+                                   /                                          \
+                                   
+                classid 1:2  parent 1:1 htb rate 40, ceil 100              cid(1:12)[pid 1:1] htb(60 60)             
+                         /                   |                               
+                        /                    |                                 
+                       /                     |                                 
+ classid 1:10  parenet 1:1  htb(30,60)     cid(1:11)[pid 1:1] htb(10,20)                   
+
+if 1:11 is 90k, 1:12 is 90k,1:10 is 0k, 
+in htb, filter for 1:11 is processed prior to 1:12 since 12 is the default.
+so ceil effective on 1:11 with ceiling 20, but 1:12 is the last one a request, so 1:12 will get 80k despite it's ceiling is 60
+
+
+
+
+*** a simple example to limit a flow to some rate
+[root@TeamCI-1 ~]# tc qdisc add dev eno1 root handle 1: htb default 12
+[root@TeamCI-1 ~]# tc class add dev eno1 parent 1: classid 1:1 htb rate 900kbps ceil 900kbps
+[root@TeamCI-1 ~]# tc class add dev eno1 parent 1:1 classid 1:10 htb rate 2kbps ceil 5kbps
+[root@TeamCI-1 ~]# tc class add dev eno1 parent 1:1 classid 1:12 htb rate 800kbps ceil 800kbps
+[root@TeamCI-1 ~]# tc filter add dev eno1 parent 1: protocol ip u32 match ip sport 53 0xffff flowid 1:10
 

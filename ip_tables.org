@@ -1,4 +1,5 @@
 * IPTables Tables basic introduction
+man iptables-extensions
 ** Iptables elements
 Tables->Chains->Rules
 *** Tables
@@ -97,9 +98,24 @@ Following are the possible special values that you can specify in the target.
     DROP – Firewall will drop the packet.
     QUEUE – Firewall will pass the packet to the userspace.
     RETURN – Firewall will stop executing the next set of rules in the current chain for this packet. The control will be returned to the calling chain.
-    REDIRECT - redirect all the packets to a specified port
 
-    MASQUERADE - is source nating the packet, change the source ip and set a map
+    REDIRECT - redirect all the packets to a specified port, just forward to the port
+    this rule shoulb be in PREROUTING rule for forwarding packets 
+ /bin/iptables -t nat -A PREROUTING -p tcp  -m set --match-set gfwlist dst  -j REDIRECT --to-ports 1090
+    this rule shoulb be in OUTPUT rule for host generated packets 
+ /bin/iptables -t nat -A OUTPUT -p tcp   -m set --match-set gfwlist dst  -j REDIRECT --to-ports 1090
+
+
+#### these three rule only need be set onece, the reverse direction traffic will be back to origin dst/src automatically by iptables, so only set once
+    MASQUERADE - is source nating the packet, but without designating the destination 
+     iptables -t nat -A POSTROUTING -s 192.168.1.0/24 -j MASQUERADE
+    SNAT  --- change source adress to destinatio ip parameter
+     iptables -t nat -A POSTROUTING -s 192.168.1.0/24 -j SNAT --to-destination=<ip> 
+     iptables -t nat -A POSTROUTING -s 192.168.1.0/24 -j SNAT --to-destination=<ip>:<port> with -p option (eg. -p tcp) 
+    DNAT --- change destination address as <ip>, when DNAT, kernel will mark this packet, the reply for this packet will be "SNAT", restore original adress automatically 
+     iptables -t nat -A PREROUTING -d 192.168.1.0/24 -j DNAT --to-destination=<ip> 
+
+
     CONNMARK --set-mark 1  - set the mark 
     NFLOG --nflog-group 30  - mark the virtual interface nflog:30 
     LOG   --log-level --log -prefic  -  the matched packets will be logged in the file /var/log/syslog.
@@ -181,7 +197,7 @@ RETURN means stop traversing this chain and resume at the next rule in the previ
 
 
 *** overal table order from top to bottom
-Tables/Chains|  PREROUTING  INPUT  FORWARD   OUTPUT  POSTROUTING
+Tables/Chains     |  PREROUTING  INPUT  FORWARD   OUTPUT  POSTROUTING
 -------------------------------------------------------------------------
 raw               |    ✓                             ✓      
 mangle            |    ✓           ✓        ✓        ✓         ✓
@@ -196,11 +212,11 @@ it is an incoming or outgoing packet, the routing decisions that are made, and w
                                           | stack    protocol       |
                                           |-------------------------|
                                           /|\                      |
-                                           |                   route choice  out=
+                                           |                       |
                                            |                       |
                                          mangle                   raw
                                          filter                   mangle
-                                           |                      nat
+                                           |                      nat(Dst)
                                            |                      filter
                                            |                       |
                                            |                      \|/
@@ -208,13 +224,14 @@ it is an incoming or outgoing packet, the routing decisions that are made, and w
                                           /|\                      |
                                            |                       |
                                            |                       |
+                                           |                   route choice  out=
                                            |       mangle          |
                                            |       filter         \|/
        ingress interface----> PREROUTING---route--> FORWARD ----->POSTROUTING------>egress interface 
                                          choice out=
-                                 raw                             mangle
-                                 mangle                           nat
-                                 nat
+                                 raw(conntrack)                    mangle
+                                 mangle                           nat(Src)
+                                 nat(Dst)                         Conntrack
 
 
 *** chains tranverse order
@@ -724,6 +741,52 @@ Jul  4 16:53:34 wen-Default-string kernel: [498977.349317] TRACE: mangle:INPUT:p
 Jul  4 16:53:34 wen-Default-string kernel: [498977.349388] TRACE: filter:INPUT:policy:1 IN=enp1s0 OUT= MAC=00:e0:4c:68:27:62:f0:b4:29:d7:c3:c6:08:00 SRC=101.204.228.187 DST=192.168.31.75 LEN=80 TOS=0x00 PREC=0x00 TTL=50 ID=11478 PROTO=TCP SPT=16337 DPT=22 SEQ=2610936745 ACK=4213764086 WINDOW=65535 RES=0x00 ACK PSH URGP=0 OPT (0101080AE0639FA0598E5567) UID=0 GID=0
 -------------------------------------
 
+*** centos7 add iptable trace
+How to trace IPTables in RHEL7 / CENTOS7
+
+If you are debugging IPTables, it is handy to be able to trace the packets while it traverses the various chains. I was trying to find out why port forwarding from the external NIC to a virtual machine attached to a virtual bridge device was not working.
+
+You need to perform the following preparations:
+
+    Load the (IPv4) netfilter log kernel module:
+    # modprobe nf_log_ipv4
+    Enable logging for the IPv4 (AF Family 2):
+    # sysctl net.netfilter.nf_log.2=nf_log_ipv4
+    reconfigure rsyslogd to log kernel messages (kern.*) to /var/log/messages:
+
+# cat /etc/rsyslog.conf | grep -e "^kern"
+kern.*;*.info;mail.none;authpriv.none;cron.none                /var/log/messages
+
+    restart rsyslogd:
+    # systemctl restart rsyslog
+
+Now check the raw tables – you’ll see that there are already entries coming from firewalld:
+# iptables -t raw -j TRACE -p tcp --dport 80 -I PREROUTING 1
+# iptables -t raw -j TRACE -p tcp --dport 80 -I OUTPUT 1
+
+The rules now look as follows:
+
+# iptables -t raw -L
+Chain PREROUTING (policy ACCEPT)
+target prot opt source destination
+TRACE tcp -- anywhere anywhere tcp dpt:http
+PREROUTING_direct all -- anywhere anywhere
+
+Chain OUTPUT (policy ACCEPT)
+target prot opt source destination
+TRACE tcp -- anywhere anywhere tcp dpt:http
+OUTPUT_direct all -- anywhere anywhere
+
+Chain OUTPUT_direct (1 references)
+target prot opt source destination
+
+Chain PREROUTING_direct (1 references)
+target prot opt source destination
+Now access to that specific machine’s TCP port 80 are logged to /var/log/messages:
+
+# tail /var/log/messages
+May 27 19:57:54 storm3 kernel: TRACE: mangle:PRE_public:rule:3 IN=em1 OUT= MAC=ec:f4:bb:f1:4e:f0:00:25:46:70:2e:41:08:00 SRC=10.36.7.11 DST=10.32.105.30 LEN=64 TOS=0x00 PREC=0x00 TTL=59 ID=10953 DF PROTO=TCP SPT=54451 DPT=80 SEQ=1779626624 ACK=0 WINDOW=65535 RES=0x00 SYN URGP=0 OPT (020404D8010303050101080A124E9DB70000000004020000)
+May 27 19:57:54 storm3 kernel: TRACE: mangle:PRE_public_allow:return:1 IN=em1 OUT= MAC=ec:f4:bb:f1:4e:f0:0
 
 * how to configure a linux server as a router
 if the destination ip address is not the local system, then it will through
@@ -1366,3 +1429,296 @@ so (<internet-ip>, <docker0-ip>) will egress via docker0 interface
  NO PRROUTING rule hit,
  then route, since MASQUERADE using(SNAT), the dst<docker0-ip>  will be replaced with <docker-continer-ip>
 INPUT to the stack protocel with send ping message
+
+
+* iptables debug/trace
+** target LOG only using target LOG
+compare every iptables packets to figure out the packet tranverse path.
+trace a icmp packet since icmp packet is none unless you ping a host
+Pkts is the packets which pass the rule, we can add LOG target in every rule
+*** configure mangle table with LOG target to trace all rules(since only mangle table has all the 5 rules)
+pi@raspberrypi:~ $ sudo iptables -t mangle -L -v
+Chain PREROUTING (policy ACCEPT 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination
+   21  3408 LOG        icmp --  any    any     anywhere             anywhere             LOG level warning prefix "mangle-prerouting"
+
+Chain INPUT (policy ACCEPT 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination
+   21  3408 LOG        icmp --  any    any     anywhere             anywhere             LOG level warning prefix "mangle-input"
+
+Chain FORWARD (policy ACCEPT 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination
+    0     0 LOG        icmp --  any    any     anywhere             anywhere             LOG level warning prefix "mangle-forward"
+
+Chain OUTPUT (policy ACCEPT 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination
+   18  1680 LOG        icmp --  any    any     anywhere             anywhere             LOG level warning prefix "mangle-output"
+
+Chain POSTROUTING (policy ACCEPT 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination
+   18  1680 LOG        icmp --  any    any     anywhere             anywhere             LOG level warning prefix "mangle-postrouting"
+pi@raspberrypi:~ $
+
+pi@raspberrypi:~ $ ping -c 1 192.168.31.1
+PING 192.168.31.1 (192.168.31.1) 56(84) bytes of data.
+64 bytes from 192.168.31.1: icmp_seq=1 ttl=64 time=0.753 ms
+*** Log file
+pi@raspberrypi:~ $ sed -n  2758,2767p /var/log/aka.log
+Apr 15 14:09:05 raspberrypi kernel: [1301291.540592] mangle-outputIN= OUT=eth0 SRC=192.168.31.85 DST=192.168.31.1 LEN=84 TOS=0x00 PREC=0x00 TTL=64 ID=19795 DF PROTO=ICMP TYPE=8 CODE=0 ID=16052 SEQ=1
+Apr 15 14:09:05 raspberrypi kernel: [1301291.540648] mangle-postroutingIN= OUT=eth0 SRC=192.168.31.85 DST=192.168.31.1 LEN=84 TOS=0x00 PREC=0x00 TTL=64 ID=19795 DF PROTO=ICMP TYPE=8 CODE=0 ID=16052 SEQ=1
+#### in pi which eth0 addr is 192.168.31.85, ping 192.168.31.1, this will generate a icmp packets OUT=eth0(route table) in the output chain
+#### then postrouting chain, if some SNAT action, then eth0 egress
+
+#### assuming the packet get replied(ICMP_REPLY) from 192.168.31.1, then eth0 ingress get it.
+
+Apr 15 14:09:05 raspberrypi kernel: [1301291.541304] mangle-preroutingIN=eth0 OUT=  SRC=192.168.31.1 DST=192.168.31.85 LEN=84 TOS=0x00 PREC=0x00 TTL=64 ID=13397 PROTO=ICMP TYPE=0 CODE=0 ID=16052 SEQ=1
+Apr 15 14:09:05 raspberrypi kernel: [1301291.541367] mangle-inputIN=eth0 OUT=       SRC=192.168.31.1 DST=192.168.31.85 LEN=84 TOS=0x00 PREC=0x00 TTL=64 ID=13397 PROTO=ICMP TYPE=0 CODE=0 ID=16052 SEQ=1
+### thus after input chain, packet will get to upper layer which send the icmp request
+
+
+
+Pkts increase one after ping
+pi@raspberrypi:~ $ sudo iptables -t mangle -L -v
+Chain PREROUTING (policy ACCEPT 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination
+   22  3408 LOG        icmp --  any    any     anywhere             anywhere             LOG level warning prefix "mangle-prerouting"
+
+Chain INPUT (policy ACCEPT 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination
+   22  3408 LOG        icmp --  any    any     anywhere             anywhere             LOG level warning prefix "mangle-input"
+
+Chain FORWARD (policy ACCEPT 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination
+    0     0 LOG        icmp --  any    any     anywhere             anywhere             LOG level warning prefix "mangle-forward"
+
+Chain OUTPUT (policy ACCEPT 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination
+   19  1680 LOG        icmp --  any    any     anywhere             anywhere             LOG level warning prefix "mangle-output"
+
+Chain POSTROUTING (policy ACCEPT 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination
+   19  1680 LOG        icmp --  any    any     anywhere             anywhere             LOG level warning prefix "mangle-postrouting"
+pi@raspberrypi:~ $
+
+packets may be dropped in any rules, see if system generate a packet, OUTPUT---->POSTROUTING----->egress
+if we didn't see the OUPUT of mangle benn tranversed, but the POSTROUTING of mangle table been tranversed, it may never be reach egress
+then likely nat/filter table's OUTPUT rule may drop it.
+if we  see both the OUPUT of mangle benn tranversed, but the POSTROUTING of mangle table been tranversed, it may be reach egress(as long as nat table POSTROUTING not drop it)
+
+
+packets received in ingress interface will tranverse PREROUTING, then route table to choose INPUT or FORWARD rule.
+FOWWARD rule's default action is drop, so make sure the packet be ACCEPT instead of being dropped.
+if mangle PREROUTING and FORWARD rule both been hit, but no POSTROUTING rule in mangle, then maybe filter's FORWARD rule drop it.
+
+ we can see only mangle table have 5 rules, so every rule in mangle table should be tranversed normally.
+if some rule is missing, then backtrace the last rule to check which rule drop it.
+
+*** SNAT another network namespace's ip as normal eth0 address
+pi@raspberrypi:~ $ sudo iptables -L -t nat -v
+Chain POSTROUTING (policy ACCEPT 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination
+    4   336 LOG        icmp --  any    any     anywhere             anywhere             LOG level warning
+   17  3304 MASQUERADE  all  --  any    any     192.168.163.0/24     anywhere
+
+for example eth0 ip addr is 192.168.31.85, then when there is a icmp from 192.168.163.1 to 192.168.31.1,
+then out=eth0, MASQUERADE means SNAT out interface's address as source to replace 192.168.163.1 with 192.168.31.85
+
+pi@raspberrypi:~ $ sudo ip route show
+default via 192.168.31.1 dev eth0 proto dhcp src 192.168.31.85 metric 202
+169.254.0.0/16 dev docker0 scope link src 169.254.191.248 metric 204
+169.254.0.0/16 dev vethb82cf1e scope link src 169.254.177.27 metric 213
+169.254.0.0/16 dev br1_test scope link src 169.254.59.219 metric 218
+172.17.0.0/16 dev docker0 proto kernel scope link src 172.17.0.1
+192.168.31.0/24 dev eth0 proto dhcp scope link src 192.168.31.85 metric 202
+192.168.163.0/24 dev br1_test proto kernel scope link src 192.168.163.10
+192.168.163.0/24 dev veth-b scope link src 192.168.163.10 metric 216
+
+
+but this packet IN=br1_test can't reach POSTROUTING rule if filter's FORWARD rule not ACCEPT it:
+ pkts bytes target     prot opt in     out     source               destination
+    0     0 ACCEPT     icmp --  any    br1_test  anywhere             anywhere
+pi@raspberrypi:~ $ sudo iptables -t filter -L -v |head -20
+Chain INPUT (policy ACCEPT 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination
+  263 42313 LOG        icmp --  any    any     anywhere             anywhere             LOG level warning
+
+Chain FORWARD (policy DROP 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination
+    0     0 ACCEPT     icmp --  any    br1_test  anywhere             anywhere
+    4   336 ACCEPT     icmp --  br1_test any     anywhere             anywhere
+    5   420 LOG        icmp --  any    any     anywhere             anywhere             LOG level warning prefix "filter-forward "
+
+
+**** reverse direction of SNAT
+icmp from 192.168.163.1 to 192.168.31.1 
+SNAT as SRC=192.168.31.85 DST=192.168.31.1 out=eth0
+when 31.1 reply then there's a packet ICMP_REPLY in eth0 in ingress
+
+ SRC=192.168.31.1 DST=192.168.31.85 IN=eth0 out=
+this will be DNAT back to the orignial src 192.168.163.1
+ SRC=192.168.31.1 DST=192.168.163.1 IN=eth0 out=br1_test
+so another FORWARD rule need to accept this packet also
+
+ pkts bytes target     prot opt in     out     source               destination
+    4   336 ACCEPT     icmp --  br1_test any     anywhere             anywhere
+
+ SRC=192.168.31.1 DST=192.168.163.1 IN=eth0 out=br1_test been forward to br1_test egress
+
+
+
+** owner 
+man  iptables-extensions
+       This  module  attempts  to match various characteristics of the packet creator, for locally generated packets. This match is
+       only valid in the OUTPUT and POSTROUTING chains. Forwarded packets do not have any socket associated with them. Packets from
+       kernel threads do have a socket, but usually no owner.
+
+       [!] --uid-owner username
+
+       [!] --uid-owner userid[-userid]
+              Matches  if the packet socket's file structure (if it has one) is owned by the given user. You may also specify a nu‐
+              merical UID, or an UID range.
+
+       [!] --gid-owner groupname
+
+       [!] --gid-owner groupid[-groupid]
+              Matches if the packet socket's file structure is owned by the given group.  You may also specify a numerical GID,  or
+              a GID range.
+
+       [!] --socket-exists
+              Matches if the packet is associated with a socket.
+
+
+ iptables -t nat -A OUTPUT -p tcp -m owner --uid-owner linuxaria -j REDSOCKS //tcp packet owner is linuxaria will be chekced by rules in Chain "REDSOCKS"
+
+
+**  capture all the packets generated in 
+pi@raspberrypi:~ $ sudo grep test /etc/passwd
+test:x:1000:1000::/home/test:/bin/bash
+
+
+## To track responses to outgoing traffic, a connection mark has to be set in OUTPUT and matched in INPUT.
+# iptables -A OUTPUT -m owner --uid-owner 1000 -j CONNMARK --set-mark 1
+# iptables -A INPUT -m connmark --mark 1 -j NFLOG --nflog-group 30 
+# iptables -A OUTPUT -m connmark --mark 1 -j NFLOG --nflog-group 30 
+# dumpcap -i nflog:30 -w uid-1000.pcap
+
+
+** tproxy
+https://powerdns.org/tproxydoc/tproxy.md.html
+
+*** The routing part
+
+When a packet enters a Linux system it is routed, dropped, or if the destination address matches a local address, accepted for processing by the system itself.
+Local addresses can be specific, like 192.0.2.1, but can also match whole ranges. This is for example how all of 127.0.0.0/8 is considered as 'local'.
+It is entirely possible to tell Linux 0.0.0.0/0 ('everything') is local, but this would leave it unable to connect to any remote address.
+However, with a separate routing table, we can enable this selectively:
+
+**** configuration
+iptables -t mangle -I PREROUTING -p udp --dport 5301 -j MARK --set-mark 1
+ip rule add fwmark 1 lookup 100
+ip route add local 0.0.0.0/0 dev lo table 100
+
+This says: mark all UDP packets coming in to the system to port 5301 with '1'. The next line sends those marked packets to routing table 100. And finally, the last line declares all of IPv4 as local in routing table 100.
+Intercepting packets: the userspace part
+
+**** code to intercept
+With the routing rule and table above, the following simple code intercepts all packets routed through the system destined for 5301, regardless of destination IP address:
+
+  Socket s(AF_INET, SOCK_DGRAM, 0);
+  ComboAddress local("0.0.0.0", 5301);
+  ComboAddress remote(local);
+
+  SBind(s, local);
+
+  for(;;) {
+    string packet=SRecvfrom(s, 1500, remote);
+    cout<<"Received a packet from "<<remote.toStringWithPort()<<endl;
+  }
+
+**** The two roles of IP_TRANSPARENT
+
+The IP_TRANSPARENT socket option enables:
+
+    Binding to addresses that are not (usually) considered local
+    Receiving connections and packets from iptables TPROXY redirected sessions
+
+Binding to non-local IP addresses
+
+Regular sockets are used for transparent proxying, but a special flag, IP_TRANSPARENT, is set to indicate that this socket might receive data destined for a non-local addresses.
+
+Note: as explained above, we can declare 0.0.0.0/0 as “local” (or ::/0), but if this is not in a default routing table, we still need this flag to convince the kernel we know what we are doing when we bind to a non-local IP address.
+
+The following code spoofs a UDP address from 1.2.3.4 to 198.41.0.4:
+
+  Socket s(AF_INET, SOCK_DGRAM, 0);
+  SSetsockopt(s, IPPROTO_IP, IP_TRANSPARENT, 1);
+  ComboAddress local("1.2.3.4", 5300);
+  ComboAddress remote("198.41.0.4", 53);
+  
+  SBind(s, local);
+  SSendto(s, "hi!", remote);
+
+Note: this requires root or CAP_NET_ADMIN to work.
+
+With tcpdump we can observe that an actual packet leaves the host:
+
+tcpdump -n host 1.2.3.4
+21:29:41.005856 IP 1.2.3.4.5300 > 198.41.0.4.53: [|domain]
+
+IP_TRANSPARENT is mentioned in ip(7).
+The iptables part
+
+In the code examples above, traffic had to be delivered to a socket bound to the exact port of the intercepted traffic. We also had to bind the socket to 0.0.0.0 (or ::) for it to see all traffic.
+
+
+*** TPROXY target in iptable
+iptables has a target called TPROXY which gives us additional flexibility to send intercepted traffic to a specific local IP address and simultaneously mark it too.
+
+The basic syntax is:
+
+iptables -t mangle -A PREROUTING -p tcp --dport 25 -j TPROXY \
+  --tproxy-mark 0x1/0x1 --on-port 10025 --on-ip 127.0.0.1
+
+This says: take everything destined for a port 25 on TCP and deliver this for a process listening on 127.0.0.1:10025 and mark the packet with 1.
+
+This mark then makes sure the packet ends up in the right routing table.
+
+With the iptables line above, we can now bind to 127.0.0.1:10025 and receive all traffic destined for port 25. Note that the IP_TRANSPARENT option still needs to be set for this to work, even when we bind to 127.0.0.1.
+Getting the original destination address
+
+For TCP sockets, the original destination address and port of a socket is available via getsockname(). This is needed for example to setup a connection to the originally intended destination.
+
+**** An example piece of code:
+
+  Socket s(AF_INET, SOCK_STREAM, 0);
+  SSetsockopt(s, IPPROTO_IP, IP_TRANSPARENT, 1);
+  ComboAddress local("127.0.0.1", 10025);
+
+  SBind(s, local);
+  SListen(s, 128);
+
+  ComboAddress remote(local), orig(local);
+  int client = SAccept(s, remote);
+  cout<<"Got connection from "<<remote.toStringWithPort()<<endl;
+
+  SGetsockname(client, orig);
+  cout<<"Original destination: "<<orig.toStringWithPort()<<endl;
+
+For UDP, the IP_RECVORIGDSTADDR socket option can be set with setsockopt(). To actually get to that address, recvmsg() must be used which will then pass the original destination as a cmsg with index IP_ORIGDSTADDR containing a struct sockaddr_in.
+
+Note: as of May 2017, many recently deployed Linux kernels have a bug which breaks IP_RECVORIGDSTADDR.
+Many TPROXY iptables examples on the internet contain an unexplained refinement that uses -m socket -p tcp. The socket module of iptables matches patches that correspond to a local socket, which may be more precise or faster than navigating a set of specific rules.
+
+The setup you'll find everywhere sets up a redirect chain which marks and accepts packets:
+**** TPROXY configuration
+iptables -t mangle -N DIVERT
+iptables -t mangle -A DIVERT -j MARK --set-mark 1
+iptables -t mangle -A DIVERT -j ACCEPT
+
+The following then makes sure that everything that corresponds to an established local socket gets sent there, followed by what should happen to new packets:
+
+iptables -t mangle -A PREROUTING -p tcp -m socket -j DIVERT
+iptables -t mangle -A PREROUTING -p tcp --dport 25 -j TPROXY \
+  --tproxy-mark 0x1/0x1 --on-port 10025 --on-ip 127.0.0.1
+iptables -t mangle -A PREROUTING -p tcp --dport 80 -j TPROXY \
+  --tproxy-mark 0x1/0x1 --on-port 10080 --on-ip 127.0.0.1

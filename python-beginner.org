@@ -77,6 +77,8 @@ class list(object)
  |      T.__new__(S, ...) -> a new object with type S, a subtype of T
 
 
+** 
+
 ** type() function
 >>> type([1,34,6])
 <type 'list'>

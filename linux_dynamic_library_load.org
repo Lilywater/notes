@@ -286,13 +286,15 @@ int main()
 连接时要注意，假设libhello.o 和libhello.a都在缺省的库搜索路径下/usr/lib下，如果在其它位置要 加上-L参数 与与静态库连接麻烦一些，主要是参数问题。还是上面的例子： 
 
 *** using -Wl,-Bstatic option to specificlly link to the static library
-$gcc testlib.o -o testlib -WI,-Bstatic -lhello 
-注：这个特别的"-WI，-Bstatic"参数，实际上是传给了连接器ld。指示它与静态库连接，如果系统中只 有静态库当然就不需要这个参数了。如果要和多个库相连接，
+$gcc testlib.o -o testlib -Wl,-Bstatic -lhello 
+注：这个特别的"-Wl，-Bstatic"参数，实际上是传给了连接器ld。指示它与静态库连接，如果系统中只 有静态库当然就不需要这个参数了。如果要和多个库相连接，
 
 
 *** using -Wl, -Bdynamic option to specifically link to the dynamic library
 而每个库的连接方式不一样，比如上面的程序既要和libhello进行静态连接，又要和libbye进行动态连接，其命令应为： 
-$gcc testlib.o -o testlib -WI,-Bstatic -lhello -WI,-Bdynamic -lbye 
+$gcc testlib.o -o testlib -Wl,-Bstatic -lhello -Wl,-Bdynamic -lbye 
+
+note that the order is very important, you need to put the static link library before the dynamic library, otherwise there's no effect.
 
 
 ** 查看库中的符号
@@ -818,6 +820,144 @@ There are several ways to solve this:
 It might be less stressful to access the resulting libs via dlopen with suitable options, as well.
   	 
  	
+** dynamic library info
+*** dynamic library file name and soname
+readelf -d ./obj/linux_x86/iota/opt/lib/libz.so.1.2.11
+
+Dynamic section at offset 0x1544c contains 23 entries:
+  Tag        Type                         Name/Value
+   0x00000001 (NEEDED)                     Shared library: [libc.so.6]
+    0x0000000e (SONAME)                     Library soname: [libz.so.1]
+--------------------------------------------------------------------------
+as above, the file name is libz.so.1.2.11 but soname is libz.so.1
+
+*** multiple symbols defined within one library
+
+$ gcc -o /some/oracle/bin/foo .... -L/some/oracle/lib ... 
+/some/oracle/lib/libfoo.so: undefined reference to `memcpy@GLIBC_2.14'
+
+It seems that (my) RHEL's glibc only defines memcpy@GLIBC_2.2.5:
+
+$ readelf -Ws /usr/lib/x86_64-redhat-linux6E/lib64/libc_real.so | fgrep memcpy@
+   367: 000000000001bfe0    16 FUNC    GLOBAL DEFAULT    8 memcpy@@GLIBC_2.2.5
+     1166: 0000000000019250    16 FUNC    WEAK   DEFAULT    8 wmemcpy@@GLIBC_2.2.5
+
+**** nm wil not show the multiple symbol name within one file
+wmm-iotarh6x32:::/wmm_nbu/glili/IOTA_REp/tclupgrade $ nm  ./obj/linux_x86/iota/opt/lib/libz.so.1.2.11|grep deflateBound
+00002d50 T deflateBound
+wmm-iotarh6x32:::/wmm_nbu/glili/IOTA_REp/tclupgrade $  readelf -Ws ./obj/linux_x86/iota/opt/lib/libz.so.1.2.11|grep deflateBound
+   100: 00002d50   354 FUNC    GLOBAL DEFAULT   12 deflateBound@@ZLIB_1.2.0
+      233: 00002d50   354 FUNC    GLOBAL DEFAULT   12 deflateBound
+two versions of symbol deflateBound, one is  deflateBound@@ZLIB_1.2.0, the other one is deflateBound
+
+two versions of symbol deflateBound, one is  deflateBound@@ZLIB_1.2.0, the other one is deflateBound
+
+Symbol table .symtab  section:
+   233: 00002d50   354 FUNC    GLOBAL DEFAULT   12 deflateBound
+Symbol table '.dynsym' section 
+   100: 00002d50   354 FUNC    GLOBAL DEFAULT   12 deflateBound@@ZLIB_1.2.0
 
 
+bash: prompt_cmd: command not found
+bash-4.1$ nm ./obj/linux_x86/iota/opt/iota/lib/libtcl8.6.so|grep deflateBound
+         U deflateBound@@ZLIB_1.2.0
+bash-4.1$ nm ./obj/linux_x86/iota/opt/lib/libz.so.1.2.11 |grep ./obj/linux_x86/iota/opt/lib/libz.so.1.2.11
+bash-4.1$ readelf -Ws ./obj/linux_x86/iota/opt/iota/lib/libtcl8.6.so|grep deflateBound |grep deflateBound
+   147: 00000000     0 FUNC    GLOBAL DEFAULT  UND deflateBound@ZLIB_1.2.0 (18)
+  4161: 00000000     0 FUNC    GLOBAL DEFAULT  UND deflateBound@@ZLIB_1.2.0
+
+
+bash-4.1$ readelf -Ws ./obj/linux_x86/iota/opt/lib/libz.so.1.2.11 |grep deflateBound
+   233: 00002d50   354 FUNC    GLOBAL DEFAULT   12 deflateBound
+   100: 00002d50   354 FUNC    GLOBAL DEFAULT   12 deflateBound@@ZLIB_1.2.0
+
+bash-4.1$ nm ./obj/linux_x86/iota/opt/lib/libz.so.1.2.11 |grep deflateBound
+00002d50 T deflateBound
+
+**** symbol with @@ usage
+
+
+$ gcc -o /some/oracle/bin/foo .... -L/some/oracle/lib ... 
+/some/oracle/lib/libfoo.so: undefined reference to `memcpy@GLIBC_2.14'
+
+It seems that (my) RHEL's glibc only defines memcpy@GLIBC_2.2.5:
+
+$ readelf -Ws /usr/lib/x86_64-redhat-linux6E/lib64/libc_real.so | fgrep memcpy@
+   367: 000000000001bfe0    16 FUNC    GLOBAL DEFAULT    8 memcpy@@GLIBC_2.2.5
+  1166: 0000000000019250    16 FUNC    WEAK   DEFAULT    8 wmemcpy@@GLIBC_2.2.5
+
+So, I managed to get around this, by first creating a memcpy.c file without wrapping, as follows:
+
+#include <string.h>
+asm (".symver old_memcpy, memcpy@GLIBC_2.2.5");       // hook old_memcpy as memcpy@2.2.5
+void *old_memcpy(void *, const void *, size_t );
+void *memcpy(void *dest, const void *src, size_t n)   // then export memcpy
+{
+    return old_memcpy(dest, src, n);
+}
+
+and a memcpy.map file that exports our memcpy as memcpy@GLIBC_2.14:
+
+GLIBC_2.14 {
+   memcpy;
+};
+
+I then compiled my own memcpy.c into a shared lib like this:
+
+$ gcc -shared -fPIC -c memcpy.c
+$ gcc -shared -fPIC -Wl,--version-script memcpy.map -o libmemcpy-2.14.so memcpy.o -lc
+
+, moved libmemcpy-2.14.so into /some/oracle/lib (pointed to by -L arguments in my linking), and linked again by
+
+$ gcc -o /some/oracle/bin/foo .... -L/some/oracle/lib ... /some/oracle/lib/libmemcpy-2.14.so -lfoo ...
+
+(which compiled without errors) and verified it by:
+
+$ ldd /some/oracle/bin/foo
+    linux-vdso.so.1 =>  (0x00007fff9f3fe000)
+    /some/oracle/lib/libmemcpy-2.14.so (0x00007f963a63e000)
+    libdl.so.2 => /lib64/libdl.so.2 (0x00007f963a428000)
+    libpthread.so.0 => /lib64/libpthread.so.0 (0x00007f963a20c000)
+    librt.so.1 => /lib64/librt.so.1 (0x00007f963a003000)
+    libc.so.6 => /lib64/libc.so.6 (0x00007f9639c42000)
+    /lib64/ld-linux-x86-64.so.2 (0x00007f963aa5b000)
+
+This worked for me. I hope it does it for you, too.
+
+
+**** nm symbol meaning
+The characters that identify symbol type describe :
+
+    A :  Global absolute symbol.
+    a  :  Local absolute symbol.
+    B : Global bss symbol.
+    b : Local bss symbol.
+    D : Global data symbol.
+    d : Local data symbol.
+    f : Source file name symbol.
+    L : Global thread-local symbol (TLS).
+    l : Static thread-local symbol (TLS).
+    T : Global text symbol.
+    t  : Local text symbol.
+    U : Undefined symbol.
+
+****  using strace to get the library opened by a program
+
+strace -e trace=open myprogram
+
+(since dlopen ultimately calls open - though you may of course have a system using different names for 64-bit opens...).
+
+Example:
+
+strace -e trace=open date
+
+shows me this:
+
+open("/etc/ld.so.cache", O_RDONLY)      = 3
+open("/lib/x86_64-linux-gnu/librt.so.1", O_RDONLY) = 3
+open("/lib/x86_64-linux-gnu/libc.so.6", O_RDONLY) = 3
+open("/lib/x86_64-linux-gnu/libpthread.so.0", O_RDONLY) = 3
+open("/usr/lib/locale/locale-archive", O_RDONLY) = 3
+open("/etc/localtime", O_RDONLY)        = 3
+Wed Apr 12 04:56:32 EDT 2017
 

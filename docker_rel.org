@@ -1,6 +1,9 @@
 * docker basic usage
 ** docker basic concepts
 docker run -it --name=<containername> mysql:5.5 /bin/bash    //run image, the container name parameter could be omitted.
+docker run -d --name=<containername> centos:7  tail -f /dev/null    //run image in the daemon
+docker run exec -it <containid> /bin/bash                           // shell to the container
+
 *** docker image
 image format <imagename>:<version>
 docker image is an image which could be run as a container
@@ -36,6 +39,17 @@ REPOSITORY                      TAG                 IMAGE ID            CREATED 
 mqyyy777/apache2_php7_ubu1804   latest              a6d87831de86        11 days ago         239MB
 mqyyy7777/mysql_aicq            latest              a745c1291fb0        12 days ago         484MB
 mqyyy777/ubuntu_18_tt           latest              29730938da29        2 weeks ago         184MB
+
+**** docker tag image
+vagrant@master:~/gashpc$ sudo docker image list |grep gash
+gashpc                               latest               ee373b57e190        16 minutes ago      708MB
+
+vagrant@master:~/gashpc$ sudo docker tag gashpc 172.24.17.100:5000/gashpc:latest
+
+**** untag image
+docker rmi <tagname>
+sudo docker rmi 172.24.17.100:5000/gashpc:latest
+Untagged: 172.24.17.100:5000/gashpc:latest
 
 **** docker remove the image
 docker rmi <imagename>
@@ -104,10 +118,16 @@ start a container which has exited or stop
 **** docker stop <container-id>
  docker stop <container id showed in ps>
 
-docker commit [OPTIONS] CONTAINER [REPOSITORY[:TAG]]
-
+docker commit [OPTIONS] CONTAINER [REPOSITORY[:TAG]] 
 **** dcoker exec <container>
 docker exec -it <containerIdOrName>  <cmd>
+***** get container's shell
+docker exec -it <containerIdOrName>  /bin/bash
+  -i, --stdin=false: Pass stdin to the container
+    -t, --tty=false: Stdin is a TTY
+
+***** get container's shell with root user -u 0
+docker exec -it -u 0 3de999b26342 /bin/bash
 
 **** docker rename <container> <new-containername>
 docker run --name=mysql8  -it  mysql:5.5 /bin/bash   ###### -t alloca a tty, -i interactive for bash
@@ -128,6 +148,7 @@ remove a container which created by docker run....
 remove all exited containers
  docker rm $(docker ps  -q -f status=exited)
 
+* 
 * docker advanced Dockerfile instructions
 Usually, a docker image is built by the Dockerfile which compose a set of INSTRUCTIONS.
 ** Docker file instruction
@@ -297,6 +318,31 @@ docker inspect  <imagename>
 ----------------------------------------------------------------------------
 The ENTRYPOINT of an image is similar to a COMMAND because it specifies what executable to run when the container starts, but it is (purposely) more difficult to override
 
+
+cat Dockerfile
+-----------------
+FROM ubuntu
+
+COPY entrypoint.sh /
+ENTRYPOINT ["/entrypoint.sh"]
+------------------------
+
+**** entrypoint shell format
+entrypoint.sh
+------------
+#!/bin/bash
+set -eo pipefail
+shopt -s nullglob
+set -x
+....
+## the last command of entry file should be not exit the bash for example 
+cron -f  ### this will keep the run docker container not exit, keep the server in forground
+exec top ### this will kepp the run docker container not exit either
+-------------
+if no such heading, there'll be error like this:
+standard_init_linux.go:211: exec user process caused "exec format error"
+
+
 **** in default run 
 docker run .... <imagename>    ###  then the <imagename> run will execute "Entrypoint Cmd" like "/entrypoint.sh apache2-foreground"
 
@@ -309,7 +355,6 @@ docker run -it <imagename> ls -l / #### this run will execute "/entrypoint.sh ls
 --entrypoint  ""
 docker run   -it  --entrypoint "/bin/ls" <imagename>  -l /var/www/html/
 ### this will execute "/bin/ls -l /var/www/html"
-
 
 ** docker file instru advanced
 *** execute instructions as other user instead of root
@@ -436,6 +481,7 @@ source /mnt/aicq.sql;
 docker exec -it mysql1 mysql -uroot -p <sql.script
 docker exec mysql8 sh -c 'exec mysqldump aicq -uroot -p"123"' >  /mnt/udisk/data_aicq/aicq_docker.sql
  docker run --name=mysql8  -e MYSQL_ROOT_PASSWORD=123 -p 3307:3306 -v /mnt/udisk/data_aicq:/mnt  -d mysql:latest
+ docker run --name=mysql  -p 3307:3306 -v /mnt/udisk/data_aicq:/mnt  -d  mqyyy777/mysql_rsp:14.0
 
 docker run  -p 8008:80 -v /mnt/udisk/youtu/xiaoshuo:/mnt -d mqyyy777/apache2_php7_ubu1804:2.0
 docker run --name=mysqltt8  -e MYSQL_ROOT_PASSWORD=123 -p 3307:3306 -d mqyyy777/aicq_sql:1.0
@@ -443,6 +489,7 @@ docker run --name=mysqltt8  -e MYSQL_ROOT_PASSWORD=123 -p 3307:3306 -d mqyyy777/
 docker run --name=mysql8  --restart=unless-stopped  -e MYSQL_ROOT_PASSWORD=123 -p 3307:3306  -v /mnt/udisk/data_aicq:/mnt/host_aicq -d mqyyy777/mysql_aicq:4.0
 docker run --name=ncl  --restart=unless-stopped -v /mnt/udisk/ncloud_data:/var/www/html -p 80:80 -d nextcloud:13.0.6
 docker run --name=webaicq2 -d  --restart=unless-stopped -p 8008:80 -v /mnt/udisk/youtu/xiaoshuo:/mnt   mqyyy777/webaicq:2.0     
+docker run --name=webaicq3 -d  --restart=unless-stopped -p 8008:80 -p 21:21/tcp -v /mnt/udisk:/home/ftpuser   -v /mnt/udisk/youtu/xiaoshuo:/mnt   mqyyy777/webaicq:2.0     
 
 
 
@@ -468,6 +515,12 @@ docker run --name=ncloud  --restart=unless-stopped -v /mnt/udisk/nextcloud:/var/
 when run an image, there will be a cotainer.
 when save a continaer to image, using   
 docker commit <continer-name> <imgname>
+
+** docker pull image 
+ cat /etc/sysconfig/docker
+ # /etc/sysconfig/docker
+ HTTP_PROXY="http://10.144.1.10:8080"
+ HTTPS_PROXY="http://10.144.1.10:8080"
 
 
 ** docker container using  proxy
@@ -506,6 +559,61 @@ docker save <image> | bzip2 | ssh user@host 'bunzip2 | docker load'
 
 ** load a tar file which generated from image 
 Copy the image from the path to any host. Now import to your local Docker installation using:
+docker load < <imag-tar-file>
 
 
 
+
+sometimes the default docker package has some issue.
+docker-ce package install in raspberry
+curl -sL get.docker.com | sed 's/9)/10)/' | sh
+
+
+** docker limit resources
+Run a docker container with option to limit its memory and cpu usage
+--cpu  
+--memory
+--memory-reservation
+docker run -it --name  --cpus="1" --memory="1g" --memory-reservation="750m"   
+
+
+
+* move docker default root directory to another directory
+rsync -a /var/lib/docker/* /path/to/new/root
+rm -rf /var/lib/docker 
+ln -s /path/to/new/root /var/lib/docker 
+
+
+
+*   certificate  error x509 when docker pull
+Docker run Hello-World error x509: certificate signed by unknown authority 
+cd /usr/local/share/ca-certificates/
+sudo mkdir corp
+sudo cp ~/{corporate-cert}.crt corp/
+sudo update-ca-certificates
+
+Updating certificates in /etc/ssl/certs...
+1 added, 0 removed; done.
+Running hooks in /etc/ca-certificates/update.d...
+done.
+
+restart the docker service (sudo service docker restart) 
+
+** create certificate files in server
+openssl genrsa -des3 -passout pass:x -out server.pass.key 2048
+...
+
+openssl rsa -passin pass:x -in server.pass.key -out server.key
+writing RSA key
+
+rm server.pass.key
+
+openssl req -new -key server.key -out server.csr
+...
+Country Name (2 letter code) [AU]:US
+State or Province Name (full name) [Some-State]:California
+...
+A challenge password []:
+...
+
+openssl x509 -req -sha256 -days 365 -in server.csr -signkey server.key -out server.crt

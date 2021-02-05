@@ -12,6 +12,9 @@ Start the libvirtd service:
 # systemctl enable libvirtd
 # systemctl start libvirtd
 
+libvirtError: authentication unavailable: no polkit agent available to authenticate action 'org.libvirt.unix.manage'
+add the user to groups libvirt
+usermod --append --groups libvirt `whoami`
 
 ** verify kvm installation
 *** kvm loaded module in kernel
@@ -546,3 +549,26 @@ in the guest, will get the ifaddr as a LAN addr,
 eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
         inet 192.168.31.197  netmask 255.255.255.0  broadcast 192.168.31.255
 
+* get vm's ip address
+
+ot@175 cmm]# virsh list
+ Id    Name                           State
+ ----------------------------------------------------
+  3     k8s-vagrant-multi-node_master  running
+   4     k8s-vagrant-multi-node_node2   running
+    5     k8s-vagrant-multi-node_node1   running
+
+    [root@175 cmm]# virsh domifaddr k8s-vagrant-multi-node_master
+     Name       MAC address          Protocol     Address
+     -------------------------------------------------------------------------------
+      vnet0      52:54:00:31:14:30    ipv4         192.168.121.194/24
+
+
+sudo ifconfig  eth2 up
+sudo ifconfig  eth3 up
+
+ sudo virsh attach-interface --domain k8s-vagrant-multi-node_master  --type bridge  --source virbr6 --model virtio --config --live  
+ sudo virsh attach-interface --domain k8s-vagrant-multi-node_master  --type bridge  --source virbr5 --model virtio --config --live  
+ virsh detach-interface --domain k8s-vagrant-multi-node_master  --type bridge --mac  --config
+
+ $ sudo virsh domiflist pxe

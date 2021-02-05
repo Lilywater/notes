@@ -10,11 +10,60 @@ S1: http://note.youdao.com/noteshare?id=1cfcab9ac2489c274ac2b55a44718f63&sub=C79
 
 S3 note: http://note.youdao.com/noteshare?id=8c00397e7d33c48df667171c6703f80e&sub=A4DEC5094761441E85793DE27FF5F8E7
 
+* 
 * 802.1q tag used to support the VLAN
 802.1q defines a 16-bit tag added between the source MAC and ethertype fields. Within these 16 bits, 12 describe the VLAN tag. The presence of this tag indicates
 which the VLAN to which a given frame belongs.
 
+for an access vlan, it must be defined locally in the switch.
+$config term
+$vlan 7 
+$name "desc_vlan7"
+$ show run
+vlan 7
+ name desc_vlan7 
+ !
+
+interface GigabitEthernet0/7
+ description blade2
+  switchport trunk native vlan 7
+   switchport trunk allowed vlan 7,12
+    switchport mode trunk
+----------------------------
+
+vlan 7 must be defined in the local siwtch before it could be assigned as access vlan for access mode
+if a vlan configured as trunk allow vlan, the vlan not necessarily should be defined in local swich, for exa vlan 12 and 11
+could not be defined in local switch.
+-------------------------------------------------------------------------------------------------------
+mmeswitch g1, switch 133 g0
+
+mmeswitch:      g1/5 [access vlan 10]         
+                |
+                |
+                |
+switch_133:    g0/20[access vlan 7]         g0/7[trunk allow vlan7,12 native vlan 7]    g0/3[trunk allow vlan7,11]
+                                                                           |
+                                                                           |
+                                                                           |
+blade:                                                                 host B[eno2]
+------------------------------------------------------------------------------------------
+if host send package from eno2 with no tag add from hostB, g0/7 will add vtag7 and forward it to g0/3
+g0/7 will not add vtag7, and send it directly to g0/20                                                                   
+
+
+if port1 configured as access mode,  the access vlan 2 ( native vlan tag in this swith for all other ports.)
+   port2 configured as trunk mode,   the trunk allow vlan 2,3,4. (native vlan tag is 2, it means the untagged frame received will be add vlan tag2:
+   port3 configured as trunk mode,   the trunk allow vlan 2,9 
+
+so logically, port1,port2,port3 are in the same native vlan 2(in this same switch) , so arp broadcast will go through this lan.
+when port2 received an untagged frame, it will be added a vlan tag 2
 port configured as trunk mode will use 802.1q protocol
+g1/5[access vlan10] ----------this vlan is a native vlan 10 in mmeswitch 
+g0/20[access vlan7]---------- this vlan is a native vlan 7 in switch_133
+so packets between g1/5 and g0/20 will have no vlan tag at all, the vlan number just for local vlan.
+
+
+
 ** trunk mode port received  untagged frame
 
 In general terms, what tends to happen is that a standard (untagged) frame is received on a port that’s logically associated with the VLAN.
@@ -166,7 +215,7 @@ switch(config-if)# switchport mode trunk
 
 **** Configuring the Native VLAN for 802.1Q Trunking Ports
 
-If you do not configure this parameter, the trunk port uses the default VLAN as the native VLAN ID.
+If you do not configure this parameter, the trunk port uses the default VLAN(vlan 1) as the native VLAN ID.
 
 To configure native VLAN for a 802.1Q trunk port, perform this task:
 
@@ -360,6 +409,8 @@ Enter configuration commands, one per line.  End with CNTL/Z.
 Switch(config)#interface Vlan2
 Switch(config-if)#ip address 10.1.2.1 255.255.255.0
 Switch(config-if)#no shutdown
+/// config interface vlan with ip address, meaning that this interface will be worked as gateway of this vlan, it will
+//using SNAT to forward packets according to native route table, this means the third layer switch.
 
 Repeat this process for all VLANs identified in Vlan1 with ip 10.1.3.1 
 
@@ -644,4 +695,93 @@ then hostB will send icmp echo response dstmac(001a.2fa2.b17f) dstip(10.56.233.1
 this forword is a snat process. 
 
 
+** switch config
+switch_130
+---------------------
+interface GigabitEthernet1/5
+ description IMB_133_20
+ switchport access vlan 10
+ switchport mode access
+         
+interface GigabitEthernet1/11
+ description IMB_133_19
+ switchport access vlan 15
+ switchport mode access
+-----------------------
 
+swithch_133
+----------------------
+interface GigabitEthernet0/19
+ description extern3
+ switchport access vlan 2
+ switchport trunk native vlan 2
+ switchport mode access
+!
+interface GigabitEthernet0/20
+ description extern4
+ switchport access vlan 2
+ switchport trunk native vlan 2
+ switchport mode access
+!
+
+interface GigabitEthernet0/12 (NLG)
+ description blade12
+ switchport trunk native vlan 2
+ switchport trunk allowed vlan 2-4094
+ switchport mode trunk
+ spanning-tree portfast trunk
+ spanning-tree bpdufilter enable
+
+-----------------------------------
+vlan15: subnet 10.26.233.
+vlan10: subnet 10.100.0.
+
+NLG host
+eht0 and alias(not vlan) eth0:1 use different subnet ip address,  for those two subnets could be in the same vlan 2
+========
+eth0      Link encap:Ethernet  HWaddr 00:0C:29:48:6D:78  
+          inet addr:10.56.233.198  Bcast:10.56.233.255  Mask:255.255.255.128
+         RX bytes:149685874 (142.7 MiB)  TX bytes:2354471 (2.2 MiB)
+
+eth0:1    Link encap:Ethernet  HWaddr 00:0C:29:48:6D:78
+          inet addr:10.100.0.2  Bcast:10.100.255.255  Mask:255.255.0.0
+
+---------------------------------------------------
+g0/10 g0/20 g0/12 are in the same native vlan 2.
+g0/19------- g1/11[vlan 15]
+g0/20--------g1/5 [vlan 10]
+
+
+* STP
+** bridge loop
+              SW1
+         g1/1/   \g1/2
+            /     \
+           /       \ 
+          /         \ 
+         /           \ 
+        / g2/3        \ g3/3
+PCA----SW2-----------SW3-------PC B
+   g2/1  g2/2    g3/1  g3/2
+
+all the g*/* interface configured as trunk mode, and allow vlan 10, vlan 11
+
+For some reason there is a bridging loop, STP is disabled or someone applied a filter in the wrong place or such.
+PC A wants to communicate with PC B. It first ARPs for the MAC of PC B, the destination is a broadcast with MAC ffff.ffff.ffff. So the frame goes to both SW1 and SW3.
+The SRC MAC is PC A. SW1 then floods the frame towards SW3 and SW3 will flood the frame coming from SW2 to SW1.
+
+SW1 and SW3 learned the MAC of PC A when the first frame came in. When the second one comes in from the opposite direction it has to relearn it. Because these events occur 
+so fast and repeatedly you will see log messages complaining about MAC flapping. Something like "MAC FLAP 0000.0000.0001 is flapping between Gi0/24 and Gi0/23". 
+This is a good sign that you have a loop.
+
+** Spanning tree protocol (STP)
+this protocol will prevent this kind of loop, to ensure only one path to the destination from source, if this path fail, then other path will be used, but only one path at a time
+
+interface GigabitEthernet0/1
+ description blade1
+ switchport access vlan 2
+ switchport trunk native vlan 2
+ switchport trunk allowed vlan 2-4094
+ switchport mode trunk
+ spanning-tree portfast trunk
+ spanning-tree bpdufilter enable

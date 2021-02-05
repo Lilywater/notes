@@ -6,6 +6,7 @@ and in remote, no modification could be retrieved until you push it to remote se
 
 **  basic usage
 *** git clone <url>
+git clone -b MM19.5_M1 gitolite@git-1.app.nokia.com:cmmta/cmm-ft-robottests 
 get exactly the same copy from remote rep to your local.
 
 *** create a repo as a remote rep
@@ -54,7 +55,7 @@ opposite operation of the git add.
 
 * git basic concept
 ** branch
-*** git remote origin
+*** git show remote branch( remote origin)
 -> git remote show
 acos
 
@@ -69,6 +70,19 @@ acos
     clearcase/release-kiwicake           tracked
     integration                          tracked
 
+
+*** show all local branch
+$ git branch
+  CMM19.5
+  * CMM19.5_M1
+    origin/CMM19.5_M1
+
+*** create a new branch
+git branch <branchname>
+
+*** delete a branch
+    $ git branch -D origin/CMM19.5_M1
+    已删除分支 origin/CMM19.5_M1（曾为 45e1ad7b47）
 
 *** git branch -r -v 
 this command show the remote  branches
@@ -121,6 +135,9 @@ FETCH_HEAD will be the head of this branch in the remote server with log --all
  | | * 3871d17 (acos/release-lime, acos/continuous/release-lime) PSSSW-82356: R3.0: Upgrade Sherpa to sherpa_top_b180702_v40030404.tra
 
 
+** git diff ~ (get different for a commit and its previous commit)
+git diff c780d10~ c780d10
+
 ** changes made to this branch
 *** git commit
 **** git commit ###will commit all the  "Changes to be committed" files
@@ -145,6 +162,12 @@ checkout means a lot of things in git
 git  checkout -- <filename>
 regurlar expr:
 git checkout -- '*.c'
+
+**** get all the files in a hash-tag
+-f means force, thus all the rep will updated to that <hash-tag> version
+git checkout -f HEAD
+git checkout -f <hash-tag>
+
 
 **** switch branches/tags
 git checkout <tagname>/<branchname>
@@ -311,6 +334,10 @@ $ git status
 
 Now you want to switch branches, but you don??t want to commit what you??ve been working on yet; so you??ll stash the changes. To push a new stash onto your stack, run git stash:
  git stash save "the label which you want to put when stash list "
+***** stash only  a specific file
+git stash push -m welcome_cart app/views/cart/welcome.thtml
+
+
 $ git stash save "added the index file"
 Saved working directory and index state \
   "WIP on master: 049d078 added the index file"
@@ -364,10 +391,15 @@ Saved working directory and index state \
 
   The apply option only tries to apply the stashed work ?? you continue to have it on your stack. To remove it, you can run git stash drop with the name of the stash to remove:
 
+***** apply one specific stash when there are several stashes
   $ git stash list
   stash@{0}: WIP on master: 049d078 added the index file
   stash@{1}: WIP on master: c264051 Revert "added file_size"
   stash@{2}: WIP on master: 21d80a5 added number to log
+
+$git stash apply stash@{2}
+stash apply will leave those stash in the stash list
+
 
 **** drop your stash apply
   $ git stash drop stash@{0}
@@ -376,6 +408,19 @@ Saved working directory and index state \
   You can also run git stash pop to apply the stash and then immediately drop it from your stack.
   Un-applying a Stash
 
+
+****  git stash pop
+if you want to apply stash and remove it from stash list(stack), use this one
+
+
+**** git stash show
+***** git stash show 
+$ git stash 
+list all the files which have been stashed
+
+
+***** git stash show -p
+list all the differs
   In some use case scenarios you might want to apply stashed changes, do some work, but then un-apply those changes that originally came from the stash. Git does not provide
   such a stash unapply command, but it is possible to achieve the effect by simply retrieving the patch associated with a stash and applying it in reverse:
 
@@ -742,6 +787,7 @@ git reset --hard origin/master ### get clean code form remoet repo.
              .....             ### do something with these clean codes.
 git merge <tagname>            ### get those two merged
 
+*** 
 *** git retrieve history
 git could only retrieve the history of the specific branch.
 if you just add a tag to some commithash, then when you are in branch "master", you can't see the history commit after that tag's checkout.
@@ -1117,3 +1163,16 @@ we could-> git checkout release-kiwickae (that means D---E----F-----G)
 or we could git chekout tag4 (that means D----E----A----B)
 
 then we could get to any commit using checkout(that means we could get any version 
+
+*** git ignore the file mode when git status 
+git config --replace-all  --global core.filemode false
+
+or in a file .git/config
+--------------------
+[core]
+        repositoryformatversion = 0
+        filemode = false
+-----------------------------------        
+
+
+

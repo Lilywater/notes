@@ -78,3 +78,25 @@ docker-ce-selinux.noarch : SELinux Policies for the open-source application cont
 
 **** install the package
 yum --disablerepo=\* --enablerepo=remote-docker-ce install --nogpgcheck  docker-ce
+
+
+
+** install docker-ce instead of docker in centos 
+*** repo added
+sudo echo nothing 2>/dev/null 1>/dev/null || alias sudo='$@'
+
+sudo tee /etc/yum.repos.d/docker.repo <<-'EOF' 
+[docker-ce-edge]
+name=Docker CE Edge - $basearch
+baseurl=https://download.docker.com/linux/centos/7/$basearch/edge
+enabled=1
+gpgcheck=1
+gpgkey=https://download.docker.com/linux/centos/gpg
+EOF
+
+
+*** docker-ce 
+yum install -y docker-ce \
+  && sudo systemctl start docker \
+    && sudo systemctl status docker \
+      && sudo systemctl enable docker

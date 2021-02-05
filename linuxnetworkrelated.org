@@ -641,6 +641,9 @@ default gateway
 route del default gw <> dev eth0
 route add default gw <> dev eth0
 
+route del -net 10.0.0.0/24 gw 10.0.0.1 eth0
+route del -host 10.2.3.1 gw 10.0.0.1 eth0
+
 or you can add them to the files /etc/sysconfig/network-script/route-eth0
 the format is as below:
 ==========================================
@@ -2028,6 +2031,7 @@ the content  of file tt will be recevied here and be printed out
 
 nc -l -p 4444 |nc -u 127.0.0.1 5555
 
+** 
 ** netcat powerful tools
 why linux treat everything as a file including a device, that's awesome, 
 cause you could use command line (redirect to any command) to process the data, 
@@ -2681,6 +2685,81 @@ udp        0      0 0.0.0.0:5353            0.0.0.0:*                           
 udp6       0      0 :::45325                :::*                                628/avahi-daemon: r
 
 * route table and find out the interface and src adress of a specific ip addr
+** route table name
+pi@raspberrypi:~ $ cat /etc/iproute2/rt_tables
+#
+# reserved values
+#
+255     local
+254     main
+253     default
+0       unspec
+#
+# local
+#
+
+pi@raspberrypi:~ $ ip route show table local
+local 127.0.0.1 dev lo proto kernel scope host src 127.0.0.1
+broadcast 127.255.255.255 dev lo proto kernel scope link src 127.0.0.1
+broadcast 169.254.0.0 dev docker0 proto kernel scope link src 169.254.191.248
+broadcast 169.254.0.0 dev vethb82cf1e proto kernel scope link src 169.254.177.27
+broadcast 169.254.0.0 dev br1_test proto kernel scope link src 169.254.59.219
+local 169.254.59.219 dev br1_test proto kernel scope host src 169.254.59.219
+local 169.254.177.27 dev vethb82cf1e proto kernel scope host src 169.254.177.27
+local 169.254.191.248 dev docker0 proto kernel scope host src 169.254.191.248
+broadcast 169.254.255.255 dev docker0 proto kernel scope link src 169.254.191.248
+broadcast 169.254.255.255 dev vethb82cf1e proto kernel scope link src 169.254.177.27
+broadcast 169.254.255.255 dev br1_test proto kernel scope link src 169.254.59.219
+broadcast 172.17.0.0 dev docker0 proto kernel scope link src 172.17.0.1
+local 172.17.0.1 dev docker0 proto kernel scope host src 172.17.0.1
+broadcast 172.17.255.255 dev docker0 proto kernel scope link src 172.17.0.1
+broadcast 192.168.31.0 dev eth0 proto kernel scope link src 192.168.31.85
+local 192.168.31.85 dev eth0 proto kernel scope host src 192.168.31.85
+broadcast 192.168.31.255 dev eth0 proto kernel scope link src 192.168.31.85
+broadcast 192.168.163.0 dev veth-b proto kernel scope link src 192.168.163.254
+local 192.168.163.254 dev veth-b proto kernel scope host src 192.168.163.254
+broadcast 192.168.163.255 dev veth-b proto kernel scope link src 192.168.163.254
+
+pi@raspberrypi:~ $ ip route show table  main
+default via 192.168.31.1 dev eth0 proto dhcp src 192.168.31.85 metric 202
+169.254.0.0/16 dev docker0 scope link src 169.254.191.248 metric 204
+169.254.0.0/16 dev vethb82cf1e scope link src 169.254.177.27 metric 213
+169.254.0.0/16 dev br1_test scope link src 169.254.59.219 metric 218
+172.17.0.0/16 dev docker0 proto kernel scope link src 172.17.0.1
+192.168.31.0/24 dev eth0 proto dhcp scope link src 192.168.31.85 metric 202
+192.168.163.0/24 dev veth-b scope link src 192.168.163.254 metric 216
+
+
+
+**  ip route del
+*** delete the route entry(only first setp since it won't disappear until the dev addr flushed)
+pi@raspberrypi:~ $ sudo netstat -nr
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags   MSS Window  irtt Iface
+0.0.0.0         192.168.31.1    0.0.0.0         UG        0 0          0 eth0
+192.168.31.0    0.0.0.0         255.255.255.0   U         0 0          0 eth0
+192.168.163.0   0.0.0.0         255.255.255.0   U         0 0          0 veth-b
+
+
+pi@raspberrypi:~ $ sudo ip route del 192.168.163.0/24
+
+pi@raspberrypi:~ $ sudo netstat -nr
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags   MSS Window  irtt Iface
+0.0.0.0         192.168.31.1    0.0.0.0         UG        0 0          0 eth0
+192.168.31.0    0.0.0.0         255.255.255.0   U         0 0          0 eth0
+192.168.163.0   0.0.0.0         255.255.255.0   U         0 0          0 veth-b
+
+
+*** flush the dev addr
+pi@raspberrypi:~ $ sudo ip addr flush dev veth-b
+pi@raspberrypi:~ $ sudo netstat -nr
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags   MSS Window  irtt Iface
+0.0.0.0         192.168.31.1    0.0.0.0         UG        0 0          0 eth0
+192.168.31.0    0.0.0.0         255.255.255.0   U         0 0          0 eth0
+
+
 ** interface configuration
 root@ubuntu:/home/willow/static_web# ifconfig
 docker0   Link encap:Ethernet  HWaddr 02:42:f6:c9:19:2f
@@ -2929,25 +3008,130 @@ in this direct route case, arp is the way to get the mac adress throug ip addres
 *** clear the arp cache
 $ip  neigh flush all
 
-****  ip command to show 
-ip - show / manipulate routing, devices, policy routing and tunnels
 
-SYNOPSIS
-       ip [ OPTIONS ] OBJECT { COMMAND | help }
+** ip link
+ip link could add L2 devices 
+***  veth type link
+sudo ip link add veth-a type veth peer name veth-b;
+###ip link add with no link argument specified to a physical device to operate on, it adds a VXLAN virtual link.
 
-       ip [ -force ] -batch filename
+sudo ip netns add test; ##### create network name space named as test
 
-       OBJECT := { link | address | addrlabel | route | rule | neigh | ntable | tunnel | tuntap | maddress | mroute | mrule | monitor | xfrm | netns | l2tp | tcp_metrics | token | macsec
-               }
+sudo ip link set veth-a netns test;   ##### change the network namespace of veth-a to test;
 
-       OPTIONS := { -V[ersion] | -h[uman-readable] | -s[tatistics] | -d[etails] | -r[esolve] | -iec | -f[amily] { inet | inet6 | ipx | dnet | link } | -4 | -6 | -I | -D | -B | -0 |
-               -l[oops] { maximum-addr-flush-attempts } | -o[neline] | -rc[vbuf] [size] | -t[imestamp] | -ts[hort] | -n[etns] name | -a[ll] | -c[olor] }
-
-*** ip link show
-this will list all the physical link including vlan:
+**** configure veth-a in namespace test
+sudo ip netns exec test ifconfig veth0 up 192.168.136.1 netmask 255.255.255.0;
+sudo ip netns exec test route add default gw 192.168.10.254 dev veth0;
 
 
-*** 
+**** configure veth-b 
+sudo ifconfig veth-b up 192.168.163.254 netmask 255.255.255.0;
+
+
+***  bridge type link
+# Create the bridge device naming it `br1`
+# and set it up:
+ip link add name br1 type bridge
+ip link set br1 up
+
+# Add the br-veth* interfaces to the bridge
+# by setting the bridge device as their master.
+ip link set br-veth1 master br1
+pi@raspberrypi:~ $ sudo bridge link show
+16: veth-b@if17: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 master br1 state forwarding priority 32 cost 2
+
+ip addr add 192.168.163.10/24 brd + dev br1
+
+
+** ip tunnel(GRE mode) 
+*** add ip tunnel from one endpoint to another end point
+ip tunnel add tun0 mode gre local 172.16.50.219 remote 172.16.46.12 ttl 255
+### set commnad wil add a ip linkd named tun0 like command: ip link add link Dev tun0
+### set network link/gre addr:  in ip addr show
+    link/gre 172.16.50.219 brd 172.16.0.254  
+    link/gre 172.16.50.219 peer 172.16.0.254
+
+*** set up an ip link dev and configure the ip address for the dev  for the tunnel 
+ip link set tun0 up   # bringup the tunnel
+ip addr add 10.0.1.2/24 dev tun0  # configure ip addr of dev tun0 
+
+*** add entry in route table to make the
+ip route add 10.0.1.1 dev tun0
+
+
+
+**** settting verification
+[admin1@ath-ate-412a-tester ~]$ ip link list |grep -A3 tun0
+11: tun0_jen@NONE: <POINTOPOINT,NOARP,UP,LOWER_UP> mtu 1476 qdisc noqueue state UNKNOWN
+    link/gre 172.16.50.219 peer 172.16.0.254
+
+[admin1@ath-ate-412a-tester ~]$ ip addr show |grep 10.0.1.2
+    inet 10.0.1.2/24 scope global tun0_jen
+
+
+
+[admin1@ath-ate-412a-tester ~]$ ip addr show |grep 172.16.50.219
+    inet 172.16.50.219/16 brd 172.16.255.255 scope global secondary eth1:18  ### this is the orighinal ip addr in eth1:18
+    link/gre 172.16.50.219 brd 172.16.0.254  
+    link/gre 172.16.50.219 peer 172.16.0.254
+
+*** ping result
+configure another server almost symmetrically just reverse the ip addr
+
+ip tunnel add tun0 mode gre remot 172.16.50.219 local 172.16.46.12 ttl 255
+ip link set tun0 up   # bringup the tunnel
+ip addr add 10.0.1.1/24 dev tun0  # configure ip addr of dev tun0 
+ip route add 10.0.1.2 dev tun0
+
+**** trigger tunnel traffic using tun dev ip addr of the peer
+[admin1@ath-ate-412a-tester ~]$ ping 10.0.1.2
+PING 10.0.1.2 (10.0.1.2) 56(84) bytes of data.
+64 bytes from 10.0.1.2: icmp_seq=1 ttl=64 time=0.209 ms
+64 bytes from 10.0.1.2: icmp_seq=2 ttl=64 time=0.180 ms
+
+
+**** the actual tcpdump traffic
+
+ltemme@ath-ate-412a:/local/home/ltemme $ sudo tcpdump -i any -n host 10.0.1.2 or host 172.16.50.219
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on any, link-type LINUX_SLL (Linux cooked), capture size 65535 bytes
+04:36:53.954092 IP 172.16.0.254 > 172.16.50.219: GREv0, length 88: IP 10.0.1.3 > 10.0.1.2: ICMP echo request, id 62328, seq 1, length 64
+04:36:53.954487 IP 172.16.50.219 > 172.16.0.254: GREv0, length 88: IP 10.0.1.2 > 10.0.1.3: ICMP echo reply, id 62328, seq 1, length 64
+04:36:53.954487 IP 10.0.1.2 > 10.0.1.3: ICMP echo reply, id 62328, seq 1, length 64
+04:36:54.954179 IP 10.0.1.3 > 10.0.1.2: ICMP echo request, id 62328, seq 2, length 64
+
+###GRE tunnel is from 10.0.1.2 to 10.0.1.3, and they are the real ip->icmp rquest/reply 
+###actual address is  172.16.0.254 > 172.16.50.219. they are gre packet encapsulate ip->icmp packet
+
+
+**** ip route learning result
+[admin1@ath-ate-412a-tester ~]$ ip route 
+10.0.1.0/24 dev tun0_jen proto kernel scope link src 100.1.2
+
+
+** iptables support for ip tunneling to implement the  port mirroring function
+port mirroring function is to copy all the traffic in some interface or ip addr and etc to another remote server ip and  port.
+configure this in server which tunnel dev ip configured ip as 10.0.1.2:
+# IPtables configuration using gateway = remoteMirrorIp 
+iptables -t mangle -A PREROUTING -i eth0 -j TEE --gateway 10.0.1.1
+iptables -t mangle -A POSTROUTING -o eth0 -j TEE --gateway 10.0.1.1
+
+copy all the traffic in interface eth0 to port 10.0.1.1 means all traffic will be encapsulated as a gre packet to remote real ip is 172.16.50.219
+so when you tcpdump the ip 172.16.50.219 you will capture all the packet
+
+*** iptalbes TEE target 
+TEE --gateway <ipaddr>
+The TEE target will clone a packet and redirect this clone to another machine on the local network segment.
+.In other words, the nexthop must be the target, or you will have to configure the nexthop to forward it further if so desired.
+--gateway ipaddr
+Send the cloned packet to the host reachable at the given IP address. Use of 0.0.0.0 (for IPv4 packets) or :: (IPv6) is invalid.
+To forward all incoming traffic on eth0 to an Network Layer logging box:
+-t mangle -A PREROUTING -i eth0 -j TEE --gateway <ipaddr>  ### all the incoming ip packets clone to gateway
+iptables -t mangle -A POSTROUTING -o eth0 -j TEE --gateway 10.0.1.1   ### all the outcmng ip packdtes clone to gateway
+
+ 
+
+
 *** how to get the mac by ip address by sending broadcast packets in the LAN
 $arp -a     ### check if arp cache is clear 
 ######arp will get the actual mac address of the ip with broadcast address(FF:FF:FF:FF:FF:FF)
@@ -2959,5 +3143,13 @@ listening on eno1, link-type EN10MB (Ethernet), capture size 262144 bytes
 12:12:44.661984 5c:f3:fc:1c:de:c4 (oui Unknown) > Broadcast, ethertype ARP (0x0806), length 42: Request who-has 10.56.233.175 tell TeamCI-1, length 28
 12:12:44.662168 5c:f3:fc:1c:a5:c0 (oui Unknown) > 5c:f3:fc:1c:de:c4 (oui Unknown), ethertype ARP (0x0806), length 60: Reply 10.56.233.175 is-at 5c:f3:fc:1c:a5:c0 (oui Unknown), length 46
 
+
+* How to capture packets generated by a specific process
+** strace to trace all the network traffic of the process
+strace -f -e trace=network <your command> 2>&1 | grep sin_addr 
+
+** ip netns (a network namespace is logically another copy of the network stack)
+a network namespace is logically another copy of the network stack, with its own routes, firewall rules and network devices.
+this will address capture the packets generated by a specicfic process
 
 

@@ -15,6 +15,7 @@ If you want to install a new one, you need to:
 5.  Run related cmd in related NE, you can find the cmd in the chapter 6 of LTE_emulators_users_manual_v280.pdf
 6.  ./ emumgr.sh stopall
 
+
 * NLG 
 I used NLG151 to simulate ENB and SGW:
 
@@ -26,7 +27,20 @@ Usage:
 
 cd /local/ltemme/loadGen/NLGv3_wo_hss_emu
 ./nlgcmd configOnly cprtemplate/usrCfg.v4.tcl nokia_ipdef_pet5.tcl
-./nlgcmd up       
+./nlgcmd up  ####  ****** NLG status: NLGup ****** 
+------------------------------------------
+11:13:58 - start ITAS SIM-hssS6a tasks ....
+11:13:59 - start ITAS SIM-sgwS11 tasks ....
+..
+
+CLI&gt; exec ./RUN/df_exec.sim-sgw
+1: # send a heartbeat (echo) to MME to prep the SGW link 2: # this can be used instead of tf_prep.sim-enb
+3: # The reason this is done is to avoid initial failed attaches when 5: # load started before MME heartbeats enable the link.
+6: test addr 172.16.46.112
+
+----------------------------------------
+
+
 ./nlgcmd start   //start NLG
 ./nlgcmd state  //check ongoing procedures measurement
 ./nlgcmd down  //stop NLG
@@ -107,6 +121,7 @@ OP_AKA=dbc59adcb6f9a0ef735477b7fadf8374   .sim-hss
 tcfg1.sim-hss
 
 
+* 
 * install ATCA
 in 4booking web page
 https://4booking.int.net.nokia.com/4booking/Reservation/viewresultsTimeline.action
@@ -117,3 +132,2910 @@ Reserve only ADX FLEXI_NS N8_1_12_0_DX_FLEXI_NS_0 14.01.2019 14:10 0 0h 0min 0se
 
 *** marco
 https://svne1.access.nokiasiemensnetworks.com/isource/svnroot/sgsn_testware/trunk/serlab/comission
+
+* DNS configuration
+
+[root@localhost named]# dig @10.56.243.11 tac-lb54.tac-hb02.tac.epc.mnc034.mcc460.3gppnetwork.org  ANY
+root@localhost named]# grep sgwcdcmmttcn ./*
+./3gppnetwork.org.zone:tac-lb54.tac-hb02.tac.epc.mnc034.mcc460 IN NAPTR      10     1  "a"  "x-3gpp-sgw:x-s8-gtp:x-s5-gtp:x-s11"      ""     topoff.eth0.sgwcdcmmttcn.nsn.com
+./3gppnetwork.org.zone:topoff.eth0.sgwcdcmmttcn.nsn.com  IN A          10.56.233.222
+[root@localhost named]# dig @10.56.243.11 tac-lb54.tac-hb02.tac.epc.mnc034.mcc460.3gppnetwork.org  ANY
+
+; <<>> DiG 9.3.6-P1-RedHat-9.3.6-20.P1.el5_8.6 <<>> @10.56.243.11 tac-lb54.tac-hb02.tac.epc.mnc034.mcc460.3gppnetwork.org ANY
+; (1 server found)
+;; global options:  printcmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 6062
+;; flags: qr aa rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 1, ADDITIONAL: 1
+;; QUESTION SECTION:
+;tac-lb54.tac-hb02.tac.epc.mnc034.mcc460.3gppnetwork.org. IN ANY
+
+;; ANSWER SECTION:
+tac-lb54.tac-hb02.tac.epc.mnc034.mcc460.3gppnetwork.org. 1 IN NAPTR 10 1 "a" "x-3gpp-sgw:x-s8-gtp:x-s5-gtp:x-s11" "" topoff.eth0.sgwcdcmmttcn.nsn.com.3gppnetwork.org.
+
+;; AUTHORITY SECTION:
+3gppnetwork.org.	1	IN	NS	cdlabdns01.cq.dns.epc.3gppnetwork.org.
+
+;; ADDITIONAL SECTION:
+topoff.eth0.sgwcdcmmttcn.nsn.com.3gppnetwork.org. 1 IN A 10.56.233.222
+
+;; Query time: 0 msec
+;; SERVER: 10.56.243.11#53(10.56.243.11)
+;; WHEN: Mon May 13 13:44:12 2019
+;; MSG SIZE  rcvd: 229
+
+[root@localhost named]#
+
+
+
+[root@localhost named]#
+=============
+[root@localhost named]# dig @10.56.243.11 tac-lb01.tac-hb00.tac.epc.mnc101.mcc262.3gppnetwork.org  ANY
+
+; <<>> DiG 9.3.6-P1-RedHat-9.3.6-20.P1.el5_8.6 <<>> @10.56.243.11 tac-lb01.tac-hb00.tac.epc.mnc101.mcc262.3gppnetwork.org ANY
+; (1 server found)
+;; global options:  printcmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 35163
+;; flags: qr aa rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 1, ADDITIONAL: 1
+
+;; QUESTION SECTION:
+;tac-lb01.tac-hb00.tac.epc.mnc101.mcc262.3gppnetwork.org. IN ANY
+
+;; ANSWER SECTION:
+tac-lb01.tac-hb00.tac.epc.mnc101.mcc262.3gppnetwork.org. 1 IN NAPTR 1 1 "a" "x-3gpp-sgw:x-s8-gtp:x-s5-gtp:x-s11" "" topoff.eth0.sgwcd101.nsn.com.3gppnetwork.org.
+
+;; AUTHORITY SECTION:
+3gppnetwork.org.	1	IN	NS	cdlabdns01.cq.dns.epc.3gppnetwork.org.
+
+;; ADDITIONAL SECTION:
+topoff.eth0.sgwcd101.nsn.com.3gppnetwork.org. 1	IN A 10.100.100.3
+
+;; Query time: 0 msec
+;; SERVER: 10.56.243.11#53(10.56.243.11)
+;; WHEN: Mon May 13 13:39:11 2019
+;; MSG SIZE  rcvd: 225
+
+[root@localhost named]#
+
+
+==========
+/var/named
+[root@localhost named]# grep -rnH  sgwcd101 ./*
+./3gppnetwork.org.zone:24:tac-lb01.tac-hb00.tac.epc.mnc101.mcc262         IN NAPTR      1     1  "a"  "x-3gpp-sgw:x-s8-gtp:x-s5-gtp:x-s11"      ""     topoff.eth0.sgwcd101.nsn.com
+./3gppnetwork.org.zone:28:*.sgwcd101.nsn.com  IN A          10.100.100.3
+./3gppnetwork.org.zone.common:23:tac-lb01.tac-hb00.tac.epc.mnc101.mcc262.mme1         IN NAPTR      1     1  "a"  "x-3gpp-sgw:x-s8-gtp:x-s5-gtp:x-s11"      ""     topoff.eth0.sgwcd101.nsn.com
+./3gppnetwork.org.zone.common:53:*.sgwcd101.nsn.com  IN A          10.56.233.220
+./3gppnetwork.org.zone.common:57:;*.sgwcd101.nsn.com  IN A          10.100.100.1
+
+
+* cmm installation
+Username	Password	Role
+root	39pfMBw3W8ec	-
+cmm	2pe1qlP4zjXt	sysadmin
+
+heat stack-create -f flavors/flavors.hot.yaml -e flavors/flavors.env.yaml flavors
+heat stack-create -f networks/networks.hot.yaml -e networks/networks.env.yaml networks
+heat stack-create CMM -f servers/servers.hot.yaml -e servers/servers.env.yaml -Pf net=../jsondata/net.json -Pf net_id=../jsondata/net_id.json -P public_net=no_value
+
+* cmm configuration
+** overall cli command
+[cmm@cmma2-mme-necc0 ~]$ cmm systemInfo show
++-------------+-----------+
+| Field       | Value     |
++-------------+-----------+
+| systemInfo  | config    |
+| switchName  | cmma2-mme |
+| timeZone    | CST       |
+| application | MME       |
+| releaseName | CMM       |
+| releaseNum  | 19.0.0    |
+| buildNum    | 0         |
+| hwType      | CMM       |
++-------------+-----------+
+
+'cmm vmStatus list'
+[cmm@cmma2-mme-necc0 ~]$ cmm vmStatus list
++-----------------------+----------------+------------------+--------+------------+------+
+| vmName                | ipAddress      | status           | poolId | poolMember | role |
++-----------------------+----------------+------------------+--------+------------+------+
+| cmma2-mme-cpps0.local | 169.254.64.140 | InserviceActive  | 0      | 0          | cpps |
+| cmma2-mme-cpps1.local | 169.254.64.141 | InserviceActive  | 1      | 0          | cpps |
+| cmma2-mme-dbs0.local  | 169.254.64.10  | InserviceActive  | 0      | 0          | dbs  |
+| cmma2-mme-dbs1.local  | 169.254.64.11  | InserviceStbyHot | 0      | 1          | dbs  |
+| cmma2-mme-ipds0.local | 169.254.64.70  | InserviceActive  | 0      | 0          | ipds |
+| cmma2-mme-ipds1.local | 169.254.64.71  | InserviceStbyHot | 0      | 1          | ipds |
+| cmma2-mme-necc0.local | 169.254.64.30  | Online           | 0      | 0          | necc |
+| cmma2-mme-necc1.local | 169.254.64.31  | Online           | 0      | 1          | necc |
++-----------------------+----------------+------------------+--------+------------+------+
+[cmm@cmma2-mme-necc0 ~]$ 
+
+
+** show configuration of mme
+*** serf members
+[cmm@cmma2-mme-necc0 ~]$ serf members
+cmma2-mme-cpps1.local  169.254.64.141:7946  alive  id=1,pool_id=1,pool_mem=0,role=cpps,uuid=67acb6aa-e04f-430e-85c9-0d9ad329d3e8,vnfc_name=cpps1
+cmma2-mme-ipds1.local  169.254.64.71:7946   alive  id=1,pool_id=0,pool_mem=1,role=ipds,uuid=f6363a1d-4d5b-496d-90ce-72378563ba76,vnfc_name=ipds1
+
+*** show interface ip address
+[cmm@cmma2-mme-necc0 ~]$ cmm serviceIp list
+|---------------------------------|
+| serviceIp                       |
+|---------------------------------|
+| CPPS~0~0~DEFAULT~169.254.64.140 |
+| CPPS~1~0~DEFAULT~169.254.64.141 |
+| DBS~0~0~DEFAULT~169.254.64.10   |
+| DBS~0~0~DEFAULT~169.254.65.10   |
+| DBS~0~1~DEFAULT~169.254.64.11   |
+| IPDS~0~0~DEFAULT~169.254.64.70  |
+| IPDS~0~0~DEFAULT~169.254.65.70  |
+| IPDS~0~0~DNS~10.56.248.104      |
+| IPDS~0~0~S1MME~10.56.248.100    |
+| IPDS~0~0~S6A~10.56.248.103      |
+| IPDS~0~0~S10~10.56.248.106      |
+| IPDS~0~0~S11U~10.56.248.102     |
+| IPDS~0~0~S11~10.56.248.101      |
+| IPDS~0~1~DEFAULT~169.254.64.71  |
+| IPDS~0~1~DNS~10.56.248.105      |
+| NECC~0~0~DEFAULT~10.56.247.3    |
+| NECC~0~0~DEFAULT~169.254.64.30  |
+| NECC~0~0~DEFAULT~169.254.65.30  |
+| NECC~0~0~OAM_ACCESS~0.0.0.0     |
+| NECC~0~1~DEFAULT~10.56.247.4    |
+| NECC~0~1~DEFAULT~169.254.64.31  |
+|---------------------------------|
+
+
+cmm <comandname> -h
+*** show local intefaces/EndPoint 
+
+[cmm@cmma2-mme-necc0 ~]$ cmm localEndPtCfg list
++---------------+----------+
+| localEndPtCfg | shutdown |
++---------------+----------+
+| S1MME         | false    |
+| S6A           | false    |  ## this is the local interface binded on the MME itself, the interface could be shutdown with true
+| S10           | false    |
+| S11           | false    |
+| S11U          | false    |
+| SV            | false    |
++---------------+----------+
+
+cmm@cmma2-mme-necc0 ~]$  cmm localEndPtCfg show --interfaceName S6A
++---------------------+-------+
+| Field               | Value |
++---------------------+-------+
+| localEndPtCfg       | S6A   |
+| interfaceName*      | S6A   |
+| dscpCode            | AF11  |
+| avRequested         | 1     |
+| sctpOutboundStreams | 7     |
+| sctpInboundStreams  | 6     |
+| interfaceLabel      | S6AD  |
+| description         |       |
+| protocolProfileName | s6a   |
+| interfacePort       | 3868  |  ###local port worked as a client 
+| multiHomed          | false |
+| comboIndication     | false |
+| shutdown            | false |
+| immRspPref          | No    |
+| httpProfileName     |       |
+| tlsProfileName      |       |
++---------------------+-------+
+
+[cmm@cmma2-mme-necc0 ~]$  cmm localEndPtCfg show --interfaceName S1MME
++---------------------+---------+
+| Field               | Value   |
++---------------------+---------+
+| localEndPtCfg       | S1MME   |
+| interfaceName*      | S1MME   |
+| dscpCode            | AF11    |
+| avRequested         | 0       |
+| sctpOutboundStreams | 1       |
+| sctpInboundStreams  | 1       |
+| interfaceLabel      | S1MME_1 |
+| description         |         |
+| protocolProfileName | s1mme   |
+| interfacePort       | 36412   | ##local port worked as a server
+| multiHomed          | false   |
+| comboIndication     | false   |
+| shutdown            | false   |
+
+
+***  remote endpoint configured in MME (such as acted as a client for S6A interface)
+[cmm@cmma2-mme-necc0 ~]$ cmm rmtEndPtCfg list
++------------------+---------------+----------+
+| rmtEndPtCfg      | interfaceName | shutdown |
++------------------+---------------+----------+
+| hssEndpt         | S6A           | false    |
+| remoteEndHSS_1   | S6A           | false    |
+| remoteEndPtNLG_1 | S6A           | false    |
++------------------+---------------+----------+
+[cmm@cmma2-mme-necc0 ~]$ cmm rmtEndPtCfg show hssEndpt
++------------------------+----------------------+
+| Field                  | Value                |
++------------------------+----------------------+
+| rmtEndPtCfg            | hssEndpt             |
+| name*                  | hssEndpt             |
+| endPtId                | 1                    |
+| interfaceName          | S6A                  |
+| ip1                    | 10.56.233.223        |   ##server hss ip
+| ip2                    | 10.56.233.222        |
+| port                   | 3868                 |  ##server HSS port
+| shutdownReconnectTimer | 0                    |
+| draSupported           | false                |
+| dprDisconnectCause     | DoNotWantToTalkToYou |
+| shutdown               | false                |
+| draDestRealmFqdnName   |                      |
+| draDestHostFqdnName    |                      |
++------------------------+----------------------+
+
+
+[cmm@cmma2-mme-necc0 ~]$ cmm rmtEndPtCfg  modify  hssEndpt  --shutdown false
++------------------------+----------------------+
+| Field                  | Value                |
++------------------------+----------------------+
+| rmtEndPtCfg            | hssEndpt             |
+| name*                  | hssEndpt             |
+| endPtId                | 1                    |
+| interfaceName          | S6A                  |
+| ip1                    | 10.56.233.223        |
+| ip2                    | 10.56.233.222        |
+| port                   | 3868                 |
+| shutdownReconnectTimer | 0                    |
+| draSupported           | false                |
+| dprDisconnectCause     | DoNotWantToTalkToYou |
+| shutdown               | false                |
+| draDestRealmFqdnName   |                      |
+| draDestHostFqdnName    |                      |
++------------------------+----------------------+
+
+
+[cmm@cmma2-mme-necc0 ~]$ cmm dns list
++--------+
+| dns    |
++--------+
+| config |
++--------+
+[cmm@cmma2-mme-necc0 ~]$ cmm dns show
+
+ERROR: give 'multiple key' arguments ['dnsConfigName'] or 'dns id'
+[cmm@cmma2-mme-necc0 ~]$ cmm dns show  config
++----------------+--------------+
+| Field          | Value        |
++----------------+--------------+
+| dns            | config       |
+| dnsConfigName* | config       |
+| priDnsIp       | 10.56.243.11 |
+| secDnsIp       |              |
++----------------+--------------+
+[cmm@cmma2-mme-necc0 ~]$
+
+*** show profiles (sctp, gtp)
+**** sctp profile
+[cmm@cmma2-mme-necc0 ~]$ cmm sctpProfile list
++-------------+
+| sctpProfile |
++-------------+
+| default     |
+| s1mme       |
+| s6a         |
++-------------+
+[cmm@cmma2-mme-necc0 ~]$ cmm sctpProfile show --name s1mme
++----------------+-------+
+| Field          | Value |
++----------------+-------+
+| sctpProfile    | s1mme |
+| name*          | s1mme |
+| description    |       |
+| rtoMin         | 50    |
+
+
+**** gtp profile
+[cmm@cmma2-mme-necc0 ~]$ cmm gtpProfile list 
++------------+
+| gtpProfile |
++------------+
+| s11c       |
++------------+
+[cmm@cmma2-mme-necc0 ~]$ cmm gtpProfile show --name s11c
++--------------------------------+-------+
+| Field                          | Value |
++--------------------------------+-------+
+| gtpProfile                     | s11c  |
+| name*                          | s11c  |
+| description                    |       |
+| sendEchoTimerT3                | 60000 |
+| waitEchoTimerT3                | 6000  |
+| echoRequests                   | 9     |
+| retransTimerT3                 | 6000  |
+| numTransmits                   | 3     |
+
+** health check
+[cmm@cmma2-mme-necc0 ~]$ sudo cmm_monitor
+
+CMM level health check summary (2019/05/27 11:10:03):
+  Result ....................................................................FAILED
+
+Individual checks:
+  Host Name Status ..............................................................OK
+  REMcli Status .................................................................OK
+  Serf members ..................................................................OK
+  Mariadb Health Status .........................................................OK
+  Run FNS Monitor .........................................................CRITICAL
+  Mariadb Data Status ...........................................................OK
+
+[cmm@cmma2-mme-necc0 ~]$ sudo fns_monitor
+
+VM level health check summary (2019/05/27 11:10:24):
+  Result ....................................................................FAILED
+
+Individual checks:
+  CPU usage .....................................................................OK
+  Cloud init ....................................................................OK
+  Disk usage ....................................................................OK
+  Elasticsearch .................................................................OK
+  Free memory ...................................................................OK
+  Gluster .......................................................................OK
+  Ipm ...........................................................................OK
+  Kafka .........................................................................OK
+  Ldap ..........................................................................OK
+  Monit .........................................................................OK
+  Mount .........................................................................OK
+  Ntp .....................................................................CRITICAL
+  Pacemaker .....................................................................OK
+  Redis .........................................................................OK
+  Sentinel ......................................................................OK
+  Serf members ..................................................................OK
+  Systemd .......................................................................OK
+  VM Setup ......................................................................OK
+  Zookeeper .....................................................................OK
+[cmm@cmma2-mme-necc0 ~]$ 
+
+[cmm@cmma2-mme-necc0 ~]$ cmm alarm definition list
++-------+--------------------------------------------------------+
+| PID   | NAME                                                   |
++-------+--------------------------------------------------------+
+| 4     | AccessServiceRejectRateLimitExceeded                   |
+| 16    | SignallingLinkCongestionLevelExceeded                  |
+| 70    | SignallingLinkRemoteInhibited                          |
+| 71    | SignallingLinkRemoteUninhibited                        |
+| 72    | SignallingLinkRemoteBlocked                            |
+| 73    | SignallingLinkRemoteUnblocked                          |
+
+[cmm@cmma2-mme-necc0 ~]$ cmm alarm definition show 73
++---------------+----------------------------------------------------------------------+
+| NAME          | VALUE                                                                |
++---------------+----------------------------------------------------------------------+
+| PID           | 73                                                                   |
+| Name          | SignallingLinkRemoteUnblocked                                        |
+| Lifetime      | 120                                                                  |
+| SeverityRange | warning                                                              |
+| Type          | equipment                                                            |
+| Application   | sgsn                                                                 |
+| ProbableCause | _UNDEFINED_                                                          |
+| Description   | signalling link remote unblocked                                     |
+|               | Blocking of a signalling link from the remote end has been released. |
+| Cause         | Blocking of a signalling link from the remote end has been released. |
+| Effect        | The alarm requires no actions.                                       |
+| Remedy        | No cancelling.                                                       |
++---------------+----------------------------------------------------------------------+
+[cmm@cmma2-mme-necc0 ~]$ 
+** 
+[cmm@cmma2-mme-necc0 ~]$ cmm alarm active list
++-------+-------+---------------------------------------+----------+------------------------------+-------------------------------+-----+
+| INDEX | PID   | NAME                                  | SEVERITY | SOURCE                       | TIME                          | TTL |
++-------+-------+---------------------------------------+----------+------------------------------+-------------------------------+-----+
+| 1553  | 40608 | LSS_taiFqdnError                      | minor    | host: cpps0                  | 2019-05-23 16:15:38.981+08:00 |  -1 |
+|       |       |                                       |          | app: cpps                    |                               |     |
+| 1552  | 40608 | LSS_taiFqdnError                      | minor    | host: cpps1                  | 2019-05-23 16:15:28.333+08:00 |  -1 |
+|       |       |                                       |          | app: cpps                    |                               |     |
+| 1425  | 40661 | LSS_mmeDnsError                       | minor    | host: cpps0                  | 2019-05-23 14:59:38.981+08:00 |  -1 |
+|       |       |                                       |          | app: cpps                    |                               |     |
+| 1424  | 40661 | LSS_mmeDnsError                       | minor    | host: cpps1                  | 2019-05-23 14:59:28.325+08:00 |  -1 |
+|       |       |                                       |          | app: cpps                    |                               |     |
+| 1260  | 40449 | LSS_degradedResource                  | major    | host: necc0                  | 2019-05-23 11:22:06.879+08:00 |  -1 |
+|       |       |                                       |          | app: remc                    |                               |     |
+| 1259  | 40449 | LSS_degradedResource                  | major    | host: necc0                  | 2019-05-23 11:22:06.876+08:00 |  -1 |
+|       |       |                                       |          | app: remc                    |                               |     |
+| 1258  | 40510 | LSS_softwareAllocatedResourceOverload | critical | host: cpps0                  | 2019-05-23 11:22:06.646+08:00 |  -1 |
+|       |       |                                       |          | app: cpps                    |                               |     |
+| 1257  | 40510 | LSS_softwareAllocatedResourceOverload | critical | host: cpps1                  | 2019-05-23 11:22:08.072+08:00 |  -1 |
+|       |       |                                       |          | app: cpps                    |                               |     |
+| 1073  | 40449 | LSS_degradedResource                  | major    | host: necc0                  | 2019-05-22 16:37:14.227+08:00 |  -1 |
+|       |       |                                       |          | app: remc                    |                               |     |
+| 94    | 42003 | VmUnreachable                         | major    | host: necc0                  | 2019-05-14 15:54:01.583+08:00 |  -1 |
+|       |       |                                       |          | app: serf                    |                               |     |
+| 1     | 42001 | CinderVolumeRemoved                   | major    | host: necc0                  | 2019-05-14 12:22:09.826+08:00 |  -1 |
+|       |       |                                       |          | app: datastore-alarm.service |                               |     |
++-------+-------+---------------------------------------+----------+------------------------------+-------------------------------+-----+
+
+[cmm@cmma2-mme-necc0 ~]$ cmm alarm active show 1258
++---------------+------------------------------------------------------------------------+
+| NAME          | VALUE                                                                  |
++---------------+------------------------------------------------------------------------+
+| PID           | 40510                                                                  |
+| Name          | LSS_softwareAllocatedResourceOverload                                  |
+| Index         | 1258                                                                   |
+| Time          | 2019-05-23 11:22:06.646+08:00                                          |
+| Task          | raise                                                                  |
+| TimeToLive    | -1                                                                     |
+| Source        | ip: 169.254.64.140                                                     |
+|               | app: cpps                                                              |
+|               | host: cpps0                                                            |
+| Comparable    | Machine=cmma2-mme-cpps0:PoolType=CPPS:PoolId=0:PoolMemberId=0:Resource |
+|               | _type=MAFradCapPoolRsrsOverload:UUID=6f1e4c59-963c-                    |
+|               | 4e42-adc3-a49a1093c3bc                                                 |
+| Additional    | MAFradCapPool resource utilization exceeded                            |
+| Severity      | critical                                                               |
+| Category      | olc                                                                    |
+| Problem       | cpResourceOverload                                                     |
+| Lifetime      | -1                                                                     |
+| SeverityRange | critical,major,minor                                                   |
+| Type          | qualityOfService                                                       |
+| Application   | base                                                                   |
+| ProbableCause | resourceAtOrNearingCapacity                                            |
+| Description   | This alarm indicates that the utilization of a pre-allocated resource  |
+|               | by software has exceeded thresholds. The resource could be internal    |
+|               | buffer, data structure array, table entries, etc.                      |
+| Cause         | Call traffic is too high with the current hardware/software            |
+|               | configuration.                                                         |
+| Effect        | Some percentage of calls may be throttled.                             |
+| Remedy        | Consider reengineering so that less traffic is directed to this        |
+|               | service.                                                               |
+|               | If condition persists, contact Customer Support.                       |
++---------------+------------------------------------------------------------------------+
+
+
+** cmm network diagnose
+ cmm subnet create --subnetId 3 --ipv 4 --base 172.86.12.160 --subnetMask 255.255.255.224 --defaultGateway 172.86.12.161 --subnetName v4signal --redundancyMode none --interfaceLabelL eth1
+ cmm subnet create --subnetId 2 --ipv 4 --base 10.56.249.0 --subnetMask 255.255.255.0 --defaultGateway 10.56.249.1 --subnetName  v4signal --redundancyMode none --interfaceLabelL eth1
+
+
+[cmm@cmm-mme-necc1 ~]$ cmm nbiPing list --pingTarget  10.56.233.223 --pingSourceIp 10.56.249.103 --pingInterval 2
++-----------------+---------------------------+
+| nbiPing         | pingOutput                |
++-----------------+---------------------------+
+| 10.56.233.223~0 | ping: bad timing interval |
++-----------------+---------------------------+
+[cmm@cmm-mme-necc1 ~]$ cmm nbiTraceroute list --trTarget  10.56.233.223 --trSourceIp 10.56.249.103
++-----------------+---------------------------------------------------------------------------+
+| nbiTraceroute   | trOutput                                                                  |
++-----------------+---------------------------------------------------------------------------+
+| 10.56.233.223~0 | traceroute to 10.56.233.223 (10.56.233.223), 15 hops max, 60 byte packets |
+| 10.56.233.223~1 |  1  gateway (10.56.249.1)  1.192 ms  1.137 ms  3.231 ms                   |
+| 10.56.233.223~2 |  2  10.56.233.223 (10.56.233.223)  0.901 ms  0.876 ms *                   |
+------------------------------------------------------------------------------------------------
+
+** cmm link diagnose
+*** list s11 link
+cmm multiLink list --linkInterfaceType s11
+|-----------+-------------------+-----------+----------------+--------------------+------------+---------------+-----------+--------|
+| multiLink | linkInterfaceType | linkIndex | linkAdminState | linkOperationState | alarmState | remoteIp1     | remoteIp2 | poolId |
+|-----------+-------------------+-----------+----------------+--------------------+------------+---------------+-----------+--------|
+| s11       | s11               | 1         | unlocked       | disabled           | major      | 10.56.233.222 | 0.0.0.0   | 0      |
+|-----------+-------------------+-----------+----------------+--------------------+------------+---------------+-----------+--------|
+
+*** update s11 parameter to disable echoreq/s by maximuming the timer
+cmm gtpProfile update --name s11c --sendEchoTimerT3 10800000 --waitEchoTimerT3 60000 --echoRequests 9 --retransTimerT3 6000 --numTransmits 3
+cmm localEnPtCfg update --interfaceNasme S11
+
+[cmm@cmma2-mme-necc0 ~]$ cmm gtpProfile show s11
++--------------------------------+----------+
+| Field                          | Value    |
++--------------------------------+----------+
+| gtpProfile                     | s11      |
+| name*                          | s11      |
+| description                    |          |
+| sendEchoTimerT3                | 10800000 |
+| waitEchoTimerT3                | 60000    |
+| echoRequests                   | 9        |
+| retransTimerT3                 | 6000     |
+| numTransmits                   | 3        |
+---------------------------------------------
+
+
+*** reboot all vms or some vms
+cmm clusterMgmt system.reboot --target '*'
+usage: cmm clusterMgmt [-h] [-f {json,plain,shell,table,value,yaml}]                                                                                     
+                       [-c COLUMN] [--max-width <integer>] [--fit-width]                                                                                 
+                       [--print-empty] [--noindent] [--prefix PREFIX]                                                                                    
+                       [--args ARGS] --target TARGET                                                                                                     
+                       {system.reboot,test.ping,timezone.set_zone,timezone.get_zone,dns.update_conf,dns.print_cache,dns.clear_cache,traffica.config,     
+                       }                                                                                                                                 
+                                                                                                                                                         
+positional arguments:                                                                                                                                    
+  {system.reboot,test.ping,timezone.set_zone,timezone.get_zone,dns.update_conf,dns.print_cache,dns.clear_cache,traffica.config, }                        
+                        command                                                                                                                          
+ --target TARGET       target of VM hostname('necc0.local'). Wildcard('*',
+                         '*necc*', '*?p?s*') is supported.
+
+[cmm@cmma2-mme-necc0 ~]$ serfclient -h
+usage: serfclient [-h] -t TARGET -c COMMAND [-p PAYLOAD] [-f {table,json}]
+                  [-l LOGLEVEL]
+
+Execute salt like comand with SERF RPC Client
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -t TARGET, --target TARGET
+  -c COMMAND, --command COMMAND
+  -p PAYLOAD, --payload PAYLOAD
+                        Payload which to be sent to target nodes
+  -f {table,json}, --format {table,json}
+  -l LOGLEVEL, --loglevel LOGLEVEL
+                        Log Level: ERROR, WARNING, DEBUG
+================================================================
+sudo serfclient -t '*s*' -c cmd.run.ssh -p 'reboot'
+[cmm@lm270-necc0 ~]$ serfclient -t 'cpps*' -c 'cmd.run'  -p 'df -h'
+|-------------+------------------------------------------------------|
+| hostname    | response                                             |
+|-------------+------------------------------------------------------|
+| cpps0.local | Filesystem      Size  Used Avail Use% Mounted on     |
+|             | devtmpfs        2.3G     0  2.3G   0% /dev           |
+|             | tmpfs           2.3G  104K  2.3G   1% /dev/shm       |
+|             | tmpfs           2.3G   33M  2.3G   2% /run           |
+|             | tmpfs           2.3G     0  2.3G   0% /sys/fs/cgroup |
+|             | /dev/sda1       3.9G  2.2G  1.5G  60% /              |
+|             |                                                      |
+|-------------+------------------------------------------------------|
+
+
+cmm subscriber count
+cmm alarm active list
+cmm alarm active show 
+cmm timer list
+
+
+necc$ cd /data-pcmd 
+    $ ls *.pcmd.gz
+
+[cmm@espate136b-necc0 ~]$ cd /opt/app/bin
+[cmm@espate136b-necc0 bin]$ ./cgrep -R V-cpps0 /data-logs/master.log |less
+grep only cpps0's log only lines contain cpps0 
+
+cmm dbdump
+ [cmm@espate136b-necc0 ~]$sudo /opt/app/bin/cmmDBdump 
+the output of file /tmp/ab is useless, the real log is in /root/cmmDBdump.log
+[cmm@espate136b-necc0 ~]$  ./cmmDBdump > /root/cmmDBdump.log
+ls /root/cmmDBDump.*
+cgrep
+*** subscriber realated
+cmm subscriber count
+cmm subscirber delete --imsi <imsi>
+cmm subscirber show --imsi <imsi>
+----------
+ guti:                                                                                  |
+ |                     |   mmeCode: 51                                                                          |
+ |                     |   mmeGroupId: 50002                                                                    |
+ |                     |   mplmnId: 46002                                                                       |
+ |                     |   mtmsi: 0xC040000B
+
+
+
+*** dbs checking 
+[cmm@espate137a-necc0 ~]$ sudo serfclient -t '*dbs0*' -c cmd.run.ssh -p "echo 'dbsize'|redis-cli -p 6380; echo 'dbsize'|redis-cli -p 6379; "
++------------+----------+
+| hostname   | response |
++------------+----------+
+| dbs0.local | 0        |
+|            | 1        |
++------------+----------+
+[cmm@espate137a-necc0 ~]$ sudo serfclient -t '*dbs0*' -c cmd.run.ssh -p "echo 'dbsize'|redis-cli -p 6380;"
+|------------+----------|
+| hostname   | response |
+|------------+----------|
+| dbs0.local | 0        |
+|------------+----------|
+
+[cmm@espate137a-necc0 ~]$ sudo serfclient -t '*dbs*' -c cmd.run.ssh -p "echo 'dbsize'|redis-cli -p 6380; echo 'dbsize'|redis-cli -p 6379; "
++------------+----------+
+| hostname   | response |
++------------+----------+
+| dbs0.local | 0        |
+|            | 1        |
++------------+----------+
+| dbs1.local | 0        |
+|            | 1        |
++------------+----------+
+| dbs2.local | 0        |
+|            | 0        |
++------------+----------+
+| dbs3.local | 0        |
+|            | 0        |
++------------+----------+
+[cmm@espate137a-necc0 ~]$ cmm vmStatus list
+|-------------+-------------+------------------+--------+------------+------|
+| vmName      | ipAddress   | status           | poolId | poolMember | role |
+|-------------+-------------+------------------+--------+------------+------|
+| cpps0.local | 10.10.30.30 | InserviceActive  | 0      | 0          | cpps |
+| cpps1.local | 10.10.30.31 | InserviceActive  | 1      | 0          | cpps |
+| dbs0.local  | 10.10.30.40 | InserviceActive  | 0      | 0          | dbs  |
+| dbs1.local  | 10.10.30.41 | InserviceStbyHot | 0      | 1          | dbs  |
+| dbs2.local  | 10.10.30.42 | InserviceActive  | 1      | 0          | dbs  |
+| dbs3.local  | 10.10.30.43 | InserviceStbyHot | 1      | 1          | dbs  |
+| ipds0.local | 10.10.30.60 | InserviceStbyHot | 0      | 0          | ipds |
+| ipds1.local | 10.10.30.61 | InserviceActive  | 0      | 1          | ipds |
+| necc0.local | 10.10.30.10 | Online           | 0      | 0          | necc |
+| necc1.local | 10.10.30.11 | Online           | 0      | 1          | necc |
+| necc2.local | 10.10.30.12 | Online           | 0      | 2          | necc |
+|-------------+-------------+------------------+--------+------------+------|
+
+
+ 
+* CMM maket leading efficiency
+** Utili
+Virtualization packet handling via Virtual I/O (virtio) is often incapable of meeting the high
+message rate and low latency requirements of a carrier grade MME. The CMM supports
+deployments that utilize Single-root input/output virtualization (SR-IOV) acceleration and
+Intel’s Data Plane Development Kit (DPDK), two complementary enablers that allow the
+CMM to achieve packet processing performance that compares to native deployments.
+
+
+
+ cmm amfServiceIp list
+ |---------------+---------------+--------------------|
+ | amfServiceIp  | svcIpV4       | svcIpV6            |
+ |---------------+---------------+--------------------|
+ | AMFSvcCom     | 172.16.46.214 | ::                 |
+ | AMFSvcDefault | 172.16.46.212 | ::                 |
+ | AMFSvcEE      | 172.16.46.215 | 2511::993:0:0:1:11 |
+ | AMFSvcLoc     | 172.16.46.213 | ::                 |
+ | AMFSvcMt      | 172.16.46.216 | ::                 |
+ | N2            | 172.16.46.201 | 2511::993:0:0:1:3  |
+ | N8            | 172.16.46.202 | ::                 |
+ | N11           | 172.16.46.203 | ::                 |
+ | N12           | 172.16.46.204 | ::                 |
+ | N14           | 172.16.46.205 | ::                 |
+ | N15           | 172.16.46.206 | ::                 |
+ | N17           | 172.16.46.207 | ::                 |
+ | N20           | 172.16.46.230 | 2511::993:0:0:1:20 |
+ | N22           | 172.16.46.208 | ::                 |
+ | N26           | 172.16.46.209 | ::                 |
+ | NfyAMF        | 172.16.46.218 | ::                 |
+ | NfyAUSF       | 172.16.46.219 | ::                 |
+ | NfyNRF        | 172.16.46.220 | ::                 |
+ | NfyNSSF       | 172.16.46.221 | ::                 |
+ | NfyPCF        | 172.16.46.222 | ::                 |
+ | NfySMF        | 172.16.46.223 | ::                 |
+ | NfySMSF       | 172.16.46.231 | 2511::993:0:0:1:21 |
+ | NfyUDM        | 172.16.46.224 | ::                 |
+ | Nnrf          | 172.16.46.210 | ::                 |
+ | Nsms          | 172.16.46.211 | ::                 |
+ |---------------+---------------+--------------------|
+
+
+* AMF specific command
+** check smf/ausf/pcf/udm selection
+cmm amfUePlmnServices modify 460_30 --smfSelection NRF --ausfSelection LocalProvisioning --pcfSelection LocalProvisioning --amfSelection NRF
+##don't send any message to nrf to get udm/ausf addr 
+
+** clear the nrf cache
+cmm nrfCacheAdmin modify --nrfCacheOperation FLUSH_CACHE
+##when cahce is flushed, no message disorder, amf will send the message to query the ausf/udm addr until response got
+
+** materlog about nrf selection 
+cmm amfUePlmnServices modify 460_30 --smfSelection NRF 
+when configure as NRF, AMF will send request to nrf to get smf, but if the instance is disabled, then there will be error, then it will resort to local prov default SMF networkinstance
+*** not send nrf request of smf
+[cmm@espate139b-necc0 ~]$ cmm networkFunctionInstance  show c207f08a-b7cd-4989-b830-02a8d0598ea1
+|-------------------------+--------------------------------------|
+| Field                   | Value                                |
+|-------------------------+--------------------------------------|
+| networkFunctionInstance | c207f08a-b7cd-4989-b830-02a8d0598ea1 |
+| instanceId*             | c207f08a-b7cd-4989-b830-02a8d0598ea1 |
+| nfType                  | NRF                                  |
+| plmnName                | ETPLMN                               |
+| snssaiListName          |                                      |
+| fqdn                    |                                      |
+| capacity                | 65535                                |
+| nfServicesListName      | nrfServices                          |
+| dnnListName             |                                      |
+| supiRangeListName       |                                      |
+| defaultNetworkFunction  | false                                |
+| enable                  | false                                |
+| nfIpEndPointListName    | Nnrf_Common_EpList                   |
+| routingIndicator        | 0000                                 |
+| groupId                 |                                      |
+| locality                |                                      |
+| amfTaiListName          |                                      |
+| nsiIdListName           |                                      |
+| nrfHeartBeatTimer       | 60                                   |
+| pgwFqdn                 |                                      |
+| nfServicePersistence    | false                                |
+|-------------------------+--------------------------------------|
+----------------------------------------------
+ERROR:AMF-NRFPXY-1:NRF sendSmfDiscoveryRequest, Suitable NRF not found for the given NRF ID
+DEBUG:AMF-NRFPXY:NRF printNFID, NFID is =c27f08ab7cd4989b8302a8d0598ea1
+-------
+
+DEBUG:AMF-NRFPXY:NRF getLocalIpType, ipAddrType 1
+
++++ 2019/11/11 11:03:59.643 TRACE HIGH ACTIVE cpps:10975 E:9826252 S:224580 (NrfNfTableCpps.cpp 2364 X-cpps1 CMM20.0.0_B1_C2389 cmmman 10.10.30.31)
+
+DEBUG:AMF-NRFPXY:NRF getNrfFromNrfId enter, pNrfCandList->size() 0
+
++++ 2019/11/11 11:03:59.643 TRACE HIGH ACTIVE cpps:10975 E:9826253 S:224581 (NrfNfTableCpps.cpp 2392 X-cpps1 CMM20.0.0_B1_C2389 cmmman 10.10.30.31)
+
+DEBUG:AMF-NRFPXY:NRF getNrfFromNrfId, Nrf Profile not found!
+
++++ 2019/11/11 11:03:59.643 TRACE HIGH ACTIVE cpps:10975 E:9826254 S:224582 (NrfNfTableCpps.cpp 2396 X-cpps1 CMM20.0.0_B1_C2389 cmmman 10.10.30.31)
+
+DEBUG:AMF-NRFPXY:NRF getNrfFromNrfId enter, exit: pNrfCandList->size() 0
+
++++ 2019/11/11 11:03:59.643 TRACE HIGH ACTIVE cpps:10975 E:9826255 S:224583 (NrfSmfSel.cpp 982 X-cpps1 CMM20.0.0_B1_C2389 cmmman 10.10.30.31)
+
+ERROR:AMF-NRFPXY-1:NRF sendSmfDiscoveryRequest, Suitable NRF not found for the given NRF ID
+
++++ 2019/11/11 11:03:59.643 TRACE HIGH ACTIVE cpps:10975 E:9826256 S:224584 (NrfUtil.cpp 83 X-cpps1 CMM20.0.0_B1_C2389 cmmman 10.10.30.31)
+
+DEBUG:AMF-NRFPXY:NRF printNFID, NFID is =c27f08ab7cd4989b8302a8d0598ea1
+
++++ 2019/11/11 11:03:59.643 TRACE HIGH ACTIVE cpps:10975 E:9826257 S:224585 (NrfSmfSel.cpp 996 X-cpps1 CMM20.0.0_B1_C2389 cmmman 10.10.30.31)
+
+ERROR:AMF-NRFPXY-1:NRF sendSmfDiscoveryRequest, Suitable NRF not found for the given NRF ID
+
++++ 2019/11/11 11:03:59.644 TRACE HIGH ACTIVE cpps:10975 E:9826258 S:224586 (NrfUtil.cpp 83 X-cpps1 CMM20.0.0_B1_C2389 cmmman 10.10.30.31)
+
+
++++ 2019/11/11 11:03:59.644 TRACE HIGH ACTIVE cpps:10975 E:9826259 S:224587 (NrfSmfSel.cpp 1008 X-cpps1 CMM20.0.0_B1_C2389 cmmman 10.10.30.31)
+
+DEBUG:AMF-NRFPXY:NRF sendSmfDiscoveryRequest, No NRF found. Fetch NRF from AUSF Selection or local cache
+
++++ 2019/11/11 11:03:59.644 TRACE HIGH ACTIVE cpps:10975 E:9826260 S:224588 (NRFPXY.cpp 1280 X-cpps1 CMM20.0.0_B1_C2389 cmmman 10.10.30.31)
+
+DEBUG:AMF-NRFPXY:NRF fetchNrfProfile enter,
+
++++ 2019/11/11 11:03:59.644 TRACE HIGH ACTIVE cpps:10975 E:9826261 S:224589 (NRFPXY.cpp 1160 X-cpps1 CMM20.0.0_B1_C2389 cmmman 10.10.30.31)
+
+DEBUG:AMF-NRFPXY:NRF getLocalIpType, ipAddrType 1
+
++++ 2019/11/11 11:03:59.644 TRACE HIGH ACTIVE cpps:10975 E:9826262 S:224590 (NrfNfTableCpps.cpp 2232 X-cpps1 CMM20.0.0_B1_C2389 cmmman 10.10.30.31)
+
+DEBUG:AMF-NRFPXY:NRF selectNrf enter, pNrfCandList->size() 0, isValidAmf 1
+
++++ 2019/11/11 11:03:59.644 TRACE HIGH ACTIVE cpps:10975 E:9826263 S:224591 (NrfNfTableCpps.cpp 2273 X-cpps1 CMM20.0.0_B1_C2389 cmmman 10.10.30.31)
+
+DEBUG:AMF-NRFPXY:NRF selectNrf, exit: pNrfCandList->size() 0
+
++++ 2019/11/11 11:03:59.644 TRACE HIGH ACTIVE cpps:10975 E:9826264 S:224592 (NRFPXY.cpp 1370 X-cpps1 CMM20.0.0_B1_C2389 cmmman 10.10.30.31)
+
+DEBUG:AMF-NRFPXY:NRF getNrfServiceFromCandidates enter,
+
++++ 2019/11/11 11:03:59.644 TRACE HIGH ACTIVE cpps:10975 E:9826265 S:224593 (NRFPXY.cpp 1160 X-cpps1 CMM20.0.0_B1_C2389 cmmman 10.10.30.31)
+
+DEBUG:AMF-NRFPXY:NRF getLocalIpType, ipAddrType 1
+
++++ 2019/11/11 11:03:59.644 TRACE HIGH ACTIVE cpps:10975 E:9826266 S:224594 (NRFPXY.cpp 1410 X-cpps1 CMM20.0.0_B1_C2389 cmmman 10.10.30.31)
+
+DEBUG:AMF-NRFPXY:NRF getNrfServiceFromCandidates, All NRF candidate links are disabled/60s interval over. Find only unlocked links
+
++++ 2019/11/11 11:03:59.644 TRACE HIGH ACTIVE cpps:10975 E:9826267 S:224595 (NRFPXY.cpp 1476 X-cpps1 CMM20.0.0_B1_C2389 cmmman 10.10.30.31)
+
+ERROR:AMF-NRFPXY-1:NRF getNrfServiceFromCandidates, NRF discovery service not found
+
++++ 2019/11/11 11:03:59.644 TRACE HIGH ACTIVE cpps:10975 E:9826268 S:224596 (NrfSmfSel.cpp 1011 X-cpps1 CMM20.0.0_B1_C2389 cmmman 10.10.30.31)
+ERROR:AMF-NRFPXY-1:NRF sendSmfDiscoveryRequest, No suitable NRF found to continue discovery
+
++++ 2019/11/11 11:03:59.644 TRACE HIGH ACTIVE cpps:10975 E:9826269 S:224597 (NrfSmfSel.cpp 393 X-cpps1 CMM20.0.0_B1_C2389 cmmman 10.10.30.31)
+
+
+Is default SMF Selection Enabled
+-------------------------------------------------------------------------------------------------------------
+
+------
+DEBUG:AMF-NRFPXY:NRF smfLocalFallback enter,
+
++++ 2019/11/11 11:03:59.644 TRACE HIGH ACTIVE cpps:10975 E:9826271 S:224599 (NrfSmfSel.cpp 1683 X-cpps1 CMM20.0.0_B1_C2389 cmmman 10.10.30.31)
+
+DEBUG:AMF-NRFPXY:NRF smfLocalFallback, Is default SMF Selection Enabled: 1
+
++++ 2019/11/11 11:03:59.644 TRACE HIGH ACTIVE cpps:10975 E:9826272 S:224600 (NrfNfTableCpps.cpp 1930 X-cpps1 CMM20.0.0_B1_C2389 cmmman 10.10.30.31)
+
+DEBUG:AMF-NRFPXY:NRF selectSmf enter, pduSessionCandList.size() 0, eventExpCandList.size() 0
+
++++ 2019/11/11 11:03:59.644 TRACE HIGH ACTIVE cpps:10975 E:9826273 S:224601 (NrfSmfProfile.cpp 29 X-cpps1 CMM20.0.0_B1_C2389 cmmman 10.10.30.31)
+
+DEBUG:AMF-NRFPXY:NRF isMatch enter,
+------------------------------
+
+
+
+when no nrf service is available to get smf, then check if local provision the networkinstance of Nsmf_PDUSession:
+----------------------------------------------------------------
+ found candidate nfId 20e0b0c3-82e1-44a4-82ab-a065d80a3b93, svcId Nsmf_PDUSession, nbrIpEndPoint 1
+
+
+ [cmm@espate139b-necc0 ~]$ cmm networkFunctionInstance modify --instanceId 20e0b0c3-82e1-44a4-82ab-a065d80a3b93 --enable false
+ |-----------------------------------------+--------------------------------------|
+ | Field                                   | Value                                |
+ |-----------------------------------------+--------------------------------------|
+ | networkFunctionInstance                 | 20e0b0c3-82e1-44a4-82ab-a065d80a3b93 |
+ | instanceId*                             | 20e0b0c3-82e1-44a4-82ab-a065d80a3b93 |
+ | nfType                                  | SMF                                  |
+ | plmnName                                | ETPLMN                               |
+ | snssaiListName                          |                                      |
+ | fqdn                                    |                                      |
+ | capacity                                | 65535                                |
+ | dnnListName                             |                                      |
+ | supiRangeListName                       |                                      |
+ | defaultNetworkFunction                  | false                                |
+ | enable                                  | false                                |
+ | nfIpEndPointListName                    | Nsmf_Common_EpList                   |
+ | routingIndicator                        | 0000                                 |
+ | priority                                | 1                                    |
+ | groupId                                 |                                      |
+ | locality                                |                                      |
+ | amfTaiListName                          |                                      |
+ | nsiIdListName                           |                                      |
+ | nrfHeartBeatTimer                       | 60                                   |
+ | pgwFqdn                                 |                                      |
+ | nfServicePersistence                    | false                                |
+ | defaultNotificationSubscriptionListName |                                      |
+---------------------------------------if the networkinstanced id is disabled --cmm amfUePlmn modify --instanceId 20e0b0c3-82e1-44a4-82ab-a065d80a3b93 --enable false----------------------------
+
++++ 2019/11/12 09:42:25.201 TRACE HIGH ACTIVE cpps:10981 E:10667215 S:255909 (NrfSmfSel.cpp 1312 X-cpps0 CMM20.0.0_B1_C2389 cmmman 10.10.30.30)
+
+DEBUG:AMF-NRFPXY:NRF sendDefaultSelectedSmf, SMF Default list is empty, return failure
+
++++ 2019/11/12 09:42:25.201 TRACE HIGH ACTIVE cpps:10981 E:10667216 S:255910 (NrfSmfSel.cpp 1734 X-cpps0 CMM20.0.0_B1_C2389 cmmman 10.10.30.30)
+
+ERROR:AMF-NRFPXY-1:NRF smfLocalFallback, SMF Selection failed, retval -1
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+*** send nrf request of smf 
+----------
+EBUG:AMF-NRFPXY:NRF getNrfFromNrfId enter, pNrfCandList->size() 0
+
++++ 2019/11/12 05:06:33.582 TRACE HIGH ACTIVE cpps:10981 E:10498619 S:246890 (NrfCandidate.cpp 606 X-cpps0 CMM20.0.0_B1_C2389 cmmman 10.10.30.30)
+
+DEBUG:AMF-NRFPXY:NRF addCandidates enter, size 0, localIpAddrType 1
+
++++ 2019/11/12 05:06:33.582 TRACE HIGH ACTIVE cpps:10981 E:10498620 S:246891 (NrfCandidate.cpp 610 X-cpps0 CMM20.0.0_B1_C2389 cmmman 10.10.30.30)
+
+DEBUG:AMF-NRFPXY:NRF addCandidates, NFStatus 1 NFServiceStatus 1
+----------------------------------------------------------
+
+** how to LoalProvisioning Selection
+*** create ausf UEAuthentication instance for local provisioning
+# Create Networkfunction Instance
+cmm nfIpEndpointList create --name Nausf_UEAuthentication_EpList
+cmm nfIpEndpointList create --name Nausf_Common_EpList
+cmm nfIpEndPoint create --name Nausf_UEAuthentication_Ep1 --ipAddress 172.20.72.35 --port 8080
+cmm nfIpEndpoints create --nfIpEndPointListName Nausf_UEAuthentication_EpList --nfIpEndPointName Nausf_UEAuthentication_Ep1
+cmm nfIpEndpoints create --nfIpEndPointListName Nausf_Common_EpList --nfIpEndPointName Nausf_UEAuthentication_Ep1
+cmm networkFunctionInstance create --instanceId "91f924ea-2bd5-4be0-97a1-aa7067c61957" --nfType AUSF --plmnName 460_30 --nfIpEndPointListName Nausf_Common_EpList --enable true
+
+
+*** prfile.yaml
+20190809 10:14:01.098 - INFO - Executing command 'cat /etc/opt/nokia/resources/config-parameters/prfile.yaml'.
+20190809 10:14:01.155 - INFO - Command exited with return code 0.
+20190809 10:14:01.157 - DEBUG - rc: 0
+stdout:
+prFile:
+  internal:
+    childName: prFile
+    humanName: prFile
+    application: sgsn
+    db: redis-cm
+    redisType: hash
+    description: Configure, list and show states of prfiles
+    supportedOperations:
+    - Show:
+      - sysadmin
+      - manage
+      - monitor
+    - Modify:
+      - sysadmin
+      - manage
+    - List:
+      - sysadmin
+      - manage
+      - monitor
+  parameters:
+    id:
+      type: string
+      creatable: true
+      required: true
+      modifiable: true
+      invisible: false
+      allowed:
+      - sgsnIocpTestMode:
+          hidden: true
+      - reAuthSupport
+      - reAuthActive
+      - overrideRoamingApn
+      - suspendAcknowledge
+      - pdpCntxMassDeactSpd
+      - pdpCntxMassDeactAct
+      - dnsFailureCause
+      - streamingOptAct
+      - massRabReleaseSpeed:
+          hidden: true
+      - papuBlMassDetachSpd
+      - qosHandlingInIsho
+      - override2gDowngrade
+      - pdpRejIfRabFails
+      - rauCsPsCoordination
+      - cancelLocRes
+      - randomTlliRemTimer
+      - streamWoPfcSupport
+      - ackDataSupported
+      - tripletsToQuintuplets
+      - qosSubBr2to3Isho
+      - disableSecPdpCtx
+      - dtRestrBasedOnTimer
+      - apnWithLowestPdpId
+      - followOnProceed
+      - qciTrafficClassMap
+      - enhOfflIdleSubsRate
+      - preemptionSupR8
+      - rel8RncQosChgRej1
+      - locationRptCtrlFlg
+      - delayedIratMod
+      - relAccessBearerCtrl
+      - poolingCombiSgsnMme
+      - enhancedPtmsiHandling
+      - ueAmbrSupportRanap
+      - ueAmbrDl
+      - ueAmbrUl
+      - r8DnsR7EpcSubs
+      - allowedApnniEnable
+      - altImeiChkNasCause
+      - locChangeInfoUpd
+      - pdpAddrTypeTag
+      - lboAllowedGnSgsn
+      - grnTicketCount:
+          hidden: true
+      - hlrQosMbrDlLimit
+      - hlrQosMbrUlLimit
+      - hlrQosMbrDlValue
+      - hlrQosMbrUlValue
+      - sgsnNumberInUlr
+      - grIfEnhancements
+      - forceDnsOverTcp
+      - dnsFallbackEnabled
+      - gtpv1UeNwCapSupport
+      - usedGtpVersion
+      - raiIeInGtpTunneling
+      - ipv6DnsQueriesInUse
+      - oldImsiCoding
+      - directDelResToGgsn
+      - threeDigitMncMcc
+      - userPlaneEchoSending
+      - timeZoneEncode
+      - disablePathCounter:
+          hidden: true
+      - gtpTargetIdEncoding
+      - enterpriseId
+      - epsBearerMapping
+      - rimRel8DnsAllowed
+      - doubleDnsQuery
+      - imsApnRouting
+      - useNaptrAddField
+      - gtpHopCounter
+      - r8DnsEnhancementPool
+      - pagingBufferActive
+      - ll3MmFilters
+      - nonDrxState
+      - zeroNonDrxTimer
+      - overloadProtectUsed:
+          hidden: true
+      - prevTrafficaSupport:
+          hidden: true
+      - intCauseMapIllMsMe
+      - ippuTpIuDataMeas:
+          hidden: true
+      - raStatLevelInUse
+      - trafUpperMchuLoad:
+          hidden: true
+      - trafLowerMchuLoad:
+          hidden: true
+      - cancelLocationCc
+      - dualStackPdpCtxt
+      - epsCapability
+      - iuQosOverride
+      - lrasLoadBalancing
+      - overrideWithModApn
+      - pshoBtwSgsnMme
+      - qciMapR8ToR99
+      - qosEvolAllRetPrior
+      - restrict11PdpCtx
+      - sgwDualStackSupport
+      - signalingIndication
+      - supportEpcCapability
+      - supportOfImsvops
+      - twoByteChargingChar
+      - updQosSuppFlg
+      - multiplePlmnEnabled:
+          hidden: true
+      - enforceSubscribedApn
+      - sgsnSS7Statistics
+      - forcefulCtxRem
+      - solc
+      - msisdnPgwDnsFallback
+      - ggsnPgwFqdnIeCtrl
+      - alternateLineServ
+      - privateNbrPlan
+      - callRedirection
+      - ansiMapSupport
+      - mapGtNatForm
+      - smsForwInHlr:
+          hidden: true
+      - mapUnhaMsgsLimOut
+      - mapUnhaMsgsLimIn
+      - originalCcInCdr
+      - cgfDualStackSupport
+      - gsUpdateLocationThres
+      - rel14LrRejectCauses
+      - gsIfEnhancements
+      - papsPortMirror
+      - checkImeiMode
+      - forceAuthentication
+      - throttleAlarms:
+          hidden: true
+      - throttleAlarmsTimeWindow:
+          hidden: true
+      - throttleAlarmsThresholdNumber:
+          hidden: true
+      - ss7ResrcStarvCRefCause
+      notFilter: false
+      notAllowed: ''
+      description: feature for modification
+      humanName: feature for modification
+    status:
+      type: boolean
+      creatable: true
+      required: false
+      modifiable: true
+      invisible: false
+      default: 'false'
+      showInList: true
+      notFilter: false
+      notAllowed: ''
+      description: Is the feature active or not
+      humanName: status of parameter
+    parameter:
+      type: string
+      creatable: false
+      required: false
+      modifiable: false
+      invisible: false
+      length: 1...100
+      allowedPattern: '[0-9a-zA-Z\.\-_:&,()/ ]*'
+      showInList: true
+      notFilter: false
+      notAllowed: ''
+      description: name of the parameter
+      humanName: name of the parameter
+    pdpCntxMassDeactSpd:
+      type: integer
+      creatable: true
+      required: false
+      modifiable: true
+      invisible: false
+      value: 1...25
+      default: 10
+      validFor:
+      - pdpCntxMassDeactSpd
+      notFilter: false
+      notAllowed: ''
+      description: This parameter controls the speed of Controllable PDP context mass
+        deactivation, deactivations per second. The range of the parameter is 1 -
+        25. Default value is 10.
+      humanName: the speed of Controllable PDP context mass deactivation
+    streamingOptAct:
+      type: integer
+      creatable: true
+      required: false
+      modifiable: true
+      invisible: false
+      default: 255
+      validFor:
+      - streamingOptAct
+      notFilter: false
+      notAllowed: ''
+      description: The parameter defines how the Streaming Quality Optimization feature
+        is configured in the SGSN.
+      humanName: Streaming Quality Optimization feature
+    massRabReleaseSpeed:
+      type: integer
+      creatable: true
+      required: false
+      modifiable: true
+      invisible: false
+      value: 1...100
+      default: 20
+      validFor:
+      - massRabReleaseSpeed
+      notFilter: false
+      notAllowed: ''
+      description: This parameter controls the speed of Controllable mass RAB release
+        procedure, RAB releases per second. The range of the parameter is 1 - 100.
+        Default value is 20.
+      humanName: massRabReleaseSpeed
+    papuBlMassDetachSpd:
+      type: integer
+      creatable: true
+      required: false
+      modifiable: true
+      invisible: false
+      value: 1...100
+      default: 50
+      validFor:
+      - papuBlMassDetachSpd
+      notFilter: false
+      notAllowed: ''
+      description: This parameter controls the speed of the controllable mass detach
+        procedure, mass detaches per second. The range of the parameter is 1-1000.
+        Default value is 10.
+      humanName: papuBlMassDetachSpd
+    randomTlliRemTimer:
+      type: integer
+      creatable: true
+      required: false
+      modifiable: true
+      invisible: false
+      value: 0...120
+      default: 0
+      validFor:
+      - randomTlliRemTimer
+      notFilter: false
+      notAllowed: ''
+      description: This parameter determines how long time random format TLLIs are
+        stored in the SGSN after the mobile has completed the attach procedure.
+      humanName: randomTlliRemTimer
+    enhOfflIdleSubsRate:
+      type: integer
+      creatable: true
+      required: false
+      modifiable: true
+      invisible: false
+      value: 0...50
+      default: 10
+      validFor:
+      - enhOfflIdleSubsRate
+      notFilter: false
+      notAllowed: ''
+      description: This parameter determines with what rate idle subscribers should
+        be offloaded when subscriber offloading feature is executed in phase 1
+      humanName: enhOfflIdleSubsRate
+    ueAmbrDl:
+      type: integer
+      creatable: true
+      required: false
+      modifiable: true
+      invisible: false
+      value: 1...256
+      default: 16
+      validFor:
+      - ueAmbrDl
+      notFilter: false
+      notAllowed: ''
+      description: Default value to be used as subscribed UE-AMBR downlink when this
+        QoS parameter is not received from HSS (TS 23.060 par.15.2.2 if no values
+        of UE-AMBR are received from the HSS, the SGSN shall set the UE-AMBR according
+        to implementation specific policies (e.g. a pre-configured maximum UEAMBR).)
+      humanName: ueAmbrDl
+    ueAmbrUl:
+      type: integer
+      creatable: true
+      required: false
+      modifiable: true
+      invisible: false
+      value: 1...256
+      default: 12
+      validFor:
+      - ueAmbrUl
+      notFilter: false
+      notAllowed: ''
+      description: Default value to be used as subscribed UE-AMBR uplink when this
+        QoS parameter is not received from HSS (TS 23.060 par.15.2.2 if no values
+        of UE-AMBR are received from the HSS, the SGSN shall set the UE-AMBR according
+        to implementation specific policies (e.g. a pre-configured maximum UEAMBR).)
+      humanName: ueAmbrUl
+    r8DnsR7EpcSubs:
+      type: integer
+      creatable: true
+      required: false
+      modifiable: true
+      invisible: false
+      value: 1...3
+      default: 1
+      validFor:
+      - r8DnsR7EpcSubs
+      notFilter: false
+      notAllowed: ''
+      description: The parameter is used to control access for R8 DNS Query Support
+        for Gn-SGSN. 1 - roaming subscribers 2 - home subscribers 3 - both home and
+        roaming subscribers
+      humanName: r8DnsR7EpcSubs
+    grnTicketCount:
+      type: integer
+      creatable: true
+      required: false
+      modifiable: true
+      invisible: false
+      value: 0...65000
+      default: 50
+      validFor:
+      - grnTicketCount
+      notFilter: false
+      notAllowed: ''
+      description: The parameter defines the number of tickets of the GRNPRB program
+        block.
+      humanName: grnTicketCount
+    hlrQosMbrDlLimit:
+      type: integer
+      creatable: true
+      required: false
+      modifiable: true
+      invisible: false
+      value: 0...8
+      default: 0
+      validFor:
+      - hlrQosMbrDlLimit
+      notFilter: false
+      notAllowed: ''
+      description: This parameter defines bit rate override trigger limit for quality
+        of service (QoS) parameters maximum bit rate (MBR) for downlink (DL) field.
+        If the maximum bit rate (MBR) for downlink (DL) value received from HLR in
+        PDP contexts QoS parameter is equal or greater than the value of this parameter,
+        the maximum bit rate for downlink value received from HLR is replaced with
+        bit rate value defined in parameter HLR_QOS_MBR_DL_VALUE.
+      humanName: hlrQosMbrDlLimit
+    hlrQosMbrUlLimit:
+      type: integer
+      creatable: true
+      required: false
+      modifiable: true
+      invisible: false
+      value: 0...8
+      default: 0
+      validFor:
+      - hlrQosMbrUlLimit
+      notFilter: false
+      notAllowed: ''
+      description: This parameter defines bit rate override trigger limit for quality
+        of service (QoS) parameters maximum bit rate (MBR) for uplink (UL) field.
+        if the maximum bit rate (MBR) for uplink (UL) value received from HLR in PDP
+        contexts QoS parameter is equal or greater than the value of this parameter,
+        the maximum bit rate for uplink value received from HLR is replaced with bit
+        rate value defined in parameter HLR_QOS_MBR_UL_VALUE
+      humanName: hlrQosMbrUlLimit
+    hlrQosMbrDlValue:
+      type: integer
+      creatable: true
+      required: false
+      modifiable: true
+      invisible: false
+      value: 0...168
+      default: 0
+      validFor:
+      - hlrQosMbrDlValue
+      notFilter: false
+      notAllowed: ''
+      description: This parameter defines bit rate value for quality of service (QoS)
+        parameters maximum bit rate (MBR) for downlink (DL) field. The given value
+        overrides the maximum bit rate for downlink value received from HLR in PDP
+        contexts QoS parameter, if value received from HLR is equal or greater than
+        value defined in parameter HLR_QOS_MBR_DL_LIMIT.
+      humanName: hlrQosMbrDlValue
+    hlrQosMbrUlValue:
+      type: integer
+      creatable: true
+      required: false
+      modifiable: true
+      invisible: false
+      value: 0...46
+      default: 0
+      validFor:
+      - hlrQosMbrUlValue
+      notFilter: false
+      notAllowed: ''
+      description: This parameter defines bit rate value for quality of service (QoS)
+        parameters maximum bit rate (MBR) for uplink (UL) field. The given value overrides
+        the maximum bit rate for uplink value received from HLR in PDP contexts QoS
+        parameter, if value received from HLR is equal or greater than value defined
+        in parameter HLR_QOS_MBR_UL_LIMIT.
+      humanName: hlrQosMbrUlValue
+    sgsnNumberInUlr:
+      type: integer
+      creatable: true
+      required: false
+      modifiable: true
+      invisible: false
+      value: 0...2
+      default: 0
+      validFor:
+      - sgsnNumberInUlr
+      notFilter: false
+      notAllowed: ''
+      description: This parameter controls sending of SGSN-Number AVP to HSS in Diameter
+        message Update Location Request (ULR).
+      humanName: sgsnNumberInUlr
+    grIfEnhancements:
+      type: integer
+      creatable: true
+      required: false
+      modifiable: true
+      invisible: false
+      value: 0...255
+      default: 0
+      validFor:
+      - grIfEnhancements
+      notFilter: false
+      notAllowed: ''
+      description: With this parameter it is possible to command SGSN to perform IMSI
+        analysis for a subscriber before SGSN sends a location update to HLR after
+        a reset indication is received from HLR. It is useful in HLR migration cases
+        to get SGSN quickly to update the new HLR address to SGSN subscriber database
+        and to get SGSN address to the new HLR. With this parameter it is also possible
+        to command SGSN to not send a location update to HLR after a reset indication
+        is received from HLR, until the first routing area update (RAU) request is
+        received from MS. It is useful to decrease SS7 signalling load peak after
+        HLR reset if there are not enough SS7 signalling links between SGSN and HLR.
+      humanName: grIfEnhancements
+    usedGtpVersion:
+      type: string
+      creatable: true
+      required: false
+      modifiable: true
+      invisible: false
+      allowed:
+      - '0'
+      - '1'
+      - '255'
+      default: 0
+      validFor:
+      - usedGtpVersion
+      notFilter: false
+      notAllowed: ''
+      description: The parameter defines which version of the GTP is used towards
+        the operators own GGSNs.
+      humanName: used GTP version
+    userPlaneEchoSending:
+      type: integer
+      creatable: true
+      required: false
+      modifiable: true
+      invisible: false
+      value: 1...4
+      default: 1
+      validFor:
+      - userPlaneEchoSending
+      notFilter: false
+      notAllowed: ''
+      description: This parameter controls where the GTP user plane echoes are sent.
+        By default, the echoes are sent to both RNC and GGSN. By changing the parameter,
+        it is possible to disable echo sending to either RNC or GGSN, or disable it
+        altogether. Some RNCs do not respond to SGSNs echo requests if the Direct
+        Tunnel is in use. The GTP user plane echo sending is optional in the 29.060
+        (GTP) specification.
+      humanName: userPlaneEchoSending
+    timeZoneEncode:
+      type: integer
+      creatable: true
+      required: false
+      modifiable: true
+      invisible: false
+      value: 0...1
+      default: 0
+      validFor:
+      - timeZoneEncode
+      notFilter: false
+      notAllowed: ''
+      description: This parameter controls the encoded time zone format.
+      humanName: timeZoneEncode
+    gtpTargetIdEncoding:
+      type: string
+      creatable: true
+      required: false
+      modifiable: true
+      invisible: false
+      allowed:
+      - '0'
+      - '1'
+      - '2'
+      - '255'
+      default: 0
+      validFor:
+      - gtpTargetIdEncoding
+      notFilter: false
+      notAllowed: ''
+      description: This parameter controls how the Target Identification information
+        element is encoded and decoded to the GTP messages. By default, the Target
+        Identification information element is encoded or decoded to the GTP messages
+        as defined in 3GPP TS 29.060 specification version 6.17.0 or older versions.
+        By changing the parameter, it is possible to encode or decode the Target Identification
+        information element as defined in 3GPP TS 29.060 change request CR 0668 (i.e.
+        in version 6.18.0 or newer) or change request CR 0808 (i.e. in version 8.14.0
+        or newer).
+      humanName: gtpTargetIdEncoding
+    enterpriseId:
+      type: integer
+      creatable: true
+      required: false
+      modifiable: true
+      invisible: false
+      value: 1...38101
+      default: 28458
+      validFor:
+      - enterpriseId
+      notFilter: false
+      notAllowed: ''
+      description: 'This parameter specifies the enterprise id. All enterprise id''s
+        defined in the list. '
+      humanName: enterpriseId
+    gtpHopCounter:
+      type: integer
+      creatable: true
+      required: false
+      modifiable: true
+      invisible: false
+      value: 0...255
+      default: 0
+      validFor:
+      - gtpHopCounter
+      notFilter: false
+      notAllowed: ''
+      description: Hop Counter is used in SGSN pool to control infinite looping. This
+        IE is used in gtp_sgsn_context_req_s and gtp_identification_req_s. Decrease
+        the value of Hop Counter if the optional parameter Hop Counter is present
+        in the receiving signal. Otherwise, it may include a Hop Counter with a value
+        of max-1 (where max is the maximum defined value of Hop Counter) and forward
+        it to other Network Element.Configured Value will be included in the very
+        first request b/w SGSN and keeps on decreasing when it moves between SGSN.
+        This decreasing will not result in any change in configured value.
+      humanName: gtpHopCounter
+    ll3MmFilters:
+      type: integer
+      creatable: true
+      required: false
+      modifiable: true
+      invisible: false
+      value: 0...255
+      default: 0
+      validFor:
+      - ll3MmFilters
+      notFilter: false
+      notAllowed: ''
+      description: This parameter allows the operator to set ON one or more predefined
+        filters for GPRS MM-messages. As a default all predefined filters are set
+        OFF. Inserted parameter value is used for different filtering rules to GPRS
+        MM-messages. Values from 1 to 5 are basic values and values from 5 to 255
+        are a combination of basic values and reserved for further use.
+      humanName: ll3MmFilters
+    nonDrxState:
+      type: integer
+      creatable: true
+      required: false
+      modifiable: true
+      invisible: false
+      value: 0...3
+      default: 0
+      validFor:
+      - nonDrxState
+      notFilter: false
+      notAllowed: ''
+      description: If the SGSN has valid DRX Parameters for a TLLI, the SGSN includes
+        them in the PDU. Nevertheless, the SGSN can omit the DRX Parameters if the
+        MS identified with the TLLI is in MM non-DRX mode period to speed up the transmission
+        of the LLC-PDU on the radio interface. The SGSN does not send a DL-UNITDATA
+        PDU without the DRX Parameters IE if the MS identified with the TLLI is not
+        in MM non-DRX mode period.
+      humanName: nonDrxState
+    ippuTpIuDataMeas:
+      type: integer
+      creatable: true
+      required: false
+      modifiable: true
+      invisible: false
+      value: 0...3
+      default: 0
+      validFor:
+      - ippuTpIuDataMeas
+      notFilter: false
+      notAllowed: ''
+      description: The parameter controls IPPU DATA MEASUREMENT (34000) counters usage
+        in Traffica and NetAct interfaces
+      humanName: ippuTpIuDataMeas
+    trafUpperMchuLoad:
+      type: integer
+      creatable: true
+      required: false
+      modifiable: true
+      invisible: false
+      value: 0...100
+      default: 80
+      validFor:
+      - trafUpperMchuLoad
+      notFilter: false
+      notAllowed: ''
+      description: This parameter sets the upper threshold value (percentage) for
+        the MCHU processor load. If this threshold is exceeded, then data sending
+        to Traffica is limited. It is highly recommended that this upper limit is
+        set before the lower limit (TRAF_LOWER_MCHU_LOAD) and that the difference
+        between these limits is at least 15. It is also recommended that this upper
+        limit is less than 90.
+      humanName: trafUpperMchuLoad
+    trafLowerMchuLoad:
+      type: integer
+      creatable: true
+      required: false
+      modifiable: true
+      invisible: false
+      value: 0...100
+      default: 60
+      validFor:
+      - trafLowerMchuLoad
+      notFilter: false
+      notAllowed: ''
+      description: This parameter sets the lower threshold value (percentage) for
+        the MCHU processor load. If the processor load goes below this threshold,
+        then data sending to Traffica is enabled. It is highly recommended that this
+        lower limit is set after the upper limit (TRAF_UPPER_MCHU_LOAD) and that the
+        difference between these limits is at least 15. It is also recommended that
+        this lower limit is greater than 50.
+      humanName: trafLowerMchuLoad
+    lrasLoadBalancing:
+      type: integer
+      creatable: true
+      required: false
+      modifiable: true
+      invisible: false
+      value: 0...3
+      default: 0
+      validFor:
+      - lrasLoadBalancing
+      notFilter: false
+      notAllowed: ''
+      description: The parameter determines whether Load Balancing is applied to new
+        subscribers attach requests, old subscribers RAU request or both while the
+        load is unacceptably unbalanced.
+      humanName: lrasLoadBalancing
+    overrideWithModApn:
+      type: string
+      creatable: true
+      required: false
+      modifiable: true
+      invisible: false
+      allowed:
+      - '0'
+      - '1'
+      - '16'
+      - '17'
+      default: 0
+      validFor:
+      - overrideWithModApn
+      notFilter: false
+      notAllowed: ''
+      description: The parameter controls whether the APN is overridden with the modified
+        APN. The modified APN is the same APN as is used for dynamic GGSN selection
+        in the DNS query.In the SG01218 GGSN Selection based on Charging Characteristics
+        feature, this parameter also controls whether subscribed charging characteristics
+        (CC) is required for dynamic GGSN selection (DNS query) and APN override.
+      humanName: overrideWithModApn
+    twoByteChargingChar:
+      type: integer
+      creatable: true
+      required: false
+      modifiable: true
+      invisible: false
+      value: 0...2
+      default: 0
+      validFor:
+      - twoByteChargingChar
+      notFilter: false
+      notAllowed: ''
+      description: This parameter is used to define the support for two-byte charging
+        characteristics value in SGSN, received from HLR. It is configurable to use
+        four-bit, one-byte, or two-byte charging characteristics in SGSN.
+      humanName: twoByteChargingChar
+    msisdnPgwDnsFallback:
+      type: integer
+      creatable: true
+      required: false
+      modifiable: true
+      invisible: false
+      value: 0...2
+      default: 0
+      validFor:
+      - msisdnPgwDnsFallback
+      notFilter: false
+      notAllowed: ''
+      description: This parameter is used to define the support for fallback to release
+        8 or 7 DNS without MSISDN. 0 - no fallback 1 - fallback to rel8 DNS without
+        MSISDN 2 - fallback to rel7 DNS fallback without MSISDN
+      humanName: MSISDN PGW DNS Fallback
+    gsUpdateLocationThres:
+      type: integer
+      creatable: true
+      required: false
+      modifiable: true
+      invisible: false
+      value: 0...10001
+      default: 10001
+      validFor:
+      - gsUpdateLocationThres
+      notFilter: false
+      notAllowed: ''
+      description: The parameter defines the GS update location overload control limit.
+        Default value is off (10001) and other values define max number of Update
+        Location for nonGPRS services operations on Gs interface that are ongoing
+        in parallel.
+      humanName: GS Update Location Threshold
+    gsIfEnhancements:
+      type: integer
+      creatable: true
+      required: false
+      modifiable: true
+      invisible: false
+      value: 0...255
+      default: 0
+      validFor:
+      - gsIfEnhancements
+      notFilter: false
+      notAllowed: ''
+      description: This parameter is used to define the support for Gs interface enhancement
+        package, which is to avoid paging problems of combined GPRS and IMSI attached
+        subscribers.
+      humanName: GS Interface Enhancements
+    checkImeiMode:
+      type: integer
+      creatable: true
+      required: false
+      modifiable: true
+      invisible: false
+      value: 0...2
+      default: 0
+      validFor:
+      - checkImeiMode
+      notFilter: false
+      notAllowed: ''
+      description: 'This parameter is used to define the check Imei mode. The default
+        value is 0 which means that SGSN will inlcude only IMEI in IMEI check. Possible
+        values (0 to 2), 0 for SGSN will inlcude only IMEI in IMEI check, 1 for SGSN
+        add IMSI in MAP part of IMEI Check, 2 for SGSN add IMSI and MSISDN in TCAP
+        part of IMEI Check. [value = 0...2, default = 0 valid for: checkImeiMode]'
+      humanName: Check Imei Mode
+    mapUnhaMsgsLimIn:
+      type: integer
+      creatable: true
+      required: false
+      modifiable: true
+      invisible: false
+      value: 0...65535
+      default: 0
+      validFor:
+      - mapUnhaMsgsLimIn
+      notFilter: false
+      notAllowed: ''
+      description: The parameter gives the limit for the unhandled messages. When
+        this limit is exceeded, the outgoing MAP operation start messages to the network
+        are rejected.
+      humanName: Unhandled messages limit for incoming MAP operations
+    mapUnhaMsgsLimOut:
+      type: integer
+      creatable: true
+      required: false
+      modifiable: true
+      invisible: false
+      value: 0...65535
+      default: 0
+      validFor:
+      - mapUnhaMsgsLimOut
+      notFilter: false
+      notAllowed: ''
+      description: The parameter gives the limit for unhandled messages. When this
+        limit is exceeded, the MAP operation start messages, coming from the network
+        are rejected.
+      humanName: Unhandled messages limit for outgoing MAP operations
+    throttleAlarms:
+      type: integer
+      creatable: true
+      required: false
+      modifiable: true
+      invisible: false
+      value: 0...2
+      default: 1
+      validFor:
+      - throttleAlarms
+      notFilter: false
+      notAllowed: ''
+      description: Throttle RAISE and/or CANCEL alarms of SGSN processes according
+        to the prfiles ThrottleAlarmsTimeWindow and ThrottleAlarmsThresholdNumber.
+        Value = 0 means the feature is OFF, value = 1 means RAISE alarms are throttled,
+        value = 2 means RAISE and CANCEL alarms are throttled. Default value is 1.
+      humanName: Throttle RAISE and/or CANCEL alarms
+    throttleAlarmsTimeWindow:
+      type: integer
+      creatable: true
+      required: false
+      modifiable: true
+      invisible: false
+      value: 1...300
+      default: 60
+      validFor:
+      - throttleAlarmsTimeWindow
+      notFilter: false
+      notAllowed: ''
+      description: Depending on the value of throttleAlarms prfile, if number of alarms
+        with same alarmID that are raised/canceled during this time window, exceeds
+        the value of ThrottleAlarmsThresholdNumber prfile, then throttling starts.
+        Throttling stops when the time window ends. Default value is 60 seconds.
+      humanName: Time window for alarm throttling
+    throttleAlarmsThresholdNumber:
+      type: integer
+      creatable: true
+      required: false
+      modifiable: true
+      invisible: false
+      value: 1...100
+      default: 100
+      validFor:
+      - throttleAlarmsThresholdNumber
+      notFilter: false
+      notAllowed: ''
+      description: Depending on the value of throttleAlarms prfile, if number of alarms
+        with same alarmID that are raised/canceled during the time window configured
+        by throttleAlarmsTimeWindow prfile, exceeds this value then throttling starts.
+        Throttling stops when the time window ends. Default value is 100 alarms.
+      humanName: Threshold number for alarm throttling
+    ss7ResrcStarvCRefCause:
+      type: integer
+      creatable: true
+      required: false
+      modifiable: true
+      invisible: false
+      value: 1...4
+      default: 2
+      validFor:
+      - ss7ResrcStarvCRefCause
+      notFilter: false
+      notAllowed: ''
+      description: Depending on the value of ss7ResrcStarvCRefCause prfile will give
+        operator the following refusal cause options,  Default value is 2 (access
+        congestion).Possible values (1 to 4), 1 faccess failure, 2 access congestion,
+        3 unqualified, 4 SCCP failure.
+      humanName: SS7 Refusal cause
+stderr:
+-
+
+** collect cmm logs
+logs.py file
+stop cmm log:
+==========
+    def collect_linux_logs_in_gzip(self, host, testname, logdir):
+            """ This kw shouldn't be used in test case level by testers
+        connections.execute_necc_command('/opt/nokia/scripts/mmelogs.sh stop')
+=======================================================                                    
+start cmm log:
+==========
+    def clear_linux_logs(self):
+            """ This kw shouldn't be used in test case level by testers
+                    It is included in the common test case setup as part of `Setup Tasks For Ns Logs`
+                            """
+                                    connections.execute_necc_command('/opt/nokia/scripts/mmelogs.sh start')
+=========
+*** get cmm logs 
+/opt/nokia/scripts/mmelogs.sh start
+/opt/nokia/scripts/mmelogs.sh stop
+ls -l /home/cmm/logs.tgz
+(master.log sigalling.log)
+*** get wireshark log
+
+*** get dbdump
+/opt/app/bin/cmmDBdump
+
+
+    
+
+cmm nfIpEndpoints delete Nausf_UEAuthentication_EpList~Nausf_UEAuthentication_Ep1
+
+*** get pcmd logs dynamically
+apcmd_viewer]$cd /tmp/apcmd_viewer;
+apcmd_viewer]$ ./apcmd_viewer.pl -rt -a localhost -p 14116 |tee /tmp/abc
+
+*** get pcmd files statically
+*** get pcmd logs
+cd /data-pcmd
+2019-08-27.11:37.+0300.AMFpcmd.gz  2019-08-29.11:55.+0300.AMFpcmd.gz
+2019-08-28.11:00.+0300.AMFpcmd.gz  2019-08-29.11:56.+0300.AMFpcmd.gz
+2019-08-29.05:48.+0300.AMFpcmd.gz  2019-08-29.11:57.+0300.AMFpcmd.gz
+2019-08-29.05:49.+0300.AMFpcmd.gz
+[cmm@espate137a-necc0 data-pcmd]$ gzip -cd 2019-08-29.11:5[6789]*.gz |grep 46002
+
+*** turn on pcmd in iota case
+in the beginning:
+Library           PCMD      necc_host=${HOST}
+Suite Setup       Run Keywords      IOTA Suite Setup Basic     PCMD.Install Pcmd Application
+
+
+        ####### Start PCMD record collection
++     PCMD.Start Apcmd
+     Start Statistics    1
+     IOTA Procedure  4gAttachImsi    -imsi ${IOTA.IMSI4}    verifystring=IOTAPROCRETCODE=0
+     Stop Statistics And Verify    1    m101c000=1    m101c001=1
+@@ -32,6 +38,11 @@ mme_001 4G initial attach with IMSI
+     ...    GENERALINFO.emmState=REGISTERED
+     Stop Statistics And Verify    1    m118c124=1    m118c137=1
+     IOTA Procedure  4gDetach -detachtype 1
+    CMM Command    cmm subscriber show --imsi  ${IOTA.IMSI4}
+    Execute Necc Command cmm subscriber show --imsi ${IOTA.IMSI1}
+### tear down
++    @{LINES}=    PCMD.Get Lines
++    Log List    ${LINES}
++    @{EXCEPT}=    PCMD.Thread Exceptions
+ PCMD.Get Lines File      ${RESULT DIR}
++    PCMD.Stop
+-------------------------
+
+
+   def get_lines_file(self,  redir):
+        """
+        Get all the captured PCMD lines as a list.
+
+        *Example:*
+
+        | @{LINES}= | Get Lines File |
+
+        *return:* A list of lines captured from PCMD.
+        """
+        filename = redir + "..\pcmdres"
+        file = open(filename , "w")
+        file.write('\n'.join(map(str, self._lines)))
+        file.close()
++++++++++++++++++++++++++++++++++++++++++++++
+
+*** 
+*** view tools in website
+http://135.111.28.187/~dmlkm/pcmd.html
+
+
+* Robot for CMM
+** Keywords  for calltrace function
+
+Library           PCMD      necc_host=${HOST}
+ [Setup]           Run Keywords      Test Case Setup    AND  Extra Test Setup Calltracemy
+ Run Keyword And Ignore Error     Extra Test Setup Calltracemy
+*** Keywords ***
+add these keywords in keywords section, and inovke them in the case Setup step
+Extra Test Setup Calltracemy
+    PCMD.Install Pcmd Application
+    PCMD.Start Pcmd
+    ${result}=    CMM Command    cmm callTraceJob create --userIdentity imsi --digits ${IOTA.IMSI4} --mode debug
+    Set Test Variable    ${traceid}    ${result['traceId']}
+    CMM Command    cmm traceDataStatus list
+    CMM Command    cmm traceDataStatus show --imsi ${IOTA['IMSI4']} --traceID ${traceid}
+    CMM Command    cmm traceData list
+    Sleep  2
+
+
+Extra Test Teardown Calltracemy
+    @{LINES}=    PCMD.Get Lines
+    Log List    ${LINES}
+    @{EXCEPT}=    PCMD.Thread Exceptions
+#    PCMD.Get Lines File      ${RESULT DIR}
+## changes in pcmd.py file for this
+    PCMD.Stop
+
+
+     CMM Command    cmm callTraceJob delete --userIdentity imsi --digits ${IOTA.IMSI4}
+     CMM Command    cmm traceDataStatus list
+     CMM Command    cmm traceDataStatus show --imsi ${IOTA['IMSI4']} --traceID ${traceid}
+    ${out_list}=   Cmm Command    cmm traceData list
+    dump robot elements    out_list    ${out_list}
+    ${pathfile}=     Set Variable     ${out_list[0]['FILES']}
+    ${pcapfile1}     Get Substring    ${pathfile}    22
+    ${pcapfile}      Get Substring    ${pcapfile1}    0    -5
+    Log  ${pcapfile}
+    # copy file from NECC to Robot Server
+    Get NECC File    ${pathfile}    ${RESULT DIR}/${pcapfile1}
+
+MyExtra Test Setup Calltracemy
+    PCMD.Install Pcmd Application
+    PCMD.Start Pcmd
+    Run Keyword And Ignore Error     CMM Command    cmm callTraceJob delete --userIdentity imsi --digits ${IOTA.IMSI4}
+    Run Keyword And Ignore Error     CMM Command     cmm traceData delete --file all
+    CMM Command    cmm callTraceJob create --userIdentity imsi --digits ${IOTA.IMSI4} --mode debug
+    CMM Command    cmm traceDataStatus list
+    CMM Command    cmm traceData list
+    Sleep  2
+
+MyExtra Test Teardown Calltracemy
+    @{LINES}=    PCMD.Get Lines
+    Log List    ${LINES}
+    @{EXCEPT}=    PCMD.Thread Exceptions
+#    PCMD.Get Lines File      ${RESULT DIR}
+## changes in pcmd.py file for this
+    PCMD.Stop
+     CMM Command    cmm callTraceJob delete --userIdentity imsi --digits ${IOTA.IMSI4}
+     CMM Command    cmm traceDataStatus list
+    ${out_list}=   Cmm Command    cmm traceData list
+    dump robot elements    out_list    ${out_list}
+    ${pathfile}=     Set Variable     ${out_list[0]['FILES']}
+    ${pcapfile1}     Get Substring    ${pathfile}    22
+    ${pcapfile}      Get Substring    ${pcapfile1}    0    -5
+    Log  ${pcapfile}
+    # copy file from NECC to Robot Server
+    Get NECC File    ${pathfile}    ${RESULT DIR}/${pcapfile1}
+
+
+**** append two keywords in case setup and teardown
+testcaseid ....
+ [Tags]   tidnum_mau1124    regression
+ [Documentation]     AMF provisioned to support autoAddTaiToTaiList.  Verify Registration Accept contents after ue movement among 2 TAs.
+ [Setup]             Run Keywords    Test Setup Registration    AND   Test Setup Calltracemy
+ .......
+ [Teardown]        Run Keywords       Set default NSSAI for gNBs    AND  Test Teardown Calltracemy
+
+ 
+**** 
+*** the steps to get call trace job log
+PRE running case:
+'cmm traceData delete --file all' 
+'cmm callTraceJob create --userIdentity imsi --digits 460020301001001 --mode default' 
+output:       'traceId': '3',   ### for this time creation call trace job
+--------------------------RUN CASE----------
+PoST running case:
+cmm traceData create --imsi 460020301001001 --traceID 3
+'sudo serfclient -t *necc0* -c cmd.run.ssh -p 'ls -la /shared/restfm/traces/ |grep 460020301001001''.
+
+  | hostname    | response                                                                                                   |
+  +-------------+------------------------------------------------------------------------------------------------------------+
+  | necc0.local | -rw-r--r-- 1 restfm restfm 34646 Dec  6 09:59 IMSI_460020301001001_TRACE-ID_3_2019-12-06-09-59-15-458.pcap |
+
+
+
+** wireshark filter
+*** wiearshark frame filter 
+using No.(number) or Time(timestamp) to filter frame
+(ngap||http2)&&(frame.number>6540&&frame.number<10249)
+
+*** filter out diameter device watch dog message
+(!(diameter.cmd.code == 280)&&diameter)
+
+*** filter out gtp echo request/reply message
+(gtpv2.message_type!=2)&&gtpv2 || gtpv2&&(gtpv2.message_type!=1)
+
+*** filter nas_pdu offset n bytes, and the m'th bytes is what you wanted 
+ngap.NAS_PDU[n:m]==AB:CD:EF...
+means skip n bytes from n byte of NAS_PDU, get m bytes there, and they are equal to 0xAB,0xCD,0xEF
+
+ngap.NAS_PDU[3:1]==79   #### this means Registraion type is initial registration
+
+
+ngap.NAS_PDU[9:1]==41   ### this means Registraint type is "mobility registration update"
+
+
+* cmm related third party software
+** RESET api
+all cmm command in fact is an interface to interact with rest api provided in necc:
+*** cmm command will invoking rest api
+
+[cmm@lm256-necc0 ~]$ cmm amfInstance modify ETPLMN~1~1~1 --capacity 55529 -v
+initialize_app
+found extension EntryPoint.parse('plain = nokia.mmecli.api.plainformatter:PlainFormatter')
+found extension EntryPoint.parse('table = cliff.formatters.table:TableFormatter')
+found extension EntryPoint.parse('json = cliff.formatters.json_format:JSONFormatter')
+found extension EntryPoint.parse('shell = cliff.formatters.shell:ShellFormatter')
+found extension EntryPoint.parse('value = cliff.formatters.value:ValueFormatter')
+found extension EntryPoint.parse('yaml = cliff.formatters.yaml_format:YAMLFormatter')
+prepare_to_run_command AmfinstanceModify
+Doing authorization
+request header: {'Authorization': u'Bearer 56ecefb5-f02e-4447-a24e-adfbe273fc64', 'Accept': 'application/json'}
+request URL = http://restapi.service.consul:8081/api/cm/v1/amfInstances/ETPLMN~1~1~1
+request body = {"parameters": {"servedPlmnName": "ETPLMN", "amfSetId": "1", "capacity": "55529", "amfRegionId": "1", "amfPointer": "1"}}
+REST server json response = 200, {u'_links': {u'self': {u'href': u'/api/cm/v1/amfInstances/ETPLMN~1~1~1'}}, u'_embedded': {u'enable': u'true', u'capacity': u'55529', u'nsiIdListName': u'', u'locality': u'', u'instanceId': u'd66fbc15-d6b9-4af2-b214-3ab757269977', u'amfIdLabels': u'NokiaAMF', u'amfRegionId': u'1', u'priority': u'1', u'servedPlmnName': u'ETPLMN', u'amfSetId': u'1', u'_links': {u'self': {u'href': u'/api/cm/v1/amfInstances/ETPLMN~1~1~1'}}, u'amfPointer': u'1', u'nfServicesListName': u'amfServices', u'userAgentSuffix': u''}}
++--------------------+--------------------------------------+
+| Field              | Value                                |
++--------------------+--------------------------------------+
+| amfInstance        | ETPLMN~1~1~1                         |
+| servedPlmnName*    | ETPLMN                               |
+| amfRegionId*       | 1                                    |
+| amfSetId*          | 1                                    |
+| amfPointer*        | 1                                    |
+| instanceId         | d66fbc15-d6b9-4af2-b214-3ab757269977 |
+| nfServicesListName | amfServices                          |
+| capacity           | 55529                                |
+| enable             | true                                 |
+| amfIdLabels        | NokiaAMF                             |
+| locality           |                                      |
+| priority           | 1                                    |
+| userAgentSuffix    |                                      |
+| nsiIdListName      |                                      |
++--------------------+--------------------------------------+
+clean_up AmfinstanceModify
+
+
+*** invoking rest api directly from curl command line
+when modify using PUT, when query using GET, when newly created using -X "POST"
+using the correct header and data 
+[cmm@lm256-necc0 ~]$ curl -k -X PUT -H "Authorization:  Bearer 56ecefb5-f02e-4447-a24e-adfbe273fc64" -H  "Accept: application/json" -H "Accept-Encoding: gzip, deflate" 
+-H "content-type: application/json" 
+-d '{"parameters": {"servedPlmnName": "ETPLMN", "amfSetId": "1", "capacity": "55527", "amfRegionId": "1", "amfPointer": "1"}}'
+http://restapi.service.consul:8081/api/cm/v1/amfInstances/ETPLMN~1~1~1
+
+{"_embedded":{"_links":{"self":{"href":"/api/cm/v1/amfInstances/ETPLMN~1~1~1"}},"amfIdLabels":"NokiaAMF","amfPointer":"1","amfRegionId":"1","amfSetId":"1","capacity":"55527","enable":"true","instanceId":"d66fbc15-d6b9-4af2-b214-3ab757269977","locality":"","nfServicesListName":"amfServices","nsiIdListName":"","priority":"1","servedPlmnName":"ETPLMN","userAgentSuffix":""},"_links":{"self":{"href":"/api/cm/v1/amfInstances/ETPLMN~1~1~1"}}}[
+
+
+**** rest api need all the parameters present, even no change parameters, but cmm command will read the original value of the unchanged parameter
+[cmm@lm256-necc0 ~]$ curl -k -X PUT -H "Authorization:  Bearer 56ecefb5-f02e-4447-a24e-adfbe273fc64" -H  "Accept: application/json" -H "Accept-Encoding: gzip, deflate" -H "content-type: application/json" -d '{"parameters": {"capacity": "59333"}}' http://restapi.service.consul:8081/api/cm/v1/amfInstances/ETPLMN~1~1~1
+{"debuginfo": null, "faultcode": "Client", "faultstring": "Modify operation failed (msg=An expected element is missing for the operation. servedPlmnName)"}
+
+
+**** restapi log
+REST logs in /var/log/httpd folder (default log level is warning)
+•mme_rest.log – written by mmeRest (check this if problems in provisioning)
+[cmm@lm256-necc0 ~]$ vi /var/log/httpd/access.log
+[cmm@lm256-necc0 ~]$ vi /var/log/httpd/mme_rest.log
+--------------
+REST PUT failed with status '500':
+- url: http://restapi.service.consul:8081/api/cm/v1/imsiAnalysiss/22299
+- headers: {'content-type': 'application/json', 'Authorization': 'Bearer 8f89482e-65f4-4093-84a3-895e049b5549', 'Accept': 'application/json'}
+- data: {"parameters": {"ni": "NA1", "sad": "1", "srd": "1", "plmnName": "ITA_H3G", "dia": "39391", "nrd": "5", "ton": "INT", "np": "E214", "toA": "GT", "id": "22299"}}
+- response: {u'debuginfo': None, u'faultcode': u'Server', u'faultstring': u'timed out'}
+-----------------------
+
+
+** corosync:
+corosync is a cluster software
+*** sbd (storage. defence)
+systemctrl status sbd:
+
+*** pacemaker
+
+** kafaka of Apache
+This combination of messaging, storage, and stream processing may seem unusual but it is essential to Kafka's role as a streaming platform.
+A streaming platform has three key capabilities:
+
+    Publish and subscribe to streams of records, similar to a message queue or enterprise messaging system.
+    Store streams of records in a fault-tolerant durable way.
+    Process streams of records as they occur. 
+
+Kafka is generally used for two broad classes of applications:
+
+    Building real-time streaming data pipelines that reliably get data between systems or applications
+    Building real-time streaming applications that transform or react to the streams of data 
+
+To understand how Kafka does these things, let's dive in and explore Kafka's capabilities from the bottom up.
+
+First a few concepts:
+
+    Kafka is run as a cluster on one or more servers that can span multiple datacenters.
+    The Kafka cluster stores streams of records in categories called topics.
+    Each record consists of a key, a value, and a timestamp. 
+
+** zookeeper of Apache
+ZooKeeper is a centralized service for maintaining configuration information, naming, providing distributed synchronization, and providing group services.
+
+For this feature, CPPS, IPPS, and the PAPS Sluggard process will be connected to REMc
+
+** REmcli is in house software, mainly in ipds, cpps, 
+** serf is a third party cluster tools
+serf members : list all the cluster members
+serf members | grep cpps
+
+serfclient -t 'cpps*' -c 'cmd.run' -p 'df -h'
+[cmm@lm270-necc0 ~]$ serfclient -t 'cpps*' -c 'cmd.run'  -p 'df -h'
+|-------------+------------------------------------------------------|
+| hostname    | response                                             |
+|-------------+------------------------------------------------------|
+| cpps0.local | Filesystem      Size  Used Avail Use% Mounted on     |
+|             | devtmpfs        2.3G     0  2.3G   0% /dev           |
+|             | tmpfs           2.3G  104K  2.3G   1% /dev/shm       |
+|             | tmpfs           2.3G   33M  2.3G   2% /run           |
+|             | tmpfs           2.3G     0  2.3G   0% /sys/fs/cgroup |
+|             | /dev/sda1       3.9G  2.2G  1.5G  60% /              |
+|             |                                                      |
+|-------------+------------------------------------------------------|
+** ntpd(network time service)
+
+** logstash
+Centralize, transform & stash your data
+Logstash is a free and open server-side data processing pipeline that ingests data from a multitude of sources, transforms it, and then sends it to your favorite "stash." 
+
+/etc/logstash/conf.d/logstash.conf
+Example 1: File → Logstash → Elasticsearch
+
+input {
+  file {
+         path => "/var/log/apache2/access.log"
+    start_position => "beginning"
+    sincedb_path => "/dev/null"
+  }
+}
+filter {
+    grok {
+      match => { "message" => "%{COMBINEDAPACHELOG}" }
+    }
+    date {
+    match => [ "timestamp" , "dd/MMM/yyyy:HH:mm:ss Z" ]
+  }
+  geoip {
+      source => "clientip"
+    }
+}
+output {
+  elasticsearch {
+    hosts => ["localhost:9200"]
+  }
+}
+
+[cmm@lm270-necc0 ~]$  curl -XGET 'necc2.local:9200/_cluster/allocation/explain?pretty'
+{
+  "error" : {
+    "root_cause" : [
+      {
+        "type" : "remote_transport_exception",
+        "reason" : "[4TDmPcf][10.10.30.10:9300][cluster:monitor/allocation/explain]"
+      }
+    ],
+    "type" : "illegal_argument_exception",
+    "reason" : "unable to find any unassigned shards to explain [ClusterAllocationExplainRequest[useAnyUnassignedShard=true,includeYesDecisions?=false]"
+  },
+  "status" : 400
+}
+[cmm@lm270-necc0 ~]$
+
+$ serfclient -t '*nec*' -c 'cmd.run' -p 'df -h| grep elastic'
+$ serfclient -t '*nec*' -c 'cmd.run' -p 'systemctl status logstash'
+
+
+
+[cmm@lm270-necc0 ~]$ curl -XGET 'localhost:9600/_node/hot_threads?human=true'
+::: {}
+Hot threads at 2020-05-25T02:31:11-05:00, busiestThreads=3:
+================================================================================
+0.69 % of cpu usage, state: runnable, thread name: 'Ruby-0-Thread-32', thread id: 50
+/opt/logstash/logstash/vendor/bundle/jruby/2.3.0/gems/logstash-input-kafka-8.0.2/lib/logstash/inputs/kafka.rb:241
+        sun.nio.ch.EPollArrayWrapper.epollWait(Native Method)
+        sun.nio.ch.EPollArrayWrapper.poll(EPollArrayWrapper.java:269)
+        sun.nio.ch.EPollSelectorImpl.doSelect(EPollSelectorImpl.java:93)
+--------------------------------------------------------------------------------
+0.68 % of cpu usage, state: runnable, thread name: 'Ruby-0-Thread-28', thread id: 46
+/opt/logstash/logstash/vendor/bundle/jruby/2.3.0/gems/logstash-input-kafka-8.0.2/lib/logstash/inputs/kafka.rb:241
+        sun.nio.ch.EPollArrayWrapper.epollWait(Native Method)
+        sun.nio.ch.EPollArrayWrapper.poll(EPollArrayWrapper.java:269)
+        sun.nio.ch.EPollSelectorImpl.doSelect(EPollSelectorImpl.java:93)
+--------------------------------------------------------------------------------
+0.43 % of cpu usage, state: runnable, thread name: 'Ruby-0-Thread-33', thread id: 51
+/opt/logstash/logstash/vendor/bundle/jruby/2.3.0/gems/logstash-input-kafka-8.0.2/lib/logstash/inputs/kafka.rb:241
+        sun.nio.ch.EPollArrayWrapper.epollWait(Native Method)
+        sun.nio.ch.EPollArrayWrapper.poll(EPollArrayWrapper.java:269)
+        sun.nio.ch.EPollSelectorImpl.doSelect(EPollSelectorImpl.java:93)
+--------------------------------------------------------------------------------
+
+** 
+** collect the time took by every program to boot the whole system reboot
+after the system is up and running use this bash command
+systemd-analyze plot 
+
+
+dmesg -T
+
+
+
+
+
+**  readis db 
+Redis is an open-source, in-memory key-value data store. A key-value data store is a type of NoSQL database in which keys serve as unique identifiers for their associated values. 
+Any given Redis instance includes a number of databases, each of which can hold many different keys of a variety of data types. In this tutorial, we will go over how to select a
+database, move keys between databases, and manage and delete keys.
+redis-cli -p 6379
+
+*** select database
+Redis databases are numbered from 0 to 15 and, by default, you connect to database 0 when you connect to your Redis instance. However, you can change the database you’re using with the select command after you connect:
+
+127.0.0.1:6379> dbsize
+(integer) 6566
+127.0.0.1:6379> select 1
+OK
+127.0.0.1:6379[1]> dbsize
+(integer) 0
+
+*** keys and values
+Try to stick with a schema. For instance "object-type:id" is a good idea, as in "user:1000". Dots or dashes are often used for multi-word fields, as in "comment:1234:reply.to" or "comment:1234:reply-to".
+The maximum allowed key size is 512 MB.
+**** list all keys in the db
+127.0.0.1:6379>  keys *
+
+**** type of the key in db
+
+ 127.0.0.1:6379> type "cmm.alarm:id:75:"
+         hash
+
+**** get all hash value of a key
+127.0.0.1:6379> hgetall "cmm.alarm:id:75:"
+ 1) "severity_range"
+  2) "warning"
+   3) "name"
+    4) "SignallingLinkForcedUninhibitingNotPossible"
+     5) "pid"
+      6) "75"
+       7) "effect"
+        8) "['The alarm requires no actions.']"
+         9) "glossary"
+         10) "{'link_nr': 'number of the signalling link', 'link_set_nr': 'number of the signalling link set'}"
+         11) "description"
+         12) "['signalling link forced uninhibiting not possible', 'Forced uninhibiting of a signalling link initiated by the signalling route management functions has failed because no acknowledgement to the forced uninhibiting message has been received in spite of repeated attempts.']"
+         13) "application"
+         14) "sgsn"
+         15) "cause"
+         16) "['Forced uninhibiting of a signalling link initiated by the signalling route management functions has failed because no acknowledgement to the forced uninhibiting message has been received in spite of repeated attempts.']"
+         17) "type"
+         18) "equipment"
+         19) "remedy"
+         20) "['No cancelling.']"
+         21) "probable_cause"
+         22) "_UNDEFINED_"
+         23) "lifetime"
+         24) "120"
+
+
+**** 
+*** read readis db of how many subscribers
+
+
+redisdb for subscribers
+REST api communicate with and httpd(web server), redisdb
+dbrest log:
+MdbsCounts {numberuecount
+cmm ueCounts list --cppsIdx
+cmm subscriber count --filterYtpe attachedPerPapsPerRat
+
+** maria db of configuration (for provisiong)
+REST api communicate with httd(apache), mariadb for configuration manager
+[cmm@lm256-necc0 ~]$ sudo /opt/mariadb-10.1.34-linux-x86_64/bin/mysql -h 10.10.30.10 -P 3306
+Welcome to the MariaDB monitor.  Commands end with ; or \g.
+Your MariaDB connection id is 118240
+Server version: 10.1.34-MariaDB MariaDB Server
+MariaDB [(none)]> show databases
+    -> ;
+    +--------------------+
+    | Database           |
+    +--------------------+
+    | amf                |
+    | appcnfg            |
+    | cfg                |
+    | grafana            |
+    | information_schema |
+    | mysql              |
+    | performance_schema |
+    | sgsn               |
+    +--------------------+
+    8 rows in set (0.00 sec)
+
+    MariaDB [(none)]>
+show databases
+show tables
+
+MariaDB > use amf;
+
+MariaDB [amf]> select * from amf_snssai;
++------------+-----+--------+---------------------+----------+
+| snssai_idx | sst | sd     | supported_in_all_ta | sd_int   |
++------------+-----+--------+---------------------+----------+
+|          1 |   1 | D143A5 |                   0 | 13714341 |
+|          2 |   2 | D143A5 |                   0 | 13714341 |
+|          3 |   3 | D143A5 |                   0 | 13714341 |
+|          4 |   4 | FFFFFF |                   0 | 16777215 |
+|          5 |   5 | FFFFFF |                   0 | 16777215 |
++------------+-----+--------+---------------------+----------+
+5 rows in set (0.00 sec)
+
+MariaDB [amf]>
+
+[cmm@lm256-necc0 ~]$ cmm snssai list
+|--------|
+| snssai |
+|--------|
+| MIoT   |
+| SLICE4 |
+| SLICE5 |
+| URLLC  |
+| eMBB   |
+|--------|
+
+
+** iomn delete links
+iomn delete 36 is inttype(N2), staring link index and numberof links
+'sudo ssh ipds0.local "echo -e pCbmd36\r1\r1\r | /opt/app/bin/iomn ipds_060"'
+### this means delete N2 linke index from 1 to 1  /only delete index 1 
+ipds iomn 
+pCbmG staring link index and a numberof links.
+to delete the links, use 0 128
+
+
+
+** amfmultiLink state
+[cmm@espate139b-necc0 ~]$ cmm amfMultiLink list --amfIntfType N2
++--------------+-------------+-------------+-----------+-------------------+--------------------+------------+------------------+-----------+
+| amfMultiLink | amfIntfType | amfLinkType | linkIndex | amfLinkAdminState | linkOperationState | alarmState | remoteIp1        | remoteIp2 |
++--------------+-------------+-------------+-----------+-------------------+--------------------+------------+------------------+-----------+
+| N2           | N2          | N2          | 1         | locked            | disabled           | major      | 172.16.59.11     | 0.0.0.0   |
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+*** link Operation State
+disable link OperationSate:
+'sudo ssh ipds0.local "echo -e pCbmd36\r1\r1\r | /opt/app/bin/iomn ipds_060"'
+enable:
+'sudo ssh ipds0.local "echo -e pCbme36\r1\r1\r | /opt/app/bin/iomn ipds_060"'
+this will only triger alarm LSS_externalLinkDown
+but real NGSetup and NGSetupRep will be OK
+
+
+*** amfLink AdminState
+when lock the N2 link, AMF will send shutdown to GNB in sctp layer to end the underlying link.
+but iota(GNB) will reestablish the sctp link after the link has been ended.
+----------------------------------------------------------------------------------------------
+CMM Command   cmm amfLinkAdmin modify --amfLinkType N2 --linkIndex 1 --amfLinkAdminState locked
+Sleep           10s
+IOTA Procedure    5gNgSetup   -ta1 ${IOTA.AMF_TAC0}:${CMM.MCC}${CMM.MNC}:01,02,03:D143A5,D143A5,D143A5 -gNB gnb01 -gnbname gnb0
+-----------------------------------------------------------------------------------------------------------------
+when AdminState is locked and NG setup received from GNB, AMF will reply with NG-failure with cause misc: om-intervention (3)
+
+this locked operation will result in LSS_externalLinkDown alarm
++-------+-------+---------------------+----------+------------------------------+-------------------------------+-----+
+[cmm@espate139b-necc0 ~]$ cmm alarm history list
+|-------+-------+----------------------+----------+-------------+-------------------------------+--------|
+| INDEX | PID   | NAME                 | SEVERITY | SOURCE      | TIME                          | TASK   |
+|-------+-------+----------------------+----------+-------------+-------------------------------+--------|
+| 608   | 40524 | LSS_externalLinkDown | major    | host: ipds0 | 2019-11-08 04:31:22.126+02:00 | raise  |
+-----------------------------------------------------------------------------------------------------------------------------
+
+
+[cmm@espate139b-necc0 ~]$  cmm amfMultiLink list --amfIntfType N2 --linkIndex 1 
+{
+    "amfIntfType": "N2", 
+    "remoteIp2": "0.0.0.0", 
+    "remoteIp1": "172.16.59.11", 
+    "alarmState": "major", 
+    "amfLinkAdminState": "unlocked", 
+    "amfMultiLink": "N2", 
+    "linkOperationState": "enabled", 
+    "linkIndex": "1", 
+    "amfLinkType": "N2"
+  },
+
+ 
+this alarm will  disappear when the link is unlocked
+
+
+
+
+
+cmm-upgrade backup create
+
+
+** cli source code in necc
+all python code in here:
+/opt/nokia/lib64/python2.7/site-packages/nokia/mmecli/
+
+* NF cache 
+** print NF profile in Cache
+sudo ssh ${active_ipds}.local "echo -e pCiDNl | /opt/app/bin/iomn ipds_060"
+-----------------------
+Own AMF NF Profile:
+  NF INSTATNCE ID: ec60-----
+  NF TYPE: AMF 
+  Number of PLMN:1  PLMN: 460 02   FQDN: NokiaAMF.amf.5gc.mnc002.mccc460.3gppnework.org
+  CAPACITY: 65535  ###this is for the load balance  selection
+  PRIORITY: 1     ### lower number precedent
+  DEFAULT: 0    ### if true, means if no other suitale to choose, use this default one
+  NUM_SNSSAI: 4 ....
+
+  amfRegionId 1   amfSetId 1  amfPointer 1    nbrGuami 1   nbrTaiRange 1   start 6500, end 6510,  start 30000, end 30011
+  namf-comm   nfServiceStatus:REGISTERED service ipv4:
+++++++++++++++++++++++++++++++
+Locally Provisioned NFs
+size of SMF map: 1
+Printing SMF info
+*******************
+   NF INSTATNCE ID: ec60-----
+  NF TYPE: AMF 
+  CAPACITY: 65535  ###this is for the load balance  selection
+  PRIORITY: 1     ### lower number precedent
+  DEFAULT: 0    ### if true, means if no other suitale to choose, use this default one
+  nbrAllowedNssai: 4 ....
+####locally provision AUSF
+size of AUSF map: 1
+Printing AUSF info
+*********************************************
+ NF INSTANCE ID: 91f924ea-2bd5-4be0-97a1-aa7067c61957
+ NF TYPE: AUSF
+ NF STATUS: REGISTERED
+ Number of PLMN: 1
+ PLMN: 460 02f
+ FQDN: EMPTY
+ nbrIpv4Addr: 1
+   IPV4 ADDRESS: 172.16.59.21
+ nbrIpv6Addr: 0
+ CAPACITY: 65535
+ LOAD: 0
+ LOCALITY: 
+ PRIORITY: 1
+ DEFAULT: 0
+ nfServicePersistence 0
+ NUM_SNSSAI: 0
+ nbrNsi_ : 0
+ nbrDefaultNotifSub : 0
+ isGroupIdPresent : 0
+ nbrRoutingInd : 0
+ nbrSupiRange : 0
+ nbrAuthSvc : 1
+ 
++++++++++++++++
+Discovered NFs
+size of AUSF map: 1
+size of AUSF map: 1
+Printing AUSF info
+*********************************************
+ NF INSTANCE ID: 91f924ea-2bd5-4be0-97a1-aa7067c61969
+ NF TYPE: AUSF
+ NF STATUS: REGISTERED
+ Number of PLMN: 1
+ PLMN: 460 02f
+ FQDN: ausf1.com
+ nbrIpv4Addr: 1
+   IPV4 ADDRESS: 172.16.59.23
+ nbrIpv6Addr: 0
+ CAPACITY: 0
+ LOAD: 0
+ LOCALITY: 
+ PRIORITY: 0
+ DEFAULT: 0
+ nfServicePersistence 0
+ NUM_SNSSAI: 0
+ nbrNsi_ : 0
+ nbrDefaultNotifSub : 0
+ timeToExpireInMs 3790293358769, Profile will expire in 989 Seconds 
+ isGroupIdPresent : 1
+    groupId : groupid-04030201-123-89-01
+ nbrRoutingInd : 1     ### routing indicator invloved as 4356, if routing indi is 1234, this AUSF could not be used
+    routingInd[0] 17238   ### Hex is 4356
+ nbrSupiRange : 0
+ nbrAuthSvc : 1
+
++++++++++++++
+
+** modify/delete NRF profile
+
+cmm nrfCacheAdmin modify --nfType AUSF --nrfCacheOperation DELETE_NF_TYPE
+this will delete the AUSF discovered AUSF
+
+*** case example for deleting NRFcache
+nij0330 Delete NFProfile in NRfcache AUSF
+    [Documentation]    To verify AMF uses the NRFCache properly and triggers Discovery REQ to Remote NRF if the Cache doesnt have the equired Info and also Check if the NRF cache related Cli's are working properly
+    [Tags]     tidnum_nij0330    regression
+    [Setup]    Run Keywords    nbm1128 Setup    Test Setup Registration
+    Start Statistics    1
+    Set Allowed Alarms    40920
+    cmm command    cmm nrfCacheAdmin modify --nrfCacheOperation FLUSH_CACHE
+    NRF Cache Check
+    IOTA Async Procedure Start    5gNrfManagementServices -service_type nfregister -nrfsim_s nrf1_s -verbose 1
+    CMM Command    cmm networkFunctionInstance modify --instanceId ${IOTA['NRF1_UUID']} --enable true
+    IOTA Async Procedure Wait For Completion
+    Sleep    5
+    NRF Cache Check ##Locally Provisioned AUSF,cmm amfUePlmnServices modify --name ETPLMN --ausfSelection NRF(this mean AUSF should be choose from NRF cache Discovered NFs instead of local prov NRF cache)  
+    IOTA Procedure    5gRegistrationSuci -imsi ${IOTA['IMSI1']} -routingind 4356 -postinitproc {::ausf_ri-a1;} -ausfsim_s ausf1_s -validatesim true
+## discovery AUSF from NRF using routingind 4356
+    IOTA Procedure    5gUeDeRegistration
+    NRF Cache Check ##one AUSF in local prov, one AUSF stored in Discoverd NFs
+
+    IOTA Procedure    5gRegistrationSuci -imsi ${IOTA['IMSI4']} -routingind 1234  -ausfsim_s ausf2_s -validatesim true -postinitproc {::ausf_ri-a;} -verbose 1
+    IOTA Procedure    5gUeDeRegistration
+    NRF Cache Check ##one AUSF in local prov, tow AUSF stored(one for 4356, one for 1234) in Discoverd NFs
+    cmm command    cmm nrfCacheAdmin modify --nfType AUSF --nrfCacheOperation DELETE_SINGLE_NF_PROFILE --instanceId 91f924ea-2bd5-4be0-97a1-aa7067c61958
+    NRF Cache Check ### on AUSF in local prov. one AUSF (for 3456) in Discoverd NFs
+    IOTA Procedure    5gRegistrationSuci -imsi ${IOTA['IMSI3']} -routingind 1234 -ausfsim_s ausf2_s -validatesim true -postinitproc {::ausf_ri-a;} -verbose 1
+    IOTA Procedure    5gUeDeRegistration
+    NRF Cache Check ### nrf-disc rotingind 1234 from NRF 
+    IOTA Procedure    5gRegistrationSuci -imsi ${IOTA['IMSI2']} -routingind 4356 -ausfsim_s ausf1_s -validatesim true -verbose 1
+  ### no need to nrf-disc routing 4356, is is still in Discovered NFs cache
+    IOTA Procedure    5gUeDeRegistration
+    IOTA Procedure    5gUdmDeRegistration
+    Stop Statistics And Verify    1    m186c006=3    m186c007=3
+    [Teardown]    Run Keywords    nbm1128 Teardown   Test Teardown Registration
+
+
+
+
+* Routing indicator
+
+** SUCI (subscription concealed identifier)
+suppi type    home network   Routing      Protection  HomeNetwork      Protection 
+value0-7      Identifier     Indicator    Scheme      Public KeyID    Scheme Output
+0(IMSI)         MCC MNC      1-4 digits   val:0-15    val:0-255        
+1(NAI)
+2-7 spare
+
+                   
+routing indicator is 1-4 digits in SUCI(subscription concealed indicator)
+Routing Indicator, consisting of 1 to 4 decimal digits assigned by the home network operator and provisioned in the USIM,
+that allow together with the Home Network Identifier to route network signalling with SUCI to AUSF and UDM instances capable
+to serve the subscriber.
+
+when using NRF discovery for AUSF, routing indicator should tell NRF
+HTTP2 {{BODY {@HEADERSFRAME {{FLAGS $05} {HDRBLKFRAGMENT {{AUTHORITY "172.16.59.31:8080"} {METHOD GET} {PATH "/nnrf-disc/v1/nf-instances?service-names=nausf-auth&amp;target-nf-type=AUSF&amp;requester-nf-type=AMF&amp;routing-indicator=4356&amp;requester-nf-instance-fqdn=NokiaAMF.amf.5gc.mnc002.mcc460.3gppnetwork.org"} {SCHEME http} {USERAGENT amf}}} {STREAMID $00000045}}}} {localName nrf1_s} {remoteName amf_net1_1}}
+
+
+ A SUCI SHOULD be represented by an ASCII string containing the
+   following components in sequence:
+
+   o  A leading "6"
+
+   o  Three ASCII digits to represent the Mobile Country Code (MCC).
+
+   o  Three ASCII digits to represent the Mobile Network Code (MNC).  If
+      there are only 2 significant digits in the MNC, one "0" digit
+      shall be inserted at the left side to fill the 3 digits coding of
+      MNC.
+
+   o  Four ASCII digits to represent a routing indicator.
+
+   o  One hex character ("0" through "9" and "a" through "f") to
+      represent the protection profile.
+
+   o  Hex characters representing Home Network Public Key Identifier
+      (HNPKI).  The number of hex characters needed for this depends on
+      the protection profile.
+
+   o  Hex characters representing the encrypted identity.  The number of
+      hex characters depends on the protection profile and identity
+      being encrypted.
+
+5gRegistrationSuci -imsi 460020301001001 -routingind 4356 
+example:     460020301001001 
+            
+  460020           460(MCC), 02(MNC),0 (for 3 MNC)
+   30              represent the protection profile  (only 1 digit,ASCII code 30 means number 0)
+the total SUCI:   SUCI: 0460?02435600000301001001
+
+5gRegistrationSuci -imsi 460020301001001 without routingind , default value is  1234
+the total SUCI    SUCI: 0460?02123400000301001001
+
+* NLG get tcpdump and master log
+** modify suite setup
+Callload Suite Setup
+    NLG AMF Suite Setup
+    Initialize NLG    cfgfile=usrCfg_amf.tcl
+    CMM Command    cmm nrfCacheAdmin modify --nrfCacheOperation FLUSH_CACHE
+    Clear Linux Logs
+    Start NLG Call Load
+    Stop And_Transfer Nlg Tcpdump   ${RESULT DIR}
+#    Collect Linux Logs In Gzip      ${HOST}    ${TEST NAME}    ${RESULT DIR}
+    Collect Master Log    ${OUTPUTDIR}
+
+** modify logs.py
+6PF1NS7F4-Data\glili\Documents\work\cmm-ft-robottests\testers\cmm\testcases-iota>git diff ../../../lib/MonitoringAndLogs/cloudmme/logs.py
+warning: LF will be replaced by CRLF in lib/MonitoringAndLogs/cloudmme/logs.py.
+The file will have its original line endings in your working directory
+diff --git a/lib/MonitoringAndLogs/cloudmme/logs.py b/lib/MonitoringAndLogs/cloudmme/logs.py
+index f563c1b8e7..d35c72196e 100644
+--- a/lib/MonitoringAndLogs/cloudmme/logs.py
++++ b/lib/MonitoringAndLogs/cloudmme/logs.py
+@@ -36,6 +36,7 @@ class AppLogs(object):
+         self._allowed_master.extend(list(allowed_list))
+
+     def collect_master_log(self, logdir):
++        connections.execute_necc_command('/opt/nokia/scripts/mmelogs.sh stop')
+         connections.get_necc_file('/var/log/app/master.log', os.path.join(logdir, 'master.log'))
+
+** 1
+** modify 
+--- a/lib/NLG.py
++++ b/lib/NLG.py
+@@ -20,6 +20,7 @@ from SSHLibrary import SSHLibrary
+
+ from robot.libraries.BuiltIn import BuiltIn
+
++
+ try:
+     import paramiko
+ except ImportError:
+@@ -892,7 +893,8 @@ class NLG(object):
+         logger.info(self.nlg_command('up', timeout=240), also_console=True)
+
+         # Wait up to 3 minutes for the simulators to come up.
+-        threshold_time = time.time() + 180
++        #threshold_time = time.time() + 180
++        threshold_time = time.time() + 60
+         sims_not_up = 1
+         while(sims_not_up != 0 and time.time() < threshold_time):
+             time.sleep(5)
+@@ -953,25 +955,25 @@ class NLG(object):
+             start_opt = self._nlg_start_opt[tech]
+         else:
+             start_opt = tech
+-
++        self.start_nlg_tcpdump("test_nlg")
+         logger.info(self.nlg_command('start ' + start_opt, timeout=120), also_console=True)
+-
+-        # Wait a while initially for call generators to start and send some volume
++         # Wait a while initially for call generators to start and send some volume
+         # of calls before checking the pass rates.
+-        time.sleep(15)
+-
++        time.sleep(45)
++        self.kill_nlg_tcpdump()
++       # self.stop_and_transfer_nlg_tcpdump(${RESULT DIR})
+         # Wait up to 2 minutes for the simulators to reach at least 98% call completions.
+             ####comment all below thing
+-        threshold_time = time.time() + 120
+
+** patch file
+ocuments\work\cmm-ft-robottests\testers\cmm\testcases-iota\nlg.diff
+
+
+* ipaddr configured in IOTA
+using
+ip address list 
+insteadof 
+ifconfig to check the ip addr
+net 172.16.59.11/16 scope global secondary eth2
+: eth2: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP qlen 1000
+    link/ether 00:50:56:32:00:02 brd ff:ff:ff:ff:ff:ff
+    inet 172.16.0.254/16 brd 172.16.255.255 scope global eth2
+    inet 10.10.10.9/24 brd 10.10.10.255 scope global eth2:10
+    inet 172.16.49.1/16 scope global secondary eth2
+    inet 172.16.59.1/16 scope global secondary eth2
+    inet 172.16.49.2/16 scope global secondary eth2
+    inet 172.16.59.2/16 scope global secondary eth2
+    inet 172.16.49.3/16 scope global secondary eth2
+    inet 172.16.59.3/16 scope global secondary eth2
+    inet 172.16.49.4/16 scope global secondary eth2
+    inet 172.16.59.4/16 scope global secondary eth2
+    inet 172.16.49.5/16 scope global secondary eth2
+    inet 172.16.59.5/16 scope global secondary eth2
+    inet 172.16.49.6/16 scope global secondary eth2
+    inet 172.16.59.6/16 scope global secondary eth2
+    inet 172.16.49.7/16 scope global secondary eth2
+    inet 172.16.59.7/16 scope global secondary eth2
+    inet 172.16.49.8/16 scope global secondary eth2
+    inet 172.16.59.8/16 scope global secondary eth2
+    inet 172.16.49.9/16 scope global secondary eth2
+    inet 172.16.59.9/16 scope global secondary eth2
+    inet 172.16.49.10/16 scope global secondary eth2
+    inet 172.16.59.10/16 scope global secondary eth2
+    inet 172.16.49.11/16 scope global secondary eth2
+    inet 172.16.59.11/16 scope global secondary eth2
+
+
+
+Grafana 
+
+* oauth2.0 and tls 
+openssl req -newkey rsa:1024 -nodes -sha256 -x509 -days 100 -nodes -out tls.crt -keyout tls.key
+CMM Command   cmm tlsCertificate create --signedCertFile /home/cmm/tls.crt --privateKeyFile /home/cmm/tls.key --name IOTAkeyCrt
+** tls certificte and keys
+Normally a cerfificate should be signed by the authority that you provided your own private key file as an input.
+but you can generate bothe a self-signed certificate and private keys
+
+*** generate a pair of self-signed certificate and private key pairs
+openssl req -newkey rsa:1024 -nodes -sha256 -x509 -days 100 -nodes -out tls.crt -keyout tls.key
+
+this will generate a certificate(with sha256 signed algorithm and rsa encryption algotithm, and the expired date of this certificate)
+ and a private key
+
+$openssl x509 -text -noout -in httpscertificate
+Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number:
+            bd:d4:bd:ce:88:61:91:ae
+        Signature Algorithm: sha256WithRSAEncryption
+        Issuer: C = US, ST = Illinois, L = Naperville, O = Nokia
+        Validity
+            Not Before: Dec 10 16:55:44 2019 GMT
+            Not After : Oct  5 16:55:44 2020 GMT
+        Subject: C = US, ST = Illinois, L = Naperville, O = Nokia
+        Subject Public Key Info:
+            Public Key Algorithm: rsaEncryption
+                RSA Public-Key: (2048 bit)
+                Modulus:
+                    00:c3:9e:85:22:29:b9:d7:85:4b:f2:b9:49:b6:c6:
+                    08:8d:79:e0:6a:6f:7e:a3:a0:ff:6b:b2:aa:be:e8:
+                    02:de:42:68:5a:57:2f:28:cd:6c:8a:2e:f4:5c:50:
+                    c7:b9:59:bb:97:e2:81:8a:8c:32:f6:58:d2:3b:71:
+                    15:86:9f:65:86:25:57:f5:92:5f:a7:26:6e:ed:39:
+                    4b:eb:25:95:02:3a:9e:b9:89:7b:7e:25:64:8d:2f:
+                    95:cf:48:07:88:f4:e3:84:ca:15:bc:2a:a6:64:73:
+                    a1:f6:f8:bc:4f:5b:c4:2f:66:f4:b3:54:38:d5:03:
+                    e9:8c:c7:11:0e:b9:35:2c:6a:53:dc:cd:0c:72:f9:
+                    83:62:d1:bb:bc:5b:17:86:81:f9:a5:62:f0:0f:07:
+                    7e:c8:2a:07:c9:8c:cf:79:98:11:44:19:7a:90:bc:
+                    f3:cd:f4:b1:ee:c4:8c:1a:c4:c8:3d:72:5f:0a:c4:
+                    88:99:c5:4a:62:60:d9:c3:b0:9c:83:13:ed:b9:7b:
+                    b4:82:69:35:75:4b:18:1a:fd:b3:63:5c:8a:57:e5:
+                    f1:6c:fe:a0:47:b7:38:72:10:fd:6b:6f:4a:78:28:
+                    0d:fc:9a:41:b3:67:30:2a:db:77:73:a2:b0:0b:25:
+                    ee:76:bf:3c:77:a2:24:d9:03:0d:ac:12:7a:f1:5d:
+                    18:07
+                Exponent: 65537 (0x10001)
+        X509v3 extensions:
+            X509v3 Subject Key Identifier:
+                A0:A7:38:D7:52:59:BF:09:C5:82:D9:53:64:47:26:35:8A:E9:2D:C4
+            X509v3 Authority Key Identifier:
+                keyid:A0:A7:38:D7:52:59:BF:09:C5:82:D9:53:64:47:26:35:8A:E9:2D:C4
+
+            X509v3 Basic Constraints:
+                CA:TRUE
+    Signature Algorithm: sha256WithRSAEncryption
+         35:02:4b:b3:88:cf:51:a7:59:70:b2:03:67:99:47:ac:ff:77:
+         79:ba:be:dd:80:e9:0d:89:9a:d0:68:29:0b:e2:40:b1:bb:ae:
+         6d:d0:ff:96:6e:1e:e5:fd:31:65:89:b0:d9:08:98:03:f2:31:
+         57:12:21:f5:c9:ae:92:57:d7:a4:d0:66:ac:8a:22:0d:b2:6e:
+         0c:7e:91:2a:c9:49:b1:b6:2f:5f:9e:0c:1a:e7:f9:4c:e8:fd:
+         0c:d9:dc:4e:9a:45:8f:9b:a2:68:a6:d9:8d:85:a9:85:fc:a3:
+         a9:2a:a6:a2:b5:a5:92:3c:fa:35:40:94:31:e3:0c:4f:e4:d8:
+         ed:88:28:34:fd:23:9c:53:42:53:e5:cf:82:b5:81:0c:89:f9:
+         11:12:72:ba:ea:08:11:67:16:47:af:65:00:02:c1:9b:56:77:
+         2e:06:bd:e1:92:19:18:68:30:8f:ed:29:f8:07:02:2d:20:9d:
+         62:c4:6c:60:93:f2:2d:6c:b4:3c:49:d3:02:d4:2c:db:db:5a:
+         9a:8a:67:f3:c1:21:6f:3a:94:92:23:ce:02:0b:cf:e7:17:2e:
+         10:55:3a:f5:df:b4:83:14:3f:fc:33:8f:fd:f1:d5:aa:7f:de:
+         d2:5f:4b:5f:eb:17:d9:c2:e3:3c:4d:d7:3a:1a:42:01:e7:64:
+         42:26:74:38
+
+
+
+valitdate if the private key and certificate are matched
+openssl rsa -noout -modulus -in httpsprivatekey |openssl md5
+(stdin)= b8835c98dc691b734803b541b55804fb
+openssl x509 -noout -modulus -in httpscertificate | openssl md5
+(stdin)= b8835c98dc691b734803b541b55804fb
+
+check the expired date of the certificate 
+$openssl x509 -enddate -noout -in httpscertificate
+notAfter=Oct  5 16:55:44 2020 GMT
+
+
+*** 
+**  decrypt the packets
+To configure wireshark to decrypt TLS packets:
+- Copy the server private key to your pc
+- In Wireshark, select Edit -> Preferences -> Protocols -> TLS -> RSA keys list
+    * Set ip address:   any
+    * Set port:     8080
+    * Set Protocol: http2
+    * Set Key file: <file location>
+    * Select okay
+
+**  
+* 4G attach success ratio
+** successful attach procedure
+    ...  | ENB47:   <-------  MME_NET1    -  INITIALUEMESSAGE(ATTACHREQ(PDNCONNECTIVITYREQ))
+    ...  | HSS01:   ------->  MME_NET1    -  AIR
+    ...  | HSS01:   <-------  MME_NET1    -  AIA
+    ...  | ENB47:   ------->  MME_NET1    -  DOWNLINKNASTRANSPORT(AUTHREQ)
+    ...  | ENB47:   <-------  MME_NET1    -  UPLINKNASTRANSPORT(AUTHRSP)
+    ...  | ENB47:   ------->  MME_NET1    -  DOWNLINKNASTRANSPORT(#SECURITYMODECMD)
+    ...  | ENB47:   <-------  MME_NET1    -  UPLINKNASTRANSPORT(#SECURITYMODECMP)
+O    ...  | ENB47:   ------->  MME_NET1    -  DOWNLINKNASTRANSPORT(#ESMINFOREQ)
+O    ...  | ENB47:   <-------  MME_NET1    -  UPLINKNASTRANSPORT(#ESMINFORSP)
+    ...  | HSS01:   ------->  MME_NET1    -  ULR
+    ...  | HSS01:   <-------  MME_NET1    -  ULA
+    ...  | S11SGW02:------->  MME_NET1    -  CREATESESSIONREQ
+    ...  | S11SGW02:<-------  MME_NET1    -  CREATESESSIONRSP
+    ...  | ENB47:   ------->  MME_NET1    -  INITIALCONTEXTSETUPREQUEST(#ATTACHACC)
+    ...  | ENB47:   <-------  MME_NET1    -  INITIALCONTEXTSETUPRESPONSE
+    ...  | ENB47:   <-------  MME_NET1    -  UPLINKNASTRANSPORT(#ATTACHCMP(ACTIVATEDEFAULTEBCACC))
+    ...  | S11SGW02:------->  MME_NET1    -  MODIFYBEARERREQ
+    ...  | S11SGW02:<-------  MME_NET1    -  MODIFYBEARERRSP
+
+** failed attach procedure after createsessionreq sent
+failed after createsessionReq/Rsp
+    ...  | ENB47:   <-------  MME_NET1    -  INITIALUEMESSAGE(ATTACHREQ(PDNCONNECTIVITYREQ))
+    ...  | HSS01:   ------->  MME_NET1    -  AIR
+    ...  | HSS01:   <-------  MME_NET1    -  AIA
+    ...  | ENB47:   ------->  MME_NET1    -  DOWNLINKNASTRANSPORT(AUTHREQ)
+    ...  | ENB47:   <-------  MME_NET1    -  UPLINKNASTRANSPORT(AUTHRSP)
+    ...  | ENB47:   ------->  MME_NET1    -  DOWNLINKNASTRANSPORT(#SECURITYMODECMD)
+    ...  | ENB47:   <-------  MME_NET1    -  UPLINKNASTRANSPORT(#SECURITYMODECMP)
+    ...  | ENB47:   ------->  MME_NET1    -  DOWNLINKNASTRANSPORT(#ESMINFOREQ)
+    ...  | ENB47:   <-------  MME_NET1    -  UPLINKNASTRANSPORT(#ESMINFORSP)
+    ...  | HSS01:   ------->  MME_NET1    -  ULR
+    ...  | HSS01:   <-------  MME_NET1    -  ULA
+    ...  | S11SGW02:<-------  MME_NET1    -  CREATESESSIONREQ
+    ...  | S11SGW02:------->  MME_NET1    -  CREATESESSIONRSP
+    ...  | ENB47:   ------->  MME_NET1    -  INITIALCONTEXTSETUPREQUEST(#ATTACHACC)
+    ...  | ENB47:   ------->  MME_NET1    -  DOWNLINKNASTRANSPORT(#ATTACHACC)
+   no initialcontextresponse replied......
+MME will delete session request
+    ...  | S11SGW02:<-------  MME_NET1    -  DELETESESSIONREQ
+    ...  | S11SGW02:------->  MME_NET1    -  DELETESESSIONRSP
+    ...  | ENB47:   <-------  MME_NET1    -  UEContextReleaseCommand(RadioNetwork-cause=release-due-to-eutran-generated-reason)
+
+
+** roamer ue pgw using apn+(plmn_MMEHome） or plmn_MMERoamer
+*** apn info in attachrequest in esm info container
+APN in esm info container in esm
+
+*** apn in ula subscription data apn-configuration-profile
+when no apn in esm info container from attachrequest, ula's subscription data apn-configuration-profile's service will be using AVP: Service-Selection val=wap1.nokia.com
+and AVP: VPLMN-Dynamic-Address-Allowed val=ALLOWED (1) if this allowed, using MME's home plmn, if not allowed, using roamer's own plmn
+
+*** apn in ESMINFORSP of ESMINFOREQ
+there will be transfer-flag true in ESM container of attachrequest
+
+* CMM tickets and IMR   
+** iota case
+*** TA: 4g attach(double attach), 4g-3gRAU ,3g-4gTau  sgsap message contained, epsattachtype 2
+testcases-iota\f10904-11_PRA_Rel_14_15_Standard_Additions\f10904-11_dc_pra_ite_regression.robot
+ Iota Procedure 4gAttachImsi -imsi ${IOTA.IMSI4} -epsattachtype 2 -verbose 1
+ Iota Procedure 4gToExternalSgsnRauS3 -sndclr false -sgsdetach true -verbose 1
+ Iota Procedure 4gTauFromExternalSgsnS3 -active true -verbose 1, -postinitproc {set ::c_ue(Bld_contextrsp_s3_pdncon1_presrptareaaction), [::bld_PRA_IE -action start -praid ${PRAID_8388610}];, set ::c_ue(Bld_csrsp_tgt_presrptareaaction), [::bld_PRA_IE -action stop -praid ${PRAID_8388610}];, ::ctxsetuprsp ${GNB6000_1_IP};, ::vfy_pra_ie -msg mbreq -pra_info empty}
+** pcmd and master log timestamp
+*** pcmd filter skill
+gzip -cd 2020-05-12.15* | cut -f "7,12-14,55-74" -d ";" | grep "^1;2;250;413;" | sort | uniq -c
+
+**** pcmd time stamp
+pcmd file name 2020-06-25.03_15.+0200
+----------------------------------------------
+1->PCMD Version: "17" :CMM19+
+2->PCMD ID: "0000f1f1" :Unique PCMD ID
+3->Sending Node ID: "238:02:8020:10" :Globally Unique MME ID (MCC MNC MMEGroupID MMECode)
+4->MME TimeZone: "+02:00" :MME Timezone offset from UTC
+5->Month and Day when procedure starts: "06:25" :Month and Day
+6->Year when procedure starts: "2020" :Year
+7->Procedure ID: "37" :TAU-initiated Handover from UTRAN/GERAN
+8->Procedure Start Time: "4500528" :Milliseconds since 00:00 UTC (01:15:01)
+9->Record Sequence Number: "1" :Record Sequence ID for the UE
+---------------------------------------------
+
+master log:
+---------------------
++++ 2020/06/25 03:15:56.248 TRACE HIGH ACTIVE cpps:2999 E:12212968 S:546007 (EMMtau.cpp 150 V-cpps2 CMM20.0.2.6 cmmman 169.254.64.112)
+
+INFO:MME-EMM-MGR-1:EMM::recvTauReq:  vlrIdx=30827, mgrId=5, cxnIdx=1, processing event(12:EMM_EV_TAU_REQ) in state(0:EMM_ST_IDLE)
+
+
++++ 2020/06/25 03:15:56.263 TRACE HIGH ACTIVE cpps:2999 E:12213275 S:546314 (EMM.cpp 294 V-cpps2 CMM20.0.2.6 cmmman 169.254.64.112)
+
+INFO:MME-CXN-1:
+UE CXN MGR ENGINE: INOF-NT:
+run( ):
+
+UE_FSM: 0005 0000786b 00000001 SGSN_PXY     EMM          EMM_ST_TAU_WAIT_FOR_GN_CXT_RSP EMM_EV_GN_CXT_RSP EMM_ST_WAIT_FOR_SETIMSI_RSP 000000
+....
+
++++ 2020/06/25 03:15:56.309 TRACE HIGH ACTIVE cpps:2999 E:12215179 S:548218 (BSM.cpp 1884 V-cpps2 CMM20.0.2.6 cmmman 169.254.64.112)
+
+INFO:MME-BSM-MGR-4:BSM::getEvent:  vlrIdx=30827, mgrId=5, cxnIdx=1, BSM::getEvent:  getting current BSM event = BSM_EV_CR_SESS_RSP_FRM_SGW.
+.....
++++ 2020/06/25 03:15:56.310 TRACE HIGH ACTIVE cpps:2999 E:12215414 S:548453 (HSSEIRPXY.cpp 6951 V-cpps2 CMM20.0.2.6 cmmman 169.254.64.112)
+
+INFO:MME-HSSEIR-PXY-1:HSSEIRPXY::sendUlr: vlrIdx=30827, mgrId=5, cxnIdx=1, sendUlr - start ULA timer and change state to W4_ULA
+
++++ 2020/06/25 03:15:56.310 TRACE HIGH ACTIVE cpps:2999 E:12215415 S:548454 (HSSEIRPXY.cpp 1027 V-cpps2 CMM20.0.2.6 cmmman 169.254.64.112)
+
+INFO:MME-CXN-1:
+UE CXN MGR ENGINE: INOF-NT:
+run( ):
+
+UE_FSM: 0005 0000786b 00000001 EMM          HSSEIR_PXY   HSSPXY_ST_IDLE HSSPXY_EV_UPD_LOC_REQ HSSPXY_ST_W4_ULA 000000
+
++++ 2020/06/25 03:15:56.310 TRACE HIGH ACTIVE cpps:2999 E:12215416 S:548455 (EMM.cpp 652 V-cpps2 CMM20.0.2.6 cmmman 169.254.64.112)
+
+INFO:MME-EMM-MGR-1:EMM::getCxnCtrlState:  vlrIdx=30827, mgrId=5, cxnIdx=1, non idle state EMM_ST_TAU_WAIT_FOR_UPD_LOC_RSP
+
++++ 2020/06/25 03:15:56.310 TRACE HIGH ACTIVE cpps:2999 E:12215417 S:548456 (SGWPXY.cpp 299 V-cpps2 CMM20.0.2.6 cmmman 169.254.64.112)
+
+INFO:MME-SGW-PXY-4:SGWPXY::run:  vlrIdx=30827, mgrId=5, cxnIdx=1, SGWPXY::run: receives SGWPXY_EV_UPD_BRR_REQ event at state SGWPXY_ST_IDLE
+======================================================
+
+
+
+
+** 
+** oom error in java
+out of memeory for kafka
+Linux provides a way to enable and disable the OOM-Killer:
+To enable the OOM-killer use the same command with the value 1:
+sudo -s sysctl -w vm.oom-kill = 1
+To disable the OOM-killer use the same command with the value 0:
+sudo -s sysctl -w vm.oom-kill = 0
+
+https://jiradc2.ext.net.nokia.com/browse/CMMG-2205

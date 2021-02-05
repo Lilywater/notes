@@ -1296,6 +1296,26 @@ hi there    // echo from server
 byte      //input in client, this will triger wirte to a RST received connection in client,
 Broken pip  //output from shell
 
+* proxy related issue
+** apt proxy
+glili@N-20L6PF1NS7F4:/mnt/c/Users/glili/pyhtml$ cat /etc/apt/apt.conf
+Acquire::http::Proxy "http://135.245.48.34:8000";
+
+
+** pip install behind a proxy
+
+On Ubuntu, you can set proxy by using
+export http_proxy=http://username:password@proxy:port
+export https_proxy=http://username:password@proxy:port
+
+or if you are having SOCKS error use
+export all_proxy=http://username:password@proxy:port
+
+###-E make sudo use the env variable http_proxy and https_proxy
+sudo -E pip3 install {packageName}
+
+
+
 
 
 
