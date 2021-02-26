@@ -1,0 +1,999 @@
+* NRF interface (f20008-02)
+This feature supports Dec 2018 Standards compliance for:
+ - NFUpdate service operation
+ - NFDiscover service operation
+ - AMF NRF proxy uses the priority and relative capacity of the NF obtained in the NF profile and dynamic loading of the NF to load balance the traffic if there are multiple NF that can be selected for a given criterion
+ - NF Heart-Beat operation
+ - DNS resolution of IP addresses of NF URI, services URI supported by a NF and callback URI
+
+** NRF cache
+NRF can only operation on deleting/updating the Discoverd NFs, the Locally Provisionsed NFs could not be modified by nrf cache operation command
+*** Own AMF NF Profile:
+in the cmm networkFunctionInstance create/modify -- locality --priority
+The AMF supports configuration of locality and priority for each NF.
+
+The locality and priority parameters are optional. If locality information is available, then the selection of an NF by AMF in the same location has higher precedence.
+The low values of priority indicate a higher priority within the NF of the same type. The capacity and priority parameters, if present, are used for NF selection and load balancing. NFs with a low priorityvalue is selected before NFs with a higher priority value. In case of NFs with equal priority value, AMF will load balance queries among them based on their capacity value.
+The above mentioned parameters (locality and priority) are added to amfInstance, networkFunctionInstance and rmtAmfInstance CLI commands.
+Any changes to NF profile will only take effect on the next selection of the NF. If relative capacity of an NF is set to 0, then AMF excludes this NF from the selection.
+
+*** Locally Provisioned NFs
+-------------------------------------------------------
+size of AMF map: 1
+Printing AMF info
+*********************************************
+ NF INSTANCE ID: 7857ff53-2603-4299-9967-374d3f4c1147
+ -------------------------------------------------------
+*** Discovered NFs
+
+
+
+** NRF service instance
+*** NRF NFManagment service
+AMF selects NRF to register itself to nrf.
+
+AMF selects NRF service instance as described below:
+NRF selection for AMF registration (Nnrf_NFManagement service)
+AMF establishes HTTP/TCP connection and attempts an NFRegister to the highest priority Nnrf_NFManagement Service within a PLMN-level NRF.
+If more than one PLMN-level Nnrf_NFManagement Service instances have equal priority, AMF chooses the service instance randomly.
+In case new NRF service instance is added with equal priority with existing selected Nnrf_NFManagement instance, the already selected instance continues to be used.
+In case there is a change of the highest priority NRF, AMF attempts to set up HTTP/TCP connection. If the set up is successful, it attempts to register to the new highest priority NRF.
+If the set up is unsuccessful, AMF blacklists the NRF instance.
+
+**** Change of priority can be triggered by the following actions:
+provisioning a new higher priority NRF service instance
+deleting the currently selected NRF service instance from provisioning
+blacklisted period of unavailable NRF service instance expired
+NRF selection for Discovery (Nnrf_NFDiscovery) service
+NSSF provided an NRF for AMF/SMF selection: When slice-specific NRF is provided by NSSF, for example via Nnssf_NSSelection GET query, this will be selected with highest priority and no fallback will be triggered in case the NRF is not available.
+NSSF did not provide NRF / local cache is used to select NRF: When no NRF is provided from NSSF, AMF will select first slice-specific discovery NRF service instance with highest priority. If AMF cannot access highest priority slice-specific NRF, then AMF will choose the next highest priority slice specific discovery NRF. In case there is no slice-specific NRF available, then AMF will select the PLMN-level discovery NRF (for example one that supports Nnrf_NF Discovery Service).
+
+**** iota case:
+==============================================
+ IOTA Async Procedure Start    5gNrfManagementServices -fqdn false -postinitproc { verify_snssai_list -sst1 1 -sst2 2 -sst3 3 -sst4 4 -sd1 "D143A5" -sd2 "D143A5" -sd3 "D143A5"} -verbose 1
+ CMM Command    cmm networkFunctionInstance modify    --instanceId ${IOTA['NRF1_UUID']}    --enable true
+ IOTA Async Procedure Wait For Completion
+ CMM Command    cmm sbiTimersProfile modify default~nrfRegister --sbiTimerValue 2000
+======================================================
+amf----(NFREGISTERREQ)-->nrf
+HTTP2 {{BODY {@HEADERSFRAME {{FLAGS $04} {HDRBLKFRAGMENT {{AUTHORITY "172.16.59.31:8080"} {CONTENTLEN "3509"} {CONTENTTYPE application/json} {METHOD PUT} {PATH /nnrf-nfm/v1/nf-instances/459ca86b-c424-4fc5-9b2f-05ad14dff185} {SCHEME http} {USERAGENT amf}}} {STREAMID $00000041}}}} {localName nrf1_s} {remoteName amf_net1}}
+HTTP2 {{BODY {@DATAFRAME {{DATA {NNRF {{BODY {@NFREGISTERREQ {{AMFINFO {{AMFREGIONID "01"} {AMFSETID "001"} {GUAMILIST {+ {{AMFID $010041} {PLMNID {{MCC "460"} {MNC "02"}}}}}} {TAIRANGELIST {+ {{PLMNID {{MCC "460"} {MNC "02"}}} {TACRANGELIST {+ {{END $00196E} {START $001964}} {{END $00753B} {START $007530}}}}}}}}} {CAPACITY "65535"} {FQDN NokiaAMF.amf.5gc.mnc002.mcc460.3gppnetwork.org} {HEARTBEATTIMER "60"} {LOAD "10"} {NFINSTANCEID "459ca86b-c424-4fc5-9b2f-05ad14dff185"} {NFSERVICEPERSISTENCE true} {NFSERVICES {+ {{CAPACITY "65535"} {DEFAULTNOTIFICATIONSUBSCRIPTIONS {+ {{CALLBACKURI http://[2511::993:0:0:1:10]:8080/namf-comm/v1/n1-message-notification-5gmm} {N1MESSAGECLASS "5GMM"} {NOTIFICATIONTYPE N1_MESSAGES}} {{CALLBACKURI http://[2511::993:0:0:1:10]:8080/namf-comm/v1/n1-message-notification-sm} {N1MESSAGECLASS SM} {NOTIFICATIONTYPE N1_MESSAGES}} {{CALLBACKURI http://[2511::993:0:0:1:10]:8080/namf-comm/v1/n1-message-notification-sms} {N1MESSAGECLASS SMS} {NOTIFICATIONTYPE N1_MESSAGES}} {{CALLBACKURI http://172.16.46.214:8080/namf-comm/v1/n1-message-notification-5gmm} {N1MESSAGECLASS "5GMM"} {NOTIFICATIONTYPE N1_MESSAGES}} {{CALLBACKURI http://172.16.46.214:8080/namf-comm/v1/n1-message-notification-sm} {N1MESSAGECLASS SM} {NOTIFICATIONTYPE N1_MESSAGES}} {{CALLBACKURI http://172.16.46.214:8080/namf-comm/v1/n1-message-notification-sms} {N1MESSAGECLASS SMS} {NOTIFICATIONTYPE N1_MESSAGES}} {{CALLBACKURI http://[2511::993:0:0:1:10]:8080/namf-comm/v1/n2-info-notification-sm} {N2INFORMATIONCLASS SM} {NOTIFICATIONTYPE N2_INFORMATION}} {{CALLBACKURI http://172.16.46.214:8080/namf-comm/v1/n2-info-notification-sm} {N2INFORMATIONCLASS SM} {NOTIFICATIONTYPE N2_INFORMATION}}}} {IPENDPOINTS {+ {{IPV4ADDRESS "172.16.46.214"} {PORT "8080"} {TRANSPORT TCP}} {{IPV6ADDRESS "2511::993:0:0:1:10"} {PORT "8080"} {TRANSPORT TCP}}}} {NFSERVICESTATUS REGISTERED} {PRIORITY "1"} {SCHEME http} {SERVICEINSTANCEID Namf_Comm_1} {SERVICENAME namf-comm} {VERSIONS {+ {{APIFULLVERSION "1.0.1"} {APIVERSIONINURI v1}}}}} {{CAPACITY "65535"} {IPENDPOINTS {+ {{IPV4ADDRESS "172.16.46.215"} {PORT "8080"} {TRANSPORT TCP}} {{IPV6ADDRESS "2511::993:0:0:1:11"} {PORT "8080"} {TRANSPORT TCP}}}} {NFSERVICESTATUS REGISTERED} {PRIORITY "1"} {SCHEME http} {SERVICEINSTANCEID Namf_EventExposure} {SERVICENAME namf-evts} {VERSIONS {+ {{APIFULLVERSION "1.0.1"} {APIVERSIONINURI v1}}}}} {{CAPACITY "65535"} {IPENDPOINTS {+ {{IPV4ADDRESS "172.16.46.216"} {PORT "8080"} {TRANSPORT TCP}} {{IPV6ADDRESS "2511::993:0:0:1:12"} {PORT "8080"} {TRANSPORT TCP}}}} {NFSERVICESTATUS REGISTERED} {PRIORITY "1"} {SCHEME http} {SERVICEINSTANCEID Namf_MT} {SERVICENAME namf-mt} {VERSIONS {+ {{APIFULLVERSION "1.0.1"} {APIVERSIONINURI v1}}}}} {{CAPACITY "65535"} {DEFAULTNOTIFICATIONSUBSCRIPTIONS {+ {{CALLBACKURI http://[2511::993:0:0:1:f]:8080/namf-loc/v1/location-notification} {NOTIFICATIONTYPE LOCATION_NOTIFICATION}} {{CALLBACKURI http://172.16.46.213:8080/namf-loc/v1/location-notification} {NOTIFICATIONTYPE LOCATION_NOTIFICATION}}}} {IPENDPOINTS {+ {{IPV4ADDRESS "172.16.46.213"} {PORT "8080"} {TRANSPORT TCP}} {{IPV6ADDRESS "2511::993:0:0:1:f"} {PORT "8080"} {TRANSPORT TCP}}}} {NFSERVICESTATUS REGISTERED} {PRIORITY "1"} {SCHEME http} {SERVICEINSTANCEID Namf_Location} {SERVICENAME namf-loc} {VERSIONS {+ {{APIFULLVERSION "1.0.1"} {APIVERSIONINURI v1}}}}}}} {NFSTATUS REGISTERED} {NFTYPE AMF} {PLMNLIST {+ {{MCC "460"} {MNC "02"}}}} {PRIORITY "1"} {SNSSAIS {+ {{SD $D143A5} {SST "1"}} {{SD $D143A5} {SST "2"}} {{SD $D143A5} {SST "3"}} {{SST "4"}}}}}}}}}} {FLAGS 1} {STREAMID $00000041}}}} {localName nrf1_s} {remoteName amf_net1}}
+
+
+
+---------
+
+*** NRF NFDiscovery service
+AMF use NRF's NFDiscovery service to get networkfunctinInstance and serviceInstance for ausf, udm, pcf, smf.
+The following assumptions are made regarding NRF architecture:
+each NRF will have 1 service instance per service type (NFManagement, NFDiscovery).
+each service instance may have up to 1 IP.
+the different services within the same NRF may or may not share the same IP.
+A PLMN-level NRF service instance selected for registration is considered unavailable under the following conditions:
+
+All TCP connections for the NFManagement service are unavailable (TCP unable to be setup or link disabled via link management CLI).
+AMF received response to NFRegister PUT with any 4xx error code (for example, the AMF does not retry registration).
+AMF received response to NFRegister PUT with any 5xx error code after a first failed attempt with 5xx. AMF waits between re-attempts the time defined in nrfRegisterRetry timer of sbiTimersProfile of home PLMN. If timer value is set to 0, the AMF does not retry and immediately blacklists the service instance. Blacklist period is defined in nrfRegisterBlacklist of sbiTimersProfile of home PLMN.
+An NRF service instance selected for Discovery is considered unavailable under the following conditions:
+
+All TCP connections for the NFDiscovery Service are unavailable (TCP unable to be setup or link disabled via link management CLI).
+NRF NFDiscovery error code handling: In case AMF received HTTP response code 401 to GET operation, NRF proxy will blacklist the service instance (blacklist period 1 minute). In case AMF received any other 4xx HTTP response code or AMF received HTTP response code 5xx or Response timer expired in retry, then NRF proxy will not blacklist the service instance.
+The AMF has the following error handling for NFUpdate operations:
+
+4xx: immediately triggers NFRegister.
+5xx (non-heartbeat): tries NFUpdate with PUT after time defined in nrfUpdateRetry of sbiTimersProfile of home PLMN. If retry fails, AMF attempts to NFRegister. If timer value is set to 0, the AMF does not retry and immediately triggers NFRegister.
+5xx (Heartbeat): AMF retries 4 times. After 4 failures, AMF sends NFUpdate (PUT).
+
+
+
+
+** NF selection configuration
+*** parameter ausfSelection
+(choose from 'LocalProvisioning', 'NRF', 'NRFLocalProvisioning')
+cmm amfUePlmnServices modify 460_30 --smfSelection NRF --ausfSelection LocalProvisioning --pcfSelection LocalProvisioning --amfSelection NRF
+
+**** Network Repository Function - Make use of NRF to select NF.
+***** process when set ausfSelection NRF as a rule
+hit the NRF cache or not, the remote NRF cache is get updated from NRF-discovery, but normally remote NRF cache will expire soon.
+so if you set ausfSelection an NRF, it will search the remote NRF cache, if the susi,nssai, and dnn match, and not expired, then  use this SMF.
+if cache not hit, then use nrf-discovery
+1. A UE initiated procedure requires callP to identify an SMF to service the UE. The SMFMGR sends a SELECT_SMF message to the NRFPXY. The message includes UE’s susi NSSAI and DNN, among
+other information.
+2. The NRFPXY retrieves SMF selection rule (“cmm amfUePlmnServices –smfSelection”), which should be “NRF” in this case.
+3. The NRFPXY retrieves the provisioned remote NRF info (“cmm networkFunctionInstance –nfType NRF”) to identify the remote NRF that serves the given sNSSAI.
+4. The NRFPXY retrieves the SMF instances that serves the given DNN and sNSSAI from the SMF NF
+table from the remote NRF cache.
+5. In this scenario, the SMF list would be empty in step 4. The NRFPXY initiates the NF discovery
+procedure by sending its identifies (VLR index, CXN MGR id and CXN object id) together with UE’s
+identifies (SUPI, DNN, sNSSAI etc) to the NRF CPPS task. The NRF CPPS task forward the
+information to the NRF IPDS task using the internal communication channel. The NRFPXY starts a
+timer for the response and the NRF CPPS task does not save any information to route the response –
+the NRF IPDS task will have the info.
+6. The NRF IPDS task attempts to retrieve SMF list from its cache, like step 4. This steps could reduce
+the number of NF discovery procedures, when multiple UE might be making similar queries around
+the same time. For our purpose, this retrieval also returns an empty list. The NRF IPDS task sends an
+NF discovery request via SBI software. The NRF IPDS task may save info to retransmit the request
+and route the response – not sure if SBI can take care of all these without us saving info.
+7. The remote NRF response with HTTP(“OK”) together with the list of SMF that can serve this UE.
+Assuming that SBI doesn’t save the info, the NRF IPDS task retrieves the associated NRFPXY from
+its “Discover List” and stops the retransmit timer. An IPDS->CPPS message is sent toward the NRF
+CPPS task that initiates the discovery procedure.
+8. The NRF CPPS task forwards the response to the NRFPXY.
+9. The NRF CPPS task saves the SMF list in its private data and chooses an SMF to send to the
+SMFMGR10. This completes this SMF selection procedure11.
+10. When the NRF IPDS task receives the SMF list in step 7, in addition to sending the response to the
+initiating CPPS, it also saves the SMF list in its cache and broadcasts the list to all CPPS, including the
+CPPS that initiates the discovery procedure.
+11. The NRF CPPS task updates its cache accordingly.
+
+***** 
+**** LocalProvisioning - Local Provisioning - AMF will use locally provisioned NF for the selection of a NF.
+**** NRFLocalProvisioning - NRF with Local Provisioning Override - The AMF will check the locally provisioned selection rules and if there is a match then the AMF will select the NF matching the rule. If there is no matching then AMF will use the NRF. The selection rule by default is that AMF will select a NF supporting a provisioned criterion for the NF.
+
+
+
+*** default networkfunction
+
+CMM Command    cmm amfUePlmnServices modify --name ETPLMN --ausfSelection NRFLocalProvisioning
+CMM Command    cmm networkFunctionInstance modify  --instanceId ${IOTA['AUSF1_UUID']} --routingIndicator 1 --defaultNetworkFunction true
+SUCI: 0460?02123400000301001001
+as explained above, NRFLocalProvisioning means firsly check local provision AUSF, but the rule of routingInd not match, since susi's routingInd is 1234, but ausf's routingindicator is 1
+-----------------------------
+DEBUG:AMF-NRFPXY:NRF selectAusf, sbiVersionContrlPflMap size 14 
+DEBUG:AMF-NRFPXY:NRF isMatch enter, svcIdx 0
+DEBUG:AMF-NRFPXY:NRF isMatch, ueAuthService_.isSupported true
+DEBUG:AMF-NRFPXY:NRF isMatch, UeHomePlmn match true
+DEBUG:AMF-NRFPXY:NRF isMatch, routingInd_[]  match  false   ####not match
+
+then use NRF discovery, send nnrf-disc/....  but NRF return error
+----------------------------------------------------------------
+###when NRF discovery failed for AUSF
+
+
+then since defaultNetworkFunction is true for 91f924ea-2bd5-4be0-97a1-aa7067c61957, it will be seclected no matter its routingindicator match suci's 
+------------------------------------------------------------------------------------------------------------------------------------------------------
+DEBUG:AMF-NRFPXY:NRF tryAusfLocalFallback enter,
+DEBUG:AMF-NRFPXY:NRF sendDefaultSelectedAusf, Try to send default AUSF
+DEBUG:AMF-NRFPXY:NRF getNextCandidate_2 enter, size 1, pOther (nil)
+DEBUG:AMF-NRFPXY:NRF getNextCandidate_1, found candidate nfId 91f924ea-2bd5-4be0-97a1-aa7067c61957, svcId Nausf_UEAuthentication, nbrIpEndPoint 1, priority 1, capacity 65535
+ 
+
+** NRF types
+ There are two types of NRF: PLMN-level NRF and slice-specific NRF for SMF discovery.
+
+ PLMN-level NRF:
+
+ If an NRF is not provisioned with NSSAI list, then it is assumed that the NRF is PLMN-level NRF and supports all NSSAI and the NRF can be queried to get profile of any NF (if it supports Nnrf_NFDiscovery service).
+ If an NRF is provisioned with an NSSAI list that includes all S-NSSAI the AMF supports, then it is assumed that the NRF is PLMN-level NRF.
+ AMF registers only to PLMN- level NRFs.
+ Slice-specific NRF for SMF discovery:
+
+ An NRF that is provisioned with an NSSAI list that is a subset from the AMF’s SNNAI list is considered as slice-specific NRF. This NRF can be queried for NF SMF discovery, but not for AMF selection.
+
+
+
+** NRF service configuration with fqdn and dns nfipendpoint instead of the real ip
+*** configure the real ip of nudm subdatamanagement with iplistname: Nudm_SubDataManagement_EpList
+in general: the ip is the real nfservice ip endpoint
+[cmm@lm256-necc0 ~]$ cmm nfServiceInstance show Nudm_SubDataManagement
+|----------------------+-------------------------------|
+| Field                | Value                         |
+|----------------------+-------------------------------|
+| nfServiceInstance    | Nudm_SubDataManagement        |
+| name*                | Nudm_SubDataManagement        |
+| apiVersionInUri      | v2                            |
+| httpScheme           | http                          |
+| allowedNssais        | Snssai1                       |
+| capacity             | 65535                         |
+| nfIpEndPointListName | Nudm_SubDataManagement_EpList |
+
+
+*** modification of Service Instace for remote server ip or using fqdn to query dns
+    CMM Command    cmm nfServiceInstance modify --name Nudm_SubDataManagement --nfIpEndPointListName Dns_EpList --fqdn sdmf01.com.udm.5gc.mnc004.mcc310.3gppnetwork.org.
+
+    CMM Command    cmm nfIpEndPoint create --name Dns_Ep --port 8080
+    CMM Command    cmm nfIpEndpointList create --name Dns_EpList
+    CMM Command    cmm nfIpEndpoints create --nfIpEndPointListName Dns_EpList --nfIpEndPointName Dns_Ep
+    CMM Command    cmm nfServiceInstance modify --name Nudm_UEContextManagement --nfIpEndPointListName Dns_EpList --fqdn uecmf01.com.udm.5gc.mnc004.mcc310.3gppnetwork.org.
+    Create DNS A Record    ausf01.com.ausf.5gc.mnc004.mcc310.3gppnetwork.org.      172.16.59.21
+
+
+
+** NF selection with preferred routing indicator match rule
+this parameter configured in networkFunctionInstance only take effect in UDM and AUSF, check nrf cache, only udm and ausf has such parameter
+
+
+5gRegistrationSuci -imsi 460020301001001 -routingind 4356 
+
+
+example:     460020301001001 
+            
+  460020           460(MCC), 02(MNC),0 (for 3 MNC)
+   30              represent the protection profile  (only 1 digit,ASCII code 30 means number 0)
+the total SUCI:   SUCI: 0460?02435600000301001001
+
+5gRegistrationSuci -imsi 460020301001001 without routingind , default value is  1234
+the total SUCI    SUCI: 0460?02123400000301001001
+*** print NF profile in Cache
+sudo ssh ${active_ipds}.local "echo -e pCiDNl | /opt/app/bin/iomn ipds_060"
+-----------------------
+Own AMF NF Profile:
+  NF INSTATNCE ID: ec60-----
+  NF TYPE: AMF 
+  Number of PLMN:1  PLMN: 460 02   FQDN: NokiaAMF.amf.5gc.mnc002.mccc460.3gppnework.org
+  CAPACITY: 65535  ###this is for the load balance  selection
+  PRIORITY: 1     ### lower number precedent
+  DEFAULT: 0    ### if true, means if no other suitale to choose, use this default one
+  NUM_SNSSAI: 4 ....
+
+  amfRegionId 1   amfSetId 1  amfPointer 1    nbrGuami 1   nbrTaiRange 1   start 6500, end 6510,  start 30000, end 30011
+  namf-comm   nfServiceStatus:REGISTERED service ipv4:
+++++++++++++++++++++++++++++++
+Locally Provisioned NFs
+size of SMF map: 1
+Printing SMF info
+*******************
+   NF INSTATNCE ID: ec60-----
+  NF TYPE: AMF 
+  CAPACITY: 65535  ###this is for the load balance  selection
+  PRIORITY: 1     ### lower number precedent
+  DEFAULT: 0    ### if true, means if no other suitale to choose, use this default one
+  nbrAllowedNssai: 4 ....
+####locally provision AUSF
+size of AUSF map: 1
+Printing AUSF info
+*********************************************
+ NF INSTANCE ID: 91f924ea-2bd5-4be0-97a1-aa7067c61957
+ NF TYPE: AUSF
+ NF STATUS: REGISTERED
+ Number of PLMN: 1
+ PLMN: 460 02f
+ FQDN: EMPTY
+ nbrIpv4Addr: 1
+   IPV4 ADDRESS: 172.16.59.21
+ nbrIpv6Addr: 0
+ CAPACITY: 65535
+ LOAD: 0
+ LOCALITY: 
+ PRIORITY: 1
+ DEFAULT: 0
+ nfServicePersistence 0
+ NUM_SNSSAI: 0
+ nbrNsi_ : 0
+ nbrDefaultNotifSub : 0
+ isGroupIdPresent : 0
+ nbrRoutingInd : 0
+ nbrSupiRange : 0
+ nbrAuthSvc : 1
+ 
++++++++++++++++
+Discovered NFs
+size of AUSF map: 1
+size of AUSF map: 1
+Printing AUSF info
+*********************************************
+ NF INSTANCE ID: 91f924ea-2bd5-4be0-97a1-aa7067c61969
+ NF TYPE: AUSF
+ NF STATUS: REGISTERED
+ Number of PLMN: 1
+ PLMN: 460 02f
+ FQDN: ausf1.com
+ nbrIpv4Addr: 1
+   IPV4 ADDRESS: 172.16.59.23
+ nbrIpv6Addr: 0
+ CAPACITY: 0
+ LOAD: 0
+ LOCALITY: 
+ PRIORITY: 0
+ DEFAULT: 0
+ nfServicePersistence 0
+ NUM_SNSSAI: 0
+ nbrNsi_ : 0
+ nbrDefaultNotifSub : 0
+ timeToExpireInMs 3790293358769, Profile will expire in 989 Seconds 
+ isGroupIdPresent : 1
+    groupId : groupid-04030201-123-89-01
+ nbrRoutingInd : 1     ### routing indicator invloved as 4356, if routing indi is 1234, this AUSF could not be used
+    routingInd[0] 17238   ### Hex is 4356
+ nbrSupiRange : 0
+ nbrAuthSvc : 1
+
++
+
+** NF selection with preferred location in nfdiscovery service
+sent nnrf-disc with preferred-locality parameter 
+nbm1167 PCF selection by preferred location
+    [Tags]    tidnum_nbm1167    regression
+    [Setup]    Run Keywords    Test case Setup PCF Selection
+    Enable IOTA NRF
+    Sleep   5 
+    IOTA Procedure    5gRegistrationSuci    -imsi ${IOTA['IMSI11']} -ausfsim_s ausf1_s -pcfsim_s pcf3_s -validatesim true    -postinitproc { set ::c_ue(snd_discoverrsp) "basic_snd_discoveryrsp_multiple_instance_amf"; 
+
+
+Test case Setup PCF Selection
+    Test Setup Registration
+    CMM Command    cmm nrfCacheAdmin modify --nrfCacheOperation FLUSH_CACHE
+    CMM Command    cmm supiRange create --supiRangeListName HomeSUPI --startSupi 460020401001001 --endSupi 460020401001003
+    CMM Command    cmm amfUePlmnServices modify ETPLMN --udmSelection LocalProvisioning --ausfSelection LocalProvisioning --pcfSelection NRF
+    CMM Command    cmm amfInstance modify ETPLMN~1~1~1 --locality blr.heb
+
+11:13:39.330 INFO Executing command 'cmm amfInstance modify ETPLMN~1~1~1 --locality blr.heb -f json'. 
+ 
+  "enable": "true", 
+  "capacity": "65535", 
+  "nsiIdListName": "", 
+  "locality": "blr.heb", 
+  "instanceId": "fb860c73-5bf3-420e-a78f-13f5d44ca5a9", 
+  "amfIdLabels": "NokiaAMF", 
+  "amfInstance": "ETPLMN~1~1~1", 
+  "priority": "1", 
+  "amfSetId*": "1", 
+  "amfRegionId*": "1", 
+  "userAgentSuffix": "", 
+  "nfServicesListName": "amfServices", 
+  "servedPlmnName*": "ETPLMN", 
+  "amfPointer*": "1"
+}
+---------------------------------------------------------------------
+HTTP2 {{BODY {@HEADERSFRAME {{FLAGS $05} {HDRBLKFRAGMENT {{AUTHORITY "172.16.59.31:8080"} {METHOD GET} {PATH "/nnrf-disc/v1/nf-instances?service-names=npcf-am-policy-control,npcf-ue-policy-control&target-nf-type=PCF&requester-nf-type=AMF&supi=imsi-460020401001001&preferred-locality=blr.heb&requester-nf-instance-fqdn=NokiaAMF.amf.5gc.mnc002.mcc460.3gppnetwork.org"} {SCHEME http} {USERAGENT amf}}} {STREAMID $00000001}}}} {localName nrf1_s} {remoteName amf_net1_1}}
+
+
+
+HTTP2 {{BODY {@DATAFRAME {{DATA {NNRF {{BODY {@NFDISCOVERRSP {{NFINSTANCES {+_list {{FQDN pcf1.blr.ngv.com} {IPV4ADDRESSES {+_list "172.16.59.56"}} {LOCALITY blr.ngv} {NFINSTANCEID c18985be-8028-4bf0-858a-9391c63b67b3} {NFSERVICES {+_list {{FQDN pcf1.service.com} {IPENDPOINTS {+_list {{IPV4ADDRESS "172.16.59.56"} {PORT "8080"} {TRANSPORT TCP}}}} {NFSERVICESTATUS REGISTERED} {SCHEME http} {SERVICEINSTANCEID Npcf_AmPolicyControl} {SERVICENAME npcf-am-policy-control} {VERSIONS {+_list {{APIFULLVERSION "1.0.0"} {APIVERSIONINURI v1}}}}}
+ {{FQDN pcf1.service2.com} {IPENDPOINTS {+_list {{IPV4ADDRESS "172.16.59.56"} {PORT "8080"} {TRANSPORT TCP}}}} {NFSERVICESTATUS REGISTERED} {SCHEME http} {SERVICEINSTANCEID Npcf_UePolicyControl} {SERVICENAME npcf-ue-policy-control} {VERSIONS {+_list {{APIFULLVERSION "1.0.0"} {APIVERSIONINURI v1}}}}}}} {NFSTATUS REGISTERED} {NFTYPE PCF} {PCFINFO {{DNNLIST {+_list wap1.nokia.com wap2.nokia.com}}}} {PLMNLIST {+_list {{MCC "460"} {MNC "02"}}}} {PRIORITY "2"}}
+ {{FQDN pcf2.blr.heb.com} {IPV4ADDRESSES {+_list "172.16.59.60"}} {LOCALITY blr.heb} {NFINSTANCEID d18985be-8028-4bf0-858a-9391c63b67b4} {NFSERVICES {+_list {{FQDN pcf2.service.com} {IPENDPOINTS {+_list {{IPV4ADDRESS "172.16.59.60"} {PORT "8080"} {TRANSPORT TCP}}}} {NFSERVICESTATUS REGISTERED} {SCHEME http}
+ {SERVICEINSTANCEID Npcf_AmPolicyControl} {SERVICENAME npcf-am-policy-control} {VERSIONS {+_list {{APIFULLVERSION "1.0.0"} {APIVERSIONINURI v1}}}}} {{FQDN pcf2.service2.com} {IPENDPOINTS {+_list {{IPV4ADDRESS "172.16.59.60"}}}} {NFSERVICESTATUS REGISTERED} {SCHEME http}
+ {SERVICEINSTANCEID Npcf_UePolicyControl} {SERVICENAME npcf-ue-policy-control} {VERSIONS {+_list {{APIFULLVERSION "1.0.0"} {APIVERSIONINURI v1}}}}}}} {NFSTATUS REGISTERED} {NFTYPE PCF} {PCFINFO {{DNNLIST {+_list wap1.nokia.com wap2.nokia.com}}}} {PLMNLIST {+_list {{MCC "460"} {MNC "02"}}}} {PRIORITY "1"}}}} {VALIDITYPERIOD "1000"}}}}}}} {FLAGS $01} {STREAMID $00000001}}}} {localName nrf1_s} {remoteName amf_net1_1}}
+-
+
+
+* NRF interface 1 (f20008-01)
+** AMF register to NRF
+HTTP2 {{BODY {@HEADERSFRAME {{FLAGS $04} {HDRBLKFRAGMENT {{AUTHORITY "172.16.59.31:8080"} {CONTENTLEN "3509"} {CONTENTTYPE application/json} {METHOD PUT} {PATH /nnrf-nfm/v1/nf-instances/459ca86b-c424-4fc5-9b2f-05ad14dff185} {SCHEME http} {USERAGENT amf}}} {STREAMID $00000041}}}} {localName nrf1_s} {remoteName amf_net1}}
+
+** AMF update to NRF
+HTTP2 {{BODY {@HEADERSFRAME {{FLAGS $04} {HDRBLKFRAGMENT {{AUTHORITY "172.16.59.31:8080"} {CONTENTLEN "3509"} {CONTENTTYPE application/json} {METHOD PUT} {PATH /nnrf-nfm/v1/nf-instances/459ca86b-c424-4fc5-9b2f-05ad14dff185} {SCHEME http} {USERAGENT amf}}} {STREAMID $00000041}}}} {localName nrf1_s} {remoteName amf_net1}}
+
+** AMF deregister to NRF
+HTTP2 {{BODY {@HEADERSFRAME {{FLAGS $05} {HDRBLKFRAGMENT {{AUTHORITY "172.16.59.31:8080"} {METHOD DELETE} {PATH /nnrf-nfm/v1/nf-instances/39d06b93-e7f3-49d6-b995-910e276c048a} {SCHEME http} {USERAGENT amf}}} {STREAMID $00000003}}}} {localName nrf1_s} {remoteName amf_net1_1}}
+
+
+The NRF proxy registers with the NRF for the following conditions:
+
+When AMF is brought into service for the first time.
+After brought into service if AMF sends NFDeregister. AMF may deregister for cases like software upgrade or service lock.
+The NRF proxy supports NRRegister/NFDeregister operation as specified in clause 5.2.2.4 of TS 29.510.
+
+** when to register/deregister
+*** The NRF proxy uses this operation for situations like software upgrade and service lock.
+mso0375 AMF Registration and DeRegistration with Aggregrate Service Lock and Unlock
+    [Tags]  tidnum_mso0375    tc_prio_1    regression
+    [Documentation]   To verify that AMF sends NF_Deregister to remote NRF when the Service lock Happens.Also verify that
+    ...               AMF sends NF_Register once the Service_Unlock happens
+    [Setup]    Test Setup mso0375
+    IOTA Async Procedure Start  5gNrfManagementServices -verbose 1
+    CMM Command    cmm networkFunctionInstance modify --instanceId ${IOTA['NRF1_UUID']} --enable true
+    IOTA Async Procedure Wait For Completion
+    sleep    2s
+    IOTA Procedure    5gRegistrationSuci -verbose 1
+    IOTA Procedure    5gUeDeRegistration
+    IOTA Procedure    5gUdmDeRegistration
+    sleep    3s
+    #AdminState Locked
+    IOTA Async Procedure Start    5gNrfManagementServices -service_type nfderegister -postinitproc {::amfconfigupdate}  -verbose 1
+    Rest Modify Aggregateservices    adminState=locked
+    IOTA Async Procedure Wait For Completion
+    NRF Cache Check
+    #AdminState Unlocked
+    IOTA Async Procedure Start    5gNrfManagementServices -service_type nfregister -postinitproc {::amfconfigupdate} -verbose 1
+    Rest Modify Aggregateservices    adminState=unlocked
+    IOTA Async Procedure Wait For Completion
+    NRF Cache Check
+
+
+*** when to update 
+when NRF netwworkFunctionInstance enalbed from disabled
+
+
+** The NRF proxy supports CLI commands for the following:
+
+Output NRF cache.
+Flush NRF cache.
+Delete an NF profile from the cache.
+The selection of an session management function (SMF) for a PDU connection is based on the UE-requested/selected data network name (DNN) and S-NSSAI. If AMF cannot find a matching SMF, then AMF selects an SMF configured as default or an SMF that supports all the DNN and S-NSSAI.
+
+** This feature only supports selection of NF using local provisioning data.
+
+The AMF selects a unified data management (UDM) using the subscription permanent identifier (SUPI) range mapping to UDM provisioning. If AMF cannot find a matching UDM, then AMF selects a UDM configured as default.
+The authentication server function (AUSF) selection is based on the PLMN ID received in the subscription concealed identifier (SUCI). Phase 1 will only consist of a single AUSF.
+The AMF selects a policy control function (PCF) using the SUPI range mapping to PCF provisioning. If the AMF cannot find a matching PCF, the AMF selects a PCF configured as default.
+
+* Nssf interface
+** AMF can serve the UE with the requested snssailist in registration request
+amfSetSnssai  Create, Delete, List, Show  AMF Set Supported S-NSSAI.?
+if any one item of the requested sannsailist not in amfSetSnssai list, then
+AMF wil consider other  AMF?
+if  AMF gPram: useNssfSelectionServiceForAmf true  
+
+When NSSF is used, the locally provisioned TAI S-NSSAI list is not taken into account in order to create the availability info or to conclude about the allowed NSSAI.
+[cmm@lm638-necc0 ~]$ cmm amfTai show ETPLMN~30000
+|---------------------+---------------------|
+| Field               | Value               |
+|---------------------+---------------------|
+| amfTai              | ETPLMN~30000        |
+| plmnName*           | ETPLMN              |
+| amfTac*             | 30000               |
+| snssaiListName      |  some-snssailist    | #Tai S-NSSAI
+
+cmm nssfCacheAdmin list
+      "nssfFileName": "/var/log/cfgmgr/NSSFQuery-2020-03-31T02:07:33.128862Z.out", 
+          "nssfCacheAdmin": "config"
+-------------------------------
+cat /var/log/cfgmgr/NSSFQuery-2020-03-31T02:07:33.128862Z.out 
+TAI:     460 0215 30000
+-------------------
+List of SNSSAI:
+{
+ sst          sd
+  1          13714341
+   2          13714341
+    3          13714341
+     1          11259361
+     }
+     -------------------
+
+** AMF supports the provisioning of S-NSSAI supported by a TAI.
+*** precondition when AMF use local provisioning s-nssai instead of nssf
+
+AMF gPram: useNssfSelectionServiceForAmf   false
+
+
+The AMF supports the configuration of S-NSSAI (snssaiListName) supported in a TAC of the serving PLMN. The snssaiListName parameter is added to the commands amfTai and amfMultiTacOperation.
+The S-NSSAI that are not in the provisioned list will be considered not supported. If S-NNAI list is not provisioned, then it is assumed that all AMF-supported S-NSSAI are supported. 
+
+
+[cmm@espate138a-necc0 ~]$ cmm taisOfSnssaiQuery list --sliceServiceType 1 --sliceDifferentiator D143A5
++-------------------+------------------+---------------------+--------+--------+-------+
+| taisOfSnssaiQuery | sliceServiceType | sliceDifferentiator | taiMcc | taiMnc | tac   |
++-------------------+------------------+---------------------+--------+--------+-------+
+| 1~D143A5          | 1                | D143A5              | 460    | 02     | 30000 |
+| 1~D143A5          | 1                | D143A5              | 460    | 02     | 30001 |
+| 1~D143A5          | 1                | D143A5              | 460    | 02     | 30002 |
+| 1~D143A5          | 1                | D143A5              | 460    | 02     | 30005 |
++-------------------+------------------+---------------------+--------+--------+-------+
+[cmm@espate138a-necc0 ~]$ cmm snssaisOfTaiQuery list --taiMcc 460 --taiMnc 02 --tac 30001 -f json
+[
+  {
+    "taiMnc": "02",
+    "sliceDifferentiator": "D143A5",
+    "taiMcc": "460",
+    "tac": "30001",
+    "sliceServiceType": "1",
+    "snssaisOfTaiQuery": "460~02~30001"
+  }
+]
+
+*** AMF supported S-NSSAI with tac
+[cmm@lm638-necc0 ~]$ cmm amfTai show ETPLMN~30000
+|---------------------+---------------------|
+| Field               | Value               |
+|---------------------+---------------------|
+| amfTai              | ETPLMN~30000        |
+| plmnName*           | ETPLMN              |
+| amfTac*             | 30000               |
+| imsVopsSupport      | amfVopsNotSupported |
+| snssaiListName      |                     | ##amf-supported S-NSSAI
+| timeZoneName        | Default             |
+| emergencyServiceTai | false               |
+|---------------------+---------------------|
+The locally provisioned S-NNAI list under the amfTai is taken under consideration only when the useNssfAvailabilityService of amfGParms is set to false.
+
+*** AMF overall supported S-NSSAI regradless tac
+amfSetSnssai  Create, Delete, List, Show  AMF Set Supported S-NSSAI.
+cmm amfSetSnssai create --plmnName ETPLMN --amfSetId 2 --amfRegionId 1 --snssaiListName Snssai2
+[cmm@lm638-necc0 ~]$ cmm amfInstance show ETPLMN~1~1~1   ###local AMF instance with the amfSetSnssai  with the amfRegionId and amfSetId
++----------------------+--------------------------------------+
+| Field                | Value                                |
++----------------------+--------------------------------------+
+| amfInstance          | ETPLMN~1~1~1                         |
+| servedPlmnName*      | ETPLMN                               |
+| amfRegionId*         | 1                                    |
+| amfSetId*            | 1                                    |
+| amfPointer*          | 1                                    |
+| instanceId           | c49c505c-a263-4611-b130-7c5643650a98 |
+| nfServicesListName   | amfServices                          |
+| capacity             | 65535                                |
+| enable               | true                                 |
+| amfIdLabels          | NokiaAMF                             |
+| locality             |                                      |
+| priority             | 1                                    |
+| userAgentSuffix      |                                      |
+| nsiIdListName        |                                      |
+| restorationEndPtName |                                      |
+| guamiName            | Nokia5GC1                            |
++----------------------+--------------------------------------+
+
+[cmm@lm638-necc0 ~]$ cmm amfSetSnssai list
++--------------------+
+| amfSetSnssai       |
++--------------------+
+| ETPLMN~1~1~Snssai1 |
++--------------------+
+[cmm@lm638-necc0 ~]$ cmm amfSetSnssai show ETPLMN~1~1~Snssai1
+
++-----------------+--------------------+
+| Field           | Value              |
++-----------------+--------------------+
+| amfSetSnssai    | ETPLMN~1~1~Snssai1 |
+| plmnName*       | ETPLMN             |
+| amfRegionId*    | 1                  |
+| amfSetId*       | 1                  |
+| snssaiListName* | Snssai1            |
++-----------------+--------------------+
+[cmm@lm638-necc0 ~]$ cmm snssaiList show Snssai1
++------------+---------+
+| Field      | Value   |
++------------+---------+
+| snssaiList | Snssai1 |
+| name*      | Snssai1 |
++------------+---------+
+[cmm@lm638-necc0 ~]$ cmm snssaiListItem list --snssaiListName Snssai1
++----------------+
+| snssaiListItem |
++----------------+
+| Snssai1~MIoT   |
+| Snssai1~SLICE4 |
+| Snssai1~URLLC  |
+| Snssai1~eMBB   |
++----------------+
+[cmm@lm638-necc0 ~]$ cmm snssai show eMBB
++---------------------+--------+
+| Field               | Value  |
++---------------------+--------+
+| snssai              | eMBB   |
+| name*               | eMBB   |
+| sliceServiceType    | 1      |
+| sliceDifferentiator | D143A5 |
+| supportedInAllTa    | false  |
++---------------------+--------+
+[cmm@lm638-necc0 ~]$
+
+** NSSF (Network Slice Selection Function )
+*** prcondition when AMF consider the supported nssai using nssf
+AMF gPram: useNssfSelectionServiceForAmf   true
+When NSSF is used, the locally provisioned TAI S-NSSAI list is not taken into account in order to create the availability info or to conclude about the allowed NSSAI.
+The locally provisioned S-NNAI list under the amfTai is taken under consideration only when the useNssfAvailabilityService of amfGParms is set to false.
+
+The useNssfSelectionServiceForSmf of amfGParms determines if NSSF will be used for SMF slice selection. When set to true, AMF will issue Nnssf_NSSelection_Get query NSSF for slice instance selection for all new PDU session establishments.
+
+
+there are 3 scenarios for AMF and SMf interaction
+   -	Registration with AMF re-allocation (see clause 4.2.2.2.3 of 3GPP TS 23.502 [3]); case mso0501
+   -	UE Configuration Update procedure (see clause 4.2.4.2 of 3GPP TS 23.502 [3]);    
+   -	SMF selection for non-roaming and roaming with local breakout (see clause 4.3.2.2.3.2 of 3GPP TS 23.502 [3]) or SMF selection for home-routed roaming scenario (see clause 4.3.2.2.3.3 of 3GPP TS 23.502 [3]).
+
+*** Registration with AMF re-allocation with useNssfSelectionServiceForAmf false use local provision to another AMF
+cmm amfUePlmnServices modify 460_30  --amfSelection NRF/LocalProvisioning
+**** amfUePlmnServices configured amfSelection as LocalProvisioning
+cmm rmtAmfInstance modify --plmnName ETPLMN --amfRegionId 1 --amfSetId 2 --amfPointer 2 --nfServicesListName  rmtAmfServices --ipAddress 172.16.59.51 --enable true --priority 1
+[cmm@lm638-necc0 ~]$   cmm rmtAmfInstance show ETPLMN~1~2~2
++--------------------+--------------------------------------+
+| Field              | Value                                |
++--------------------+--------------------------------------+
+| rmtAmfInstance     | ETPLMN~1~2~2                         |
+| plmnName*          | ETPLMN                               |
+| amfRegionId*       | 1                                    |
+| amfSetId*          | 2                                    |
+| amfPointer*        | 2                                    |
+| instanceId         | 7857ff53-2603-4299-9967-374d3f4c1147 |
+| ipAddress          | 172.16.59.51                         |
+| fqdn               |                                      |
+| capacity           | 65535                                |
+| nfServicesListName | rmtAmfServices                       |
+| enable             | true                                 |
+| locality           |                                      |
+| priority           | 1                                    |
++--------------------+--------------------------------------+
+
+#     Provision Create    nfServicesList    name=rmtAmfServices
+#     Provision Create    nfServiceInstance    name=rmtNamf_Communication   service=Namf_Communication   allowedNssais=Snssai1
+#     Provision Create    nfServiceInstance    name=rmtrmtEventExposure     service=Namf_EventExposure   allowedNssais=Snssai1
+#     Provision Create    nfServiceInstance    name=rmtNamf_Location   service=Namf_Location    allowedNssais=Snssai1
+#     Provision Create    nfServiceInstance    name=rmtNamf_MT   service=Namf_MT   allowedNssais=Snssai1
+#     Provision Create    nfServices    nfServicesListName=rmtAmfServices nfServiceInstanceName=rmtNamf_Communication
+#     Provision Create    nfServices    nfServicesListName=rmtAmfServices nfServiceInstanceName=rmtrmtEventExposure
+#     Provision Create    nfServices    nfServicesListName=rmtAmfServices nfServiceInstanceName=rmtNamf_Location
+#     Provision Create    nfServices    nfServicesListName=rmtAmfServices nfServiceInstanceName=rmtNamf_MT
+#     Provision Modify    rmtAmfInstance ETPLMN~1~2~2 nfServicesListName=rmtAmfServices
+
+
+ CMM Command   cmm nfServiceInstance modify --name rmtNamf_Communication --nfIpEndPointListName Namf_Communication_EpList  --fqdn '' --defaultNotificationSubscriptionListName amfdefault
+    # --defaultNotificationSubscriptionListName ''
+    CMM Command   cmm nfServiceInstance modify --name rmtNamf_EventExposure --nfIpEndPointListName Namf_EventExposure_EpList --fqdn '' --defaultNotificationSubscriptionListName amfdefault
+    CMM Command   cmm nfServiceInstance modify --name rmtNamf_Location --nfIpEndPointListName Namf_Location_EpList  --fqdn '' --defaultNotificationSubscriptionListName amfdefault
+    CMM Command   cmm nfServiceInstance modify --name rmtNamf_MT --nfIpEndPointListName Namf_MT_EpList --fqdn '' --defaultNotificationSubscriptionListName amfdefault
+    CMM Command    cmm amfGParms modify --amfGparmName useNssfSelectionServiceForAmf --amfGparmValue false
+    CMM Command    cmm amfGParms modify --amfGparmName directNasMsgTransfer --amfGparmValue true
+    CMM Command    cmm rmtAmfInstance create --plmnName ETPLMN --amfRegionId 1 --amfSetId 3 --amfPointer 1 --instanceId 7857ff53-2603-4299-9967-374d3f4c1148 --nfServicesListName  rmtAmfServices --ipAddress 172.16.59.51 --enable true
+    CMM Command    cmm amfSetSnssai create --plmnName ETPLMN --amfRegionId 1 --amfSetId 3 --snssaiListName Snssai2
+    CMM Command    cmm amfUePlmnServices modify --name ETPLMN --amfSelection LocalProvisioning
+
+[cmm@lm638-necc0 ~]$ cmm amfInstance show ETPLMN~1~1~1
+|----------------------+--------------------------------------|
+| Field                | Value                                |
+|----------------------+--------------------------------------|
+| amfInstance          | ETPLMN~1~1~1                         |
+| servedPlmnName*      | ETPLMN                               |
+| amfRegionId*         | 1                                    |
+| amfSetId*            | 1                                    |
+| amfPointer*          | 1                                    |
+| instanceId           | c49c505c-a263-4611-b130-7c5643650a98 |
+| nfServicesListName   | amfServices                          |
+| capacity             | 65535                                |
+| enable               | true                                 |
+| amfIdLabels          | NokiaAMF                             |
+| locality             |                                      |
+| priority             | 1                                    |
+| userAgentSuffix      |                                      |
+| nsiIdListName        |                                      |
+| restorationEndPtName |                                      |
+| guamiName            | Nokia5GC1                            |
+|----------------------+--------------------------------------|
+
+
+[cmm@lm638-necc0 ~]$ cmm nfServices show amfServices~Namf_Comm_1
++------------------------+-------------------------+
+| Field                  | Value                   |
++------------------------+-------------------------+
+| nfServices             | amfServices~Namf_Comm_1 |
+| nfServicesListName*    | amfServices             |
+| nfServiceInstanceName* | Namf_Comm_1             |
++------------------------+-------------------------+
+[cmm@lm638-necc0 ~]$ cmm nfServiceInstance show Namf_Comm_1
+|-----------------------------------------+--------------------|
+| Field                                   | Value              |
+|-----------------------------------------+--------------------|
+| nfServiceInstance                       | Namf_Comm_1        |
+| name*                                   | Namf_Comm_1        |
+| service                                 | Namf_Communication |
+| apiVersionInUri                         | v1                 |
+| httpScheme                              | http               |
+| apiPrefix                               |                    |
+| allowedNssais                           | Snssai1            |
+| capacity                                | 65535              |
+| supportedFeatures                       |                    |
+| fqdn                                    |                    |
+| nfIpEndPointListName                    |                    |
+| priority                                | 1                  |
+| defaultNotificationSubscriptionListName |                    |
+| apiMinorVersion                         | 0                  |
+| apiPatchVersion                         | 1                  |
+|-----------------------------------------+--------------------|
+
+*** Registration with AMF re-allocation with useNssfSelectionServiceForAmf true
+AMF first uses the AMF-supported NSSAI to determine whether it can support all UE-requested NSSAI. If not, then AMF will use local provisioning to select target AMF. If AMF can support all NSSAI, then AMF determines whether requested NSSAI are allowed in the current TA.
+
+If AMF cannot serve the UE and if useNssfSelectionServiceForAmf is true, then AMF will query the NSSF to select AMF.
+
+When NSSF is used, the locally provisioned TAI S-NSSAI list is not taken into account in order to create the availability info or to conclude about the allowed NSSAI.
+
+**** when nssf query nssf to select AMF
+If AMF cannot serve the UE and if useNssfSelectionServiceForAmf is true, then AMF will query the NSSF to select AMF.
+amf will send nssf after get nssairsp from udm:
+-------------------------------------------------------------------------------------------------------------------------
+HTTP2 {{BODY {@HEADERSFRAME {{FLAGS $05} {HDRBLKFRAGMENT {{AUTHORITY "172.16.59.73:8080"} {METHOD GET} {PATH /nudm-sdm/v1/imsi-460020301001001/nssai} {SCHEME http} {USERAGENT amf}}} {STREAMID $00000007}}}} {localName udm2_s} {remoteName amf_net1}}^M^M
+^M^M
+amf_net1 ---- HEADERSFRAME ---&gt; udm2_s^M^M
+amf_net1 &lt;--- HEADERSFRAME ---- udm2_s^M^M
++++^M^M
+HTTP2 {{BODY {@HEADERSFRAME {{FLAGS $04} {HDRBLKFRAGMENT {{CONTENTID EMPTY} {CONTENTLEN EMPTY} {CONTENTTYPE application/json} {DATE EMPTY} {HDRTABLESZ EMPTY} {LOCATION EMPTY} {RETRYAFTER EMPTY} {STATUS "200"}}} {STREAMDEP EMPTY} {STREAMID $00000007} {WEIGHT EMPTY}}}} {localName udm2_s} {remoteName amf_net1}}^M^M
+^M^M
+amf_net1 &lt;--- DATAFRAME(GETNSSAIRSP) ---- udm2_s^M^M
+HTTP2 {{BODY {@DATAFRAME {{DATA {NUDM {{BODY {@GETNSSAIRSP {{DEFAULTSINGLENSSAIS {+_list {{SD $ABCDE1} {SST 9}} {{SD $ABCDE2} {SST 9}} {{SD $ABCDE3} {SST 9}}}} {SINGLENSSAIS {+_list {{SD $D143A5} {SST 9}}}}}}}}}} {FLAGS $01} {STREAMID $00000007}}}} {localName udm2_s} {remoteName amf_net1}}^M^M
+=========================
+HTTP2 {{BODY {@HEADERSFRAME {{FLAGS $05} {HDRBLKFRAGMENT {{AUTHORITY "172.16.59.36:8080"} {METHOD GET} {PATH "/nnssf-nsselection/v1/network-slice-information?nf-type=AMF&amp;nf-id=f5abaa68-70ad-459e-8ad2-25587053cf51&amp;slice-info-request-for-registration=%7B%22subscribedNssai%22:%5B%7B%22subscribedSnssai%22:%7B%22sst%22:9,%22sd%22:%22ABCDE1%22%7D,%22defaultIndication%22:true%7D,%7B%22subscribedSnssai%22:%7B%22sst%22:9,%22sd%22:%22ABCDE2%22%7D,%22defaultIndication%22:true%7D,%7B%22subscribedSnssai%22:%7B%22sst%22:9,%22sd%22:%22ABCDE3%22%7D,%22defaultIndication%22:true%7D,%7B%22subscribedSnssai%22:%7B%22sst%22:9,%22sd%22:%22D143A5%22%7D,%22defaultIndication%22:false%7D%5D,%22requestedNssai%22:%5B%7B%22sst%22:9,%22sd%22:%22ABCDE1%22%7D,%7B%22sst%22:9,%22sd%22:%22ABCDE2%22%7D,%7B%22sst%22:9,%22sd%22:%22ABCDE3%22%7D%5D,%22defaultConfiguredSnssaiInd%22:false,%22requestMapping%22:false%7D&amp;tai=%7B%22plmnId%22:%7B%22mcc%22:%22460%22,%22mnc%22:%2202%22%7D,%22tac%22:%22007530%22%7D"} {SCHEME http} {USERAGENT amf}}} {STREAMID $00000007}}}} {localName nssf1_s} {remoteName amf_net1}}^M^M
+----------------------------------------------------------------------------
+**** AMF can't serve the UE, trigger AMF query NSSF to select AMF
+case mso0524
+Regestration setp 4:
+4.AMF interrogates NSSF for Slice Selection if it cannot serve the UE: NSSF returns set of NSI ID, Allowed S-NSSAI, target AMF set. A target AMF is selected by the AMF initially received the request and rerouting to the target AMF applies
+
+
+amf_net1 ---- nssf-neselection( slice-info-request-for-registration ) ---> nssf1_s 
+##query nssf with amfnfid snnsai,plmn to check if this amfnfid could serve the snnsai,plmn)
+HTTP2 {{BODY {@HEADERSFRAME {{FLAGS $05} {HDRBLKFRAGMENT {{AUTHORITY "172.16.59.36:8080"} {METHOD GET}
+{PATH "/nnssf-nsselection/v1/network-slice-information?nf-type=AMF&nf-id=61920b09-e525-42f7-82b5-f5a6e90a243d&slice-info-request-for-registration=%7B%22subscribedNssai%22:%5B%7B%22subscribedSnssai%22:%7B%22sst%22:1,%22sd%22:%22D143A5%22%7D,%22defaultIndication%22:true%7D,%7B%22subscribedSnssai%22:%7B%22sst%22:2,%22sd%22:%22D143A5%22%7D,%22defaultIndication%22:false%7D,%7B%22subscribedSnssai%22:%7B%22sst%22:3,%22sd%22:%22D143A5%22%7D,%22defaultIndication%22:false%7D,%7B%22subscribedSnssai%22:%7B%22sst%22:1,%22sd%22:%22ABCDE1%22%7D,%22defaultIndication%22:false%7D,%7B%22subscribedSnssai%22:%7B%22sst%22:2,%22sd%22:%22ABCDE2%22%7D,%22defaultIndication%22:false%7D,%7B%22subscribedSnssai%22:%7B%22sst%22:3,%22sd%22:%22ABCDE3%22%7D,%22defaultIndication%22:false%7D,%7B%22subscribedSnssai%22:%7B%22sst%22:4,%22sd%22:%22ABCDE4%22%7D,%22defaultIndication%22:false%7D,%7B%22subscribedSnssai%22:%7B%22sst%22:5,%22sd%22:%22ABCDE5%22%7D,%22defaultIndication%22:false%7D,%7B%22subscribedSnssai%22:%7B%22sst%22:4%7D,%22defaultIndication%22:false%7D%5D,%22requestedNssai%22:%5B%7B%22sst%22:1,%22sd%22:%22D143A5%22%7D,%7B%22sst%22:2,%22sd%22:%22D143A5%22%7D,%7B%22sst%22:3,%22sd%22:%22D143A5%22%7D,%7B%22sst%22:3,%22sd%22:%22ABCDE3%22%7D%5D,%22defaultConfiguredSnssaiInd%22:false,%22requestMapping%22:false%7D&tai=%7B%22plmnId%22:%7B%22mcc%22:%22460%22,%22mnc%22:%2202%22%7D,%22tac%22:%22007530%22%7D"} {SCHEME http} {USERAGENT amf}}} {STREAMID $00000009}}}} {localName nssf1_s} {remoteName amf_net1}}
+
+***** NSSF return another AMF to source AMF
+amf_net1 <--- DATAFRAME(NSSFNSSELECTIONRSP) ---- nssf1_s
+{ "allowedNssaiList": [ { "allowedSnssaiList": [ { "allowedSnssai": { "sst": 9, "sd": "abcde1" }  } , { "allowedSnssai": { "sst": 9, "sd": "abcde2" }  } , { "allowedSnssai": { "sst": 9, "sd": "abcde3" }  } , { "allowedSnssai": { "sst": 4 }  }  ], "accessType": "3GPP_ACCESS" }  ], "candidateAmfList": [  "7857ff53-2603-4299-9967-374d3f4c1147" ] } 
+
+***** amf query nrf to get candidatAmf's ip address
+then amf_net1 query nnrf
+HTTP2 {{BODY {@HEADERSFRAME {{FLAGS $05} {HDRBLKFRAGMENT {{AUTHORITY "172.16.59.31:8080"} {METHOD GET} {PATH "/nnrf-disc/v1/nf-instances?target-nf-type=AMF&amp;requester-nf-type=AMF&amp;target-nf-instance-id=7857ff53-2603-4299-9967-374d3f4c1147&amp;service-names=namf-comm&amp;requester-nf-instance-fqdn=nokiaAMF.amf.5gc.mnc002.mcc460.3gppnetwork.org"} {SCHEME http} {USERAGENT amf}}} {STREAMID $000021D9}}}} {localName nrf1_s} {remoteName amf_net1_1}}^M^M
+
+
+***** nrf response with ip address
+FDISCOVERRSP {{NFINSTANCES {+_list {{AMFINFO {{AMFREGIONID "01"} {AMFSETID "002"} {GUAMILIST {+_list {{AMFID $010082} {PLMNID {{MCC "460"} {MNC "02"}}}}}}}} {CAPACITY "50"} {FQDN amf1.com} {IPV4ADDRESSES {+_list "172.16.59.51"}} {NFINSTANCEID "7857FF53-2603-4299-9967-374D3F4C1147"} {NFSERVICES {+_list {{DEFAULTNOTIFICATIONSUBSCRIPTIONS {+_list {{CALLBACKURI http://172.16.59.51:8080/namf-comm/v1/n1-message-notification-5gmm} {N1MESSAGECLASS "5GMM"} {NOTIFICATIONTYPE N1_MESSAGES}}}} {FQDN amf1.service1.com} {IPENDPOINTS {+_list {{IPV4ADDRESS "172.16.59.51"} {PORT "8080"}
+
+***** amf forward the registration request to another AMF
+HTTP2 {{BODY {@HEADERSFRAME {{FLAGS $04} {HDRBLKFRAGMENT {{AUTHORITY "172.16.59.51:8080"} {CONTENTLEN "1515"} {CONTENTTYPE "multipart/related; boundary=gc0pJq08jU534c"} {METHOD POST} {PATH /namf-comm/v1/n1-message-notification-5gmm} {SCHEME http} {USERAGENT amf}}} {STREAMID $00000001}}}} {localName amfsim1_s} {remoteName amf_net1_1}}^M^M
+^M^M
+amf_net1_1 ---- HEADERSFRAME ---&gt; amfsim1_s^M^M
+HTTP2 {{BODY {@DATAFRAME {{DATA {NAMF {{BODY {@N1MESSAGENOTIFICATION {{BINARYDATAN1SMMESSAGE {NAS::NGREGISTRATIONREQUEST {{EPD $7E} {NGKSI $07} {NGMOBILEIDENTITY $0164F020214300003010000110} {NGREGISTRATIONTYPE $09} {REQUESTEDNSSAI $0409ABCDE10409ABCDE20409ABCDE3} {SECURITYHDRTYPE $0} {SPAREHALFOCTET $0} {UESECURITYCAPABILITY $80408080}}}} {N1MESSAGECONTAINER {{N1MESSAGECLASS "5GMM"} {N1MESSAGECONTENT {{CONTENTID n1msg}}}}} {REGISTRATIONCTXTCONTAINER {{ALLOWEDNSSAI {{ACCESSTYPE "3GPP_ACCESS"} {ALLOWEDSNSSAILIST {+ {{ALLOWEDSNSSAI {{SD $ABCDE1} {SST "9"}}}} {{ALLOWEDSNSSAI {{SD $ABCDE2} {SST "9"}}}} {{ALLOWEDSNSSAI {{SD $ABCDE3} {SST "9"}}}} {{ALLOWEDSNSSAI {{SST "4"}}}}}}}} {ANN2APID "12"} {ANN2IPV4ADDR "172.16.59.11"} {ANTYPE "3GPP_ACCESS"} {INITIALAMFNAME nokiaAMF.amf.5gc.mnc002.mcc460.3gppnetwork.org} {LOCALTIMEZONE -05:00+1} {RANNODEID {{GNBID {{BITLENGTH "20"} {GNBVALUE $00005151}}} {PLMNID {{MCC "460"} {MNC "02"}}}}} {RRCESTCAUSE "3"} {UECONTEXT {{MMCONTEXTLIST {+ {{ACCESSTYPE "3GPP_ACCESS"} {NASDOWNLINKCOUNT "1"} {NASSECURITYMODE {{CIPHERINGALGORITHM NEA0} {INTEGRITYALGORITHM NIA1}}} {NASUPLINKCOUNT "0"} {UESECURITYCAPABILITY "gECAgA=="}}}} {PEI imeisv-9876543219876510} {ROUTINGINDICATOR "1234"} {SEAFDATA {{KEYAMF {{KEYTYPE KAMF} {KEYVAL $EE9C83D652927E760426BE74443CDB508D761C222BA75CF7E80D85C1E225FA4B}}} {NCCNUM "0"} {NGKSI {{KSI "0"} {TSC NATIVE}}} {NH $0000000000000000000000000000000000000000000000000000000000000000}}} {SMSSUPPORT NONE} {SUPI imsi-460020301001001}}} {USERLOCATION {{NRLOCATION {{NCGI {{NRCELLID "000515101"} {PLMNID {{MCC "460"} {MNC "02"}}}}} {TAI {{PLMNID {{MCC "460"} {MNC "02"}}} {TAC $007530}}}}}}}}}}}}}}} {FLAGS $01} {STREAMID $00000001}}}} {localName amfsim1_s} {remoteName amf_net1_1}}^M^M
+
+
+**** nssf for amf selection requirement
+how nssf know every amf's nssai-tac list?
+gParm: useNssfAvailabilityService
+Nnssf_NSSAIAvailability	This service enables to update the S-NSSAIs the AMF supports on a per TA basis on the NSSF and update the restricted S-NSSAIs per TA and per PLMN on the AMF.	
+
+***** iotacase trigger nssfavailablity message exchage from AMF to NSSF
+#    IOTA Async Procedure Start    5gNssfAvailabilityServices -verbose 1
+#    CMM Command    cmm amfGParms list
+#    CMM Command    cmm amfGParms modify --amfGparmName useNssfAvailabilityService --amfGparmValue true
+#    IOTA Async Procedure Wait For Completion
+
+
+
+
+**** testcase analyze mau1268
+testcaseid: mau1268 Registration Req UePlmnService, alwaysQueryNssfForAmfSelection set to true and verify AMF always query NSSF
+means everytime UE requested a new NSSAi from TAU procedure, amf will always send NSSF query
+  Provision Modify    amfUePlmnServices    name=ETPLMN   alwaysQueryNssfForAmfSelection=true
+    Provision Modify    amfGParms   amfGparmName=useNssfAvailabilityService     amfGparmValue=true
+    Sleep    5
+    IOTA Procedure    5gRegistrationSuci -nssfsel true -snssai "1,D143A5,,,2,D143A5,,,"
+    ...                  -postinitproc {::SetIeNssaiSelectionRsp -allow_nssai 01,D143A5,02,D143A5,03,D143A5 -amfsetid 1}
+    IOTA Procedure    5gUeDeRegistration
+    IOTA Procedure    5gRegistrationGuti -nssfsel true -subscription_retrival nssai_only
+#### now the agreed nssai allowed for this use is in registration accept(1,D143A5,,,2,D143A5,,,)
+#### any new added requested NSSAI from ue will triger AMF to query with NSSF
+    comment   1. Idle UE UE Registration Mobility, Requested NSSAI is subset of allowed NSSAI. AMF not query NSSF as NSSAI is allowed.
+    IOTA Procedure    5gNgRelease
+    IOTA Procedure    5gRegistrationMobility -snssai "1,D143A5,,," -nssfsel false
+
+    comment   2. Idle UE UE Registration Mobility, Requested NSSAI having new NSSAI, even AMF support NSSAI, AMF query NSSF.
+###ue request new NSSAI, AMF support it from previous NSSF query( 01,D143A5,02,D143A5,03,D143A5 )
+
+    IOTA Procedure    5gNgRelease
+    IOTA Procedure    5gRegistrationMobility -snssai "1,D143A5,,,2,D143A5,,3,D143A5,," -nssfsel true -subscription_retrival nssai_only
+    ...                  -postinitproc {::SetIeNssaiSelectionRsp -allow_nssai 01,D143A5,02,D143A5,03,D143A5 -amfsetid 1}
+
+    comment   3. Idle UE Registration Mobility. Requested NSSAI having new NSSAI, AMD not support NSSAI and AMF query NSSF.
+    IOTA Procedure    5gNgRelease
+    IOTA Procedure    5gRegistrationMobility -nssfsel true -subscription_retrival nssai_only -snssai "1,D143A5,,,2,D143A5,,,3,D143A5,,,3,ABCDE3,,,"
+    ...                  -postinitproc {::SetIeNssaiSelectionRsp -allow_nssai 01,D143A5,02,D143A5,03,D143A5 -amfsetid 1}
+
+    comment   4. Idle UE Registration Periodic, with pereodic update UE not sending requested NSSAI. no NSSF query
+#### TAU without any NSSAI, no new NSSAI, no NSSF query
+    IOTA Procedure    5gNgRelease
+    IOTA Procedure    5gRegistrationPeriodic -snssai ""
+
+    IOTA Procedure    5gServiceReqSignalling
+    IOTA Procedure    5gUeDeRegistration
+    IOTA Procedure    5gUdmDeRegistration
+    PMOnDemand.report_request    yes    200
+
+*** NSSF cache
+param useNssfAvailabilityService true will trigger nssf cache operation
+**** NSSF cache update
+CMM Command    cmm amfGParms modify --amfGparmName useNssfAvailabilityService --amfGparmValue true
+IOTA Async Procedure Wait For Completion    ###when useNssfAvailabilityService from false to true, amf will send its snssailist per tai to nssf tai 30000:  1 13714341  2 13714341  3  13714341
+
+CMM Command    cmm nssfCacheAdmin list      #### and nssf will reply with the snnsailist per tai to AMF, and this list may contain more snssai item per tai than amf sent to nssf previously
+## and all these snssai list per tai from nssf will be stored to nssf cache
+
+cmm nssfCacheAdmin list
+      "nssfFileName": "/var/log/cfgmgr/NSSFQuery-2020-03-31T02:07:33.128862Z.out", 
+          "nssfCacheAdmin": "config"
+-------------------------------
+cat /var/log/cfgmgr/NSSFQuery-2020-03-31T02:07:33.128862Z.out 
+TAI:     460 0215 30000
+-------------------
+List of SNSSAI:
+{
+ sst          sd
+  1          13714341
+  2          13714341
+  3          1371434
+  1          11259361  ####an extra snssai returned from nssf server not from amf's local provisioning
+ }
+  -------------------
+
+
+**** when to use NSSF cache to check if AMF can serve the UE's requested nssailist
+param useNssfAvailabilityService true
+param useNssfSelectionServiceForAmf true
+when AMF can't serve the UE, it will check nssf's cache firsly if these two para are true
+
+IOTA Procedure    5gRegistrationSuci -snssai "1,D143A5,,,2,D143A5,,,1,ABCDE1,,," -postinitproc {Verify_Nssai -allow \\$0401D143A50402D143A50401ABCDE1}  -verbose 1
+### the AMF will send registration accept since snssai{ 1 11259361}  is in nssf cache
+CMM Command      cmm snssaisOfTaiQuery list --taiMcc 460 --taiMnc 02 --tac 30000
+
+IOTA Procedure    5gUeDeRegistration
+IOTA Procedure    5gUdmDeRegistration
+CMM Command    cmm amfGParms modify --amfGparmName useNssfAvailabilityService --amfGparmValue false
+
+ IOTA Procedure    5gRegistrationSuci -snssai "1,D143A5,,,2,D143A5,,,1,ABCDE1,,," -reroute amf -pcf false -config_update false -verbose 1 -postinitproc {scen_common_chain removechainedsm    "N22_NSSFSELECTION";}
+### the second time, amf will not use nssf's cache since useNssfAvailabilityService is false even there's {1 11259361} in nssf cache
+
+*** UE Configuration Update procedure
+
+*** SMF selection when pdu established
+This procedure may be skipped altogether if SMF information is available in the AMF by other means (e.g. locally configured); otherwise:
+**** -	when the serving AMF is aware of the appropriate NRF to be used to select NFs/services within the corresponding Network Slice instance based on configuration or based on the Network Slice selection information received during Registration, only steps 3 and 4 in the following procedure are executed as described in Figure 4.3.2.2.3.2-1;
+
+
+
+****	when the serving AMF is not aware of the appropriate NRF to be used to select NFs/services within the corresponding Network Slice instance, all steps in the following procedure are executed as described in Figure 4.3.2.2.3.2-1.
+case mso0542
+1.	The AMF invokes the Nnssf_NSSelection_Get service operation from the NSSF in serving PLMN with the S-NSSAI of the VPLMN from the Allowed NSSAI requested by the UE, PLMN ID of the SUPI, TAI of the UE and the indication that the request is within a procedure of PDU Session establishment in either the non-roaming or roaming with local breakout scenario.
+2.	The NSSF in serving PLMN selects the Network Slice instance, determines and returns the appropriate NRF to be used to select NFs/services within the selected Network Slice instance, and optionally may return a NSI ID corresponding to the Network Slice instance.
+3.	AMF queries the appropriate NRF in serving PLMN by issuing the Nnrf_NFDiscovery_Request including S-NSSAI of the VPLMN for this PDU Session from the Allowed NSSAI, PLMN ID of the SUPI, DNN and possibly NSI ID in case the AMF has stored an NSI ID for the S-NSSAI of the VPMN for this PDU Session from the Allowed NSSAI.
+4.	The NRF in serving PLMN provides to the AMF, e.g. FQDN or IP address, of a set of the discovered SMF instance(s) or Endpoint Address(es) of SMF service instance(s) in Nnrf_NFDiscovery_Request response message, and possibly an NSI ID for the selected Network Slice instance corresponding to the S-NSSAI for subsequent NRF queries.
+
+1. amf----nssf-nsselection-get(slice-info-request-for-pdu-session=s-ssnai and tai)----> nssf
+/nnssf-nsselection/v2/network-slice-information?nf-type=AMF&amp;nf-id=f9de14cf-9077-448d-961e-33550f1d3194&amp;slice-info-request-for-pdu-session=%
+2. nssf --------nrf url to get the smf ------------> amf
+@NSSFNSSELECTIONRSP {{NSIINFORMATION {{NRFID http://172.16.59.31:8080/nnrf-disc/v1/c207f08a-b7cd-4989-b830-02a8d0598ea1} {NSIID slice1}
+3. amf -------nrf-disc(target=SMF)--------->nrf
+{PATH "/nnrf-disc/v1/c207f08a-b7cd-4989-b830-02a8d0598ea1/nf-instances?target-nf-type=SMF&
+4.  nrf ----- smf info ------------------->amf
+NFDISCOVERRSP {{NFINSTANCES {+_list {{FQDN smf1.com} {IPV4ADDRESSES {+_list "172.16.59.61"}} {NFINSTANCEID "20e0b0c3-82e1-44a4-82ab-a065d80a3b91"}
+ 
+case mso0495
+5gPduEstablishment -dnn wap1.nokia.com -sd "D143A5" -sst "1" -nssfsel true    -postinitproc {::SetIeNssaiSelectionRsp -nsi_info true;}
+###nssfsel true means simulator nssf should reponse the nssf-nsselection query with parameter: snssai, tai and roamingIndication
+/nnssf-nsselection/v1/network-slice-information?nf-type=AMF&nf-id=47ff6da3-c6a2-49d3-86c6-52bf9274d59a&slice-info-request-for-pdu-session={"sNssai":{"sst":1,"sd":"D143A5"},"roamingIndication":"NON_ROAMING"}&tai={"plmn,tac"}
+
+after pdu session create request from GNB to AMF
+amf_net1 ---- HEADERSFRAME ---> nssf1_s
+HTTP2 {{BODY {@HEADERSFRAME {{FLAGS $05} {HDRBLKFRAGMENT {{AUTHORITY "172.16.59.36:8080"} {METHOD GET} {PATH "/nnssf-nsselection/v1/network-slice-information?nf-type=AMF&nf-id=f5abaa68-70ad-459e-8ad2-25587053cf51&slice-info-request-for-pdu-session=%7B%22sNssai%22:%7B%22sst%22:1,%22sd%22:%22D143A5%22%7D,%22roamingIndication%22:%22NON_ROAMING%22%7D&tai=%7B%22plmnId%22:%7B%22mcc%22:%22460%22,%22mnc%22:%2202%22%7D,%22tac%22:%22007530%22%7D"} {SCHEME http} {USERAGENT amf}}} {STREAMID $00000001}}}} {localName nssf1_s} {remoteName amf_net1}}
+
+amf_net1 <--- DATAFRAME(NSSFNSSELECTIONRSP) ---- nssf1_s
+HTTP2 {{BODY {@DATAFRAME {{DATA {NNSSF {{BODY {@NSSFNSSELECTIONRSP {{NSIINFORMATION {{NRFID http://172.16.59.31:8080/nnrf-disc/v1/c207f08a-b7cd-4989-b830-02a8d0598ea1}}}}}}}}} {FLAGS $01} {STREAMID $00000001}}}} {localName nssf1_s} {remoteName amf_net1}}
+
+amf_net1_1 ---- HEADERSFRAME ---> nrf1_s
+HTTP2 {{BODY {@HEADERSFRAME {{FLAGS $05} {HDRBLKFRAGMENT {{AUTHORITY "172.16.59.31:8080"} {METHOD GET} {PATH "/nnrf-disc/v1/c207f08a-b7cd-4989-b830-02a8d0598ea1/nf-instances?target-nf-type=SMF&requester-nf-type=AMF&service-names=nsmf-pdusession,nsmf-event-exposure&snssais=%5B%7B%22sst%22:1,%22sd%22:%22D143A5%22%7D%5D&dnn=wap1.nokia.com&tai=%7B%22plmnId%22:%7B%22mcc%22:%22460%22,%22mnc%22:%2202%22%7D,%22tac%22:%22007530%22%7D&requester-nf-instance-fqdn=nokiaAMF.amf.5gc.mnc002.mcc460.3gppnetwork.org"} {SCHEME http} {USERAGENT amf}}} {STREAMID $00000003}}}} {localName nrf1_s} {remoteName amf_net1_1}}
+
+case nbm1226
+
+***** when pdu session established, when amf send to nssf to get correct smf's correct nrf service
+The useNssfSelectionServiceForSmf of amfGParms determines if NSSF will be used for SMF slice selection. When set to true, AMF will issue Nnssf_NSSelection_Get query NSSF for slice instance selection for all new PDU session establishments.
+when nssf reply with error code, AMF will query NRF configured in local to get smf's address
+
+*** update nssai of amf to nssf
+The Nnssf_NSSAIAvailability service is used by the NF service consumer (e.g AMF) to update the S-NSSAI(s) the AMF supports on a per TA basis on the NSSF, subscribe and unsubscribe the notification of any changes to the NSSAI availability information on a per TA basis, of the S-NSSAIs available per TA (unrestricted) and the restricted S-NSSAI(s) per PLMN in that TA in the serving PLMN of of the UE.
+
+5gNssfAvailabilityServices -verbose 1
+amf-->nssf  	HEADERS[1]: PUT /nnssf-nssaiavailability/v1/nssai-availability/f5abaa68-70ad-459e-8ad2-25587053cf51
+                            with the configured TAI to supportedlist DATA
+nssf--->amf       plmnid1:{supportednssailist}   plmnid1:{supportednssailist}
+                  nssf reply with DATA which in nssf side, amf will update the tai to supportedList in its cache
+
+[cmm@espate139b-necc0 ~]$ cmm nssfCacheAdmin list
+[cmm@espate139b-necc0 ~]$ cat /var/log/cfgmgr/NSSFQuery-2019-11-01T08:30:55.683174Z.out
+
+ Tai To List of Supported SNSSAI Map
+ Number of entries found : 23
+-------------------
+TAI:     460 0215 6500
+-------------------
+List of SNSSAI:
+{
+ sst          sd
+ 1          13714341
+ 2          13714341
+ 3          13714341
+ 4          }
+-------------------
+
+
+ITE7 verify nssfCacheAdmin
+    [Tags]    tc_prio_1
+    IOTA Async Procedure Start    5gNssfAvailabilityServices -verbose 1
+    CMM Command    cmm amfGParms modify --amfGparmName useNssfAvailabilityService --amfGparmValue true
+    IOTA Async Procedure Wait For Completion
+    CMM Command    cmm nssfCacheAdmin list
+    sleep    4s
+    IOTA Async Procedure Start    5gNssfAvailabilityServices -verbose 1
+    CMM Command    cmm nssfCacheAdmin modify --cacheSource nssf --nssfCacheOperation flushCache
+    IOTA Async Procedure Wait For Completion
+    CMM Command    cmm nssfCacheAdmin list
+    CMM Command    cmm nssfCacheAdmin modify --cacheSource prov --nssfCacheOperation flushCache
+    sleep    4s
+
+
+
+
+* epdg Handover f20047-02
+This feature provides support for the UE to move between 3GPP access (NG-RAN connected to 5GC) and 
+non-3GPP access (connected via an ePDG to the EPC).
+
+When the UE moves from non-3GPP access to 5GS, the UE registers to 5GS and after that establishes the PDU session on 5GS as an existing PDU session. AMF then selects the previously selected PGW-C+SMF as provided on the HSS+UDM subscription information. When UE moves from 5GS to EPC/non-3GPP access, the UE makes a HO attach to untrusted non-3GPP and the PGW-C+SMF triggers AMF to remove the 5GS radio resources without sending any N1 release container towards the UE.
+
+feature en/dis
+cmm amfGParms modify --amfGparmName epdgHo --amfGparmValue ENABLE
+
+** epdg----->5GC 
+When the UE moves from non-3GPP access to 5GS, the UE registers to 5GS and after that establishes the PDU session on 5GS as an existing PDU session. AMF then selects the previously selected PGW-C+SMF as provided on the HSS+UDM subscription information. 
+Case mae1230
+
+*** UE initial registration to amf
+*** UE establish pdu
+amf get pdu establish request with "existing PDU session" as Rquest type and DNN "wap1.nokia.com"
+
+*** amf request nudm the smf/pgw related info
+PATH /nudm-sdm/v1/imsi-460020301001001/ue-context-in-smf-data} 
+{@UECONTEXTINSMFDATARETRIEVALRSP {{PGWINFO {+_list {{DNN wap1.nokia.com} {PGWFQDN pgw01.pool1.nodes.epc.mnc460.mcc02.3gppnetwork.org} {PLMNID {{MCC "460"} {MNC "02"}}}}
+{{DNN wap2.nokia.com} {PGWFQDN pgw02.pool1.nodes.epc.mnc460.mcc02.3gppnetwork.org}}}}}}}}} 
+
+*** nrf discovery with pgwind true and pgw's FQDN and normal parameter( dnn, snnsai, tai)
+/nnrf-disc/v1/nf-instances?target-nf-type=SMF&requester-nf-type=AMF&service-names=nsmf-pdusession,nsmf-event-exposure&snssais=%5B%7B%22sst%22:1,%22sd%22:%22D143A5%22%7D%5D
+&dnn=wap1.nokia.com&tai=%7B%22plmnId%22:%7B%22mcc%22:%22460%22,%22mnc%22:%2202%22%7D,%22tac%22:%22007530%22%7D&
+pgw=pgw01.pool1.nodes.epc.mnc460.mcc02.3gppnetwork.org&pgw-ind=true
+
+**** ebi assignment procedure in pdu establishment procedure
+***** handover from 4g to 5g, registration request(tyep: initial request)
+following IE in UE Registration Request must be true to trigger ebi assignment message
+amf5gmmUeCapability: 0x01
+amfS1UeNetworkCapability: 0xE0E0000002B020
+
+IOTA case;
+  IOTA Procedure      5gRegistrationSuci -postinitproc {      iwkepsind;
+          ...                     set ::c_ue(ngregstreq_mmcapability) \\$01;
+              ...                     set ::c_ue(ngregstreq_s1unetworkcapability) \\$E0E0000002B020;
+
+
+***** handover from 4g to 5g, pdu establishement(type: existing PDU)
+smf will request amf assign a ebi for each arpList
+5gPduEstablishment -dnn wap2.nokia.com -sd "D143A5" -sst "1" -psi 2 -reqtype "existing" -retrieve true, -postinitproc {, 5gEbiAssigmentWithPDUEstablisment_SMF ;, handle_udm_resp_3;, set_ePDG_mapPduSessions_to_empty ;, print_3GPP_figure_call_flow_UE_initiated_PDUSessionEstablishment;
+smf -------------> amf
+
+{METHOD POST} {PATH /namf-comm/v1/ue-contexts/imsi-460020301001001/assign-ebi}
+{ "pduSessionId": 2, "arpList": [ { "priorityLevel": 15, "preemptCap": "NOT_PREEMPT", "preemptVuln": "NOT_PREEMPTABLE" }  ] } 
+
+
+smf----------------->amf
+ {LOCATION http://172.16.59.63:8080/ue-contexts} {METHOD POST} {PATH /namf-comm/v1/ue-contexts/imsi-460020301001001/n1-n2-messages} 
+{@N1N2MESSAGETRANSFERREQ {{ARP {{PREEMPTCAP NOT_PREEMPT} {PREEMPTVULN NOT_PREEMPTABLE} {PRIORITYLEVEL "1"}}}
+{BINARYDATAN1SMMESSAGE {NAS::NGPDUSESSIONESTABLISHMENTACCEPT {{DNN wap2.nokia.com} {EPD $2E} {PDUSESSIONID 2} {PTI 3} {SELECTEDPDUSESSIONTYPE $3}}}} {BINARYDATAN2SMINFORMATION $0000080082000E1403A3529440005003A352944000008B000A01F0FFFFFFFFA1A2A3A4007E000A01F0FFFFFFFFA1A2A3A4007F0001000086000140008A000249200081000200FF00880031013F70E0FF7E000FFF000FFF391CA003A3529440005003A3529440005003A3529440005003A3529440000003E80003E80A} {N1MESSAGECONTAINER {{N1MESSAGECLASS "5GMM"} {N1MESSAGECONTENT {{CONTENTID n1ContentId}}}}} {N2INFOCONTAINER {{N2INFORMATIONCLASS SM} {SMINFO {{N2INFOCONTENT {{NGAPDATA {{CONTENTID n2ContentId}}} {NGAPIETYPE PDU_RES_SETUP_REQ} {NGAPMESSAGETYPE "27"}}} {PDUSESSIONID "2"} {SNSSAI {{SD $D143A5} {SST "1"}}}}}}} 
+{PDUSESSIONID "2"} {PPI "5"} {QI "10"}}}}}}
+
+amf_net1 ---- DATAFRAME(EBIASSIGNMENTRSP) ---> smf1_com
+HTTP2 {{BODY {@DATAFRAME {{DATA {NAMF {{BODY {@EBIASSIGNMENTRSP {{ASSIGNEDEBILIST {+ {{ARP {{PREEMPTCAP NOT_PREEMPT} {PREEMPTVULN NOT_PREEMPTABLE} {PRIORITYLEVEL "15"}}} {EPSBEARERID "5"}}}} {PDUSESSIONID "2"}}}}}}} {FLAGS $01} {STREAMID $00000015}}}} {localName smf1_com} {remoteName amf_net1}}
+
+
+
+
+
+
+** 5GC-----> epgd
+When UE moves from 5GS to EPC/non-3GPP access, the UE makes a HO attach to untrusted non-3GPP and the PGW-C+SMF triggers AMF to remove the 5GS radio resources without sending any N1 release container towards the UE. 
+Case mae1231
+
+with feature enabled
+
+*** UE initial registration to amf
+*** UE establish pdu
+amf get pdu establish request with "initial request" as Rquest type and DNN "wap1.nokia.com"
+
+*** nrf discovery with pgwind true and normal parameter( dnn, snnsai, tai)
+PATH "/nnrf-disc/v1/nf-instances?target-nf-type=SMF&requester-nf-type=AMF&service-names=nsmf-pdusession,nsmf-event-exposure&snssais=%5B%7B%22sst%22:1,%22sd%22:%22D143A5%22%7D%5D&
+dnn=wap1.nokia.com&tai=%7B%22plmnId%22:%7B%22mcc%22:%22460%22,%22mnc%22:%2202%22%7D,%22tac%22:%22007530%22%7D&
+pgw-ind=true
+
+if nrf couldn't find such kind of combo smf/pgw, it will return 
+AMF shall return NAS:DL NAS Transport message to the UE with the received 5GSM message and 5GMM cause code #90 "payload was not forwarded".
+the pdu establishment will fail
+
+
+
+
+
+
+
+
+
+** 

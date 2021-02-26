@@ -1,0 +1,312 @@
+* how to scrape the login website using python2
+normally, when you input one url, there'll be many subsequent urls to be get/post in a web browser, but if you use curl, there will be only the first url will be got.
+python2.7, requests has more power to do this than curl
+** get the http request/post and response  from webbrowser(such as firefox or chrome)
+in https url, wireshark only capture the encrypted http frames which not readable, so you need to get http frame from browser before it was encrypted
+     open the browser
+     F12 into debug mode
+     in the url box, input the url, enter
+     in the network tab, check the box "persist logs", so that all the subsequent urls will be captured
+     click on every html, there will be http header, data which has been sent and replied.
+in firefox, you can resend some http requests, but in chrome, no such option.
+in chrome, "Nework" tab, you could filter only http url request/response, no img, css files. using "XHR" filter
+
+** get the web url form python2
+def request(method, url, **kwargs):
+    """Constructs and sends a :class:`Request <Request>`.
+
+    :param method: method for the new :class:`Request` object.
+    :param url: URL for the new :class:`Request` object.
+    :param params: (optional) Dictionary, list of tuples or bytes to send
+        in the query string for the :class:`Request`.
+    :param data: (optional) Dictionary, list of tuples, bytes, or file-like
+        object to send in the body of the :class:`Request`.
+    :param json: (optional) A JSON serializable Python object to send in the body of the :class:`Request`.
+    :param headers: (optional) Dictionary of HTTP Headers to send with the :class:`Request`.
+    :param cookies: (optional) Dict or CookieJar object to send with the :class:`Request`.
+    :param files: (optional) Dictionary of ``'name': file-like-objects`` (or ``{'name': file-tuple}``) for multipart encoding upload.
+        ``file-tuple`` can be a 2-tuple ``('filename', fileobj)``, 3-tuple ``('filename', fileobj, 'content_type')``
+        or a 4-tuple ``('filename', fileobj, 'content_type', custom_headers)``, where ``'content-type'`` is a string
+        defining the content type of the given file and ``custom_headers`` a dict-like object containing additional headers
+        to add for the file.
+    :param auth: (optional) Auth tuple to enable Basic/Digest/Custom HTTP Auth.
+    :param timeout: (optional) How many seconds to wait for the server to send data
+        before giving up, as a float, or a :ref:`(connect timeout, read
+        timeout) <timeouts>` tuple.
+    :type timeout: float or tuple
+    :param allow_redirects: (optional) Boolean. Enable/disable GET/OPTIONS/POST/PUT/PATCH/DELETE/HEAD redirection. Defaults to ``True``.
+    :type allow_redirects: bool
+    :param proxies: (optional) Dictionary mapping protocol to the URL of the proxy.
+    :param verify: (optional) Either a boolean, in which case it controls whether we verify
+            the server's TLS certificate, or a string, in which case it must be a path
+            to a CA bundle to use. Defaults to ``True``.
+    :param stream: (optional) if ``False``, the response content will be immediately downloaded.
+    :param cert: (optional) if String, path to ssl client cert file (.pem). If Tuple, ('cert', 'key') pair.
+    :return: :class:`Response <Response>` object
+    :rtype: requests.Response
+
+v_headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36', 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3' ,  'Upgrade-Insecure-Requests': '1', 'Accept-Language': 'en-US,en;q=0.9' }
+
+v_data= {'username': 'glili@nsn-intra', 'password': '@WS3ed4rf'}  ### dictionary, but this order will be messed up when is has been encoded, use tuple
+v_data= (( 'tz_offset', '480'), ('username', 'glili@nsn-intra'), ('password', '@WS3ed4rf'), ('realm', 'NSN AD'), ('btnSubmit', 'Sign In'))
+verify=False ,when url is a https, if ssl error, could specify this
+
+request.get(url, data=dav, headers=v_heders, cookies=v_cookies, .......)
+
+** using python requests module to post/get webpage
+*** directly using requests to get
+import requests
+resp=requests.get(url2, verify=False)
+if you want to save cookied from response use:
+--------------------------------------------
+import pickle
+def save_cookies(requests_cookiejar, filename):
+    with open(filename, 'wb') as f:
+        pickle.dump(requests_cookiejar, f)
+
+def load_cookies(filename):
+    with open(filename, 'rb') as f:
+       return pickle.load(f)
+---------------------------------
+
+save_cookies(resp.cookies, '/tmp/cklw')
+cook= (load_cookies('/tmp/cklw')).get_dict() #next time, send requests(post/get) using the cookies from lasttime
+r=requests.get(url2,headers=headers2, cookies=cook )  //cookies  will be send in the header of the get 
+
+
+*** use session to get, session will save the cookies from the response automtically
+import requests
+ses = requests.session()
+res=ses.get(url2, verify=False)   // cookies will be saved in object ses in this line
+res2=ses.post(url3,verify=False)  // cookies that saved from prvious line will be sent in the header of this post's head also
+
+*** use redirect if receive no conetent
+when post a request, the response header will contain "Location:url"
+this url will be redirected automatcically.
+
+
+*** debug the http frame from python level
+if url is a https:// , then then ssl portocol will wrap and encypt the http request/post frame, wireshark log could capture port 443's tcp packet, 
+but http frame is invisible since it was encrypted, so debug on this python level is very crucail:
+----------------------------------
+import logging
+def debug_requests_on():
+    '''Switches on logging of the requests module.'''
+    HTTPConnection.debuglevel = 1
+
+    logging.basicConfig()
+    logging.getLogger().setLevel(logging.DEBUG)
+    requests_log = logging.getLogger("requests.packages.urllib3")
+    requests_log.setLevel(logging.DEBUG)
+    requests_log.propagate = True
+-------------------------------------
+output will be like:
+ses.get('https://10.45.38.4/dana/home/infranet.cgi', verify=False)
+===========================================
+send: 'GET /dana/home/infranet.cgi HTTP/1.1\r\nHost: 10.45.38.4\r\nConnection: keep-alive\r\nAccept-Encoding: gzip, deflate\r\nAccept: */*\r\nUser-Agent: python-requests/2.22.0\r\n\r\n'
+reply: 'HTTP/1.1 302 Found\r\n'
+header: Location: https://10.45.38.4/dana-na/auth/welcome.cgi  ### response has Location, then it will get the location url automatically
+header: Content-Type: text/html; charset=utf-8
+header: Set-Cookie: DSLaunchURL=2F64616E612F686F6D652F696E6672616E65742E636769; path=/; Secure  ### cookies will be save
+header: Connection: close
+header: Content-Length: 0
+
+send: 'GET /dana-na/auth/welcome.cgi HTTP/1.1\r\nHost: 10.45.38.4\r\nConnection: keep-alive\r\nAccept-Encoding: gzip, deflate\r\nAccept: */*\r\nUser-Agent: python-requests/2.22.0\r\nCookie: DSLaunchURL=2F64616E612F686F6D652F696E6672616E65742E636769\r\n\r\n'
+reply: 'HTTP/1.1 302 Found\r\n'
+header: Location: https://10.45.38.4/
+header: Content-Type: text/html; charset=utf-8
+header: Connection: close
+header: Content-Length: 0
+
+####the cookies saved before will be sent in the get request
+send: 'GET / HTTP/1.1\r\nHost: 10.45.38.4\r\nConnection: keep-alive\r\nAccept-Encoding: gzip, deflate\r\nAccept: */*\r\nUser-Agent: python-requests/2.22.0\r\nCookie: DSLaunchURL=2F64616E612F686F6D652F696E6672616E65742E636769\r\n\r\n'
+reply: 'HTTP/1.1 302 Found\r\n'
+header: Location: https://10.45.38.4/dana-na/auth/url_default/welcome.cgi
+header: Content-Type: text/html; charset=utf-8
+header: Set-Cookie: DSSIGNIN=url_default; path=/dana-na/; expires=Thu, 31-Dec-2037 00:00:00 GMT; secure
+header: Set-Cookie: DSIVS=; path=/; expires=Thu, 01 Jan 1970 22:00:00 GMT; secure
+header: Set-Cookie: DSSignInURL=/; path=/; secure
+header: Connection: close
+header: Content-Length: 0
+
+send: 'GET /dana-na/auth/url_default/welcome.cgi HTTP/1.1\r\nHost: 10.45.38.4\r\nConnection: keep-alive\r\nAccept-Encoding: gzip, deflate\r\nAccept: */*\r\nUser-Agent: python-requests/2.22.0\r\nCookie: DSSIGNIN=url_default; DSLaunchURL=2F64616E612F686F6D652F696E6672616E65742E636769; DSSignInURL=/\r\n\r\n'
+reply: 'HTTP/1.1 200 OK\r\n'
+header: Content-Type: text/html; charset=utf-8
+header: Set-Cookie: DSEPAgentInstalled=; path=/; expires=Tue, 14-Jul-2009 06:07:32 GMT; secure
+header: Date: Fri, 12 Jul 2019 06:07:32 GMT
+header: x-frame-options: SAMEORIGIN
+header: Connection: Keep-Alive
+header: Keep-Alive: timeout=15
+header: Pragma: no-cache
+header: Cache-Control: no-store
+header: Expires: -1
+header: Transfer-Encoding: chunked
+DEBUG:urllib3.connectionpool:https://10.45.38.4:443 "GET /dana-na/auth/url_default/welcome.cgi HTTP/1.1" 200 None
+-----------------------------------------------
+
+
+ses.post('https://10.45.38.4/dana-na/auth/url_default/welcome.cgi', verify=False)
+==========
+/usr/lib/python2.7/site-packages/urllib3/connectionpool.py:851: InsecureRequestWarning: Unverified HTTPS request is being made. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#ssl-warnings
+  InsecureRequestWarning)
+
+send: 'POST /dana-na/auth/url_default/login.cgi HTTP/1.1\r\nHost: 10.45.38.4\r\nConnection: keep-alive\r\nAccept-Encoding: gzip, deflate\r\nAccept: */*\r\nUser-Agent: python-requests/2.22.0\r\nCookie: DSSIGNIN=url_default; DSLaunchURL=2F64616E612F686F6D652F696E6672616E65742E636769; DSSignInURL=/\r\nContent-Length: 92\r\nContent-Type: application/x-www-form-urlencoded\r\n\r\ntz_offset=480&username=glili%40nsn-intra&password=%40WS3ed4rf&realm=NSN+AD&btnSubmit=Sign+In'
+reply: 'HTTP/1.1 302 Moved\r\n'
+header: Set-Cookie: DSASSERTREF=x; path=/; expires=Thu, 01 Jan 1970 22:00:00 GMT; secure
+header: Set-Cookie: DSID=3012fb50dff25cce0e66c5d964cdef92; path=/; secure
+header: Set-Cookie: DSFirstAccess=1562911653; path=/; secure
+header: Date: Fri, 12 Jul 2019 06:07:33 GMT
+header: location: https://10.45.38.4/dana/home/starter0.cgi?check=yes
+header: Content-Type: text/html; charset=utf-8
+header: Connection: Keep-Alive
+header: Keep-Alive: timeout=15
+header: Pragma: no-cache
+header: Cache-Control: no-store
+header: Expires: -1
+header: Content-Length: 0
+DEBUG:urllib3.connectionpool:https://10.45.38.4:443 "POST /dana-na/auth/url_default/login.cgi HTTP/1.1" 302 0
+/usr/lib/python2.7/site-packages/urllib3/connectionpool.py:851: InsecureRequestWarning: Unverified HTTPS request is being made. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#ssl-warnings
+  InsecureRequestWarning)
+send: 'GET /dana/home/starter0.cgi?check=yes HTTP/1.1\r\nHost: 10.45.38.4\r\nConnection: keep-alive\r\nAccept-Encoding: gzip, deflate\r\nAccept: */*\r\nUser-Agent: python-requests/2.22.0\r\nCookie: DSFirstAccess=1562911653; DSID=3012fb50dff25cce0e66c5d964cdef92; DSLaunchURL=2F64616E612F686F6D652F696E6672616E65742E636769; DSSignInURL=/\r\n\r\n'
+reply: 'HTTP/1.1 302 Moved\r\n'
+header: Content-Type: text/html; charset=utf-8
+header: Set-Cookie: DSLastAccess=1562911653; path=/; Secure
+header: Connection: Keep-Alive
+header: Pragma: no-cache
+header: Cache-Control: no-store
+header: Expires: -1
+header: Transfer-Encoding: chunked
+DEBUG:urllib3.connectionpool:https://10.45.38.4:443 "GET /dana/home/starter0.cgi?check=yes HTTP/1.1" 302 None
+ngs
+  InsecureRequestWarning)
+send: 'GET /dana/home/starter.cgi HTTP/1.1\r\nHost: 10.45.38.4\r\nConnection: keep-alive\r\nAccept-Encoding: gzip, deflate\r\nAccept: */*\r\nUser-Agent: python-requests/2.22.0\r\nCookie: DSFirstAccess=1562911653; DSLastAccess=1562911653; DSID=3012fb50dff25cce0e66c5d964cdef92; DSLaunchURL=2F64616E612F686F6D652F696E6672616E65742E636769; DSSignInURL=/\r\n\r\n'
+reply: 'HTTP/1.1 302 Moved\r\n'
+header: location: https://10.45.38.4/dana/home/eprun.cgi
+header: Content-Type: text/html; charset=utf-8
+header: Set-Cookie: DSLastAccess=1562911653; path=/; Secure
+header: Connection: Keep-Alive
+header: Keep-Alive: timeout=15
+header: Pragma: no-cache
+header: Cache-Control: no-store
+header: Expires: -1
+header: Content-Length: 0
+DEBUG:urllib3.connectionpool:https://10.45.38.4:443 "GET /dana/home/starter.cgi HTTP/1.1" 302 0
+/usr/lib/python2.7/site-packages/urllib3/connectionpool.py:851: InsecureRequestWarning: Unverified HTTPS request is being made. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#ssl-warnings
+  InsecureRequestWarning)
+send: 'GET /dana/home/eprun.cgi HTTP/1.1\r\nHost: 10.45.38.4\r\nConnection: keep-alive\r\nAccept-Encoding: gzip, deflate\r\nAccept: */*\r\nUser-Agent: python-requests/2.22.0\r\nCookie: DSFirstAccess=1562911653; DSLastAccess=1562911653; DSID=3012fb50dff25cce0e66c5d964cdef92; DSLaunchURL=2F64616E612F686F6D652F696E6672616E65742E636769; DSSignInURL=/\r\n\r\n'
+reply: 'HTTP/1.1 302 Moved\r\n'
+header: location: https://10.45.38.4/dana/home/infranet.cgi
+header: Content-Type: text/html; charset=utf-8
+header: Set-Cookie: DSLastAccess=1562911653; path=/; Secure
+header: Connection: Keep-Alive
+header: Keep-Alive: timeout=15
+header: Pragma: no-cache
+header: Cache-Control: no-store
+header: Expires: -1
+header: Transfer-Encoding: chunked
+/usr/lib/python2.7/site-packages/urllib3/connectionpool.py:851: InsecureRequestWarning: Unverified HTTPS request is being made. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#ssl-warnings
+  InsecureRequestWarning)
+send: 'GET /dana/home/infranet.cgi HTTP/1.1\r\nHost: 10.45.38.4\r\nConnection: keep-alive\r\nAccept-Encoding: gzip, deflate\r\nAccept: */*\r\nUser-Agent: python-requests/2.22.0\r\nCookie: DSFirstAccess=1562911653; DSLastAccess=1562911653; DSID=3012fb50dff25cce0e66c5d964cdef92; DSLaunchURL=2F64616E612F686F6D652F696E6672616E65742E636769; DSSignInURL=/\r\n\r\n'
+reply: 'HTTP/1.1 200 OK\r\n'
+header: Content-Type: text/html; charset=utf-8
+header: Set-Cookie: DSGatewayID=; path=/; expires=Thu, 01 Jan 1970 22:00:00 GMT; secure
+header: Set-Cookie: DSLaunchURL=; path=/; expires=Thu, 01 Jan 1970 22:00:00 GMT; secure
+header: Date: Fri, 12 Jul 2019 06:07:34 GMT
+header: Set-Cookie: DSLastAccess=1562911654; path=/; Secure
+header: Connection: Keep-Alive
+header: Keep-Alive: timeout=15
+header: Pragma: no-cache
+header: Cache-Control: no-store
+header: Expires: -1
+header: Transfer-Encoding: chunked
+DEBUG:urllib3.connectionpool:https://10.45.38.4:443 "GET /dana/home/infranet.cgi HTTP/1.1" 200 None
+Successfully LOGIN INTO ESPLAB
+
+===========
+
+
+
+*** python source code reference
+test.py
+-----------------------------
+import requests
+import sys
+import pickle
+import logging
+import contextlib
+import re
+try:
+    from http.client import HTTPConnection # py3
+except ImportError:
+    from httplib import HTTPConnection # py2
+
+def debug_requests_on():
+    '''Switches on logging of the requests module.'''
+    HTTPConnection.debuglevel = 1
+
+    logging.basicConfig()
+    logging.getLogger().setLevel(logging.DEBUG)
+    requests_log = logging.getLogger("requests.packages.urllib3")
+    requests_log.setLevel(logging.DEBUG)
+    requests_log.propagate = True
+
+def debug_requests_off():
+    '''Switches off logging of the requests module, might be some side-effects'''
+    HTTPConnection.debuglevel = 0
+
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.WARNING)
+    root_logger.handlers = []
+    requests_log = logging.getLogger("requests.packages.urllib3")
+    requests_log.setLevel(logging.WARNING)
+    requests_log.propagate = False
+
+url = 'https://10.45.38.4/dana-na/auth/url_default/login.cgi'
+url2 = 'https://10.45.38.4/dana/home/infranet.cgi'
+values= (( 'tz_offset', '480'), ('username', 'glili@nsn-intra'), ('password', '@WS3ed4rf'), ('realm', 'NSN AD'), ('btnSubmit', 'Sign In')) ## if use dict ,the order will be messed up
+
+s = requests.session()
+
+debug_requests_on()
+r=s.get(url2, verify=False)
+
+cook={}
+cook.update({'lastRealm':'NSN AD'})
+print "---post to ingranet-----------------"
+#r2 = s.post(url,data=values,cookies=cook) this cook will be apended to the exist cookies from previous get, if any
+--------------------------------
+
+
+** how to login the web url and get the cookied/session using python2
+normally, when you request some web, it will redirect you to a login in web to login
+for example, if you want to get url2, then it will get you to another html to post the login/name/password to the url set
+url = 'http://zilla.app.nokia.com/~zilla/lib/set/set.php'
+url2 = 'http://zilla.app.nokia.com/~zilla/lab/pages/labsched.php?&page=labsched&item=ATH-ATE-424D'
+values = {'r_token': 'glili', 'r_key': '@WS3ed4rf' , 'log':'zilla', 'myurl':url2, 'redirect': 'y', 'logtype':'fnokia', 'save':'nosave',  'Login':'Login'}
+values = (('r_token', 'glili'),( 'r_key', '@WS3ed4rf') ,( 'log','zilla'),( 'myurl',url2), ('redirect', 'y'),( 'logtype','fnokia'), ('save','nosave'), ( 'Login','Login'))
+
+so you could post the url directly with username and password, but other than these two fields, all other fields neeed to be provided and the order matterss!!!!! so 
+values should be in tuple, these values should be found in browser's netwrok tab's http frame data 
+------------------------
+s = requests.session()
+debug_requests_on()
+r2 = s.post(url,data=values) ####post the data to set url
+r=s.get(url2, verify=False)  ###then get the url2 information page
+=====================================================================
+-
+
+
+** use curl to get url page
+
+*** curl using -vv to get the detailed http header and data
+*** copy the curl command directly from Network tab 
+this could be copied from Network tab in browser:
+=============================
+curl "https://cpathlabs.nsn-rdnet.net:6082/php/uid.php?vsys=1&rule=0&url=http://10.85.55.218" -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64; rv:68.0) Gecko/20100101 Firefox/68.0" -H "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" -H "Accept-Language: en-US,en;q=0.5" --compressed -H "Referer: https://cpathlabs.nsn-rdnet.net:6082/php/uid.php?vsys=1&rule=0&url=http://10.85.55.218" -H "Content-Type: application/x-www-form-urlencoded" -H "Connection: keep-alive" -H "Cookie: SESSID=f4MBAV0m9X93jkv+AwMOAg==" -H "Upgrade-Insecure-Requests: 1" -H "Pragma: no-cache" -H "Cache-Control: no-cache" --data "inputStr=&preauthid=&ok=Login&passwd=%40WS3ed4rf&escapeUser=glili&user=glili" --insecure -vv --compressed
+========================================================
+
+but the format has some problem:
+======================
+#curl "https://10.45.38.4/dana-na/auth/url_default/login.cgi" -H "Connection: keep-alive" -H "Cache-Control: max-age=0" -H "Origin: https://10.45.38.4" -H "Upgrade-Insecure-Requests: 1" -H "Content-Type: application/x-www-form-urlencoded" -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36" -H "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3" -H "Referer: https://10.45.38.4/dana-na/auth/url_default/welcome.cgi" -H "Accept-Encoding: gzip, deflate, br" -H "Accept-Language: en-US,en;q=0.9"   -b /tmp/esp_cook   --data "tz_offset=480^&username=glili^%^40nsn-intra^&password=^%^40WS3ed4rf^&realm=NSN+AD^&btnSubmit=Sign+In" --compressed --insecure -vv
+=====================
+the data 's "^" should be eliminated, you could see source code in chrome 

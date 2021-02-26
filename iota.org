@@ -1,0 +1,1435 @@
+* pycharm shortkey
+编辑类：
+
+Ctrl + D             复制选定的区域或行
+Ctrl + Y           删除选定的行
+Ctrl + Alt + L     代码格式化
+Ctrl + Alt + O     优化导入（去掉用不到的包导入）
+Ctrl + 鼠标        简介/进入代码定义    
+Ctrl + /           行注释 、取消注释
+
+Ctrl + 左方括号   快速跳到代码开头
+Ctrl + 右方括号   快速跳到代码末尾
+Shift + F10        运行
+Shift + F9         调试
+
+查找/替换类：
+
+Ctrl + F          当前文件查找
+Ctrl + R          当前文件替换
+Ctrl + Shift + F  全局查找
+Ctrl + Shift + R  全局替换 
+
+运行类：
+
+Shift + F10        运行
+Shift + F9         调试
+Alt + Shift + F10  运行模式配置
+Alt + Shift + F9   调试模式配置
+
+调试类：
+
+F8                单步调试（一行一行走）
+F7                进入内部
+Shift + F8        退出
+Ctrl + F8         在当前行加上断点/断点开关
+Ctrl + Shift + F8 查看所有断点
+
+导航类：
+
+Ctrl + N          快速查找类（也可查找当前工程中的文件，以文件名查找）
+Double Shift      任意位置查找  
+
+* iota importing after it satrt
+/local/ltemme/iota/itasiotaserver -s 540 -c ./runiotaflex -a TA -p 2121
+...
+iota>
+telnet 127.0.0.1 2121
+iota> source tmp.tcl  ###messageTemplates.tcl procedure.tcl IOTAinterfaceProcedures.tcl
+
+sending IOTA command: lappend interface_procs 4gAttachImsi 4gAttachGutiFromPtmsiGn .....
+
+source postInitProcs.tcl 'base/iota_files/stateMachines.tcl',
+
+kw "NEC Configure IOTA Simulator"
+debug set in ota prompt
+telnet 0 2121   # from a GASHPC window
+at the iota> prompt
+iota> enablelog S
+
+disconnect from IOTA session window:
+Esc
+ctrl-] Enter # takes you to telnet prompt, then enter quit
+
+use log "" to print out message in the log file instead of using puts "" , it will only in prompt window
+
+
+* iota source code
+>iota 
+>iota_help 4gAttachImsi
+>parray ::c_ue *csrsp_tgt_cause_bearer*
+>parray ::c_ue 
+
+**
+self.iota_script(
+            'base/iota_files/messageTemplates.tcl',
+            'base/iota_files/success.vfy')
+        self.iota_script(
+            'base/iota_files/procedures.tcl',
+            'base/iota_files/success.vfy')
+        self.iota_script(
+            'base/iota_files/IOTAinterfaceProcedures.tcl',
+            'base/iota_files/success.vfy')
+        self.iota_script(
+            'base/iota_files/stateMachines.tcl',
+            'base/iota_files/success.vfy')
+        self.iota_script(
+            'base/iota_files/postInitProcs.tcl',
+            'base/iota_files/success.vfy')
+
+
+
+########### postInitProcs.tcl:
+---------------------------------------------------------------
+ if {$argarray(-uenwcp) != "" && $argarray(-uenwcp) != "EMPTY"} {
+          set _uenw_mmercv $argarray(-uenwcp)
+          switch $argarray(-proc) {
+             "attach" {
+                   set ::c_ue(attachreq_uenwcapability) $_uenw_mmercv
+             }
+--------------------------------------------------------------------------------
+this will insure this working:
+4gAttach -postinitproc{ set ::c_ue(attachreq_uenwcapability) \$E0E0000040 }
+
+
+############stateMachines.tcl
+----------------------------------------  
+		set ::CSM::TRIGGER(BLD_CREATESESSIONRSP_TGT_TRIGGER) {
+			set ::c_ue(tgt_sgw) [lclNEof $_MSG]
+			set ::c_ue(csrsp_tgt_recovery) [ $::c_ue(tgt_sgw) get recovery ]
+			set ::c_ue(csreq_tgt_teid_mme) \$[string range $::c_ue(csreq_tgt_senderteid) 3 10]
+			set ::c_ue(csrsp_tgt_senderteid) [UEMgmt::GenerateFteid ${::c_ue(tgt_sgw)} 11]
+			set ::c_ue(csrsp_tgt_teid_sgw) \$[string range $::c_ue(csrsp_tgt_senderteid) 3 10]
+			set ::c_ue(csrsp_tgt_s1usgwteid) [UEMgmt::GenerateFteid ${::c_ue(tgt_sgw)} 1]
+		set ::csrsp_tgt_s1usgwteid [UEMgmt::GenerateFteid ${::c_ue(tgt_sgw)} 1]
+		set ::c_ue(tgt_sgw_ipupaddr) \$[UEMgmt::GetSgwSimIpUpAddress $::c_ue(tgt_sgw)]
+#		puts "::c_ue(tgt_sgw_ipupaddr)    $::c_ue(tgt_sgw_ipupaddr) "
+		set ::c_ue(csrsp_tgt_s1usgwteid) [string range $::csrsp_tgt_s1usgwteid 0 2]00010001[string range $::c_ue(tgt_sgw_ipupaddr) 1 end]
+			set ::c_ue(csrsp_tgt_cause) \$4300
+			set ::c_ue(csrsp_tgt_cause_bearer) \$1000
+			set ::c_ue(csrsp_tgt_bearerqos) EMPTY
+			#
+			set ::c_ue(csrsp_tgt_pgws5s8addr) [UEMgmt::GenerateFteidUsingHexAddr [string range $::c_ue(csreq_tgt_pgws5s8addr) 11 end] 7]
+			set ::c_ue(csrsp_tgt_paa) \$01c0a80164  ### no matter what's the initial value of this, it will be overided as this value.
+----------------------------------------------------------          
+4gAttachImsi -verbose 1  -postinitproc {set ::c_ue(csrsp_tgt_cause_bearer) \$4300}
+iota_help
+set ::c_ue(csrsp_tgt_cause) \$4300}
+
+4gAttachImsi -verbose 1  -postinitproc {set ::c_ue(csrsp_tgt_cause) \$4300}
+4gAttachImsi -verbose 1  -postinitproc {set ::c_ue(csrsp_tgt_paa) EMPTY}
+4gAttachImsi -verbose 1  -imsi 460020301001004
+set ::c_ue(csrsp_tgt_paa)  EMPTY/
+
+http://10.102.125.62/iota_loads/iota_v3_tag0026.tar.gz
+ curl -O http://10.102.125.62/bin/itasiotaserver &amp;&amp; chmod 755 itasiotaserver'
+cd  /local/ltemme/iota/itasiotaserver 
+/local/ltemme/iota/itasiotaserver -s 540 -c ./runiotaflex -a TA -p 2121
+
+
+Current installed IOTA version: 'iota_v3_tag0026'
+Configuring the IOTA Simulator
+Sending IOTA procedure: "CreateS11uSGW -name sgws11u -ip 172.16.49.119 -port 2152 -mmeip 172.16.46.12 -mmeport 2152" using verify string "established"
+udo /usr/sbin/tcpdump -i any -w /tmp/mme_001.pcap -C 100 -W 1 &
+
+
+iota> parray ::c_ue MSPEC_CSRSP_TGT_BCLISTCREATED
+parray ::c_ue MSPEC_CSRSP_TGT_BCLISTCREATED
+
+
+#############
+>>>>>> SEND MESSAGE TEMPLATE: basic_snd_createsessionrsp_tgt
+ERROR: GTPSet::encodeField Missing mandatory field [BCLISTCREATED] while encoding field [CREATESESSIONRSP]
+---------------------------------------------------------------------------------------------------------
+#	UEMgmt::GenerateGTPBearerIE -ie MSPEC_CSRSP_TGT_BCLISTCREATED -map $_iemap
+		    set ::c_ue(MSPEC_CSRSP_TGT_BCLISTCREATED) "{ {BCLISTCREATED EMPTY} }\n"
+----------------------------------------------------------------------------------------------------------
+CSM::CSM_STATE_MACHINE ::CSM::sm_createSessionReq_tgt {
+	set msgType [typeof $_MSG]
+	if { $_state == "init" } {
+		# state machine local init here
+		set _state "waitforcsr"
+	}
+	switch $_state {
+		"waitforcsr" {
+			switch $msgType {
+				"CREATESESSIONREQ" {
+				set ::c_ue(tgt_sgw) [lclNEof $_MSG]
+				set ::c_ue(mme_link) [rmtNEof $_MSG]
+					eval $::CSM::TRIGGER(PRE_CREATESESSIONREQ_TGT_TRIGGER)
+					db update $::c_ue(rcv_createsessionreq_tgt) -mapping ::c_ue
+					retrieve $_MSG -msg $::c_ue(rcv_createsessionreq_tgt) -mapping ::c_ue
+					eval $::CSM::TRIGGER(POST_CREATESESSIONREQ_TGT_TRIGGER)
+					eval $::CSM::TRIGGER(BLD_CREATESESSIONRSP_TGT_TRIGGER)
+					eval $::CSM::TRIGGER(PRE_CREATESESSIONRSP_TGT_TRIGGER)
+					send $::c_ue(mme_link) <- $::c_ue(tgt_sgw) -msg $::c_ue(snd_createsessionrsp_tgt) -mapping ::c_ue  ##if comment out, no createsessionrsp will be sent
+					eval $::CSM::TRIGGER(POST_CREATESESSIONRSP_TGT_TRIGGER)
+					set _state "done"
+				}
+				default {
+					error ""
+				}
+			}
+		}
+		default {
+			error ""
+		}
+	}
+}
+
+
+#817 proc enbatt
+# scen_common_chain addchainedsm "CREATESESSIONREQ" $::CSM::sm_createSessionReq_tgt init done
+# if comment out the whole createsessionreq will be fail
+-----------------------------------------------------------
+scen_common_chain FAILED.  Error Info:
+Unexpected Message Received: GTP {{BODY {@CREATESESSIONREQ {{APN wap1.nokia.com.mnc002.mcc460.gprs} {APNAMBR $00002710000186A0} {BCLISTCREATED {+ {{BEARERQOS $7D090000000000000000000000000000000000000000} {EPSBEARERID $05}}}} {CHARGINGCHAR $3132} {IMSI $64000203011000F1} {INDICATIONFLAGS $00180000000202} {MAXAPNRES $00} {MEI $8967452391785634} {MSISDN $537840062000} {PAA $01C0A80164} {PDNTYPE $01} {PGWS5S8ADDR $8700000000AC103179} {RATTYPE $06} {RECOVERY $02} {SELECTIONMODE $00} {SENDERTEID $CA0000000EAC102E7025110000000009930000000000000009} {SERVINGNETWORK $64F020} {UETIMEZONE $2101} {ULI $1864F020640164F02000414101} {ULISGW $1864F020640164F02000414101}}}} {MSGPRIORITY EMPTY} {PBMSG EMPTY} {SEQNUM $2000A2} {TEID $00000000} {localName s11sgw01} {remoteName mme_net1}}
+    while executing
+"error "$_errorinfo""
+    (object "::scen_common_chain" method "::Scenario::invokechain" body line 64)
+    invoked from within
+"invokechain"
+    ("while" body line 6)
+    invoked from within
+"while { [chaincomplete] != "true" } {
+		recv * -> * -timeout $::CSM::MSGTIMEOUT -abort false
+		if { $_MSG == "" } {
+			break
+		} else {
+			invokechain..."
+    ("eval" body line 8)
+    invoked from within
+"eval $_script "
+----------------------------------------------------------
+
+>>>>>> SEND MESSAGE TEMPLATE: basic_snd_ula
+State machine ULR successfully processed message ULR; _state=done endstate=done
+=========================
++++
+GTP {{BODY {@CREATESESSIONREQ {{APN wap1.nokia.com.mnc002.mcc460.gprs} {APNAMBR $00002710000186A0} {BCLISTCREATED {+ {{BEARERQOS $7D090000000000000000000000000000000000000000} {EPSBEARERID $05}}}} {CHARGINGCHAR $3132} {IMSI $64000203011000F1} {INDICATIONFLAGS $00180000000202} {MAXAPNRES $00} {MEI $8967452391785634} {MSISDN $537840062000} {PAA $01C0A80164} {PDNTYPE $01} {PGWS5S8ADDR $8700000000AC103179} {RATTYPE $06} {RECOVERY $02} {SELECTIONMODE $00} {SENDERTEID $CA02000003AC102E7025110000000009930000000000
+mme_net1 ---- CREATESESSIONREQ ---> s11sgw01
+
+Begin invokechain procedure
+Invoking state machine AIR with _state=done endstate=done for message CREATESESSIONREQ
+Invoking state machine AUTHREQ with _state=done endstate=done for message CREATESESSIONREQ
+Invoking state machine SECMODE with _state=done endstate=done for message CREATESESSIONREQ
+Invoking state machine IDREQIMEI with _state=init endstate=done for message CREATESESSIONREQ
+Invoking state machine ULR with _state=done endstate=done for message CREATESESSIONREQ
+Invoking state machine CREATESESSIONREQ with _state=init endstate=done for message CREATESESSIONREQ
+>>>>>> RECV MESSAGE TEMPLATE: basic_rcv_createsessionreq_tgt
+mme_net1 <--- CREATESESSIONRSP ---- s11sgw01
++++
+GTP {{BODY {@CREATESESSIONRSP {{APNRES $00} {BCLISTCREATED {+_list {{CAUSE $1000} {EPSBEARERID $05} {S1USGWTEID EMP00010001AC1031D3} {S5S8UPGWTEID $8500000051AC1031DD}}}} {CAUSE $4300} {PGWS5S8ADDR $8700000050AC103179} {RECOVERY 1} {SENDERTEID $8B0000004EAC10316F}}}} {SEQNUM $200088} {TEID $02000003} {localName s11sgw01} {remoteName mme_net1}}
+
+>>>>>> SEND MESSAGE TEMPLATE: basic_snd_createsessionrsp_tgt
+State machine CREATESESSIONREQ successfully processed message CREATESESSIONREQ; _state=done endstate=done
+================================================================================
+
+openstack_controller.py
+-----------------------------
+necc ip for 131A is  10.40.174.7
+_secure_passwords = {
+        'cmm': 'Nokia_1234',
+        'root': 'Nokia_1234',
+        'liuser': 'Nokia_1234',
+        'sam5620': 'CMMsam@1234',
+        'cbamuser': 'Nokia_1234',
+    }
+    _onetime_passwords = {
+        'cmm': '2pe1qlP4zjXt',
+        'root': '39pfMBw3W8ec',
+        'liuser': 'Nokia_1234',
+        'sam5620': 'dipq2zlPLv36',
+        'cbamuser': 'KX6GQrNagFSw',
+    }
+
+
+HOST = '10.40.174.7'
+
+CONSOLE = '10.40.174.3'
+CONTROLLER = '10.40.174.3'
+
+
+Cmm Command cmm nrfCacheAdmin modify --nrfCacheOperation FLUSH_CACHE
+http://10.102.202.45:8080/job/03_AMF_CMM_smoke/3913/artifact/IPC-TCL-20/result/log.html
+
+
+
+* check the subscribers in database
+
+
+
+[cmm@espate137a-necc0 ~]$ cmm subscribers count
+cmm: 'subscribers count' is not a cmm command. See 'cmm --help'.
+Did you mean one of these?
+  subscriber count
+    subscriber delete
+      subscriber show
+      [cmm@espate137a-necc0 ~]$ cmm subscriber count
+      +---------+-------+
+      | Field   | Value |
+      +---------+-------+
+      | Sum     |     0 |
+      | Filters |    {} |
+      +---------+-------+
+ [cmm@espate137a-necc0 ~]$ sudo serfclient -t '*dbs*' -c cmd.run.ssh -p "echo 'dbsize' | redis-cli -p 6379; echo 'dbsize' | redis-cli -p 6380"
+      +------------+----------+
+      | hostname   | response |
+      +------------+----------+
+      | dbs0.local | 0        |
+      |            | 0        |
+      +------------+----------+
+      | dbs1.local | 0        |
+      |            | 0        |
+      +------------+----------+
+      | dbs2.local | 0        |
+      |            | 0        |
+      +------------+----------+
+      | dbs3.local | 0        |
+      |            | 0        |
+      +------------+----------+
+      [cmm@espate137a-necc0 ~]$
+
+* iota state machine and iota proc
+**  IOTA Procedure
+*** procedure recognized in command line
+in iota command line, if you input some proc name, it could be invoked, is because the procedures 5g_IOTAinterfaceProcedures.tcl or IOTAinterfaceProcedures.tcl(for 4g)
+to interface_procs by lappend
+ lappend interface_procs 4gAttachImsi 4gAttachGutiFromPtmsiGn .....
+iota> 
+
+so if iota server not restart, any modification to 5g_IOTAinterfaceProcedures.tcl will not take effect, since, it was already sourced. 
+resource it in your robot testcase
+IOTA Script         base/iota_files/5g_messageTemplates.tcl
+IOTA Script         base/iota_files/5g_IOTAinterfaceProcedures.tcl
+IOTA Script         base/iota_files/5g_stateMachines.tcl
+IOTA Script         base/iota_files/postInitProcs.tcl
+
+
+*** add a interface procedure in 5g_IOTAinterfaceProcedures.tcl template
+proc 5gPostReg_test  { args } {
+
+    set reqargs [list]
+    set optargs [list -postinitproc -verbose  -gNB ]
+
+    set defaultArray(-verbose) $::verblevel
+    set defaultArray(-gNB) gnb01
+    array set argarray [getargs $args $reqargs $optargs defaultArray]
+    parray argarray
+
+    set ::c_ue(tgt_gnb) $argarray(-gNB)
+    CSM::5gRegisAccept  
+    ### this CSM defined in state machine file
+    scen_common_chain verbose $argarray(-verbose)
+
+    if {$argarray(-postinitproc) != ""} {
+        eval $argarray(-postinitproc)
+    }
+    CSM::RunCSM scen_common_chain
+
+    # We will get here only if no error was raised by previous procedures
+    puts "IOTAPROCRETCODE=0"
+    return 0
+}
+}
+
+
+
+
+
+** iota state machine
+
+
+
+*** a CSM procedure defined in file 5g_statemachine.tcl
+**** procedure of state machine should be in CSM namespace
+this procedure should be in
+namespace eval CSM {     }  in the file 5g_stateMachine.tcl
+-------------------------------------------------------------
+proc 5gRegisAccept { args } {
+###initialize state machine of scenario
+		InitStateMachines    
+
+###   if this proc is not a very complete procedure, it related to previous procedure too much then copy src to tgt value
+        UEMgmt::CopySrcToTgt 
+
+### set scenario trigger   if you want to trigger this by sending message firstly, 
+		set ::CSM::SCENARIOTRIGGER {
+         
+			send amf_net1 <- $::c_ue(tgt_gnb) -msg $::c_ue(snd_ngsetupreq) -mapping ::c_ue
+		}
+###### if scenario firstly to receive some message, then set it as null
+           set ::CSM::SCENARIOTRIGGER "" 
+
+### add common chain into scenario
+        scen_common_chain addchainedsm "NGSETUP" $::CSM::sm_NgSetupResponse_tgt_amf init done
+
+#### standard procedure all the same below
+       scen_common_chain verbose $argarray(-verbose)
+    	if {$argarray(-postinitproc) != ""} { eval $argarray(-postinitproc) }  ## eval post initproc to change the default behavior
+	   CSM::RunCSM scen_common_chain    ### start to run the scenario with trigger
+        puts "IOTAPROCRETCODE=0"
+        return 0
+    }
+---------------------------------------------------------------------------------------------
+
+****  state machine defined not in CSM scope
+CSM::CSM_STATE_MACHINE ::CSM::sm_NgSetupResponse_tgt_amf {
+	    ::CSM::validate [lclNEof $_MSG] $::c_ue(tgt_gnb) ""
+        if { $_state == "init" } {
+                set _state "waitforngsetuprsp"
+        }
+        set msgType [typeof $_MSG]
+        switch $_state {
+            "waitforngsetuprsp" {
+		         switch $msgType {
+		               "NGSETUPRESPONSE" {
+                             eval $::CSM::TRIGGER(PRE_RCV_NGSETUPRESPONSE_TGT_AMF_TRIGGER)
+			                 db update $::c_ue(rcv_ngsetuprsp) -mapping ::c_ue
+			                 retrieve $_MSG -msg $::c_ue(rcv_ngsetuprsp) -mapping ::c_ue
+                             eval $::CSM::TRIGGER(POST_RCV_NGSETUPRESPONSE_TGT_AMF_TRIGGER)
+                             set _state "done"
+		               }
+		               default {
+			                 error ""
+		               }
+		         }
+	        }
+	        default {
+		                error ""
+	        }
+	    }
+}
+
+--------------------------------
+
+***** scenario trigger handled firstly in state machine(in CSM::SCENARIOTRIGGER) 
+
+proc ::ngSetupRetry {  } {
+           set ::CSM::SCENARIOTRIGGER {
+                     send amf_net1 <- $::c_ue(tgt_gnb) -msg $::c_ue(snd_ngsetupreq) -mapping ::c_ue
+
+                     # Resend NGAPRESET if no ACK from AMF for 10 sec (1 re-transmissions)
+                     set ::c_ue(resetack_rcvd) false
+                     for {set i 0} {$i < 20} {incr i } {
+                        recv amf_net1 -> * -timeout 10 -abort false   ### when this recv invoke it couldn't be used in invokechain, so it will be put at the beginning, CSM::SCENARIOTRIGGER
+                        if { $_MSG == "" } {
+                             send amf_net1 <- $::c_ue(tgt_gnb) -msg $::c_ue(snd_ngsetupreq) -mapping ::c_ue
+                         } else {
+                             set msgType [typeof $_MSG 1]
+                             if {$msgType != "NGSETUPRESPONSE"} {
+                                send amf_net1 <- $::c_ue(tgt_gnb) -msg $::c_ue(snd_ngsetupreq) -mapping ::c_ue
+                             } else {
+                                     set ::c_ue(resetack_rcvd) true
+                                     break
+                             }
+                        }
+                    }
+                    if {$::c_ue(resetack_rcvd) == "false" } {
+                        error "ERROR: No NGAPRESETACK from AMF......"
+                    }
+           }
+           scen_common_chain removechainedsm "NGSETUP"
+}      
+
+
+  IOTA Procedure    5gNgSetup   -ta1 ${IOTA.AMF_TAC1}:${CMM.MCC}${CMM.MNC}:01:D143A5 -gNB gnb04 -gnbname gnb04 -postinitproc {::ngSetupRetry}
+
+
+proc 5gNgSetup { args } {
+.....
+    array set argarray [getargs $args $reqargs $optargs defaultArray]
+    parray argarray
+
+	CSM::InitNGapSetup -gNB $argarray(-gNB) -expectrlsbrr $argarray(-expectrlsbrr) -ngsetupfailure $argarray(-ngsetupfailure)
+...
+    scen_common_chain verbose $argarray(-verbose)
+	if {$argarray(-postinitproc) != ""} { eval $argarray(-postinitproc) }
+	CSM::RunCSM scen_common_chain
+        puts "IOTAPROCRETCODE=0"
+        return 0
+}
+
+
+proc InitNGapSetup { args } {
+		array set argarray [getargs $args [list -gNB] [list "-expectrlsbrr" "-ngsetupfailure"]]
+		InitStateMachines
+
+####  CSM::SCENARIOTRIGGER could be override in postinitproc if you reset it
+		set ::CSM::SCENARIOTRIGGER {
+			send amf_net1 <- $::c_ue(tgt_gnb) -msg $::c_ue(snd_ngsetupreq) -mapping ::c_ue
+		}
+
+        if {$argarray(-ngsetupfailure) == "true" } {
+            scen_common_chain addchainedsm "N2_NGSETUP_FAILURE" $::CSM::sm_NgSetupFailure_tgt_amf init done
+        } else {
+            scen_common_chain addchainedsm "NGSETUP" $::CSM::sm_NgSetupResponse_tgt_amf init done
+        }
+		set ::c_ue(snd_ngsetupreq) basic_snd_ngsetuprequest_tgt_amf
+		set ::c_ue(rcv_ngsetuprsp) basic_rcv_ngsetupresponse_tgt_amf
+		set ::c_ue(rcv_ngsetupfailure) basic_rcv_ngsetupfailure_tgt_amf
+
+
+    }
+***  abort a procedure advancely
+in IOTA procedure, we can end a chain state machine, but other state machine should be removed
+**** abort a state machine, in some step insert below:
+##   ...           append ::CSM::TRIGGER(PRE_ULA_TRIGGER) {
+##   ...               set _state "done"; ::CSM::BREAK}}
+
+**** remove all the following procedure
+-verbose=1  running a successfuly procedure
+remove all these st as follow:
+State machine updateBrrRsp successfully processed message UPDATEBEARERRSP; _state=done endstate=done
+  ...        scen_common_chain removechainedsm "updateBrrRsp";
+
+
+
+***  receive the same multiple message in a chain
+CSM::CSM_STATE_MACHINE ::CSM::sm_N2Paging_tgt_amf {
+	if {$::vfy_rcv_gnb == "true" } {
+	    ::CSM::validate [lclNEof $_MSG] $::c_ue(tgt_gnb) ""
+	}
+	set msgType [typeof $_MSG]
+	if { $_state == "init" } {
+		# state machine local init here
+		set _state "waitfor_paging"
+		set ::c_ue(numrecvpage) 1
+		if { [info exist ::c_ue(page_attempts)] != 1 } { set ::c_ue(page_attempts) 1 }
+	}
+	switch $_state {
+		"waitfor_paging" {
+			switch $msgType {
+				"PAGING" {
+					eval $::CSM::TRIGGER(PRE_N2PAGING_TGT_AMF_TRIGGER)
+					db update $::c_ue(rcv_n2paging) -mapping ::c_ue
+					retrieve $_MSG -msg $::c_ue(rcv_n2paging) -mapping ::c_ue
+					set ::c_ue(gnb_page) [lclNEof $_MSG]
+					eval $::CSM::TRIGGER(POST_N2PAGING_TGT_AMF_TRIGGER)
+					if {$::c_ue(numrecvpage) == $::c_ue(page_attempts) } {
+					    # No longer expecting additional paging attempts from the AMF...
+					    unset ::c_ue(page_attempts)
+					    eval $::CSM::TRIGGER(PRE_N2PAGING_PRE_SR_TGT_AMF_TRIGGER)
+					    eval $::CSM::TRIGGER(POST_N2PAGING_SR_TGT_AMF_TRIGGER)
+					    eval $::CSM::TRIGGER(POST_N2PAGING_POST_SR_TGT_AMF_TRIGGER)
+					    set _state "done"
+					} else {
+					    incr ::c_ue(numrecvpage)
+					    set _state "waitfor_paging"
+					}
+
+				}
+				default {
+					error ""
+				}
+			}
+		}
+		"done" {
+			error ""
+		}
+		default {
+			error ""
+		}
+	}
+}
+
+*** bearer related variable setting
+ $::UEBearers setsgwconnections -tgtmme $::c_ue(csreq_tgt_senderteid) -tgtsgw $::c_ue(csrsp_tgt_senderteid)
+
+** iota framework message definition
+*** real scenario definition in iota framework
+entry of a iota test procedure:
+in procedures.tcl file:
+
+
+catch { delete obj scen_common_chain }
+Scenario scen_common_chain {
+
+	# Specify which message template database to use
+	useMTDB db
+        showscripts  #### add this line could show all of the statemachine as: State Machine: AIR (#0)  startstate: init  endstate: done  currentstate: init  optional: false
+                     ###    State Machine: AUTHREQ (#1)  startstate: init  endstate: done  currentstate: init  optional: false
+	eval $::CSM::SCENARIOTRIGGER   ### if you want to recive message in your own chain, put it here, 
+                                   ### the first step, generally send some message, then receive the message next step
+
+	while { [chaincomplete] != "true" } { ### when a chain process the msg, it will set _state=done, then next time inokechain tranverse it, the "done" switch will return and do nothing
+		recv * -> * -timeout $::CSM::MSGTIMEOUT -abort false
+		if { $_MSG == "" } {
+			break
+		} else {
+			invokechain    #### until no mandatary st not done, every time the chain who process the message will break the chain tranverse 
+		}
+	}
+
+   if { [chaincomplete] != "true" } {
+      # at least one state machine did not complete, dump out all state machines and treat as error.
+      showscripts
+      error "All state machines did not complete."
+   }
+   # Account for optional messages after all required
+   # state machines completed
+  if { $::CSM::SCENARIOPROCESSEXTRAMSG == "true" } {
+      set optcnt 0
+      while {$optcnt < 5} {
+          incr optcnt
+         recv * -> * -timeout $::CSM::SCENARIOGUARDTIMER -abort false
+         if { $_MSG != "" } {
+             invokechain
+         } else {
+             break
+         }
+      }
+  } else {
+      # make sure we don't get any unexpected messages
+      recv * -> * -timeout $::CSM::SCENARIOGUARDTIMER -abort false
+      if { $_MSG != "" } {
+               error "received unexpected message: [$_MSG display]"
+      }
+   }
+   eval $::CSM::POSTSCENARIOCOMMANDS
+
+}
+
+
+*** Scenario.tcl invokechain proc
+###everytime invoking a chain, the sm which wasn't reach error will get $i = 0, then the tranverse in the chindsms will break; 
+....
+                       set _chainedsms [lreplace $_chainedsms $myidx $myidx [array get smarray]]
+                        if { $i == 0 } {
+                                # state machine successfully processed message
+                                if { $_verbose > 0 } {
+                                        puts "State machine $smarray(name) successfully processed message [typeof $_MSG 1]; _state=$_state endstate=$_endstate"
+                                }
+                                break
+                        }
+
+
+
+
+*** message definition in iota framework
+*.msgd file contains the definition of messages:
+ctpapp/lte/eps/msg/nudm.msgd
+----------------------------------------------------
+..
+
+field:MessageLength
+        set desc "Message Length"
+        set size 2
+        set class "GPD::Octet"
+end
+
+message:NUDMMsg
+        set desc "NUDM Message"
+begin
+        Body
+end
+
+choice:Body
+        set desc "Message Body Definition"
+        set idflddef MessageType
+begin
+        0x01            uecmregistrationreq
+        0x14            uecmregistrationrsp
+        0x02            uecmregistrationrspfail
+        0x03            deregistrationnotify
+
+..
+## Reference: DeregistrationData
+set:deregistrationnotify
+        set desc "UECM Deregistration Notify Message"
+        set jsontype "message"
+        set jsonname "DeregistrationNotify"
+        set  version 1520180900
+begin
+        DEREGREASON             :       deregReasonStr          -M     ### here deregReasonStr is the ie field type, and DEREGREASON is the message ie field
+        ACCESSTYPE              :       accessTypeStr           -M
+end
+
+field:deregReasonStr
+        set desc "Deregistration Reason String"
+        set size 0x0001~0x0064
+        set jsontype "string"
+        set jsonname "deregReason"        ### the jsonname is in real http2 message value
+end
+-------------------------------------------------------------------------
+
+*** template def
+*.tcl
+-------
+db loadTemplate {define udm_deregistration_notify_dataframe_req {
+HTTP2MSG {
+   {BODY {@DATAFRAME {
+         {FLAGS %data_flags}
+         {STREAMID %data_streamid}
+         {DATA {
+            NUDMMSG {
+               {BODY {@DEREGISTRATIONNOTIFY {
+                  {DEREGREASON "SUBSCRIPTION_WITHDRAWN"}   DEREGREASON is the field name, but in http2 json, it will be : "deregReason":"SUBSCRIPTION_WITHDRAWN"
+                  {ACCESSTYPE "3GPP_ACCESS"}
+               }}}
+            }
+         }}
+      }
+   }}
+}
+}}
+----------------------------------------------------------                   
+
+json:  JavaScript Object Notation
+this will be in the http2 DATA frame
+
+
+*** sdt for messge id
+file ctpapp/lte/eps/sim/http2blk.sdt
+---------------------------------------------------------------------------
+// NUDM/N8 Services
+servicetype[nudm-uecm-put],                     ReadWrite,      Dictionary
+servicetype[nudm-uecm-put][nftype],             ReadWrite,      "udm"
+servicetype[nudm-uecm-put][5],                  ReadWrite,      1       // uecm-registration-req
+### PUT /nudm-uecm/v1/imsi-460020301001001/registrations/amf-3gpp-access, DATA[1] (application/json)
+### 5 means /1/2/3/4/5    
+
+servicetype[nudm-uecm-put][statusmsg],          ReadWrite,      Dictionary
+servicetype[nudm-uecm-put][statusmsg][201],     ReadWrite,      20      // uecmregistrationrsp
+servicetype[nudm-uecm-put][statusmsg][403],     ReadWrite,      2       // uecmregistrationrspfail
+servicetype[nudm-uecm-put][statusmsg][404],     ReadWrite,      2       // uecmregistrationrspfail
+
+servicetype[nudm-uecm-post],                    ReadWrite,      Dictionary
+servicetype[nudm-uecm-post][nftype],            ReadWrite,      "udm"
+servicetype[nudm-uecm-post][6],                 ReadWrite,      3       // deregistration-notify
+###  POST /nudm-uecm/v1/imsi-460020301001001/registrations/amf-3gpp-access/notification
+###       /1/2/3/4/5/6
+------------------------------------------------------------------------------
+
+
+* IOTA/ATE DNS env
+'dnsConfigName': 'config', 'priDnsIp': '172.16.0.254', 'secDnsIp'
+root/tigris
+cd /etc/bind
+[root@espate137a bind]# cat named.3gppnetwork.org
+$ORIGIN .
+$TTL 60 ; 1 minute
+3gppnetwork.org         IN SOA  localhost. root.localhost. (
+                                2          ; serial
+                                604800     ; refresh (1 week)
+                                3600       ; retry (1 hour)
+                                604800     ; expire (1 week)
+                                600        ; minimum (10 minutes)
+                                )
+                        NS      localhost.
+$ORIGIN 3gppnetwork.org.
+$TTL 3600       ; 1 hour
+pgw002.mme100.pool2.nodes.epc.mnc002.mcc02 NAPTR 3600 100 "a" "x-3gpp-pgw:x-s5-gtp:x-s8-gtp" "" topon.eth1.pgw002.mme100.pool2.nodes.epc.mnc002.mcc460
+$ORIGIN nokia.com.apn.epc.mnc002.mcc460.3gppnetwork.org.
+#####createsessionreq will use this wap1.nokia.com.anp.epc.mnc002.mcc02
+wap1                    NAPTR   100 65530 "a" "x-3gpp-pgw:x-s5-gtp:x-s8-gtp:x-gn:x-gp" "" topon.eth1.pgw001.mme100.pool1.nodes.epc.mnc002.mcc460.3gppnetwork.org.
+                        NAPTR   100 65530 "a" "x-3gpp-pgw:x-s5-gtp:x-s8-gtp:x-gn:x-gp" "" topon.eth1.pgw002.mme100.pool2.nodes.epc.mnc002.mcc460.3gppnetwork.org.
+wap2                    NAPTR   100 65530 "a" "x-3gpp-pgw:x-s5-gtp:x-s8-gtp:x-gn:x-gp" "" topon.eth1.pgw001.mme100.pool1.nodes.epc.mnc002.mcc460.3gppnetwork.org.
+                        NAPTR   200 65530 "a" "x-3gpp-pgw:x-s5-gtp:x-s8-gtp:x-gn:x-gp" "" topon.eth1.pgw002.mme100.pool2.nodes.epc.mnc002.mcc460.3gppnetwork.org.
+wap3                    NAPTR   200 65530 "a" "x-3gpp-pgw:x-s5-gtp:x-s8-gtp:x-gn:x-gp" "" topon.eth1.pgw002.mme100.pool2.nodes.epc.mnc002.mcc460.3gppnetwork.org.
+wap4                    NAPTR   200 65530 "a" "x-3gpp-pgw:x-s5-gtp:x-s8-gtp:x-gn:x-gp" "" topon.eth1.pgw002.mme100.pool2.nodes.epc.mnc002.mcc460.3gppnetwork.org.
+wap5                    NAPTR   100 65530 "a" "x-3gpp-pgw:x-s5-gtp:x-s8-gtp:x-gn:x-gp" "" topon.eth1.pgw001.mme100.pool1.nodes.epc.mnc002.mcc460.3gppnetwork.org.
+                        NAPTR   100 65530 "a" "x-3gpp-pgw:x-s5-gtp:x-s8-gtp:x-gn:x-gp" "" topon.eth1.pgw002.mme100.pool2.nodes.epc.mnc002.mcc460.3gppnetwork.org.
+wap6                    NAPTR   100 65530 "a" "x-3gpp-pgw:x-s5-gtp:x-s8-gtp:x-gn:x-gp" "" topon.eth1.pgw001.mme100.pool1.nodes.epc.mnc002.mcc460.3gppnetwork.org.
+                        NAPTR   200 65530 "a" "x-3gpp-pgw:x-s5-gtp:x-s8-gtp:x-gn:x-gp" "" topon.eth1.pgw002.mme100.pool2.nodes.epc.mnc002.mcc460.3gppnetwork.org.
+$ORIGIN com.apn.epc.mnc002.mcc460.3gppnetwork.org.
+wapEmerg.verizon        NAPTR   100 65530 "a" "x-3gpp-pgw:x-s5-gtp+nc-smf:x-s8-gtp+nc-smf:x-gn:x-gp" "" topon.lb1.pgwEmerg.pool1.nodes.epc.mnc002.mcc460.3gppnetwork.org.
+$ORIGIN mme.epc.mnc002.mcc460.3gppnetwork.org.
+$TTL 100        ; 1 minute 40 seconds
+topon.eth1.extMmePapsGn A       172.16.49.91
+
+
+[root@espate137a bind]# cat named.gprs
+$ORIGIN nokia.com.mnc002.mcc460.gprs.
+wap1                    A       172.16.49.121
+                        A       172.16.49.122
+wap10                   A       172.16.49.122
+wap11                   A       172.16.49.122
+wap2                    A       172.16.49.122
+wap3                    A       172.16.49.122
+wap4                    A       172.16.49.122
+wap5                    A       172.16.49.122
+
+
+** iota case fail troubleshooting
+*** "invalid command name gnb01"
+Sending IOTA procedure: "5gRegistrationSuci -for true" using verify string "IOTAPROCRETCODE=0"
+ERROR invalid command name "gnb01"
+
+redploy ATE env, gash server will be redeployed
+
+
+* iota  framework development
+** iota ngap 
+containing (remove this)
+uppercase/lowercase ignore dash will be removed
+criticality ignore/reject   ......this is the default value but message definition in iota couldn't control it, 
+                           ....... just in template
+messages/ies two different level                           
+
+** iota buiding
+working dir is 1_iota with some building tools in its dir, git iota don't contain these
+$ ls
+bld_sol_cmd      iota             obj              sol_bld
+bld_sol_cmd_bak  lib              setupiota        tools
+$ . ./setupiota
+ROOT=/wmm_nbu/glili/IOTA_REp/1_iota
+
+
+The IOTA build normally requires 3 steps:
+Build on Solaris machine to generate all of the needed C++ files:
+	bldsol&  /*run in background*/
+	tailsol /*for checking the compilation log*/
+Copy generated C++ files from sol_bld repo to the iota repo:
+	bldrepo
+Build on the Linux machine:
+	bldlnx&
+	taillnx	/*for checking the compilation log*/ 
+
+If the build is successful the following file will be produced:
+	obj/linux_x86/iota/opt/iota_prod.tgz
+
+** install iota
+cd /local/ltemme/iota/
+scp ioannou@135.111.29.10:/wmm_nbu/ioannou/1_iota/obj/linux_x86/iota/opt/iota_prod.tgz .
+mkdir iota_prod
+cd iota_prod
+tar -xzvf ../${PWD##*/}.tgz
+cd ..
+rm iota_latest
+ln -s iota_prod iota_latest 
+
+iota_latest is a link that points to the IOTA image that will be run.
+
+
+** running iota
+it separately:
+cd /local/ltemme/iota/
+mkdir test
+cd test
+scp -r ioannou@135.111.29.10:/wmm_nbu/ioannou/1_iota/iota/test/* .
+cd msgtest
+./runiota
+
+runiota is the script that loads the configuration and starts IOTA. Within this script we can modify various flags (i.e. debug options). 
+After the script runs, we get the iota prompt where we can give various commands and run tests.
+
+
+** testing
+>iota source 5gamf15test.tcl
+
+If the test fails, we can check iota.log for debugging.
+There is also a general test script that runs all the tests and should be run before each commit: r15msgtest
+
+*** defined with set version and message type definition
+runiota 201909 ###to test the set version one
+lte10_201909.cfg ##config AMF use the corresponding protocol version
+and source the file 5gamf15test.tcl
+### in this case it will source 5gamf15_201909_test.tcl  instead
+
+runiota ### test the orgininal version without version
+source 5gamf15test.tcl
+
+
+test/msgtest/5gamf15_201909_test.tcl  test/msgtest/5gamf_r15_201909_msgtmpl.tcl  test/msgtest/5gamf_r15_msgtmpl.tcl_bak
+test/msgtest/5gamf15test.tcl          test/msgtest/5gamf_r15_msgtmpl.tcl
+
+
+
+** iota framework msgd callback
+
+*** calluri msgtype identification
+through the http header: path and method(post)
+0:25:07.452 N Message after decode:
+        HTTP2 template
+
+            BODY = -> HEADERSFRAME =
+                FLAGS = $04
+                STREAMID = $00000001
+                HDRBLKFRAGMENT =
+
+                    AUTHORITY = `2511:0:0:993::20:8080'
+                    CONTENTTYPE = `application/json'
+                    HDRTABLESZ = `4096'
+                    METHOD = `POST'
+                    PATH = `/nsmf-pdusession/v1/sm-contexts/smContextStatusUri'
+                    SCHEME = `http'
+10:25:07.452 N processHeaderFrame: Enter
+10:25:07.452 N processHeaderFrame: connname=http2simhttp2sut
+10:25:07.452 N processHeaderFrame: pathstr=/nsmf-pdusession/v1/sm-contexts/smContextStatusUri
+10:25:07.452 N processHeaderFrame: pathlen=50
+10:25:07.452 N processHeaderFrame: start=1
+10:25:07.452 N processHeaderFrame: nftype = smf, stype = nsmf-pdusession-post.
+10:25:07.452 N processHeaderFrame: start=17
+10:25:07.452 N processHeaderFrame: start=20
+10:25:07.452 N processHeaderFrame: start=32
+10:25:07.452 N processHeaderFrame: no more slashes found
+10:25:07.452 N processHeaderFrame: service found for: http2sim pathval: 16   ###how it get this 16? in previous sending the 
+10:25:07.452 N processHeaderFrame: stype=nsmf-pdusession-post
+10:25:07.452 N processHeaderFrame: code = 400
+10:25:07.452 N processHeaderFrame: code = 403
+10:25:07.452 N processHeaderFrame: code = 404
+10:25:07.452 N processHeaderFrame: code = 411
+10:25:07.452 N processHeaderFrame: code = 413
+10:25:07.452 N processHeaderFrame: code = 415
+10:25:07.452 N processHeaderFrame: code = 429
+10:25:07.452 N processHeaderFrame: code = 500
+10:25:07.452 N processHeaderFrame: code = 503
+10:25:07.452 N processContentType: Enter
+10:25:07.452 N getDefptr: connname=http2simhttp2sut
+10:25:07.452 N processContentType: Enter
+10:25:07.452 N getDefptr: connname=http2simhttp2sut
+10:25:07.452 N processContentType: contenttype=application/json
+
+
+10:25:07.452 N processHeaderFrame: HTTP2BLK streamiddata[http2simhttp2sut][1] =
+         boundary = `EMPTY'
+         contenttype = `json'
+         nftype = `smf'
+         sbamsg = `16'
+         statusmsg = `
+            400 = `19'
+            403 = `19'
+            404 = `19'
+            411 = `19'
+            413 = `19'
+            415 = `19'
+            429 = `19'
+            500 = `19'
+            503 = `19''
+10:25:07.452 B [http2sim.http2rtr:(10.39.144.60:57865|19:1427)] http2sim.http2rtr sending message = HEADERSFRAME template
+
+
+*** tie uri string and the msytpe
+10:25:03.909 N SBASet::encodeField: p->name = SMCONTEXTSTATUSURI
+10:25:03.909 N SBASet::encodeField: field.at(p->name) = http://testuri.uri/nsmf-pdusession/v1/sm-contexts/smContextStatusUri
+10:25:03.909 N SBASet::encodeField: system[http2allieoptional] = off
+10:25:03.909 N SBAString::encode
+10:25:03.909 N fldlen = 68
+10:25:03.909 N  fld encodedString
+        offset     0  1  2  3  4  5  6  7    8  9  A  B  C  D  E  F   0123456789ABCDEF
+        [00000]:  68 74 74 70 3a 2f 2f 74   65 73 74 75 72 69 2e 75   http://testuri.u
+        [00010]:  72 69 2f 6e 73 6d 66 2d   70 64 75 73 65 73 73 69   ri/nsmf-pdusessi
+        [00020]:  6f 6e 2f 76 31 2f 73 6d   2d 63 6f 6e 74 65 78 74   on/v1/sm-context
+        [00030]:  73 2f 73 6d 43 6f 6e 74   65 78 74 53 74 61 74 75   s/smContextStatu
+        [00040]:  73 55 72 69                                         sUri
+10:25:03.909 N populateServiceDictionary, Json Callback String List = smf-post:16,400:19,403:19,404:19,411:19,413:19,415:19,429:19,500:19,503:19
+10:25:03.909 N populateServiceDictionaryItem, Json Callback String = smf-post:16,400:19,403:19,404:19,411:19,413:19,415:19,429:19,500:19,503:19, callbackURI = http://testuri.uri/nsmf-pdusession/v1/sm-contexts/smContextStatusUri
+10:25:03.909 N populateServiceDictionaryItem: networkFunction = smf, method = -post, suffix =
+.......
+10:25:07.368 N str2cmp = SMCONTEXTSTATUSURI
+10:25:07.368 N SBAString::decode
+10:25:07.368 N  SBAString::decode: Field data after decode
+        offset     0  1  2  3  4  5  6  7    8  9  A  B  C  D  E  F   0123456789ABCDEF
+        [00000]:  68 74 74 70 3a 2f 2f 74   65 73 74 75 72 69 2e 75   http://testuri.u
+        [00010]:  72 69 2f 6e 73 6d 66 2d   70 64 75 73 65 73 73 69   ri/nsmf-pdusessi
+        [00020]:  6f 6e 2f 76 31 2f 73 6d   2d 63 6f 6e 74 65 78 74   on/v1/sm-context
+        [00030]:  73 2f 73 6d 43 6f 6e 74   65 78 74 53 74 61 74 75   s/smContextStatu
+        [00040]:  73 55 72 69                                         sUri
+10:25:07.368 N populateServiceDictionary, Json Callback String List = smf-post:16,400:19,403:19,404:19,411:19,413:19,415:19,429:19,500:19,503:19
+10:25:07.368 N populateServiceDictionaryItem, Json Callback String = smf-post:16,400:19,403:19,404:19,411:19,413:19,415:19,429:19,500:19,503:19, callbackURI = http://testuri.uri/nsmf-pdusession/v1/sm-contexts/smContextStatusUri
+###call back uri should be /nsmf-pdusession/v1/sm-contexts/smContextStatusUri, only path name matters, it will restore the pathstr,
+### the next time, when it receive the header stream this exact same pathstr, it will use 16 to decode " service found for: http2sut pathval: 16"
+10:25:07.368 N populateServiceDictionaryItem: networkFunction = smf, method = -post, suffix =
+
+
+** iota system.sdt sytem dictionary for http2 msgtype
+08:35:26.812 N processHeaderFrame: connname=http2suthttp2sim
+08:35:26.812 N processHeaderFrame: pathstr=/nsmf-pdusession/v1/sm-contexts
+08:35:26.812 N processHeaderFrame: pathlen=31
+08:35:26.812 N processHeaderFrame: start=1
+08:35:26.812 N processHeaderFrame: nftype = smf, stype = nsmf-pdusession-post.
+08:35:26.812 N processHeaderFrame: start=17
+08:35:26.812 N processHeaderFrame: start=20
+08:35:26.812 N processHeaderFrame: no more slashes found
+08:35:26.813 N processHeaderFrame: service found for: http2sut pathval: 1
+08:35:26.813 N processHeaderFrame: stype=nsmf-pdusession-post
+08:35:26.813 N processHeaderFrame: code = 201
+08:35:26.813 N processHeaderFrame: code = 400
+08:35:26.813 N processHeaderFrame: code = 403
+08:35:26.813 N processHeaderFrame: code = 404
+08:35:26.813 N processHeaderFrame: code = 411
+08:35:26.813 N processHeaderFrame: code = 413
+08:35:26.813 N processHeaderFrame: code = 415
+08:35:26.813 N processHeaderFrame: code = 429
+08:35:26.813 N processHeaderFrame: code = 500
+08:35:26.813 N processHeaderFrame: code = 503
+08:35:26.813 N processHeaderFrame: code = 504
+08:35:26.813 N processContentType: Enter
+08:35:26.813 N getDefptr: connname=http2suthttp2sim
+08:35:26.813 N processContentType: contenttype=application/json
+08:35:26.813 N processHeaderFrame: HTTP2BLK streamiddata[http2suthttp2sim][1] =
+         boundary = `EMPTY'
+         contenttype = `json'
+         nftype = `smf'
+         sbamsg = `1'   ####servicetype[nsmf-pdusession-post][v1][sm-contexts][reqmsg],   ReadWrite,      1       //createsmcontextreq 
+         statusmsg = `     ####servicetype[nsmf-pdusession-post][v1][sm-contexts][statusmsg][201],                     ReadWrite,      2       //createsmcontextrsp
+                           ###servicetype[nsmf-pdusession-post][v1][sm-contexts][statusmsg][400],                     ReadWrite,      3       //createsmcontextfailrsp
+                           ###servicetype[nsmf-pdusession-post][v1][sm-contexts][statusmsg][403],                     ReadWrite,      3       //createsmcontextfailrsp
+servicetype[nsmf-pdusession-post][v1][sm-contexts][statusmsg][404],                     ReadWrite,      3       //createsmcontextfailrsp
+servicetype[nsmf-pdusession-post][v1][sm-contexts][statusmsg][411],                     ReadWrite,      19      //problemdetailsrsp
+servicetype[nsmf-pdusession-post][v1][sm-contexts][statusmsg][413],                     ReadWrite,      19      //problemdetailsrsp
+servicetype[nsmf-pdusession-post][v1][sm-contexts][statusmsg][415],                     ReadWrite,      19      //problemdetailsrsp
+servicetype[nsmf-pdusession-post][v1][sm-contexts][statusmsg][429],                     ReadWrite,      19      //problemdetailsrsp
+servicetype[nsmf-pdusession-post][v1][sm-contexts][statusmsg][500],                     ReadWrite,      3       //createsmcontextfailrsp
+servicetype[nsmf-pdusession-post][v1][sm-contexts][statusmsg][503],                     ReadWrite,      3       //createsmcontextfailrsp
+servicetype[nsmf-pdusession-post][v1][sm-contexts][statusmsg][504],                     ReadWrite,      3       //createsmcontextfailrsp
+
+            201 = `2'
+            400 = `3'
+            403 = `3'
+            404 = `3'
+            411 = `19'
+            413 = `19'
+            415 = `19'
+            429 = `19'
+            500 = `3'
+            503 = `3'
+            504 = `3''
+08:35:26.813 N encodeHdrBlkFrag
+08:35:26.813 N header name AUTHORITY found in http2headers in http2blk.sdt
+08:35:26.813 N header name CONTENTTYPE found in http2headers in http2blk.sdt
+08:35:26.813 N header name METHOD found in http2headers in http2blk.sdt
+08:35:26.813 N header name PATH found in http2headers in http2blk.sdt
+08:35:26.813 N header name SCHEME found in http2headers in http2blk.sdt
+08:35:26.813 N encodeHdrBlkFrag - nvlen = 5
+08:35:26.813 N  hdrtblszval:
+        offset     0  1  2  3  4  5  6  7    8  9  A  B  C  D  E  F   0123456789ABCDEF
+        [00000]:  3f e1 1f                                            ?..
+08:35:26.814 N hdrtblbytes: 3
+08:35:26.814 N authname: :authority, length = 10
+08:35:26.814 N authvalstr: 2511:0:0:993::20:8080, length = 21
+08:35:26.814 N  authval:
+        offset     0  1  2  3  4  5  6  7    8  9  A  B  C  D  E  F   0123456789ABCDEF
+        [00000]:  32 35 31 31 3a 30 3a 30   3a 39 39 33 3a 3a 32 30   2511:0:0:993::20
+        [00010]:  3a 38 30 38 30                                      :8080
+08:35:26.814 N methname: :method, length = 7
+08:35:26.814 N methvalstr: POST, length = 4
+08:35:26.814 N  methval:
+        offset     0  1  2  3  4  5  6  7    8  9  A  B  C  D  E  F   0123456789ABCDEF
+        [00000]:  50 4f 53 54                                         POST
+08:35:26.814 N pathname: :path, length = 5
+08:35:26.814 N pathvalstr: /nsmf-pdusession/v1/sm-contexts, length = 31
+08:35:26.814 N  pathval:
+        offset     0  1  2  3  4  5  6  7    8  9  A  B  C  D  E  F   0123456789ABCDEF
+        [00000]:  2f 6e 73 6d 66 2d 70 64   75 73 65 73 73 69 6f 6e   /nsmf-pdusession
+        [00010]:  2f 76 31 2f 73 6d 2d 63   6f 6e 74 65 78 74 73      /v1/sm-contexts
+08:35:26.814 N schemename: :scheme, length = 7
+
+
+** iota encoding/decoding
+*** iota encoding hexstring 
+05:29:48.925 M  Sending a message from IOTA
+        offset     0  1  2  3  4  5  6  7    8  9  A  B  C  D  E  F   0123456789ABCDEF
+        [00000]:  00 00 4b 01 04 00 00 00   01 3f e1 1f 41 90 13 61   ..K......?..A..a
+        [00010]:  0d c0 5c 05 c7 df 66 e5   c1 02 e3 c0 78 1f 42 83   ..\...f.....x.B.
+        [00020]:  ac e8 4f 04 a1 62 a1 d3   2a c4 3d 34 b1 dc 2c 5a   ..O..b..*.=4..,Z
+        [00030]:  55 88 7a 92 5f 29 43 16   96 f1 ea 49 7c a7 24 8c   U.z._)C....I|.$.
+        [00040]:  26 c1 d4 89 4b 67 86 5f   8b 1d 75 d0 62 0d 26 3d   &...Kg._..u.b.&=
+        [00050]:  4c 74 41 ea                                         LtA.
+
+*** iota sending message template
+template will be the same as definition of HDRBLKFRAGMENT
+06:03:01.921 B [http2sut.http2rtr:(10.39.144.60:59247|19:1431)] http2sut.http2rtr sending message = HTTP2 template
+
+            BODY = -> HEADERSFRAME =
+                FLAGS = 4
+                STREAMID = 1
+                HDRBLKFRAGMENT =
+
+                    ACCEPT = `EMPTY'
+                    AUTHORITY = `2511:0:0:993::20:8080'
+                    CACHECONTROL = `EMPTY'
+                    CONTENTID = `EMPTY'
+                    CONTENTLEN = `EMPTY'
+                    CONTENTTYPE = `application/json'
+                    DATE = `EMPTY'
+                    ETAG = `EMPTY'
+                    HDRTABLESZ = `4096'
+                    IFNONEMATCH = `EMPTY'
+                    LINK = `EMPTY'
+                    LOCATION = `EMPTY'
+                    METHOD = `post'
+                    PATH = `/namf-comm/v1/ue-contexts/ueContextId/transfer'
+                    RETRYAFTER = `EMPTY'
+                    SCHEME = `EMPTY'
+                    STATUS = `EMPTY'
+                    USERAGENT = `EMPTY'
+--------------------------------------------------------------------------------------------------------------------
+message template for sending:
+db loadTemplate {define amf_create_ue_context_transfer_hdrframe_req_test {
+HTTP2MSG {
+   {BODY {@HEADERSFRAME {
+         {FLAGS 4}
+         {STREAMID 1}
+         {HDRBLKFRAGMENT {
+            {HDRTABLESZ 4096}
+            {METHOD "post"}
+            {AUTHORITY "2511:0:0:993::20:8080"}
+            {PATH "/namf-comm/v1/ue-contexts/ueContextId/transfer"}
+            {CONTENTTYPE %contenttype}
+         }}
+   }}}
+}
+}}
+
+*** iota receiving message
+5:29:48.926 M [http2sim-mmes-0:(10.39.144.60:46227|20:1549)] http2sim-mmes-0 received message
+        0000  00 00 4b 01 04 00 00 00 01 3f e1 1f 41 90 13 61  ..K......?..A..a
+        0016  0d c0 5c 05 c7 df 66 e5 c1 02 e3 c0 78 1f 42 83  ..\...f.....x.B.
+        0032  ac e8 4f 04 a1 62 a1 d3 2a c4 3d 34 b1 dc 2c 5a  ..O..b..*.=4..,Z
+        0048  55 88 7a 92 5f 29 43 16 96 f1 ea 49 7c a7 24 8c  U.z._)C....I|.$.
+        0064  26 c1 d4 89 4b 67 86 5f 8b 1d 75 d0 62 0d 26 3d  &...Kg._..u.b.&=
+        0080  4c 74 41 ea                                      LtA.
+
+
+*** iota receiving headerframe
+**** iota decoding header frame 
+06:03:01.924 N decodeHdrBlkFrag - hdrlen - hdridx 71
+06:03:01.924 N hdrnamestr = :authority
+06:03:01.924 N hdrvalstr = "2511:0:0:993::20:8080"
+06:03:01.924 N hdrnamestr = :method
+06:03:01.924 N hdrvalstr = "post"
+06:03:01.924 N hdrnamestr = :path
+06:03:01.924 N hdrvalstr = "/namf-comm/v1/ue-contexts/ueContextId/transfer"
+06:03:01.924 N hdrnamestr = content-type
+06:03:01.924 N hdrvalstr = "application/json"
+06:03:01.924 N hdrField =
+
+            AUTHORITY = `2511:0:0:993::20:8080'
+            CONTENTTYPE = `application/json'
+            HDRTABLESZ = `4096'
+            METHOD = `post'
+            PATH = `/namf-comm/v1/ue-contexts/ueContextId/transfer'
+06:03:01.924 N Message after decode:
+        HTTP2 template
+
+            BODY = -> HEADERSFRAME =
+                FLAGS = $04
+                STREAMID = $00000001
+                HDRBLKFRAGMENT =
+
+                    AUTHORITY = `2511:0:0:993::20:8080'
+                    CONTENTTYPE = `application/json'
+                    HDRTABLESZ = `4096'
+                    METHOD = `post'
+                    PATH = `/namf-comm/v1/ue-contexts/ueContextId/transfer'
+06:03:01.924 N processHeaderFrame: Enter
+06:03:01.924 N processHeaderFrame: connname=http2simhttp2sut
+
+
+**** match this header with real data messagetype
+6:03:01.925 N processHeaderFrame: HTTP2BLK streamiddata[http2simhttp2sut][1] =
+         boundary = `EMPTY'
+         contenttype = `json'
+         nftype = `amf'
+         sbamsg = `1'    ##### this is the real message type
+         statusmsg = `
+            200 = `2'
+            400 = `3'
+            403 = `3'
+            411 = `3'
+            413 = `3'
+            415 = `3'
+            429 = `3'
+            500 = `3'
+            503 = `3''
+06:03:01.925 B [http2sim.http2rtr:(10.39.144.60:59247|19:1423)] http2sim.http2rtr sending message = HEADERSFRAME template
+
+            BODY = -> HEADERSFRAME =
+                FLAGS = $04
+                STREAMID = $00000001
+                HDRBLKFRAGMENT =
+
+                    AUTHORITY = `2511:0:0:993::20:8080'
+                    CONTENTTYPE = `application/json'
+                    HDRTABLESZ = `4096'
+                    METHOD = `post'
+                    PATH = `/namf-comm/v1/ue-contexts/ueContextId/transfer'
+        from PID= 1423(http2sim::http2rtr) to PID=1517
+
+
+**** message template mismatch
+06:16:49.750 U >>>>>> LAST RECV MESSAGE TEMPLATE: amf_create_ue_context_transfer_hdrframe_req_test
+06:16:49.751 U @@@@@@@@@@@@@@@@@@
+06:16:49.751 U HTTP2MSG {
+           {BODY {@HEADERSFRAME {
+                 {FLAGS 4}
+                 {STREAMID 1}
+                 {HDRBLKFRAGMENT {
+                    {HDRTABLESZ 4096}
+                    {METHOD "post"}
+                    {AUTHORITY "2511:0:0:993::20:8080"}
+                    {PATH "/namf-comm/v1/ue-contexts/ueContextId/transfer"}
+                    {SCHEME "http" }
+                    {CONTENTTYPE %contenttype}
+                 }}
+           }}}
+        }
+
+06:16:49.751 U @@@@@@@@@@@@@@@@@@
+
+06:16:49.751 U rcvd msg: HTTP2 template
+
+            BODY = -> HEADERSFRAME =
+                FLAGS = $04
+                STREAMID = $00000001
+                HDRBLKFRAGMENT =
+
+                    AUTHORITY = `2511:0:0:993::20:8080'
+                    CONTENTTYPE = `application/json'
+                    HDRTABLESZ = `4096'
+                    METHOD = `post'
+                    PATH = `/namf-comm/v1/ue-contexts/ueContextId/transfer'
+06:16:49.751 F Error: "ERROR: missing IE HTTP2MSG.BODY.@HEADERSFRAME.HDRBLKFRAGMENT.SCHEME. "
+
+
+--------------
+receiving template:
+db loadTemplate {define amf_create_ue_context_transfer_hdrframe_req_test {                
+HTTP2MSG {                                                                                
+   {BODY {@HEADERSFRAME {                                                                 
+         {FLAGS 4}                                                                        
+         {STREAMID 1}                                                                     
+         {HDRBLKFRAGMENT {                                                                
+            {HDRTABLESZ 4096}                                                             
+            {METHOD "post"}                                                               
+            {AUTHORITY "2511:0:0:993::20:8080"}                                           
+            {PATH "/namf-comm/v1/ue-contexts/ueContextId/transfer"}                       
+            {SCHEME "http" }                                                              
+            {CONTENTTYPE %contenttype}                                                    
+         }}                                                                               
+   }}}                                                                                    
+}                                                                                         
+}}                                                                                        
+                                                                                          
+
+***** for opiontal field receiving template
+
+receiving template:
+db loadTemplate {define amf_create_ue_context_transfer_hdrframe_req_test {                
+HTTP2MSG {                                                                                
+   {BODY {@HEADERSFRAME {                                                                 
+         {FLAGS 4}                                                                        
+         {STREAMID 1}                                                                     
+         {HDRBLKFRAGMENT {                                                                
+            {HDRTABLESZ 4096}                                                             
+            {METHOD "post"}                                                               
+            {AUTHORITY "2511:0:0:993::20:8080"}                                           
+            {PATH "/namf-comm/v1/ue-contexts/ueContextId/transfer"}                       
+            {SCHEME "http" |EMPTY }    //make this optional, then it will be OK                                                             
+            {CONTENTTYPE %contenttype}                                                    
+         }}                                                                               
+   }}}                                                                                    
+}                                                                                         
+}}                                                                                        
+ 
+
+*** uri 
+10:20:10.695 N processHeaderFrame: service NOT found for vsmfPduSessionUri[reqmsg] in servicedictionary
+         modify = `
+            reqmsg = `23'
+            statusmsg = `
+                200 = `24'
+                400 = `25'
+                403 = `25'
+                404 = `25'
+                411 = `19'
+                413 = `19'
+                415 = `19'
+                429 = `19'
+                500 = `25'
+                503 = `25'''
+         release = `
+            reqmsg = `26'
+            statusmsg = `
+                400 = `19'
+                403 = `19'
+                404 = `19'
+                411 = `19'
+                413 = `19'
+                415 = `19'
+                429 = `19'
+                500 = `19'
+                503 = `19'''
+10:20:10.695 N processHeaderFrame: stype=nsmf-pdusession
+10:20:10.695 N processHeaderFrame: Use old dictionary to populate rsp codes for path /nsmf-pdusession/v1/pdu-sessions/vsmfPduSessionUri
+10:20:10.695 N processHeaderFrame: DEFAULT service found for: http2sim servicetype.nsmf-pdusession-post.4 16
+10:20:10.695 N processContentType: Enter
+10:20:10.695 N getDefptr: connname=http2simhttp2sut
+10:20:10.695 N processContentType: contenttype=application/json
+10:20:10.695 N processHeaderFrame: HTTP2BLK streamiddata[http2simhttp2sut][1] =
+         boundary = `EMPTY'
+         contenttype = `json'
+         nftype = `smf'
+         sbamsg = `16'
+
+
+* iota and Robot case
+** invoking iota procedure asynchronizedly
+*** start iota procedure async (execute next robot clause immediately, not waiting for it complete)
+Iota Async Procedure Start 5gNgAmfConfigurationUpdate, -N2LinkCount ${totalN2Links} 
+### invoking an iota procedure then return imediately for the next robot clause execution
+def iota_async_procedure_start(self, *cmdstrings, **configuration):
+        """ start executing an IOTA procedure but dont wait for for it to complete """
+        self._async_verifystring = configuration.get('verifystring', 'IOTAPROCRETCODE=0')
+        self._async_timeout = configuration.get('timeout', '180')
+        cmdstring = ' '.join(cmdstrings)
+
+        if self._thread is None:
+            if self._tn_connected is False:
+                try:
+                    self._connect()
+                except Exception as ex:
+                    raise AssertionError('Failed to connect to IOTA via telnet:', ex)
+            logger.info('Executing async procedure: ' + cmdstring)
+            self._tn.write(cmdstring)
+            self._thread = IotaOutputReader(self._tn, self._queue, self._async_timeout)
+            self._thread.daemon = True
+            self._thread.start()
+        else:
+            raise AssertionError('There is already an IOTA async procedure running.')
+
+
+*** iota async procedure wait for completion
+    def iota_async_procedure_wait_for_completion(self):
+        """wait until current IOTA procedure completes, then return all output.        """
+
+        while self.iota_async_procedure_still_running():
+            time.sleep(0.2)
+        self._thread = None
+        output = self._get_messages()
+        if self._async_verifystring not in output:
+            logger.error(output)
+            raise AssertionError('Did not get expected response from IOTA "{}"'.format(self._async_verifystring))
+        return output
+
+ 
+
+*** 5g iota case only to preparing iota server for later interactive useage (telnet 0 2121)
+file 5ginitializeIotaFlex.robot
+--------------------------------------------------------------
+*** Settings ***
+Metadata          NETWORKMODE    ${CMM.NETWORKMODE}
+Resource          iota.txt
+Force Tags        owner_kamal.fernando    tc_prio_1
+Suite Setup       Connect To IOTA        ${IOTA_CONFIG['host']}
+
+*** Variables ***
+
+*** Test Cases ***
+5ginitializeIotaflex
+    [Tags]     tech_5g    init
+    [Documentation]   Restart IOTA and configure for 5g test cases
+    Terminate IOTA
+    sleep    1
+    AMF IOTA Suite Setup
+#    Gnb NGSETUP
+-------------------------------------------------------------------
+
+**** give wrong addr to make the nssetup request failing
+### ###
+if give the wrong amf ip address for GNB, then the case will failed here, since no response for this request.
+========
+b/testers/cmm/testcases-iota/config/ate_data.py
+@@ -493,7 +493,8 @@ CMM = {
+     'M3UA9MHB_V6_1': '2511:0:0:' + v6_vsr_segment + ':0:0:0:249',
+
+     # Single-home local AMF Service IPv4 addresses on IPDS
+-    'N2_V4': '172.' + v4_vsr_octet + '.46.201',
++    #'N2_V4': '172.' + v4_vsr_octet + '.46.201',
++    'N2_V4': '14.100.0.247',
+-----------------------------------------------------------------
+
+
+**** run an iota case to make the iota env ready to input iota pro  
+
+
+KEYWORD  iota . AMF IOTA Suite Setup  
+
+00:03:18.909 KEYWORD  iota . Verify IOTA Is Running  
+00:00:00.356 KEYWORD ${running} = IOTALib . Is Iota Running ${IOTA_CONFIG['host']} 
+00:03:18.553 KEYWORD  iota . IOTA Suite Setup  
+00:03:18.553 KEYWORD  iotabase . Restart IOTA  
+00:00:00.533 KEYWORD  IOTALib . Terminate Iota  
+00:00:02.997 KEYWORD  iotabase . IOTA DNS Provision  
+00:00:30.882 KEYWORD  iotabase . Setup IOTA Test System  
+00:00:10.261 KEYWORD  iotadnslib . Create Default DNS Records  
+00:01:01.854 KEYWORD  IOTALib . Start Iota RESTART 
+00:01:32.026 KEYWORD  NEC_Conf_Resource . NEC Configure IOTA Simulator  
+
+00:01:32.026 KEYWORD  iotabase . Configure IOTA AMF Simulator  
+
+00:00:01.180 KEYWORD  iotabase . CommonIotaCommand CreateGUMMEI -plmnname plmn01 -mcc ${CMM['MCC']} -mnc ${CMM['MNC']} -cc 001 -ndc 050 -mmegi ${CMM['MME_GRPID']} -mmec ${CMM['MME_CODE']} 
+00:00:00.371 KEYWORD  iotabase . CommonIotaCommand CreateUE -name ue1 -imsi ${IOTA['IMSI1']} -imei 1234567890123456 
+00:00:00.377 KEYWORD  iotabase . CommonIotaCommand CreateHTTP2Server -name ausf1_s -ip ${IOTA['AUSF1_V4']} -port ${CMM['HTTP_PORT']} -amfip ${CMM['N12_V4']} -delay 5000 
+00:00:00.980 KEYWORD ${isMultiHome} = iotabase . Is IOTA MultiHome AMF Configuration  
+
+KEYWORD ${isMultiHome} = iotabase . Is IOTA MultiHome AMF Configuration  
+00:00:00.000 KEYWORD  BuiltIn . Set Suite Variable ${isMultiHome} 
+00:00:02.392 KEYWORD ${isDualstack} = iotabase . Is IOTA Dualstack AMF Configuration  
+00:00:11.249 KEYWORD  BuiltIn . Run Keyword If ${isDualstack}, Add IOTA AMF V6 Simulators 
+00:00:00.000 KEYWORD  BuiltIn . Run Keyword If ${isMultiHome}, Configure MultiHome AMF IOTA gNB 
+00:00:09.750 KEYWORD  BuiltIn . Run Keyword Unless ${isMultiHome}, Configure SingleHome AMF IOTA gNB 
+00:00:04.409 KEYWORD  IOTALib . Iota Script base/iota_files/5g_stateMachines.tcl 
+00:00:06.612 KEYWORD  IOTALib . Iota Script base/iota_files/5g_IOTAinterfaceProcedures.tcl 
+00:00:05.019 KEYWORD  IOTALib . Iota Script base/iota_files/5g_messageTemplates.tcl 
+00:00:03.539 KEYWORD  IOTALib . Iota Script base/iota_files/5g_postInitProcs.tcl 
+00:00:30.168 KEYWORD  iotabase . Gnb NGSETUP  
+00:00:30.168 KEYWORD  IOTALib . Iota Procedure 5gNgSetup, -ta1 ${IOTA.AMF_TAC0}:${CMM.MCC}${CMM.MNC}:01,02,03:D143A5,D143A5,D143A5 -gNB gnb01 -gnbname gnb01 -postinitproc {::ngSetupRetry} 
+10:24:20.511 TRACE Arguments: [ '5gNgSetup' | '-ta1 30000:46002:01,02,03:D143A5,D143A5,D143A5 -gNB gnb01 -gnbname gnb01 -postinitproc {::ngSetupRetry}' ] 
+Sending IOTA procedure: "5gNgSetup -ta1 30000:46002:01,02,03:D143A5,D143A5,D143A5 
+
+***** GNB sctp connection estblished
+
+KEYWORD  BuiltIn . Run Keyword Unless ${isMultiHome}, Configure SingleHome AMF IOTA gNB 
+00:00:00.379 KEYWORD  iotabase . CommonIotaCommand CreateGNB -name gnb01 -id 05151 -gnbip ${IOTA['5GNB1_V4']} -gnbport ${CMM['N2_PORT']} -amfip ${CMM['N2_V4']} -amfport ${CMM['N2_PORT']} -delay 5000 -plmn plmn01 -ta ${IOTA['AMF_TAC0']} -ngsetup false 
+00:00:00.379 KEYWORD  IOTALib . Iota Command ${cmdstring} 
+
+**** iota command 
+
+CreateGNB -name gnb16 -id 05154 -gnbip 172.16.59.11 -gnbport 38412 -amfip 10.10.20.9 -amfport 38412 -delay 5000 -plmn plmn01 -ta 788 -ngsetup false
+5gNgSetup -ta1 788 -gNB gnb16 -gnbname gnb16 -verbose 3
+
+
+tools:
+home dir：
+/ww/kaml
+compiler/asn1/asn1cpp.py
+genbytes  
+
+
+* iota and jenkins
+/var/lib/jenkins  
+jobs in this dir
+~/.../workspace for iota case running
+
+
+
+
+* iota and procedures to use
+** attach 4g, 4gto 3g rau then 3gto4g tau
+TEST ite010 inter sys TAU with SGW reloc no PRA report afer PRA action stop
+Full Name:	F10904-11 Dc Pra Ite Regression.ite010 inter sys TAU with SGW reloc no PRA report afer PRA action stop
+ Iota Script base/iota_files/messageTemplates.tcl
+ Iota Procedure 4gAttachImsi -imsi ${IOTA.IMSI4} -epsattachtype 2 -verbose 1
+ Iota Procedure 4gToExternalSgsnRauS3 -sndclr false -sgsdetach true -verbose 1
+ Iota Procedure 4gTauFromExternalSgsnS3 -active true -verbose 1, -postinitproc {set ::c_ue(Bld_contextrsp_s3_pdncon1_presrptareaaction), [::bld_mAct_PRA_IE {{-action start -praid ${PRAID_8388610}}}];, set ::c_ue(Bld_csrsp_tgt_presrptareaaction), [::bld_mAct_PRA_IE {{-action stop -praid ${PRAID_8388610}}}];, ::ctxsetuprsp ${GNB6000_1_IP};, ::vfy_pra_ie -msg mbreq -multi_pra "${PRAID_8388610}:empty"}
+ Iota Procedure 4gDetach
+ Iota Procedure 4gCancelLocation
+
+
+** iota get coredump files in ate env
+/usr/tmp/getiotastack to get core dump files
+in the directory, open the dump file
+wisebridge could be ingroed

@@ -1,0 +1,116 @@
+* CMM MME feature summary
+RAT: radio access technology
+Henb: Home evovled enb
+LIPA: local ip access
+CSG Cell: a cell broadcasting a CSG indicator set to true and a specific CSG identity
+
+** Gateway selection
+Use global parameter gwSelectionMode to select gateway selection mode 1 or mode 2. MME supports both modes of selection, whereas SGSN supports only the select close pair mode (mode 2 selection).
+
+Table: gwSelectionMode
+GW Selection Mode 2 Select close pair (mode 2). In this method, topologically closer S-GW and P-GW pair is selected.
+GW Selection Mode 1 (default)   Select P-GW close to S-GW (mode 1). In this method, first a S-GW is selected, then a P-GW that is topologically closer to the S-GW.
+
+
+** DCNR: Dual connectivity for 4g(LTE) and 5g(NR) [DCNR(dual connecitivity for NR
+DCNR bit in "UE Network Capability"(in #Attach_Request)  signals to the 4G core network that the UE supports dual connecitivy with 4G-LTE and 5G-NR
+
+
+*** network topology
+TheE-UTRA-NRDualConnectivity(EN-DC)featuresupports 5GNewRadio(NR)withEPC.
+A UE connected to an eNodeBacts as a MasterNode (MN) and an en-gNBacts as a SecondaryNode (SN). The eNodeB isconnected to the EPC through the S1 interface
+and to the en-gNB throughthe X2 interface.The en-gNB canbe connectedto the EPC throughthe S1-U interfaceand other en-gNBs through the X2-U interface.
+
+*** DC configuration
+**** DC feautre switch on/off 
+ Gparmss gParmName=dualConnectivity, gParmValue=Yes
+ Gparmss gParmName=supportCsgChangeReporting, gParmValue=Yes
+
+**** ENDC(Enhanced Dual Connectivity) feature   
+CMM MME shall support local configuration to en/dis DC per UE PLMN serivces(Home, Shared,Roaming).
+cmm uePlmnServices Create/show/modify  <plmn_name> enhancedDualConnectivity='true' enhancedDualConnectivityProfileName='cmcc'  
+uePlmnServicces '460_02:460_02' | enhancedDualConnectivity='true'  | enhancedDualConnectivityProfileName='cmcc' 
+***** enhancedDualConnectivityProfileName=cmcc
+'accRestAvpAbsent': 'RESTRICT',
+               'accRestAvpNrAllow': 'RESTRICT',
+               'accRestAvpNrRestrict': 'RESTRICT',
+               'accRestNrAllow': 'ALLOW',
+               'accRestNrAllowGwNotNrCapable': 'Yes',
+               'dcnrIndToUe': 'false',
+               'gwSelectionFallbackWithoutNr': 'ENABLE',
+               'irPgw': 'false',
+               'irSgw': 'false',
+               'iratNrGwReselection': 'No',
+               'name': 'cmcc',
+               'secondaryRatUsageDataReporting': 'DISABLE'},
+
+***** Dual Connectivity restriction per imsi-range
+cmm imsiRangeServicesPlmn create --uePlmnServicesName <string> --entryId <integer> [ --description <string> ] [ --enhancedDualConnectivityProfileName <string> ] [ --enhancedDualConnectvity <list-item> ] [ --maxMsin <digits> ] [ --minMsin <digits> ] [ --shutdown <list-item> ]
+This allows granular Dual Connectivity restriction at imsi series level per UE PLMN augmenting
+
+***** MME indicate support of"NR as Secondary RAT" in the "feauter-list avp s5a application"
+if dualConnectivity param is on MME will set the "NR as Secondary RAT" in "feature-list" in ULR/IDR message to HSS.
+if not, then not set this bit from MME
+
+
+***** HSS indication of feature-list(NR as secondary RAT) and ARD(NR as secondary rat not allowed)
+HSS indicates NR access restriction per UE subscription by setting bit8 ¡°NR as Secondary RAT Not Allowed¡± to ¡°1¡± in the 
+Access-Restriction-Data AVP. Bit8 setting to ¡°0¡± indicates no NR restriction.
+
+one scenario will result in 5G Restricted
+hss-----> MME   ULA/IDA
+Access-Restriction-Data[nr as secondary rat not allowed:1], feature-list[nr as secondary RAT:1]   
+
+
+
+
+*** feature elaberating
+UE set DCNR bit in   Attach Request/TAU Req, 
+MME set RestrictDCNR to "Use of dual connectivity with NR is restricted" in Attach/TAU accept
+if MME support DCNR feature, 
+MME set RestrictDCNR to "Use of dual connectivity with NR is restricted" in Attach/TAU accept
+
+
+but if  if HSS sends ULA/IDR with"Access-Restriction"carrying"NR as SecondaryRAT Not Allowed",MME sends the 
+"NR Restriction"bitset in "HandoverRestrictionList" IE during Attach/TAU/Handoverprocedures.
+Similarly, MME sets theRestrictDCNRbit to "Use of dual connectivitywith NR is restricted"in the EPS networkfeaturesupportIEof the AttachAccept/TrackingArea UpdateAcceptmessag
+
+he "HandoverRestrictionList" IE is presentin the "InitialContextSetup Request"messagefor Attach/TAU procedure with data forwardingprocedure,
+in the "HandoverRequired"messagefor S1 handoverprocedure,
+in the "DownlinkNAS Transport"messagefor TAU withoutactive flag procedure
+
+*** SGW/PGW selection with NR Capability DNS 
+**** when to select SGW/PGW with NR 
+when enhanceddualconnectivity is true:
+for dynamic gateway selection, uses the following service parameters received from DNSserver (in NAPTRresponse)over other 
+servicep arameters to select NR capablegateway: x-3gpp-pgw:x-gn+nc-nr x-3gpp-pgw:x-gp+nc-nr 
+In order to select a network node with a particular networkcapability,the characterstring"+nc-<networkcapability>"must be 
+appendedto the "app-protocol"name where "nc" indicates"networkcapability","nr" indicates"new radio","x-gn"is "app protocol"and
+"x-3gpp-ggsn/pgw"are app services.
+x-s5-gtp+nc-nr+ue-15:x-s11+nc-nr+ue-15
+x-s5-gtp+ue-9+nc-nr
+x-s8-gtp+nc-nr+ue-15:x-s11+nc-nr+ue-15
+x-s8-gtp+ue-9+nc-nr
+
+****  enhanceddualconnectivity false
+Enhanced Dual connectivity is disabled but UE is NR capable or Enhanced Dual connectivity is enabled but UE is not NR capable,
+ CMM can still include records with +nc-nr service parameters in search for best SGW/PGW candidate but don¡¯t give them special
+ preference
+
+
+
+
+
+** DCN: Dedicated Core Network
+f11601-01
+A DCN comprises of one or more MME and it may comprise of one or more S-GW/P-GW/PCRF. This feature enables subscribers to be 
+allocated to and served by a DCN based on subscription information (UE Usage Type).The specific functions are for routing and 
+maintaining UEs in their respective DCN.
+
+S10: The UE usage type IE is included in Forward Relocation Request, Context Response, and Identification Response.
+S6a: Authentication Information Request (AIR) and Authentication Information Answer (AIA) changes.
+The Send UE Usage Type flag is introduced in AIR-Flags of AIR to indicate to HSS that MME supports DCN and to send the AVP UE-Usage-Type in AIA.
+A feature bit (Feature-List-Id 2 Table 7.3.10/2 of TS 29.272) is introduced to indicate to HSS that MME supports Dedicated Core Network. The feature is applicable to ULR/ULA and IDR/IDA.
+The UE-Usage-Type AVP is introduced in Subscription Data AVP.
+Additionally, MME is required to support selection of new MME and S-GW in a DCN supporting UE Usage Type using DNS procedures. When using DCN, the character string ¡°+ue-<ue usage type>¡± is appended to the ¡°app-protocol¡± name for the interfaces applicable (S10, S5, S8, S11) to DCN.
+

@@ -1,0 +1,450 @@
+* Basice conception
+if we have some set of data like (height, weight) of a mice, for example(the higher, the heavier), 10 sets of data.
+we randomly pick 5 as a training sets, the other 5 left as a testing set.
+this 5 training sets could be depicted in a x,y chart(x:height, y:weight), it more like a curve.
+
+
+** Variance[ 方差】 and Bias
+machine learning is to find a function f(x) for a training set, then test the function in the testing set to verify if this is a good function.
+=f(x)
+firstly we try a f(x)=a+bx  linear model, if we try all the a,b parameter, we could find a best one f(x)
+L(f)= ∑(yn-f(xn))^2   here(n=1....5 ) training dataset(x1,y1),(x2,y2),(x3,y3),(x4,y4),(x5,y5) 
+L(f) means loss function, it means the bias of this function. so L(f) is the less the better.
+
+if we find the best liner function, we should verify this function using the testing data
+V(f)= ∑(yn-f(xn))^2   here(n=1....5 ) training dataset(x6,y6),(x7,y7),(x8,y8),(x8,y8),(x10,y10) 
+if V(f) is large, means the viariance is big.
+
+*** overfitting
+For a specific modle if a function f1 has the lowest bias, but has very large variance;
+but if a function f2 has just a bit more bias than f1, but has much less variance compared to f1, which function is better?
+Obviously, f2 is better. Though f1 has the lowest bias, but it has very large variance, it means the bias is small just for training data,
+but for test data it's not fit at all, so this is called overfitting.
+
+we can see the function f should  be with low bias and low variance(consistantly predicting across different datasets, acurately model the true relationship).
+
+
+** machine learning model
+*** Logistic regression
+only predict something is True of False, instead of predicting something continuous like size.
+
+** how to divide sets for training and testing----- cross validation
+we divide a set to 4 parts, 
+using the first  part to test, and left three parts for training. 1
+using the second  part to test, and left three parts for training. get function f2
+using the third  part to test, and left three parts for training.  get function f3
+using the fourth  part to test, and left three parts for training.
+
+every part has been used for testing and training, this called cross validation
+
+** regularization
+
+** boosting and bagging
+
+
+
+
+
+
+
+* python related to Machine Learning
+** python numpy for vector and matrix processing
+*** Numpy Array objects
+NumPy provide an N-dimensional array type, which describes a collection of "items" of the same type.
+The items can be indexed using for example N integers.
+>>> group = array( [ [1,5],[7,3],[4,9],[8,2] ])
+>>> print group
+  [ [1 5]
+ [7 3]
+ [4 9]
+ [8 2] ]
+
+*** min and max of numpy array
+>>> group.min()    ### get minimum value from  all flattened elements
+1
+>>> group.min(0)   #### get minimum value from the column
+array([1, 2])
+>>> group.min(1)  ### get minimum value from the row
+array([1, 3, 4, 2])
+
+
+***  zero 
+numpy.zeros(shape, dtype=float, order='C', *, like=None)
+Parameters
+    shapeint or tuple of ints Shape of the new array, e.g., (2, 3) or 2.
+    dtypedata-type, optional
+        The desired data-type for the array, e.g., numpy.int8. Default is numpy.float64.
+    order{‘C’, ‘F’}, optional, default: ‘C’
+        Whether to store multi-dimensional data in row-major (C-style) or column-major (Fortran-style) order in memory.
+Returns
+    outndarray Array of zeros with the given shape, dtype, and order.
+    Return a new array of given shape filled with value.
+
+Examples
+
+np.zeros(5)  ## (5,) means (5,1)
+array([ 0.,  0.,  0.,  0.,  0.])
+
+np.zeros((5,), dtype=int)   ## (5,) means (5,1)
+array([0, 0, 0, 0, 0])
+
+np.zeros((2, 1))  #### 2 elements, with only 1 each
+array[ [0.], [ 0.]])
+
+
+*** tile (repeat the array in multiple dimension, including adding new axis)
+>>> tile(g2,2)
+array([0, 1, 2, 0, 1, 2])
+>>> tile(g2,(2,3))
+array([ [0, 1, 2, 0, 1, 2, 0, 1, 2],
+       [0, 1, 2, 0, 1, 2, 0, 1, 2]])
+>>> tile(g2,(2,3,4))
+array([ [ [0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2],
+        [0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2],
+        [0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2]],
+
+       [ [0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2],
+        [0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2],
+        [0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2]]])
+>>>
+
+
+* machine learning in action
+** classification with k nearest neigbors(KNN)
+assuming that there are two feature values for an element, and we can quantify them with numbers, and every number's step matters equally.
+x ^     
+4 |        A..A .?
+3 |
+2 |  .B
+1 | .B
+0 |______________>y
+    1 2 3 4 5
+there are four elements has two feature values(x,y), assuming they are classified as two groups A and B.
+From the graph, we can see that the nearest distance between two elements will be classified as the same group.
+d^2=(xA0-xB0)^2+(xA1-xB1)^2
+if we have a new elememts ?. how do we know it is in group A or B.
+we calulate the distance between this new element with all this training four elements. then we get 3 nearest distance elements in training set.
+we get the classification of these 3 elements's group, x1,x2,x3, group(x1)=A,  group(x2)=B, group(x3)=A, we will classify it as A, since it's the majority.
+
+*** quantifying the feature elements without bias
+dating match example: 
+  玩视频游戏所耗时间百分比 毎年获得的飞行常客里程数   毎周消费的冰淇淋公升数      样本分类
+1 0.8                      400                        0.5                          1 (hate)
+2 12                       134000                     0.9                          3 (love)
+3 0                        20000                      1.1                          2 (like)
+4 67                       32000                      0.1                          2
+
+distance between element 3 and 4
+d(3,4)= (0 - 67)^2 + (20 000 - 32 000)^2 + (1 • 1 — 0.1)^2
+there are three features in training set, it means x,y,z 
+but feature flight's value is too big for other two features, it will make other feature underestimated.
+we need to normalize these data so that every feature keep balance
+newVal=(oldVal-min)/(max-min) 
+f1(min), f1(max), f1(oldVal) f1(newVal)...  
+f2(min), f2(max), f2(oldVal) f2(newVal)...  
+f3(min), f3(max), f3(oldVal) f3(newVal)...  
+
+thus we could get the digit of the features balanced they all >0 <1
+trainingvector
+[ [0.8, 400, 0.5, ], [12, 134000, 0.9,] , [ 0, 20000, 1.1,  ], [67, 32000, 0.1 ]   ]
+trainingclasslist [1,3,2,2]
+
+testingvector [0.5, 50000, 0.2, ]
+
+
+*** multiple features for image
+for example, we use 1 and 0 to draw a image with 32*32, raw feature vector should be a vector[32*32] vector[1024] to store all the 1, 0 data.
+in this case , we have 1024 features
+
+ t V e c t o r = k N N . i m g 2 v e c t o r ('t e s t D i g i t s / 0 _ 1 3 .t x t 1)
+ >>> t e s t V e c t o r [0 , 0 :31]
+ array^{ [ 0., 0 . , 0 . , 0 . , 0_, 0., 0 . , 0 . , 0., 0 . , 0 . , 0 . / 0,, 0., 1., 1. , 1. , 1. , 0. , 0. , 0., 0. , 0. 7 0. , 0., 0., 0 • , 0 . , 0 . , 0 . , 0 .])
+ >>> t e s t V e c t o r [ 0 , 3 2；63]
+ a r r a y ([ 0., 0., 0 •, 0 ., 0 •, 0., 0•, 0•, 0•, 0., 0., 0 .• 1 ., 1. , 1., 1. , 1. , 1. , 1. , 0 ., 0 .、 0., 0. , 0., 0. ( 0., 0 ,, 0 . t 0 ., 0 ., 0 .])
+ >>> t e s t V e c t o r [ 1 , 3 2；63]
+ a r r a y ([ 0., 0., 0 •, 0 ., 0 •, 0., 0•, 0•, 0•, 0., 0., 0 .• 1 ., 1. , 1., 1. , 1. , 1. , 1. , 0 ., 0 .、 0., 0. , 0., 0. ( 0., 0 ,, 0 . t 0 ., 0 ., 0 .])
+ 
+testvector[0, 1024]
+trainingvector[numberofimages, 1024]
+
+
+** classification with decision tree
+splitting datasets one feature at a time
+
+*** Entropy  (for a dataset, the less value means the set is in order)
+组织杂乱无章数据的一种方法就是使用信息论度量信息，信息 论是量化处理信息的分支科学。我们可以在划分数据之前使用信息论量化度量信息的内容。
+在划分数据集之前之后信息发生的变化称为信息增益，知道如何计算信息增益，我们就可以 计算每个特征值划分数据集获得的信息增益，获得信息增益最高的特征就是最好的选择。
+在可以评测哪种数据划分方式是最好的数据划分之前，我们必须学习如何计算信息增益。集 合信息的度量方式称为香农熵或者简称为熵，这个名字来源于信息论之父克劳德•香农。
+克劳德•香农被公认为是二十世纪最聪明的人之一，威廉•庞德斯通在其2005年出版的
+定义为信息的期望值，在明晰这个概念之前，我们必须知道信息的定义。如果待分类的事
+务可能划分在多个分类之中’ 则符号Xi的信息定义为 l(Xi) = -log2p(xi)     ### p(xi)是选择该分类的概率。
+为了计算熵，我们需要计算所有类别所有可能值包含的信息期望值，通过下面的公式得到：
+H = -sum( P(Xi)*l(Xi) ) # i=1,...n 
+H = -sum( P(Xi)*log2P(Xi) # i=1,...n 
+① 威廉• 庞德斯通的《财富公式：击败赌场和华尔街的不为人知的科学投注系统》{Fortune’sFormula: The V
+Story o f the Scientific Betting System that Beat the Casinos and Wall Street) [Hill and Wang, 2005]第 15页
+
+熵越高，则混合的数据也越多，我们可以在数据集中添加更多的分类，观察熵是如何变化的。
+def createDataSet():
+    dataSet = [ [1, 1, 'yes'],
+               [1, 1, 'yes'],
+               [1, 0, 'no'],
+               [0, 1, 'no'],
+               [0, 1, 'no']]
+    labels = ['no surfacing','flippers']
+    #change to discrete values
+    return dataSet, labels
+
+>>> t r e e s . c a l c S h a n n o n E n t (myDat)
+0 . 9 7 0 9 5 0 5 9 4 4 5 4 6 6 8 5 8 
+
+def calcShannonEnt(dataSet): #### a set of data's H(shannonEnt) value is related to the classification, how much elment within one class, and how much classes.
+    numEntries = len(dataSet)
+    labelCounts = {}
+    for featVec in dataSet: #the the number of unique elements and their occurance
+        currentLabel = featVec[-1]
+        if currentLabel not in labelCounts.keys(): labelCounts[currentLabel] = 0
+        labelCounts[currentLabel] += 1
+    shannonEnt = 0.0
+    print dataSet
+    for key in labelCounts:
+        prob = float(labelCounts[key])/numEntries  # prob 是选择该分类的概率 key is classname, counts means how many elements is this key(class), numEntries, all training elements number
+        shannonEnt -= prob * log(prob,2) #log base 2, 1...n, n is the label number, class as base
+    print "shaent is %f" % shannonEnt
+    return shannonEnt
+
+##for example, we have a set, only one class, the shannonEnt is minimum it's 0
+>>> myData=[ [1,'yes'],[0,'yes'],[1,'yes']]
+>>> labels=['no surfacing']
+>>> trees.calcShannonEnt(myData)
+[ [1, 'yes'], [0, 'yes'], [1, 'yes']]
+labelCounts is {'yes': 3}  the count of label count is 3
+prob is: 1.000000 and the current ent is 0.000000 and clac is 0.000000
+shaent is 0.000000
+0.0
+
+### we have a set, with two classes, two elements 
+myData=[ [1,'yes'],[1,'no']]
+>>> labels=['no surfacing']
+>>> trees.calcShannonEnt(myData)
+[ [1, 'yes'], [1, 'no']]
+labelCounts is {'yes': 1, 'no': 1}  the count of label count is 2
+prob is: 0.500000 and the current ent is 0.000000 and clac is -0.500000
+labelCounts is {'yes': 1, 'no': 1}  the count of label count is 2
+prob is: 0.500000 and the current ent is 0.500000 and clac is -0.500000
+shaent is 1.000000
+1.0
+
+######
+>>> myDat=[ [1, 1, 'no'], [1, 1, 'no'], [1, 0, 'no'], [0, 1, 'no'], [0, 1, 'yes']]
+>>> trees.calcShannonEnt(myDat)
+[ [1, 1, 'no'], [1, 1, 'no'], [1, 0, 'no'], [0, 1, 'no'], [0, 1, 'yes']]
+labelCounts is {'yes': 1, 'no': 4}  the count of label count is 5
+prob is: 0.200000 and the current ent is 0.000000 and clac is -0.464386
+labelCounts is {'yes': 1, 'no': 4}  the count of label count is 5
+prob is: 0.800000 and the current ent is 0.464386 and clac is -0.257542
+shaent is 0.721928
+0.7219280948873623
+>>> myDat=[ [1, 1, 'no'], [1, 1, 'no'], [1, 0, 'no'], [0, 1, 'yes'], [0, 1, 'yes']]
+>>> trees.calcShannonEnt(myDat)
+[ [1, 1, 'no'], [1, 1, 'no'], [1, 0, 'no'], [0, 1, 'yes'], [0, 1, 'yes']]
+labelCounts is {'yes': 2, 'no': 3}  the count of label count is 5
+prob is: 0.400000 and the current ent is 0.000000 and clac is -0.528771
+labelCounts is {'yes': 2, 'no': 3}  the count of label count is 5
+prob is: 0.600000 and the current ent is 0.528771 and clac is -0.442179
+shaent is 0.970951
+0.9709505944546686
+
+##### the shannonEntropy of a set is only related to how many elements within how much classes
+Conclusion, the more classification is, the shannonEnropy value is bigger, means the set is less in order, if we only have one class, shannonEntropy is 0, it's minimum.
+the more elements within one class, the shannonEntropy is less means the set is more in order
+
+
+
+*** subdataset's Entropy of a dataset
+if we have many feature value in a dataset, we could classify this dataset with a specific feature , say feature 0, then we can divide the dataset based on the feature0's
+all feature values to create subdatasets, sum=prob(fvn) * calcShannonEnt(subDataSet(fvn)) [n=0,...n, n is all the feaure0's feature values]
+this sum will be less than the base Entropy value of the parent dataset
+
+def chooseBestFeatureToSplit(dataSet):
+    numFeatures = len(dataSet[0]) - 1      #the last column is used for the labels
+    baseEntropy = calcShannonEnt(dataSet)  ###baseEntropy is the dat
+    bestInfoGain = 0.0; bestFeature = -1
+    for i in range(numFeatures):        #iterate over all the features, using index of dataSet f1,f2...
+        featList = [example[i] for example in dataSet]#create a list of all the examples of this feature
+        uniqueVals = set(featList)       #get a set of unique values
+        newEntropy = 0.0
+        for value in uniqueVals:       ### iterate over all the feature's value for a specific feature's subDataSet
+            subDataSet = splitDataSet(dataSet, i, value)  ## value is label(class) value
+            prob = len(subDataSet)/float(len(dataSet))
+            newEntropy += prob * calcShannonEnt(subDataSet)
+
+        print " newEntropy value is %f " %  newEntropy
+        infoGain = baseEntropy - newEntropy     #calculate the info gain; ie reduction in entropy
+        if (infoGain > bestInfoGain):       #compare this to the best gain so far
+            bestInfoGain = infoGain         #if better than current best, set to best 
+            bestFeature = i
+    print "bestFeature is", bestFeature
+    return bestFeature                      #returns an integer
+
+
+---------
+>>> trees.chooseBestFeatureToSplit(myDat)
+[ [1, 1, 'yes'], [1, 1, 'yes'], [1, 0, 'no'], [0, 1, 'no'], [0, 1, 'no']]
+shaent is 0.970951
+[1, 1, 1, 0, 0]
+set([0, 1])
+  aixs is 0  and axis's feature values is 0
+[ [1, 'no'], [1, 'no']]
+shaent is 0.000000
+  aixs is 0  and values is 1
+[ [1, 'yes'], [1, 'yes'], [0, 'no']]
+shaent is 0.918296
+ newEntropy value is 0.550978
+[1, 1, 0, 1, 1]
+set([0, 1])
+  aixs is 1  and values is 0
+[ [1, 'no']]
+shaent is 0.000000
+  aixs is 1  and values is 1
+[ [1, 'yes'], [1, 'yes'], [0, 'no'], [0, 'no']]
+shaent is 1.000000
+ newEntropy value is 0.800000
+bestFeature is 0
+0
+
+*** recursive to find  chooseBestFeatureToSplit(DataSet) for every subset
+def createTree(dataSet,labels):
+    classList = [example[-1] for example in dataSet]
+    print "classList is and classList[0] is ", classList , " ", classList[0]
+    if classList.count(classList[0]) == len(classList):
+        return classList[0]#stop splitting when all of the classes are equal
+    if len(dataSet[0]) == 1: #stop splitting when there are no more features in dataSet
+        print "---------------dataSet is", dataSet
+        return majorityCnt(classList)
+    bestFeat = chooseBestFeatureToSplit(dataSet)
+    bestFeatLabel = labels[bestFeat]
+    myTree = {bestFeatLabel:{}}
+    del(labels[bestFeat])
+    featValues = [example[bestFeat] for example in dataSet]
+    uniqueVals = set(featValues)
+    for value in uniqueVals:
+        subLabels = labels[:]       #copy all of labels, so trees don't mess up existing labels
+        print "------child branch ", value , "of the parent ", bestFeatLabel
+#### store bestFeatLabel's child tree based on this feature's value
+        myTree[bestFeatLabel][value] = createTree(splitDataSet(dataSet, bestFeat, value),subLabels)
+    return myTree
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+>>> myDat,labels=trees.createDataSet()
+>>> mytree=trees.createTree(myDat,labels)
+classList is and classList[0] is  ['yes', 'yes', 'no', 'no', 'no']   yes
+[1, 1, 1, 0, 0]
+set([0, 1])
+  aixs is 0  and values is 0
+  aixs is 0  and values is 1
+ newEntropy value is 0.550978
+[1, 1, 0, 1, 1]
+set([0, 1])
+  aixs is 1  and values is 0
+  aixs is 1  and values is 1
+ newEntropy value is 0.800000
+bestFeature is 0
+------child branch  0 of the parent  no surfacing
+classList is and classList[0] is  ['no', 'no']   no
+------child branch  1 of the parent  no surfacing
+classList is and classList[0] is  ['yes', 'yes', 'no']   yes
+[1, 1, 0]
+set([0, 1])
+  aixs is 0  and values is 0
+  aixs is 0  and values is 1
+ newEntropy value is 0.000000
+bestFeature is 0
+------child branch  0 of the parent  flippers
+classList is and classList[0] is  ['no']   no
+------child branch  1 of the parent  flippers
+classList is and classList[0] is  ['yes', 'yes']   yes
+
+>>> mytree
+{'no surfacing': {0: 'no', 1: {'flippers': {0: 'no', 1: 'yes'}}}}
+
+
+** Bayes Therom
+In probability theory and statistics, Bayes' theorem , named after Reverend Thomas Bayes, describes the probability of an event , based on prior knowledge of conditions that
+ might be related to the event.
+Thomas Bayes was an English statistician, philosopher and Presbyterian minister
+Bayes' theorem is stated mathematically as the following equation:
+P(A|B) = P(B|A) * P(A)/P(B) 
+or P(A|B)*P(B) = P(B|A) * P(A) 
+
+where A and B are events
+  P(A|B) is a conditional probability: the likelihood of event A  occurring given that B is true.
+  P(B|A)  is also a conditional probability: the likelihood of event B  occurring given that A  is true.
+  P(A)and P(B) are the probabilities of observing A and B respectively; they are known as the marginal probability.  A and B must be different events.
+
+
+
+*** drug test example for Bayes' theorem
+**** verification of this formulation
+condition A: drug user 
+condition B: testing positive 
+----------------------------------------------
+   \actual                                    
+Test\        	User 	Non-user 		Total
+---------------------------------------------
+Positive     	45    	190         	235
+Negative     	5       760             765
+---------------------------------------------
+Total       	50    	950         	1000 
+
+P(user|Positive)=P(Positive|User)*P(user)/P(Positive)
+
+if we have a 1000 element sample, we know who's User or Non-user, and the testing Postive, Negative.
+ if User then 45/(45+5)=90% User tested positive, 10% User tested negative 
+ if Non-User then 760/(760+190)=80% Non-user tested negative, %20 non-user tested positive.
+in this case, P(Postive|User)=0.9  P(user)= 50/1000=0.05    P(Positive)=235*(235+765)=0.235 P(User|Positive)=45/235=0.19  
+so we can verify that P(user|Positive)=P(Positive|User)*P(user)/P(Positive)  from this table's data.
+
+**** real case statisics rate instead of a table
+But in real case, we won't get this table, we only get the rate.
+a drug user P(True Postitive) named as sensitivity 0.9 , a non-drug user P(True Negative) as specifity 0.8, user posibility 0.05
+ P(Positive)= P(user) * P(Positive|User) + P(non-user) * P(positive|non-user)=0.05*0.9+(1-0.05)*(1-0.8)
+
+then P(User|Positive)=0.9*0.05/(0.05*0.9+0.95*0.2)=0.19
+so the probablity of a Postiive testing result means it's drug user is 19%
+
+The Positive predictive value (PPV) of a test is the proportion of persons who are actually positive out of all those testing positive, and can be calculated from a sample as:
+    PPV = True positive / Tested positive
+
+
+*** classify the document based on the words
+if the document is a spam or not
+P(Y): probablity is a spam
+if there are 10 different words in a dictionary, total 100 document in a sample,  words are covered by this dictionary as a traning sample:
+P(Y|Wn) is the probility the document is a spam when word n appeared
+we only get spam document, the P(Y|Wn)=word n's number in all spam document/all the words' number in all spam document
+
+P(N|Wn) is the probility the document is a non spam when word n appeared
+we only get non spam document, the P(Y|Wn)=word n's number in all non spam document/all the words' number in all non spam document
+
+
+for a testing document, 
+         w1 w2 w3 w4 w5 w6 w7 w8 w9 w10
+Num[Wn]   0  2  0   3 0  0  6  0  0   4
+P(Y)=P(w1)* P(Y|w1)+ P(w2)*P(Y|w2)+.....+P(w10) *P(Y|w10)
+P(Wn)=Num[Wn]/sum(Num[Wn])
+P(Y|Wn) is the value calulated from above 100 training samples, P(Y) is the probability of a spam document of this testing document
+
+P(N)=P(w1)* P(N|w1)+ P(w2)*P(N|w2)+.....+P(w10) *P(N|w10)
+P(Wn)=Num[Wn]/sum(Num[Wn])
+P(N) could be calculated also  is the probability of a non spam document of this testing document
+
+compare P(Y) and P(N) which is big, then it is that kind of document
+
+**** detail to process P(N|Wn)
+if in training document, the Y document has num=0 word such as word n, but word n appeared in Non spam document, then the word n will appear in the dicionary.
+so P(Y|Wn)=0, in trainig element, there if there are word n, it will be 0.
+so we will avoid this 0 occaition, we use P(Wn)=(Num[Wn]+1) / (2+sum(Num[Wn]))
+P(Y|Wn) is too small, python won't get accurate result, we use log(P(Y|Wn)) to replace P(Y|Wn)
+since f(log(x)) and f(x) has similar curve, so replacement is OK.
+[[./curve.jpg][picture of  f(x) and f(log(x)) curve ]]
+

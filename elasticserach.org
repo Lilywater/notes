@@ -1,0 +1,1004 @@
+* upload data
+** create a database
+PUT employees
+
+PUT employees/_mapping
+{ "properties": { "date_of_birth": { "type": "date", "format": "dd/MM/yyyy" } } }
+
+POST _bulk
+{ "index" : { "_index" : "employees", "_id" : "1" } }
+{"id":1,"name":"Huntlee Dargavel","email":"hdargavel0@japanpost.jp","gender":"male","ip_address":"58.11.89.193","date_of_birth":"11/09/1990","company":"Talane","position":"Research Associate","experience":7,"country":"China","phrase":"Multi-channelled coherent leverage","salary":180025}
+{ "index" : { "_index" : "employees", "_id" : "2" } }
+{"id":2,"name":"Othilia Cathel","email":"ocathel1@senate.gov","gender":"female","ip_address":"3.164.153.228","date_of_birth":"22/07/1987","company":"Edgepulse","position":"Structural Engineer","experience":11,"country":"China","phrase":"Grass-roots heuristic help-desk","salary":193530}
+{ "index" : { "_index" : "employees", "_id" : "3" } }
+{"id":3,"name":"Winston Waren","email":"wwaren2@4shared.com","gender":"male","ip_address":"202.37.210.94","date_of_birth":"10/11/1985","company":"Yozio","position":"Human Resources Manager","experience":12,"country":"China","phrase":"Versatile object-oriented emulation","salary":50616}
+{ "index" : { "_index" : "employees", "_id" : "4" } }
+{"id" : 4,"name" : "Alan Thomas","email" : "athomas2@example.com","gender" : "male","ip_address" : "200.47.210.95","date_of_birth" : "11/12/1985","company" : "Yamaha","position" : "Resources Manager","experience" : 12,"country" : "China","phrase" : "Emulation of roots heuristic coherent systems","salary" : 300000}
+
+*** update one index
+update one record with record id 5
+PUT employees/_doc/5
+{
+  "id": 5,
+  "name": "Michael Bordon",
+  "email": "mbordon@example.com",
+  "gender": "male",
+  "ip_address": "10.47.210.65",
+  "date_of_birth": "12/12/1995",
+  "position": "Resources Manager",
+  "experience": 12,
+  "country": "USA",
+  "phrase": "Emulation of roots heuristic coherent systems",
+  "company": "google",
+  "salary": 300000
+}
+** get info from a database
+GET employees
+---
+employees" : {
+    "aliases" : { },
+    "mappings" : {
+      "properties" : {
+        "company" : {
+          "type" : "text",
+          "fields" : {
+            "keyword" : {
+              "type" : "keyword",
+              "ignore_above" : 256
+            }
+          }
+        },
+        "country" : {
+          "type" : "text",
+          "fields" : {
+            "keyword" : {
+              "type" : "keyword",
+              "ignore_above" : 256
+            }
+          }
+        },
+        "date_of_birth" : {
+          "type" : "date",
+          "format" : "dd/MM/yyyy"
+        },
+--------------
+the employee database mapping fields will be created automatically by the real data.
+
+
+GET employees/_search
+{
+    "query" : {
+        "match_all" : {}
+    }
+}
+---------
+get all all records from the database
+
+
+*** sql format query and result
+POST /_sql/?format=txt
+{ "query": "SELECT * FROM employees" }
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+    company    |    country    |     date_of_birth      |         email         |  experience   |    gender     |      id       |  ip_address   |      name      |                   phrase                    |       position        |    salary     
+---------------+---------------+------------------------+-----------------------+---------------+---------------+---------------+---------------+----------------+---------------------------------------------+-----------------------+---------------
+Talane         |China          |1990-09-11T00:00:00.000Z|hdargavel0@japanpost.jp|7              |male           |1              |58.11.89.193   |Huntlee Dargavel|Multi-channelled coherent leverage           |Research Associate     |180025         
+Edgepulse      |China          |1987-07-22T00:00:00.000Z|ocathel1@senate.gov    |11             |female         |2              |3.164.153.228  |Othilia Cathel  |Grass-roots heuristic help-desk              |Structural Engineer    |193530         
+Yozio          |China          |1985-11-10T00:00:00.000Z|wwaren2@4shared.com    |12             |male           |3              |202.37.210.94  |Winston Waren   |Versatile object-oriented emulation          |Human Resources Manager|50616          
+Yamaha         |China          |1985-12-11T00:00:00.000Z|athomas2@example.com   |12             |male           |4              |200.47.210.95  |Alan Thomas     |Emulation of roots heuristic coherent systems|Resources Manager      |300000         
+google         |USA            |1995-12-12T00:00:00.000Z|mbordon@example.com    |12             |male           |5              |10.47.210.65   |Michael Bordon  |Emulation of roots heuristic coherent systems|Resources Manager      |300000         
+------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+* Query
+** match  
+match:  The “match” query is one of the most basic and commonly used queries in Elasticsearch and functions as a full-text query. 
+We can use this query to search for text, numbers or boolean values.
+***  match  with single field  
+syntax:
+"query": { "match": { "field_name": { "query" : "field_val" } }
+
+"query": { "match": { "phrase": { "query" : "heuristic" } }
+result:
+===========================================================
+
+ts" : {
+    "total" : {
+      "value" : 2,
+      "relation" : "eq"
+    },
+    "max_score" : 0.6785374,
+    "hits" : [
+      {
+        "_index" : "employees",
+        "_type" : "_doc",
+        "_id" : "2",
+        "_score" : 0.6785374,
+        "_source" : { "id" : 2, "name" : "Othilia Cathel", "email" : "ocathel1@senate.gov", "gender" : "female", "ip_address" : "3.164.153.228", "date_of_birth" : "22/07/1987", 
+        "company" : "Edgepulse", "position" : "Structural Engineer", "experience" : 11, "country" : "China", "phrase" : "Grass-roots heuristic help-desk", "salary" : 193530 } }, 
+      { "_index" : "employees", "_type" : "_doc",
+        "_id" : "4",
+        "_score" : 0.6257787,
+        "_source" : {
+          "id" : 4,
+          "name" : "Alan Thomas", "email" : "athomas2@example.com", "gender" : "male", "ip_address" : "200.47.210.95", "date_of_birth" : "11/12/1985", "company" : "Yamaha", 
+               "position" : "Resources Manager", "experience" : 12, "country" : "China", "phrase" : "Emulation of roots heuristic coherent systems", "salary" : 300000 } } ] } }
+++++++++++++++++++++++++++++++++++++++++++++
+
+**** query with multiple values seprated by space,  operator default is "OR"
+query without operator means OR, any of the words
+{ "query": { "match": { "phrase": { "query" : "heuristic roots help"}}}}
+=======================
+
+         "phrase" : "Grass-roots heuristic help-desk",
+          "salary" : 193530
+         "country" : "China",
+          "phrase" : "Emulation of roots heuristic coherent systems",
+          "salary" : 300000
+        }
+
+
+**** query operator  "AND"
+POST employees/_search
+{ "query": { "match": { "phrase": { "query" : "heuristic roots help", "operator" : "AND" } } } }
+query phrase value has three words
+===========
+    "hits" : [
+                "id" : 2,
+          "name" : "Othilia Cathel", "email" : "ocathel1@senate.gov", "gender" : "female", "ip_address" : "3.164.153.228", "date_of_birth" : "22/07/1987", "company" : "Edgepulse", "position" : "Structural Engineer", "experience" : 11,
+          "country" : "China", "phrase" : "Grass-roots heuristic help-desk", "salary" : 193530
+        }
+=========================================
+
+*** multi match (match with multiple fields)
+POST employees/_search
+{ "query": { "multi_match": { "query" : "research help" , "fields": ["position","phrase"] } } }
+=================
+          "position" : "Research Associate",
+          "phrase" : "Multi-channelled coherent leverage",
+          },
+      {
+         "position" : "Structural Engineer",
+          "phrase" : "Grass-roots heuristic help-desk", 
+====================================================
+
+*** query with  match_phrase
+match_phrase means query the exact order and words in a fields
+GET employees/_search
+{ "query": { "match_phrase": { "phrase": { "query": "roots heuristic coherent" } } } }
+-------------------------------------------------
+          "phrase" : "Emulation of roots heuristic coherent systems",
+----------------------------------------
+
+**** slop parameter
+ "query": { "match_phrase": { "phrase": { "query": "roots coherent", "slop": 1 } } }
+ ============================= "phrase" : "Emulation of roots heuristic coherent systems", 
+
+
+*** query with match_phrase_prefix
+GET employees/_search
+{
+"_source": [ "phrase" ],
+  "query": { "match_phrase_prefix": { "phrase": { "query": "roots heuristic co" } } } }
+===============
+  "_source" : { "phrase" : "Emulation of roots heuristic coherent systems" }
+
+
+** query with range
+POST employees/_search
+{ "query": { "range" : { "experience" : { "gte" : 10, "lte" : 12 } } } }
+------------------------------
+_source" : {
+          "phrase" : "Grass-roots heuristic help-desk",
+          "experience" : 11
+        }
+       "_source" : { "phrase" : "Versatile object-oriented emulation", "experience" : 12 }
+
+** query with term/terms
+
+Term level queries are used to query structured data, which would usually be the exact values.
+*** query with term
+"query":  { "term":  { "gender": ["female"] }}   ### only one field, multiple fields with terms instead of term
+"query":  { "term":  { "experience": 12 }} }
+--------
+reason": "[term] query does not support array of values",
+
+
+*** query with terms
+"query":  { "terms":  { "gender": ["female","male"] }}
+
+
+*** term(s) VS. match
+String fields can be of type text (treated as full text, like the body of an email), or keyword (treated as exact values, like an email address or a zip code). 
+Exact values (like numbers, dates, and keywords) have the exact value specified in the field added to the inverted index in order to make them searchable.
+However, text fields are analyzed. This means that their values are first passed through an analyzer to produce a list of terms, which are then added to the inverted index.
+There are many ways to analyze text: the default standard analyzer drops most punctuation, breaks up text into individual words, and lower cases them.
+ For instance, the standard analyzer would turn the string “Quick Brown Fox!” into the terms [quick, brown, fox].
+
+
+** query with exists
+    "query": { "exists": { "field": "company" } } 
+
+
+** query with sources ids (internal structure)
+POST employees/_search
+{ "query": { "ids" : { "values" : ["1", "4"] } } }
+================================
+        "_source" : { "id" : 1, "name": "hunata .ll"}
+        "_source" : { "id" : 4, "name": "Alan Thomas"}
+
+** query with prefix of fileds_value
+ GET employees/_search
+{ "query": { "prefix": { "name": "al" } } }
+"name" : "Alan Thomas",
+
+
+** query with regular expression
+"query": { "regexp": { "position": "res[a-z]*" } } }
+"name" : "Huntlee Dargavel",
+"position" : "Research Associate"
+
+** query with fuzzy  
+  "query": { "fuzzy": { "country": { "value": "Chnia", "fuzziness": "2" } } }
+ "country" : "China",
+
+
+** Boolean query (Compound query)
+bool could use 4 fields of clause: 
+must       The clause (query) must appear in matching documents and will contribute to the score
+must_not
+should     results may contain this should clause or not, contain this should clause results will get more score. 
+filter
+
+The bool query takes a more-matches-is-better approach, so the score from each matching must or should clause will be added together to provide the final _score for each document.
+
+"query": { "bool": { "must_not": [ { "exists": { "field": "AB" } } ] }
+
+*** query with filter and multimatch
+GET employees/_search
+{
+    "query": {
+      "bool": {
+        "must":{
+        "multi_match" : {
+            "query" : "heursitic reserch",
+            "fields": ["phrase","position"],
+            "fuzziness": 2
+        }},
+        "filter" :  { "term":{ "experience": 7 } }
+    }
+    },
+    "size": 10
+}
+
+*** compound boolean query
+(company = Yamaha OR company = Yozio ) AND (position = manager OR position = associate ) AND (salary>=100000)
+
+****  multi_match can't suffice AND
+"query": { "multi_match": { "query" : "Yamaha Yozio manager associate" , "fields": ["company", "position" ] }}
+-------------------------------------
+      "_source" : {
+          "company" : "Talane",        ### the company is not right
+          "position" : "Research Associate"
+        }
+      },
+      {
+          "company" : "Yozio",
+          "position" : "Human Resources Manager"
+        }
+      },
+      {
+          "company" : "Yamaha",
+          "position" : "Resources Manager"                           
+------------------------------------------------
+
+**** query with boolean
+GET employees/_search
+{
+    "_source": [ "company", "position"],
+    "query":  {
+    "bool": {
+       "must":[
+         { "match": { "company": { "query" : "Yamaha Yozio " } }},
+         { "match": { "position":  { "query" : "manager associate" } } }
+        ],
+       "filter" :  { "range":{ "salary": { "gte": 100000 } } }
+    }
+    }
+}
+====================================
+ "hits" : [
+      {
+        "_source" : {
+          "company" : "Yamaha",
+          "position" : "Resources Manager"
+        }
+      },
+      {
+        "_source" : {
+          "company" : "Yozio",
+          "position" : "Human Resources Manager"
+        }
+      }
+    ]
+
+---------------------------------------------------------
+
+** sort 
+*** default sorting(with _score)
+"_score" field: This “_score” is computed by how well the query has matched using the default scoring methodologies of Elasticsearch.
+clause within filter with no "_score" coputed.
+When there is no sort parameter specified in the search request, Elasticsearch returns the document based on the descending values of the “_score” field. 
+
+*** field sort
+ "query": { "match": { "phrase":{ "query": "roots" } } },
+ "sort": [ { "experience": { "order": "desc" } } ]   
+============
+     "_source" : {
+          "id" : 4, "name" : "Alan Thomas", "email" : "athomas2@example.com", "gender" : "male", "ip_address" : "200.47.210.95", "date_of_birth" : "11/12/1985", "company" : "Yamaha",
+          "position" : "Resources Manager", "experience" : 12, "country" : "China", "phrase" : "Emulation of roots heuristic coherent systems", "salary" : 300000
+        },
+        "sort" : [ 12 ] },
+      {
+        "_index" : "employees", "_type" : "_doc", "_id" : "2", "_score" : null, "_source" : { "id" : 2, "name" : "Othilia Cathel", "email" : "ocathel1@senate.gov", "gender" : "female",
+          "ip_address" : "3.164.153.228", "date_of_birth" : "22/07/1987", "company" : "Edgepulse", "position" : "Structural Engineer", "experience" : 11, "country" : "China",
+          "phrase" : "Grass-roots heuristic help-desk", "salary" : 193530 },
+        "sort" : [ 11 ] }
+======================
+
+*** multiple fields sort
+"sort": [
+    { "experience": { "order": "desc" } },
+    { "salary": { "order": "desc" } }
+ ] 
+sort will based on experience firstly, if experience is the same then sort based on salary
+
+
+** Boosting Queries
+there are requirements in the search criteria where we neeed to demote certain search results but don not want to 
+omit them for the search results altogether.
+-------------------------------------------
+POST  employees/_search
+{
+    "query": {
+    "boosting" : {
+            "positive" : { "match": { "country": "china" } },
+            "negative" : { "match": { "company": "Talane" } },
+            "negative_boost" : 0.5
+        } } } 
+----------------
+     {
+        "_index" : "employees",
+        "_type" : "_doc",
+        "_id" : "4",
+        "_score" : 0.105360515,
+        "_source" : {
+          "country" : "China",
+          "name" : "Alan Thomas",
+          "company" : "Yamaha"
+        }
+      },
+      {
+        "_index" : "employees",
+        "_type" : "_doc",
+        "_id" : "1",
+        "_score" : 0.052680258,    ### score is 0.5 less than previous one, since Talane is in negative clause
+        "_source" : {
+          "country" : "China",
+          "name" : "Huntlee Dargavel",
+          "company" : "Talane"
+        }
+      }
+    ]
+===============================================
+
+*** multiple boosting query with boolean
+GET employees/_search
+{
+  "query": {
+    "boosting": {
+      "positive": { "bool":
+                          { "should": [ { "match": { "country": { "query": "usa" } } },
+                                        { "range": { "experience": { "gte": 10 } } } ]
+                  } },
+      "negative": { "match": { "gender": "female" } },
+      "negative_boost": 0.5
+    } } }
+
+** query string
+POST employees/_search
+{
+  "query": {
+    "query_string": {
+      "query": "(roots heuristic systems) OR (enigneer~) OR (salary:(>=10000 AND <=52000)) ",
+      "fields": [
+        "position",
+        "phrase^3"
+      ]
+    }
+  }
+
+** Function Score Queries
+
+The function_score query enables us to change the score of the documents that are returned by a query. The function_score
+ query requires a query and one or more functions to compute the score.
+score function could be used to contribute to calculate the _score with some mode.
+***  functions Syntax using filter and weight
+GET employees/_search
+{
+"_source": ["position","phrase"], 
+  "query": {
+    "function_score": { "query": { "match": { "position": "manager" } }, # query score is es's own algorithm
+      "functions": [
+        { "filter": { "match": { "phrase": "coherent" } },    #id4_or_score ,id5_or_score  *2
+          "weight": 2
+        },
+        { "filter": { "match": { "phrase": "emulation" } },  #id4_or_score ,id5_or_score, id3_or_score  *10 
+          "weight": 10
+        }
+      ],
+      "score_mode": "multiply",   ####this means function's weight * es'own score will make final _scor *2 or *10 
+      "boost": "5",              ##### all match id_score * 5
+      "boost_mode": "multiply"
+    }
+  }
+}
+----------------------
+  "hits" : [
+      {
+        "_index" : "employees",
+        "_type" : "_doc",
+        "_id" : "4",
+        "_score" : 55.981613,
+        "_source" : {
+          "phrase" : "Emulation of roots heuristic coherent systems",
+          "position" : "Resources Manager"
+        }
+      },
+      {
+        "_index" : "employees",
+        "_type" : "_doc",
+        "_id" : "5",
+        "_score" : 55.981613,
+        "_source" : {
+          "phrase" : "Emulation of roots heuristic coherent systems",
+          "position" : "Resources Manager"
+        }
+      },
+      {
+        "_index" : "employees",
+        "_type" : "_doc",
+        "_id" : "3",
+        "_score" : 23.459919,
+        "_source" : {
+          "phrase" : "Versatile object-oriented emulation",
+          "position" : "Human Resources Manager"
+        } } ] } }
+====================================
+**** orginal score
+"hits" : [
+      {
+        "_index" : "employees",
+        "_type" : "_doc",
+        "_id" : "4",
+        "_score" : 0.5598161,
+        "_source" : {
+          "phrase" : "Emulation of roots heuristic coherent systems",
+          "position" : "Resources Manager"
+        }
+      },
+      {
+        "_index" : "employees",
+        "_type" : "_doc",
+        "_id" : "5",
+        "_score" : 0.5598161,
+        "_source" : {
+          "phrase" : "Emulation of roots heuristic coherent systems",
+          "position" : "Resources Manager"
+        }
+      },
+      {
+        "_index" : "employees",
+        "_type" : "_doc",
+        "_id" : "3",
+        "_score" : 0.46919838,
+        "_source" : {
+          "phrase" : "Versatile object-oriented emulation",
+          "position" : "Human Resources Manager"
+        }
+      }
+    ]
+  }
+}
+**** score_mode
+score_mode specifies how the computed scores are combined:
+
+multiply     scores are multiplied (default)
+sum          scores are summed
+avg          scores are averaged 
+max          maximum score is used
+min          minimum score is used 
+first        the first function that has a matching filter is applied
+
+
+**** boost_mode
+multiply     scores are multiplied (default)
+sum          scores are summed
+avg          scores are averaged 
+max          maximum score is used
+min          minimum score is used 
+replace      override the es's own query's score with boots's score
+
+*** function with script
+------------
+GET employees/_search
+{
+  "_source": [
+    "name",
+    "experience",
+    "salary"
+  ],
+  "query": {
+    "function_score": {
+      "query": {
+        "match_all": { }  #### get all the records, 
+      },
+      "functions": [
+        {
+          "script_score": {
+            "script": {
+              "source": "(doc['salary'].value/doc['experience'].value)/1000"
+            } } } ],
+     "boost_mode": "replace"  ## use scripts' calculation result as final score no related to orginal es query score
+    } } }
+----------------------
+"hits" : [
+      {
+        "_index" : "employees",
+        "_type" : "_doc",
+        "_id" : "1",
+        "_score" : 25.0,  #### 180025/7/1000 = 25
+        "_source" : {
+          "name" : "Huntlee Dargavel",
+          "experience" : 7,
+          "salary" : 180025
+        }
+      },
+###########
+
+*** function_score with field_value_factor
+
+We can make use of a field from the document to influence the score by using the “field_value_factor” function. This is in some ways a simple alternative to “script_score”. In our example, let us make use of the “experience” field value to influence our score as below
+
+GET employees/_search
+{
+  "_source": ["name","experience"], 
+    "query": {
+        "function_score": {
+            "field_value_factor": {
+                "field": "experience", ### _score= square( experence.vale * 0.5 )       
+                 "factor": 0.5,
+                "modifier": "square",
+                "missing": 1
+            }
+        }
+    }
+}
+
+--------------
+       "_score" : 36.0,  square (12 *0.5) =36
+        "_source" : { "name" : "Winston Waren",
+          "experience" : 12
+-----------------------------
+
+*** function_score: Decay Functions
+### salary is baseline is 200000, and scale is +-30000, that salary is (170000,230000) will get highest score, and make
+## out of range salary very low score
+GET employees/_search
+{
+  "_source": [
+    "name",
+    "salary"
+  ],
+  "query": {
+    "function_score": {
+      "query": {
+        "match_all": {}
+      },
+      "functions": [
+       {
+         "gauss": {
+           "salary": {
+             "origin": 200000,
+             "scale": 30000
+           }
+         }
+       }
+      ],
+      "boost_mode": "replace"
+    }
+  }
+}
+----------------------------------
+   {
+        "_index" : "employees",
+        "_type" : "_doc",
+        "_id" : "1",
+        "_score" : 0.7354331,    #### this is the normal es query score which is in range
+        "_source" : {
+          "name" : "Huntlee Dargavel",
+          "salary" : 180025
+        } },
+      {
+        "_index" : "employees",
+        "_type" : "_doc",
+        "_id" : "4",
+        "_score" : 4.5208726E-4,    ####out of range score is much less than in range score, it will be decayed very obviously
+        "_source" : {
+          "name" : "Alan Thomas",
+          "salary" : 300000
+        } },
+----------------------------------
+
+* parent document
+===================================
+"_source" : {
+          "document_type" : {
+            "name" : "post"
+          },
+          "post_title" : "Angel Has Fallen"
+        }
+      },
+      {
+        "_index" : "post-comments",
+        "_type" : "_doc",
+        "_id" : "2",
+        "_score" : 1.0,
+        "_source" : {
+          "document_type" : {
+            "name" : "post"
+          },
+          "post_title" : "Beauty and the beast - a nice movie"
+        }
+
+
+* Aggregations
+an aggregation summarize your data as metrics, statistics, or other analytics.
+
+three categories of aggregation
+Metric : aggregations that calculate metircs, such as a sum or average from fied values.
+Bucket : aggregations that group documents into buckets, also called bins based on filed values, ranges, or other criteria
+Pipeline: aggregations that take input from other aggregations instead of documents or fields
+
+
+** Metrics aggregations
+    Avg
+    Max
+    Min
+    Sum
+    Rate
+    Top metrics
+    Percentiles
+    Scripted metric
+    Value count
+    Weighted avg
+
+
+
+
+
+** bucket aggregation
+
+*** terms agrregation
+"terms": {  "field":  <fieldname>}
+A multi-bucket value source based aggregation where buckets are dynamically built - one per unique value.
+console input
+=============
+GET _search
+{
+  "aggs": {
+    "my-agg-name": {
+      "terms": {
+        "field": "FailCount"
+      }
+    }
+  }}
+===============
+
+output
+========================
+"aggregations" : {
+    "my-agg-name" : {
+      "doc_count_error_upper_bound" : 3181,
+      "sum_other_doc_count" : 168806,
+      "buckets" : [
+        {
+          "key" : 0,
+          "doc_count" : 471039
+        },
+        {
+          "key" : 1,
+          "doc_count" : 86119
+        },
+        {
+          "key" : 2,
+          "doc_count" : 2339
+        },
+
+==================================
+
+*** Size
+
+The size parameter can be set to define how many term buckets should be returned out of the overall terms list. By default, the node coordinating the search process will request each shard to provide its own top size term buckets and once all shards respond, it will reduce the results to the final list that will then be returned to the client. This means that if the number of unique terms is greater than size, the returned list is slightly off and not accurate
+console input
+=============
+GET cmm/_search
+{
+  "aggs": {
+    "my-agg-name": {
+      "terms": {
+        "field": "FailCount",
+        "size": 2
+      }
+    }
+  }}
+===============
+
+output
+========================
+"aggregations" : {
+    "my-agg-name" : {
+      "doc_count_error_upper_bound" : 3181,
+      "sum_other_doc_count" : 168806,
+      "buckets" : [
+        {
+          "key" : 0,
+          "doc_count" : 471039
+        },
+        {
+          "key" : 1,
+          "doc_count" : 86119
+        },
+==================================
+
+
+***  nested aggs
+"aggs":{
+        "L1":{
+            "date_histogram":{
+                "field":"@timestamp",   ####L1 aggs bucket key will be timestamp and next to one is 1h plus
+                "fixed_interval":"1h",
+                "time_zone":"UTC",
+                "min_doc_count":1
+            },
+             "aggs":{  ### 1h of teimestamp in bucket L1,
+                "FailCount":{
+                    "terms":{
+                        "field":"CFC",   ####bucket key is CFC's different value
+                        "order":{ "avg_field_failcount":"desc" }, ## descendant order, top avg_field_faicount
+                        "size":5                ## 5 top avg_feield_failcount value will be selected in the group of CFC
+                    },
+                    "aggs":{
+                        "avg_field_failcount":{
+                            "avg":{
+                                "field":"FailCount"   #### bucket key will be avg value of FailCount
+                            }
+                        }
+                    }
+                }
+      }}
+
+====================
+"aggregations" : {
+    "L1" : {
+      "buckets" : [
+        {
+          "key_as_string" : "2020-10-11T14:00:00.000Z",
+          "key" : 1602424800000,
+          "doc_count" : 225,
+          "FailCount" : {
+            "doc_count_error_upper_bound" : -1,
+            "sum_other_doc_count" : 183,
+            "buckets" : [
+              {
+                "key" : 15,      ####CFC value
+                "doc_count" : 6,
+                "avg_field_failcount" : {
+                  "value" : 129.0      ##### top1
+                }
+              },
+              {
+                "key" : 43,
+                "doc_count" : 6,
+                "avg_field_failcount" : {
+                  "value" : 54.0      #### top2
+                }
+              },
+===================================
+
+***  different cfc code as bucket1, then every 10s, then calculate the percentage 
+------------------------
+"aggs": {
+    "lEV1": {
+      "terms": {
+        "field" : "CFC", 
+        "size" : 100},
+    
+      "aggs":{
+       "dat_aggs": {
+        "date_histogram": {
+          "field": "@timestamp",
+          "fixed_interval": "10s",
+          "min_doc_count": 1
+        },
+        "aggs":{
+             "l2":  {
+               "terms":{
+      "script": "doc['SucCount'].value * 10000/ (doc['FailCount'].value + doc['SucCount'].value) "
+               }
+             }
+                    }
+-------------------
+result:
++++++++++++
+"aggregations" : {
+    "lEV1" : {
+      "doc_count_error_upper_bound" : 0,
+      "sum_other_doc_count" : 0,
+      "buckets" : [
+        {
+          "key" : 1,   ##### CFC code 1
+          "doc_count" : 9,   #### 9 10s interval timestamp
+          "dat_aggs" : {
+            "buckets" : [
+              {
+                "key_as_string" : "2020-10-11T14:00:10.000Z",
+                "key" : 1602424810000,
+                "doc_count" : 1,   ### only 1 failcount since it's the smallest sample interval
+                "l2" : {
+                  "doc_count_error_upper_bound" : 0,
+                  "sum_other_doc_count" : 0,
+                  "buckets" : [
+                    {
+                      "key" : "7702",    ##### successful rate 77.02%
+                      "doc_count" : 1
+                    }
+                  ]
+                }
+              },
+              {
+                "key_as_string" : "2020-10-11T14:00:20.000Z",
+                "key" : 1602424820000,
+                "doc_count" : 1,
+                "l2" : {
+                  "doc_count_error_upper_bound" : 0,
+                  "sum_other_doc_count" : 0,
+                  "buckets" : [
+                    {
+                      "key" : "7692",
+                      "doc_count" : 1
+                    }
+                  ]
+                }
+              },
++++++++++++++++++++++++++++++++++++++++++++++
+
+*** pipeline aggregation
+the pipeline use parent aggs to generate a new value
+**** cumulative_sum
+======================================
+POST /sales/_search
+{
+  "size": 0,
+  "aggs": {
+    "sales_per_month": {
+      "date_histogram": {
+        "field": "date",
+        "calendar_interval": "month"
+      },
+      "aggs": {
+        "sales": {
+          "sum": {
+            "field": "price"
+          }
+        },
+        "cumulative_sales": {  
+          "cumulative_sum": {
+            "buckets_path": "sales" #### paraent aggs sales as bucket path to calculate the cumulative_sum for every next one
+    } } } } } }
+=======================================================
+result:
+++++++++++++
+ "aggregations": {
+      "sales_per_month": {
+         "buckets": [
+            {
+               "key_as_string": "2015/01/01 00:00:00",
+               "doc_count": 3,
+               "sales": { "value": 550.0 },
+               "cumulative_sales": { "value": 550.0 }
+            },
+            {
+               "key_as_string": "2015/02/01 00:00:00",
+               "doc_count": 2,
+                "sales": { "value": 60.0 },
+               "cumulative_sales": { "value": 610.0 }
+            },
+            { "key_as_string": "2015/03/01 00:00:00",
+               "doc_count": 2,
+               "sales": { "value": 375.0 },
+               "cumulative_sales": { "value": 985.0 }
++++++++++++++++++++++
+
+
+**** bucket sort aggregation
+Syntax:
+{
+  "bucket_sort": {
+    "sort": [
+      { "sort_field_1": { "order": "asc" } },   
+      { "sort_field_2": { "order": "desc" } },
+      "sort_field_3"
+    ],
+    "from": 1, ### the basic result from index 1
+    "size": 3  ## total results
+  }
+}
+----------
+POST /sales/_search
+{
+  "size": 0,
+  "aggs": {
+    "sales_per_month": {
+      "date_histogram": {
+        "field": "date",
+        "calendar_interval": "month"
+      },
+      "aggs": {
+        "total_sales": {
+          "sum": {
+            "field": "price"
+          }
+        },
+        "sales_bucket_sort": {
+          "bucket_sort": {
+            "sort": [
+              { "total_sales": { "order": "desc" } } 
+            ],
+            "size": 3                                
+          } } } } } }
+----------------------
+
+#### all total_sales in decendant value, top 3 monthly sales
+{
+   "aggregations": {
+      "sales_per_month": {
+         "buckets": [
+            {
+               "key_as_string": "2015/01/01 00:00:00",
+               "key": 1420070400000,
+               "doc_count": 3,
+               "total_sales": {
+                   "value": 550.0
+               }
+            },
+            {
+               "key_as_string": "2015/03/01 00:00:00",
+               "key": 1425168000000,
+               "doc_count": 2,
+               "total_sales": {
+                   "value": 375.0
+               },
+            },
+            {
+               "key_as_string": "2015/02/01 00:00:00",
+               "key": 1422748800000,
+               "doc_count": 2,
+               "total_sales": {
+                   "value": 60.0
+               },
+            }
+         ]
+      }
+   }
+}
+-----------------------

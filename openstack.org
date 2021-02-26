@@ -1,0 +1,1261 @@
+OpenStack Dashboard (horizon)
+OpenStack Identity (keystone)
+OpenStack Networking (neutron)
+OpenStack Block Storage (cinder)
+OpenStack Compute (nova)
+OpenStack Image (glance)
+OpenStack Object Storage (swift)
+OpenStack Telemetry (ceilometer)
+OpenStack Orchestration (heat)
+
+* openstack image glance
+** get qcow2 files from officail website
+ wget http://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud.qcow2
+
+** create openstack image
+[root@allinone te(keystone_admin)]#  glance image-create --name centos_gen-image --visibility public --disk-format qcow2 --container-format bare  --file CentOS-7-x86_64-GenericCloud.qcow2
++------------------+--------------------------------------+
+| Property         | Value                                |
++------------------+--------------------------------------+
+| checksum         | 26c52282b53e6fe746fbfd5542421675     |
+| container_format | bare                                 |
+| created_at       | 2019-06-04T06:25:16Z                 |
+| disk_format      | qcow2                                |
+| id               | 0dd9adec-3b32-4786-966a-9b60cd70c113 |
+| min_disk         | 0                                    |
+| min_ram          | 0                                    |
+| name             | centos_gen-image                     |
+| owner            | 786dbe457b5c43058d9cd7f0947f94ed     |
+| protected        | False                                |
+| size             | 938409984                            |
+| status           | active                               |
+| tags             | []                                   |
+| updated_at       | 2019-06-04T06:25:19Z                 |
+| virtual_size     | None                                 |
+| visibility       | public                               |
++------------------+--------------------------------------+
+[root@allinone te(keystone_admin)]# glance image-list
++--------------------------------------+------------------+
+| ID                                   | Name             |
++--------------------------------------+------------------+
+| 0dd9adec-3b32-4786-966a-9b60cd70c113 | centos_gen-image |
+
+** nova boot a server from image
+nova boot --nic net-id=da4a8723-efbe-4ec3-bfc9-964a35f076e0 --flavor 3 --image centos_gen-image --user-data=user_data.txt rbc-test
+[root@allinone te(keystone_admin)]# cat user_data.txt 
+#cloud-config
+password: mypasswd
+chpasswd: { expire: False }
+ssh_pwauth: True
+[root@allinone te(keystone_admin)]#
+
+** 
+** del the server
+nova list
++--------------------------------------+----------+--------+------------+-------------+----------+
+| ID                                   | Name     | Status | Task State | Power State | Networks |
++--------------------------------------+----------+--------+------------+-------------+----------+
+| 485429b1-5af0-4d13-8c39-8ff544aa7004 | rbc-test | ERROR  | -          | NOSTATE     |          |
++--------------------------------------+----------+--------+------------+-------------+----------+
+[root@allinone te(keystone_admin)]# openstack server list
++--------------------------------------+----------+--------+----------+
+| ID                                   | Name     | Status | Networks |
++--------------------------------------+----------+--------+----------+
+| 485429b1-5af0-4d13-8c39-8ff544aa7004 | rbc-test | ERROR  |          |
++--------------------------------------+----------+--------+----------+
+[root@allinone te(keystone_admin)]# openstack server delete rbc-test
+
+
+* openstack conception
+** openstack project
+a project is a unit of all the hosts manged by a heat?
+a project include host(compute), volume, instance
+[root@controller by-path(keystone_admin)]# openstack project list
++----------------------------------+----------+
+| ID                               | Name     |
++----------------------------------+----------+
+| c51843f33c184be9bfc55f8e35b59e38 | admin    |
+| fab7f26e75ba4a4980f9b12f08a0db0a | services |
++----------------------------------+----------+
+
+** openstack host 
+*** host list
+[root@controller images(keystone_admin)]# openstack host list
++-----------------------+-------------+----------+
+| Host Name             | Service     | Zone     |
++-----------------------+-------------+----------+
+| controller            | consoleauth | internal |
+| controller            | scheduler   | internal |
+| controller            | conductor   | internal |
+| controller            | cert        | internal |
+| compute3              | compute     | CMMZone  |
+| compute2              | compute     | CMMZone  |
+| compute1              | compute     | CMMZone  |
+| localhost.localdomain | scheduler   | internal |
+| localhost.localdomain | conductor   | internal |
+| localhost.localdomain | consoleauth | internal |
+| localhost.localdomain | cert        | internal |
++-----------------------+-------------+----------+
+[root@controller images(keystone_admin)]#
+
+*** host show
+[root@controller ~(keystone_admin)]# openstack host show compute1
++----------+----------------------------------+-----+-----------+---------+
+| Host     | Project                          | CPU | Memory MB | Disk GB |
++----------+----------------------------------+-----+-----------+---------+
+| compute1 | (total)                          |  16 |     49140 |     199 |
+| compute1 | (used_now)                       |   8 |     23040 |      30 |
+| compute1 | (used_max)                       |   8 |     22528 |      30 |
+| compute1 | c51843f33c184be9bfc55f8e35b59e38 |   8 |     22528 |      30 |
++----------+----------------------------------+-----+-----------+---------+
+
+[root@controller ~(keystone_admin)]# openstack usage list
+Usage from 2019-04-15 to 2019-05-14:
++---------+---------+--------------+-----------+---------------+
+| Project | Servers | RAM MB-Hours | CPU Hours | Disk GB-Hours |
++---------+---------+--------------+-----------+---------------+
+| admin   |     120 |  16869812.08 |   6876.61 |      18406.74 |
++---------+---------+--------------+-----------+---------------+
+
+
+** openstack server 
+*** server list
+[root@controller network-scripts(keystone_admin)]# openstack server list
++--------------------------------------+-----------------+--------+-----------------------------
+| ID                                   | Name            | Status | Networks                    
++--------------------------------------+-----------------+--------+-----------------------------
+| c1cf650c-52ac-4b1b-a635-3cb7b9105598 | cmma2-mme-cpps0 | ACTIVE | int0=169.254.64.140         
+| e0c1514c-bde4-4c04-976e-7f421439c98e | cmma2-mme-cpps1 | ACTIVE | int0=169.254.64.141         
+| e70dc5c2-bf7b-4c22-b2e8-388ef832235a | cmma2-mme-dbs0  | ACTIVE | int0=169.254.64.10          
+| a9d94429-f7cd-491a-91fb-9141c0b94350 | cmma2-mme-dbs1  | ACTIVE | int0=169.254.64.11          
+| 9974adc7-32d4-4f70-9f3e-aa9ca283ea17 | cmma2-mme-ipds1 | ACTIVE | s1=10.56.248.3; int0=169.254
+| 88f5f838-8bb6-4a55-b701-2184945fca32 | cmma2-mme-ipds0 | ACTIVE | s1=10.56.248.2; int0=169.254
+| c0b7107b-00a3-4f0d-80c4-9f844ae66767 | cmma2-mme-necc1 | ACTIVE | om0=10.56.247.4; int0=169.25
+| be571124-19d2-4f79-8a18-f4b323905622 | cmma2-mme-necc0 | ACTIVE | om0=10.56.247.3; int0=169.25
++--------------------------------------+-----------------+--------+-----------------------------
+
+*** server show
+openstack server show  cmma2-mme-necc1
++--------------------------------------+--------------------------------------------------------
+| Field                                | Value                                                  
++--------------------------------------+--------------------------------------------------------
+| OS-DCF:diskConfig                    | MANUAL                                                 
+| OS-EXT-AZ:availability_zone          | CMMZone                                                
+| OS-EXT-SRV-ATTR:host                 | compute2                                               
+| OS-EXT-SRV-ATTR:hypervisor_hostname  | compute2                                               
+| OS-EXT-SRV-ATTR:instance_name        | instance-000000b1                                      
+| OS-EXT-STS:power_state               | 1                                                      
+| OS-EXT-STS:task_state                | None                                                   
+| OS-EXT-STS:vm_state                  | active                                                 
+| OS-SRV-USG:launched_at               | 2019-05-09T03:01:46.000000                             
+| OS-SRV-USG:terminated_at             | None                                                   
+| accessIPv4                           |                                                        
+| accessIPv6                           |                                                        
+| addresses                            | s1=10.56.248.2; int0=169.254.64.70                     
+| config_drive                         | True                                                   
+| created                              | 2019-05-09T03:01:36Z                                   
+| flavor                               | flavors-ipds_flavor-5mdzu3jrwort (0ad2db17-72d4-4fe1-82
+| hostId                               | 5d1134b01c5e6a38874ff41ee414d392b80b09a047178f4378cade6
+| id                                   | 88f5f838-8bb6-4a55-b701-2184945fca32                   
+| image                                | CMM19.0.0-mme-ipds (b673ef32-2730-4f97-9d23-aa8b3e0538e
+| key_name                             | CtrlKey                                                
+| name                                 | cmma2-mme-ipds0                                        
+| os-extended-volumes:volumes_attached | []                                                     
+| progress                             | 0                                                      
+| project_id                           | c51843f33c184be9bfc55f8e35b59e38                       
+| properties                           |                                                        
+| security_groups                      | [{u'name': u'default'}, {u'name': u'default'}]         
+| status                               | ACTIVE                                                 
+| updated                              | 2019-05-09T03:01:46Z                                   
+| user_id                              | 7197853141904b9a97139c804ca7c968                       
+|
+
+
+** openstack volume
+*** volume list
+[root@controller by-path(keystone_admin)]# openstack volume list
++--------------------------------------+----------------------------+--------+------+------------------------------------------+
+| ID                                   | Display Name               | Status | Size | Attached to                              |
++--------------------------------------+----------------------------+--------+------+------------------------------------------+
+| a96fbe8b-d01f-4b20-8284-2457db800b9c | cmma2-mme-necc1-brick-00   | in-use |    5 | Attached to cmma2-mme-necc1 on /dev/vdc  |
+| 058e13e2-1ba5-4fb4-8586-0595ffe53e2e | cmma2-mme-necc1-logs-00    | in-use |    5 | Attached to cmma2-mme-necc1 on /dev/vdg  |
+| cb7aac7d-5b27-4112-a152-c2ca51e2f227 | cmma2-mme-necc1-perf-00    | in-use |    5 | Attached to cmma2-mme-necc1 on /dev/vde  |
+| aa827556-1fb9-4284-bdb3-812416adb90c | cmma2-mme-necc1-elastic-00 | in-use |    5 | Attached to cmma2-mme-necc1 on /dev/vdi  |
+| 5859c373-9450-445e-800a-d0c54dd61223 | cmma2-mme-necc0-logs-00    | in-use |    5 | Attached to cmma2-mme-necc0 on /dev/vdg  |
+| 4e89b4ce-0d69-4de5-b332-b19d074ce6f6 | cmma2-mme-necc0-kafka-00   | in-use |   20 | Attached to cmma2-mme-necc0 on /dev/vdf  |
+| 46758a0e-ff0f-40f3-a5a1-d3b2393be349 | cmma2-mme-necc0-influx-00  | in-use |    5 | Attached to cmma2-mme-necc0 on /dev/vdh  |
+| d1546037-20fc-4a89-813e-b43960c6b669 | cmma2-mme-necc0-brick-00   | in-use |    5 | Attached to cmma2-mme-necc0 on /dev/vdc  |
+| 12e29c7f-9fa5-4123-b2bd-2c8cb0a099ee | cmma2-mme-necc1-pcmd-00    | in-use |    5 | Attached to cmma2-mme-necc1 on /dev/vdb  |
+| e0dab8db-da7f-44e5-b9d3-c8b014c1a23e | cmma2-mme-necc0-pcmd-00    | in-use |    5 | Attached to cmma2-mme-necc0 on /dev/vdb  |
+| df5c4035-d4e7-4be4-96c3-98d0c5d4d0d8 | cmma2-mme-necc0-perf-00    | in-use |    5 | Attached to cmma2-mme-necc0 on /dev/vde  |
+| 3f294d6c-07ca-4040-8e0e-7fff063d84eb | cmma2-mme-necc1-kafka-00   | in-use |   20 | Attached to cmma2-mme-necc1 on /dev/vdf  |
+| 3ad875a5-e967-4d3c-b8d7-bd21c48100c0 | cmma2-mme-necc1-pmx-00     | in-use |    5 | Attached to cmma2-mme-necc1 on /dev/vdd  |
+| b6494460-153a-4e91-93eb-7a3fb12aa053 | cmma2-mme-necc0-elastic-00 | in-use |    5 | Attached to cmma2-mme-necc0 on /dev/vdi  |
+| 8521b938-7b2b-42e0-8ca6-2cc4f884fcda | cmma2-mme-necc1-influx-00  | in-use |    5 | Attached to cmma2-mme-necc1 on /dev/vdh  |
+| 7db9a7f3-df18-450e-89e6-efb7fe477c00 | cmma2-mme-necc0-pmx-00     | in-use |    5 | Attached to cmma2-mme-necc0 on /dev/vdd  |
+| 9775a012-e255-4baf-8c84-d6bda52e5a6e | cmm2-backup                | in-use |   20 | Attached to cmma2-mme-necc0 on /dev/vdj  |
++--------------------------------------+----------------------------+--------+------+------------------------------------------+
+
+
+*** volume show
+[root@controller by-path(keystone_admin)]# openstack volume show cmma2-mme-necc1-brick-00
++---------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Field                                 | Value                                                                                                                                                                                                                                                                   |
++---------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| attachments                           | [{u'server_id': u'c0b7107b-00a3-4f0d-80c4-9f844ae66767', u'attachment_id': u'5acf4de3-d993-4158-b07c-afd5a528511c', u'host_name': None, u'volume_id': u'a96fbe8b-d01f-4b20-8284-2457db800b9c', u'device': u'/dev/vdc', u'id': u'a96fbe8b-d01f-4b20-8284-2457db800b9c'}] |
+| availability_zone                     | nova                                                                                                                                                                                                                                                                    |
+| bootable                              | false                                                                                                                                                                                                                                                                   |
+| created_at                            | 2019-05-09T03:00:10.000000                                                                                                                                                                                                                                              |
+| display_description                   | None                                                                                                                                                                                                                                                                    |
+| display_name                          | cmma2-mme-necc1-brick-00                                                                                                                                                                                                                                                |
+| encrypted                             | False                                                                                                                                                                                                                                                                   |
+| id                                    | a96fbe8b-d01f-4b20-8284-2457db800b9c                                                                                                                                                                                                                                    |
+| multiattach                           | false                                                                                                                                                                                                                                                                   |
+| os-vol-host-attr:host                 | controller@lvm#lvm                                                                                                                                                                                                                                                      |
+| os-vol-mig-status-attr:migstat        | None                                                                                                                                                                                                                                                                    |
+| os-vol-mig-status-attr:name_id        | None                                                                                                                                                                                                                                                                    |
+| os-volume-replication:driver_data     | None                                                                                                                                                                                                                                                                    |
+| os-volume-replication:extended_status | None                                                                                                                                                                                                                                                                    |
+| project_id                            | c51843f33c184be9bfc55f8e35b59e38                                                                                                                                                                                                                                        |
+| properties                            | attached_mode='rw', readonly='False'                                                                                                                                                                                                                                    |
+| size                                  | 5                                                                                                                                                                                                                                                                       |
+| snapshot_id                           | None                                                                                                                                                                                                                                                                    |
+| source_volid                          | None                                                                                                                                                                                                                                                                    |
+| status                                | in-use                                                                                                                                                                                                                                                                  |
+| type                                  | None                                                                                                                                                                                                                                                                    |
++---------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+
+
+
+
+*** volume create
+openstack volume create --size 20 --property attached_mode='rw' --property readonly='False' cmm2-backup
+
+** service
+[root@controller ~(keystone_admin)]# openstack service list
++----------------------------------+------------+---------------+
+| ID                               | Name       | Type          |
++----------------------------------+------------+---------------+
+| 04de1141f4014ad4b9421ed54a074b05 | nova       | compute       |
+| 05aba9d9cd0942b9bd39d2a28a392ff0 | nova_ec2   | ec2           |
+| 06e8b0985bbf4afaacdf1b321d4f3d7a | ceilometer | metering      |
+| 1195caaa7bc54164b6e58c3b924acf7b | glance     | image         |
+| 15d667071bba4075ba811aa4d6f64f61 | keystone   | identity      |
+| 2641d82b551f4eba80f77a3906df70d8 | cinder     | volume        |
+| 3bf3259a75634892b34a41b9496f813e | neutron    | network       |
+| a851d4834ab64cc4be8fa8730af2d868 | heat       | orchestration |
+| be536b7ceede466dadcf4428c78e565e | cinderv2   | volumev2      |
+| d4a833e32ade4bec9cc37be1384faa3c | swift      | object-store  |
+| f7c2f6fd293d423e80c6a31e88d0cad8 | novav3     | computev3     |
++----------------------------------+------------+---------------+
+
+** aggregate
+[root@controller ~(keystone_admin)]# openstack aggregate show CMMZone
++-------------------+-----------------------------------------+
+| Field             | Value                                   |
++-------------------+-----------------------------------------+
+| availability_zone | CMMZone                                 |
+| created_at        | 2019-05-05T07:59:11.000000              |
+| deleted           | False                                   |
+| deleted_at        | None                                    |
+| hosts             | [u'compute1', u'compute3', u'compute2'] |
+| id                | 1                                       |
+| name              | CMMZone                                 |
+| properties        | {}                                      |
+| updated_at        | None                                    |
++-------------------+-----------------------------------------+
+[root@controller ~(keystone_admin)]# 
+
+
+
+* nova 
+[root@controller ~(keystone_admin)]# nova hypervisor-list
+
++----+-----------------------+-------+----------+
+| ID | Hypervisor hostname   | State | Status   |
++----+-----------------------+-------+----------+
+| 1  | compute3              | up    | enabled  |
+| 2  | compute2              | up    | enabled  |
+
+[root@controller ~(keystone_admin)]# nova list --host compute1
++--------------------------------------+-----------------+--------+------------+-------------+-------------------------------------+
+| ID                                   | Name            | Status | Task State | Power State | Networks                            |
++--------------------------------------+-----------------+--------+------------+-------------+-------------------------------------+
+| 830dbc8f-796c-46b1-9573-580e055241c6 | cmma2-mme-cpps0 | ACTIVE | -          | Running     | int0=169.254.64.140                 |
+| 1a0ceccc-a532-4e84-94b7-cf34fb741dc8 | cmma2-mme-dbs1  | ACTIVE | -          | Running     | int0=169.254.64.11                  |
+| 0a04146e-89c3-4fdc-8e37-d38042a996d6 | cmma2-mme-necc1 | ACTIVE | -          | Running     | om0=10.56.247.4; int0=169.254.64.31 |
++--------------------------------------+-----------------+--------+------------+-------------+-------------------------------------+
+[root@controller ~(keystone_admin)]#nova net-list 
+
+
+[root@controller networks(keystone_admin)]#  nova diagnostics cmma2-mme-necc1
++---------------------------+-----------------+
+| Property                  | Value           |
++---------------------------+-----------------+
+| cpu0_time                 | 94362020000000  |
+| cpu1_time                 | 94077900000000  |
+| cpu2_time                 | 105525960000000 |
+| cpu3_time                 | 94625360000000  |
+| hdd_errors                | -1              |
+| hdd_read                  | 213340          |
+| hdd_read_req              | 72              |
+| hdd_write                 | 0               |
+| hdd_write_req             | 0               |
+| memory                    | 10485760        |
+| memory-actual             | 10485760        |
+| memory-available          | 10073848        |
+| memory-last_update        | 1557736100      |
+| memory-major_fault        | 3927            |
+| memory-minor_fault        | 3534018599      |
+| memory-rss                | 10553120        |
+| memory-swap_in            | 0               |
+| memory-swap_out           | 0               |
+| memory-unused             | 542156          |
+| tap1057fbed-4d_rx         | 144430853       |
+| tap1057fbed-4d_rx_drop    | 0               |
+| tap1057fbed-4d_rx_errors  | 0               |
+| tap1057fbed-4d_rx_packets | 2451541         |
+| tap1057fbed-4d_tx         | 55084207        |
+| tap1057fbed-4d_tx_drop    | 0               |
+| tap1057fbed-4d_tx_errors  | 0               |
+| tap1057fbed-4d_tx_packets | 1249461         |
+| tap1ff5ea8e-7a_rx         | 108167717656    |
+| tap1ff5ea8e-7a_rx_drop    | 3602            |
+| tap1ff5ea8e-7a_rx_errors  | 0               |
+| tap1ff5ea8e-7a_rx_packets | 291779929       |
+| tap1ff5ea8e-7a_tx         | 35784629915     |
+| tap1ff5ea8e-7a_tx_drop    | 0               |
+| tap1ff5ea8e-7a_tx_errors  | 0               |
+| tap1ff5ea8e-7a_tx_packets | 243912206       |
+| vda_errors                | -1              |
+| vda_read                  | 2435507200      |
+| vda_read_req              | 95941           |
+| vda_write                 | 92107716608     |
+
+* neutron
+[root@controller cmma2-mme(keystone_admin)]# neutron net-show s1
++---------------------------+--------------------------------------+
+| Field                     | Value                                |
++---------------------------+--------------------------------------+
+| admin_state_up            | True                                 |
+| id                        | 13f3e90f-9bf8-43be-8c61-bda5f1777ef8 |
+| mtu                       | 0                                    |
+| name                      | s1                                   |
+| provider:network_type     | vlan                                 |
+| provider:physical_network | physnet1                             |
+| provider:segmentation_id  | 1703                                 |
+| router:external           | False                                |
+| shared                    | True                                 |
+| status                    | ACTIVE                               |
+| subnets                   | c0a175a4-7b69-489c-b1fa-c1ad5222301b |
+| tenant_id                 | c51843f33c184be9bfc55f8e35b59e38     |
++---------------------------+--------------------------------------+
+[root@controller cmma2-mme(keystone_admin)]# openstack project show c51843f33c184be9bfc55f8e35b59e38
++-------------+----------------------------------+
+| Field       | Value                            |
++-------------+----------------------------------+
+| description | admin tenant                     |
+| enabled     | True                             |
+| id          | c51843f33c184be9bfc55f8e35b59e38 |
+| name        | admin                            |
++-------------+----------------------------------+
+[root@controller cmma2-mme(keystone_admin)]# openstack project list
++----------------------------------+----------+
+| ID                               | Name     |
++----------------------------------+----------+
+| c51843f33c184be9bfc55f8e35b59e38 | admin    |
+| fab7f26e75ba4a4980f9b12f08a0db0a | services |
++----------------------------------+----------+
+
+
+
+** neutron net list 
+*** neutron net create
+neutron net-create f publicExtnet --provider:network_type vlan --provider:physical_network physnet1 --provider:segmentation_id 1700 
+--router:external=True
+
+[root@controller ~(keystone_admin)]# neutron net-list
++--------------------------------------+--------------+-------------------------------------------------------+
+| id                                   | name         | subnets                                               |
++--------------------------------------+--------------+-------------------------------------------------------+
+| 3493eb3a-d139-40d1-9296-7f86b14790f8 | int0         | 9cfc2e16-9422-41f3-8de8-ea9f0ecfde01 169.254.64.0/23  |
+| 866f3cca-4bed-4c12-9fb3-6ff5e570c1bb | s1           | a430589e-50c8-47ef-b56e-15dacb9d1302 10.56.247.0/24   |
+| d1862abd-28bd-423a-9976-506166b932d8 | publicExtnet |                                                       |
+| 8ce705ff-1471-422f-a8fe-8272f1f22880 | om0          | 32e99232-7a4d-4145-93d1-0fd16a5746bc 10.56.233.128/25 |
++--------------------------------------+--------------+-------------------------------------------------------+
+*** neutron subnet list 
+[root@allinone cmm-amf(keystone_admin)]# neutron subnet-create --name tts --ip-version 4 publicExtnet  100.9.9.0/24
+Created a new subnet:
+|-------------------+----------------------------------------------|
+| Field             | Value                                        |
+|-------------------+----------------------------------------------|
+| allocation_pools  | {"start": "100.9.9.2", "end": "100.9.9.254"} |
+| cidr              | 100.9.9.0/24                                 |
+| dns_nameservers   |                                              |
+| enable_dhcp       | True                                         |
+| gateway_ip        | 100.9.9.1                                    |
+| host_routes       |                                              |
+| id                | cfabda1d-edc9-4363-9fb7-21541b7e579e         |
+| ip_version        | 4                                            |
+| ipv6_address_mode |                                              |
+| ipv6_ra_mode      |                                              |
+| name              | tts                                          |
+| network_id        | 89f819fa-cb9e-4fc3-a97a-a90ff2576733         |
+| subnetpool_id     |                                              |
+| tenant_id         | e1e404b227d94553a1c402f3254f57c7             |
+|-------------------+----------------------------------------------|
+root@allinone cmm-amf(keystone_admin)]#
+
+
+[root@controller ~(keystone_admin)]# neutron net-show network-show
+[root@controller ~(keystone_admin)]# neutron net-show s1
++---------------------------+--------------------------------------+
+| Field                     | Value                                |
++---------------------------+--------------------------------------+
+| admin_state_up            | True                                 |
+| id                        | 866f3cca-4bed-4c12-9fb3-6ff5e570c1bb |
+| mtu                       | 0                                    |
+| name                      | s1                                   |
+| provider:network_type     | vlan                                 |
+| provider:physical_network | physnet1                             |
+| provider:segmentation_id  | 1702                                 |
+| router:external           | False                                |
+| shared                    | False                                |
+| status                    | ACTIVE                               |
+| subnets                   | a430589e-50c8-47ef-b56e-15dacb9d1302 |
+| tenant_id                 | c51843f33c184be9bfc55f8e35b59e38     |
++---------------------------+--------------------------------------+
+
+** neutron port create
+neutron port-create ts2
+[root@allinone ~(keystone_admin)]# neutron port-create ts2
+Created a new port:
++-----------------------+--------------------------------------------------------------------------------------------------------------+
+| Field                 | Value                                                                                                        |
++-----------------------+--------------------------------------------------------------------------------------------------------------+
+| admin_state_up        | True                                                                                                         |
+| allowed_address_pairs |                                                                                                              |
+| binding:host_id       |                                                                                                              |
+| binding:profile       | {}                                                                                                           |
+| binding:vif_details   | {}                                                                                                           |
+| binding:vif_type      | unbound                                                                                                      |
+| binding:vnic_type     | normal                                                                                                       |
+| device_id             |                                                                                                              |
+| device_owner          |                                                                                                              |
+| dns_assignment        | {"hostname": "host-169-254-77-3", "ip_address": "169.254.77.3", "fqdn": "host-169-254-77-3.openstacklocal."} |
+| dns_name              |                                                                                                              |
+| fixed_ips             | {"subnet_id": "52e8bd47-1e02-4cf3-97ed-6b0facf8fd91", "ip_address": "169.254.77.3"}                          |
+| id                    | bac53f0b-8ded-4814-84b2-5554e3fe0196                                                                         |
+| mac_address           | fa:16:3e:c8:27:69                                                                                            |
+| name                  |                                                                                                              |
+| network_id            | 76673cc0-3d9f-4957-9b37-1e969cc74ae6                                                                         |
+| security_groups       | 1f87ce84-86e6-4bf6-a37d-350d99b1de6e                                                                         |
+| status                | DOWN                                                                                                         |
+| tenant_id             | 786dbe457b5c43058d9cd7f0947f94ed                                                                             |
++-----------------------+--------------------------------------------------------------------------------------------------------------+
+[root@allinone ~(keystone_admin)]# neutron port-list
++--------------------------------------+--------+-------------------+-------------------------------------------------------------------------------------+
+| id                                   | name   | mac_address       | fixed_ips                                                                           |
++--------------------------------------+--------+-------------------+-------------------------------------------------------------------------------------+
+| 0ec03053-ca24-4a65-a05c-4252693a8b50 | atport | fa:16:3e:d0:c3:9b | {"subnet_id": "52e8bd47-1e02-4cf3-97ed-6b0facf8fd91", "ip_address": "169.254.77.2"} |
+| 5c639d1a-2abc-450c-83ee-265197690d74 |        | fa:16:3e:06:80:0b | {"subnet_id": "b4f33b3e-b57b-4938-998c-ac302684c87f", "ip_address": "10.56.249.3"}  |
+| bac53f0b-8ded-4814-84b2-5554e3fe0196 |        | fa:16:3e:c8:27:69 | {"subnet_id": "52e8bd47-1e02-4cf3-97ed-6b0facf8fd91", "ip_address": "169.254.77.3"} |
+| d92400c1-1ed7-48c3-8a66-da818f56d5d7 |        | fa:16:3e:0c:70:7c | {"subnet_id": "b4f33b3e-b57b-4938-998c-ac302684c87f", "ip_address": "10.56.249.2"}  |
++--------------------------------------+--------+-------------------+-------------------------------------------------------------------------------------+
+[root@allinone ~(keystone_admin)]# nova interface-attach --port-id bac53f0b-8ded-4814-84b2-5554e3fe0196   rbc-test
+[root@allinone ~(keystone_admin)]#
+[root@allinone ~(keystone_admin)]# nova list
++--------------------------------------+----------+--------+------------+-------------+-----------------------------------+
+| ID                                   | Name     | Status | Task State | Power State | Networks                          |
++--------------------------------------+----------+--------+------------+-------------+-----------------------------------+
+| 52e5552f-d97e-4d8c-b538-12c615c3677e | rbc-test | ACTIVE | -          | Running     | ts2=169.254.77.3; ts1=10.56.249.3 |
++--------------------------------------+----------+--------+------------+-------------+-----------------------------------+
+
+
+
+** compute node configure for network
+    <interface type='bridge'>
+      <mac address='fa:16:3e:1d:ce:79'/>
+      <source bridge='qbrdb2cc8ca-5f'/>
+      <target dev='tapdb2cc8ca-5f'/>
+      <model type='virtio'/>
+      <alias name='net0'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x03' function='0x0'/>
+    </interface>
+    <interface type='bridge'>
+      <mac address='fa:16:3e:db:bd:d1'/>
+      <source bridge='qbr4f157737-d5'/>
+      <target dev='tap4f157737-d5'/>
+      <model type='virtio'/>
+      <alias name='net1'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x04' function='0x0'/>
+    </interface>
+
+
+[root@controller ~(keystone_admin)]# nova list  --host  compute1
++--------------------------------------+-----------------+--------+------------+-------------+-------------------------------------+
+| ID                                   | Name            | Status | Task State | Power State | Networks                            |
++--------------------------------------+-----------------+--------+------------+-------------+-------------------------------------+
+| a9d94429-f7cd-491a-91fb-9141c0b94350 | cmma2-mme-dbs1  | ACTIVE | -          | Running     | int0=169.254.64.11                  |
+| c0b7107b-00a3-4f0d-80c4-9f844ae66767 | cmma2-mme-necc1 | ACTIVE | -          | Running     | om0=10.56.247.4; int0=169.254.64.31 |
++--------------------------------------+-----------------+--------+------------+-------------+-------------------------------------+
+
+[root@controller network-scripts(keystone_admin)]# cat ifcfg-br-eno1
+DEFROUTE=yes
+NAME=eno1
+UUID=d9246cb0-d9ee-4e40-99dc-b8026249dc79
+ONBOOT=yes
+IPADDR=10.56.233.137
+PREFIX=25
+GATEWAY=10.56.233.130
+NM_CONTROLLED=no
+DEVICE=br-eno1
+DEVICETYPE=ovs
+OVSBOOTPROTO=none
+TYPE=OVSBridge
+OVSDHCPINTERFACES=eno1
+OVS_EXTRA="set bridge br-eno1 other-config:hwaddr=e4:1f:13:78:9b:00"
+
+=========
+[root@controller network-scripts(keystone_admin)]# tcpdump -n -i any -e host 10.56.247.7
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on any, link-type LINUX_SLL (Linux cooked), capture size 262144 bytes
+16:48:04.952785   B fa:16:3e:e9:3f:fb ethertype 802.1Q (0x8100), length 62: vlan 1702, p 0, ethertype ARP, Request who-has 10.56.247.7 tell 10.56.247.3, length 42
+16:48:04.953076   B fa:16:3e:e9:3f:fb ethertype 802.1Q (0x8100), length 62: vlan 1702, p 0, ethertype ARP, Request who-has 10.56.247.7 tell 10.56.247.3, length 42
+16:48:05.958044   B fa:16:3e:e9:3f:fb ethertype 802.1Q (0x8100), length 62: vlan 1702, p 0, ethertype ARP, Request who-has 10.56.247.7 tell 10.56.247.3, length 42
+16:48:05.958044   B fa:16:3e:e9:3f:fb ethertype 802.1Q (0x8100), length 62: vlan 1702, p 0, ethertype ARP, Request who-has 10.56.247.7 tell 10.56.247.3, length 42
+16:48:06.959639   B fa:16:3e:e9:3f:fb ethertype 802.1Q (0x8100), length 62: vlan 1702, p 0, ethertype ARP, Request who-has 10.56.247.7 tell 10.56.247.3, length 42
+16:48:06.959639   B fa:16:3e:e9:3f:fb ethertype 802.1Q (0x8100), length 62: vlan 1702, p 0, ethertype ARP, Request who-has 10.56.247.7 tell 10.56.247.3, length 42
+^C
+6 packets captured
+8 packets received by filter
+0 packets dropped by kernel
+[root@controller network-scripts(keystone_admin)]# tcpdump -n -i any -e host 10.56.247.1
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on any, link-type LINUX_SLL (Linux cooked), capture size 262144 bytes
+16:48:18.798912   B fa:16:3e:03:f7:61 ethertype 802.1Q (0x8100), length 66: vlan 1703, p 0, ethertype ARP, Request who-has 10.56.247.1 tell 10.56.247.100, length 46
+16:48:18.798912   B fa:16:3e:03:f7:61 ethertype 802.1Q (0x8100), length 66: vlan 1703, p 0, ethertype ARP, Request who-has 10.56.247.1 tell 10.56.247.100, length 46
+16:48:18.824584   B fa:16:3e:e9:3f:fb ethertype 802.1Q (0x8100), length 62: vlan 1702, p 0, ethertype ARP, Request who-has 10.56.247.1 tell 10.56.247.3, length 42
+16:48:18.824584   B fa:16:3e:e9:3f:fb ethertype 802.1Q (0x8100), length 62: vlan 1702, p 0, ethertype ARP, Request who-has 10.56.247.1 tell 10.56.247.3, length 42
+16:48:19.054161   B fa:16:3e:51:c2:05 ethertype 802.1Q (0x8100), length 62: vlan 1702, p 0, ethertype ARP, Request who-has 10.56.247.1 tell 10.56.247.4, length 42
+
+
+** ovs switch
+*** configure a network bridge as OVS_BRIDGE
+Modify parameter ONBOOT:
+/etc/sysconfig/network-scripts
+[root@controller network-scripts]# cat ifcfg-eno2
+DEVICE=eno2
+DEVICETYPE=ovs
+TYPE=OVSPort
+OVS_BRIDGE=br-eno2
+ONBOOT=yes
+
+
+*** add interface and ports configuration
+ovs-vsctl add-br br-eno2
+ovs-vsctl add-port br-eno2 eno2
+ovs-vsctl add-port br-int int-br-eno2
+ovs-vsctl add-port br-eno2 phy-br-eno2
+ovs-vsctl set interface int-br-eno2 type=patch
+ovs-vsctl set interface phy-br-eno2 type=patch
+ovs-vsctl set interface phy-br-eno2 options:peer=int-br-eno2
+ovs-vsctl set interface int-br-eno2 options:peer=phy-br-eno2
+
+ovs-vsctl list-br
+ovs-vsctl show
+
+
+
+nick@osnet1:~$ sudo ip netns delete qrouter-1e944eb4-2773-40f1-9a03-7403f915b334
+nick@osnet1:~$ sudo ovs-vsctl del-port qg-51fde206-37
+
+*** ovs debug tools
+root@controller network-scripts(keystone_admin)]# ovs-ofctl dump-ports-desc br-eno1
+OFPST_PORT_DESC reply (xid=0x2):
+ 1(eno1): addr:e4:1f:13:78:9b:00
+     config:     0
+     state:      0
+     current:    1GB-FD FIBER AUTO_NEG
+     advertised: 1GB-FD AUTO_NEG
+     supported:  1GB-FD FIBER AUTO_NEG
+     speed: 1000 Mbps now, 1000 Mbps max
+ 2(phy-br-eno1): addr:52:59:45:23:87:b1
+     config:     0
+     state:      0
+     speed: 0 Mbps now, 0 Mbps max
+ LOCAL(br-eno1): addr:e4:1f:13:78:9b:00
+     config:     0
+     state:      0
+
+[root@controller network-scripts(keystone_admin)]# ovs-appctl fdb/show br-eno1
+ port  VLAN  MAC                Age
+    1  4095  5c:f3:fc:1f:3f:84  298
+    1  4095  e4:1f:13:7c:a0:f0  294
+    1  4095  e4:1f:13:7f:e0:84  279
+    1  4095  00:21:5e:9b:92:d8  277
+    1  4095  e4:1f:13:3c:81:3c  245
+    1  4095  e4:1f:13:3c:88:80  243
+    1  4095  5c:f3:fc:1f:06:80  236
+    1  4095  00:21:5e:92:85:74  205
+    1     0  d8:c4:97:a7:1e:83  103
+    1     0  e4:1f:13:d1:6e:d0   24
+    1     0  00:1a:2f:a2:b1:7f   19
+    1     0  00:11:25:c3:07:e8   14
+    1     1  00:1e:7a:2a:81:ca    5
+    1     0  5c:f3:fc:1c:dd:e4    3
+    1     0  5c:f3:fc:1c:a5:c0    2
+    1     0  50:3d:e5:3b:88:bf    1
+    1  1703  fa:16:3e:03:f7:61    0
+    1     0  00:21:5e:91:85:74    0
+LOCAL     0  e4:1f:13:78:9b:00    0
+    1  1701  fa:16:3e:3a:32:30    0
+    1  1701  fa:16:3e:b3:cf:7b    0
+    1  1701  fa:16:3e:bb:2a:fe    0
+    1  4095  00:11:25:c3:07:e9    0
+    1     0  e4:1f:13:7b:d3:3c    0
+    1  1701  fa:16:3e:d6:5d:42    0
+    1  1701  fa:16:3e:1a:18:78    0
+    1  1701  fa:16:3e:61:5a:1e    0
+    1  1702  fa:16:3e:e9:3f:fb    0
+    1  1701  fa:16:3e:d4:20:e4    0
+    1  1701  fa:16:3e:95:62:d1    0
+    1  1702  fa:16:3e:51:c2:05    0
+[root@controller network-scripts(keystone_admin)]# 
+
+[root@compute1 ~]# ovs-ofctl dump-ports-desc br-eno1
+OFPST_PORT_DESC reply (xid=0x2):
+ 2(eno1): addr:e4:1f:13:7b:d3:3c
+     config:     0
+     state:      0
+     current:    1GB-FD FIBER AUTO_NEG
+     advertised: 1GB-FD AUTO_NEG
+     supported:  1GB-FD FIBER AUTO_NEG
+     speed: 1000 Mbps now, 1000 Mbps max
+ 3(phy-br-eno1): addr:3a:4c:9b:e4:76:5c
+     config:     0
+     state:      0
+     speed: 0 Mbps now, 0 Mbps max
+ LOCAL(br-eno1): addr:e4:1f:13:7b:d3:3c
+     config:     0
+     state:      0
+     speed: 0 Mbps now, 0 Mbps max
+
+
+[root@compute1 ~]# ovs-appctl fdb/show br-eno1
+ port  VLAN  MAC                Age
+    2     0  d8:c4:97:a7:1e:83  100
+    2     0  e4:1f:13:d1:6e:d0   88
+    2     1  00:1e:7a:2a:81:c5    3
+    2  1703  fa:16:3e:03:f7:61    3
+    2     0  00:11:25:c3:07:e8    2
+    2     0  00:1a:2f:a2:b1:7f    2
+    2  1701  fa:16:3e:d6:5d:42    1
+    3  1702  fa:16:3e:51:c2:05    1
+    2     0  e4:1f:13:78:9b:00    1
+    2  1701  fa:16:3e:bb:2a:fe    1
+    2  1701  fa:16:3e:61:5a:1e    1
+    3  1701  fa:16:3e:1a:18:78    1
+    2  1701  fa:16:3e:d4:20:e4    1
+    2  1702  00:1a:2f:a2:b1:7f    1
+    2  1701  fa:16:3e:95:62:d1    1
+    2  4095  00:11:25:c3:07:e9    1
+    2  1701  fa:16:3e:b3:cf:7b    1
+    3  1701  fa:16:3e:3a:32:30    1
+LOCAL     0  e4:1f:13:7b:d3:3c    1
+    2  1702  fa:16:3e:e9:3f:fb    1
+    2     0  50:3d:e5:3b:88:bf    1
+
+*** analyst of the downlayer implementation of the ovs switch  
+
+[root@controller network-scripts(keystone_admin)]# nova list --host compute1
++--------------------------------------+-----------------+--------+------------+-------------+--
+| ID                                   | Name            | Status | Task State | Power State | N
++--------------------------------------+-----------------+--------+------------+-------------+--
+| a9d94429-f7cd-491a-91fb-9141c0b94350 | cmma2-mme-dbs1  | ACTIVE | -          | Running     | i
+| c0b7107b-00a3-4f0d-80c4-9f844ae66767 | cmma2-mme-necc1 | ACTIVE | -          | Running     | o
+|
+
+[root@compute1 ~]# ifconfig
+br-eno1: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 10.56.233.136  netmask 255.255.255.128  broadcast 10.56.233.255
+        ether e4:1f:13:7b:d3:3c  txqueuelen 1000  (Ethernet)
+
+eno1: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet6 fe80::e61f:13ff:fe7b:d33c  prefixlen 64  scopeid 0x20<link>
+        ether e4:1f:13:7b:d3:3c  txqueuelen 1000  (Ethernet)
+--------------------------------------------------------------------------------------
+qbr1057fbed-4d: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        ether 26:ee:bd:e8:85:67  txqueuelen 1000  (Ethernet)
+qbr1ff5ea8e-7a: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        ether 8a:03:ee:a1:9a:93  txqueuelen 1000  (Ethernet)
+qbrfd32af90-1f: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        ether 66:3c:b6:54:4a:72  txqueuelen 1000  (Ethernet)
+--------------------------------------------------------------------------------------
+qvb1057fbed-4d: flags=4419<UP,BROADCAST,RUNNING,PROMISC,MULTICAST>  mtu 1500
+        inet6 fe80::24ee:bdff:fee8:8567  prefixlen 64  scopeid 0x20<link>
+        ether 26:ee:bd:e8:85:67  txqueuelen 1000  (Ethernet)
+qvb1ff5ea8e-7a: flags=4419<UP,BROADCAST,RUNNING,PROMISC,MULTICAST>  mtu 1500
+        inet6 fe80::8803:eeff:fea1:9a93  prefixlen 64  scopeid 0x20<link>
+        ether 8a:03:ee:a1:9a:93  txqueuelen 1000  (Ethernet)
+qvbfd32af90-1f: flags=4419<UP,BROADCAST,RUNNING,PROMISC,MULTICAST>  mtu 1500
+        inet6 fe80::643c:b6ff:fe54:4a72  prefixlen 64  scopeid 0x20<link>
+        ether 66:3c:b6:54:4a:72  txqueuelen 1000  (Ethernet)
+-------------------------------------------------------------------------------------
+qvo1057fbed-4d: flags=4419<UP,BROADCAST,RUNNING,PROMISC,MULTICAST>  mtu 1500
+        inet6 fe80::f4d2:4eff:feda:978  prefixlen 64  scopeid 0x20<link>
+        ether f6:d2:4e:da:09:78  txqueuelen 1000  (Ethernet)
+qvo1ff5ea8e-7a: flags=4419<UP,BROADCAST,RUNNING,PROMISC,MULTICAST>  mtu 1500
+        inet6 fe80::4c80:6dff:fe9f:d87f  prefixlen 64  scopeid 0x20<link>
+qvofd32af90-1f: flags=4419<UP,BROADCAST,RUNNING,PROMISC,MULTICAST>  mtu 1500
+        inet6 fe80::780b:16ff:fee1:4e8f  prefixlen 64  scopeid 0x20<link>
+        ether 7a:0b:16:e1:4e:8f  txqueuelen 1000  (Ethernet)
+------------------------------------------------------------------------------------
+tap1057fbed-4d: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet6 fe80::fc16:3eff:fe51:c205  prefixlen 64  scopeid 0x20<link>
+        ether fe:16:3e:51:c2:05  txqueuelen 1000  (Ethernet)
+tap1ff5ea8e-7a: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet6 fe80::fc16:3eff:fe3a:3230  prefixlen 64  scopeid 0x20<link>
+        ether fe:16:3e:3a:32:30  txqueuelen 1000  (Ethernet)
+tapfd32af90-1f: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet6 fe80::fc16:3eff:fe1a:1878  prefixlen 64  scopeid 0x20<link>
+        ether fe:16:3e:1a:18:78  txqueuelen 1000  (Ethernet)
+---------------------------------------------------------------------------------------
+i
+
+-================
+TAP device is in the vm's network adapter
+qbr is a network bridge for neutron management for vnet
+[root@controller yum.repos.d(keystone_admin)]# neutron net-list
++--------------------------------------+--------------+------------------------------------------------------+
+| id                                   | name         | subnets                                              |
++--------------------------------------+--------------+------------------------------------------------------+
+| d1862abd-28bd-423a-9976-506166b932d8 | publicExtnet |                                                      |
+| 39a7b686-a1cc-4187-8cde-4d458e84b444 | int0         | fed49f23-d98f-4e4c-9d4b-fd6e63a8e3c3 169.254.64.0/23 |
+| df2a0223-42d8-410c-bc35-0558f94822c6 | om0          | c3cd5fc3-70be-4b33-87fb-aba4e3829a3b 10.56.247.0/24  |
+| 13f3e90f-9bf8-43be-8c61-bda5f1777ef8 | s1           | c0a175a4-7b69-489c-b1fa-c1ad5222301b 10.56.248.0/24  |
+----------------------------------------------------------------------------------------------------------------
+
+[root@compute1 ~]# ovs-vsctl show
+fc228ea0-b941-4b03-b564-3eb0ba3a41b4
+    Bridge br-int
+        fail_mode: secure
+        Port "qvo1057fbed-4d"
+            tag: 48
+            Interface "qvo1057fbed-4d"
+        Port "qvo1ff5ea8e-7a"
+            tag: 47
+            Interface "qvo1ff5ea8e-7a"
+        Port "int-br-eno1"
+            Interface "int-br-eno1"
+                type: patch
+                options: {peer="phy-br-eno1"}
+        Port "qvofd32af90-1f"
+            tag: 47
+            Interface "qvofd32af90-1f"
+        Port br-int
+            Interface br-int
+                type: internal
+    Bridge "br-eno1"
+        fail_mode: secure
+        Port "eno1"
+            Interface "eno1"
+        Port "phy-br-eno1"
+            Interface "phy-br-eno1"
+                type: patch
+                options: {peer="int-br-eno1"}
+        Port "br-eno1"
+            Interface "br-eno1"
+                type: internal
+    ovs_version: "2.6.1"
+====================================================
+
+these interfaces are dynamically created (qbr,qvb,qvo,tap) when a vm has a eth interface, these 4(qbr,qvb,qvo,tap) will be created.
+[root@controller yum.repos.d(keystone_admin)]# nova list --host compute1
++--------------------------------------+-----------------+--------+------------+-------------+-------------------------------------+
+| ID                                   | Name            | Status | Task State | Power State | Networks                            |
++--------------------------------------+-----------------+--------+------------+-------------+-------------------------------------+
+| a9d94429-f7cd-491a-91fb-9141c0b94350 | cmma2-mme-dbs1  | ACTIVE | -          | Running     | int0=169.254.64.11                  |
+| c0b7107b-00a3-4f0d-80c4-9f844ae66767 | cmma2-mme-necc1 | ACTIVE | -          | Running     | om0=10.56.247.4; int0=169.254.64.31 |
++--------------------------------------+-----------------+--------+------------+-------------+-------------------------------------+
+
+two vms run in host compute1, cmma2-mme-dbs1  has int0, cmma2-mme-necc1 has int0 and om0, thus we have 3 different (qbr,qvb,qvo,tap).
+there are three qvo in ovs switch cofniguratio, but two of them has the smae tag 47, that's for int0 in these two instances.
+when ping 169.254.64.31 in necc1, then the packet will only in qvo and it will not downside to br--int, since they are 
+the network layer managed by ovs switch, it will be switch between tow qvos in the same hosts.
+when you ping  instance in another host, the package will go downside to br-eth0, then out through host eth0 with vlan tag
+
+tcpdump -i qbr1ff5ea8e-7a  host 169.254.64.11 and icmp -en
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on qbr1ff5ea8e-7a, link-type EN10MB (Ethernet), capture size 262144 bytes
+16:55:29.761232 fa:16:3e:3a:32:30 > fa:16:3e:1a:18:78, ethertype IPv4 (0x0800), length 98: 169.254.64.31 > 169.254.64.11: ICMP echo request, id 26664, seq 1, length 64
+16:55:29.761385 fa:16:3e:1a:18:78 > fa:16:3e:3a:32:30, ethertype IPv4 (0x0800), length 98: 169.254.64.11 > 169.254.64.31: ICMP echo reply, id 26664, seq 1, length 64
+########without vlan tag adding since qvo... layer will be swithed to anohter qvo..
+
+
+### when  ping a vm in another host, no vlan id in qvb, but eno1 or br-eno1 will have this one
+
+[root@compute1 ~(keystone_admin)]# tcpdump -i qvb1ff5ea8e-7a  host 169.254.64.70 and icmp -en
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on qvb1ff5ea8e-7a, link-type EN10MB (Ethernet), capture size 262144 bytes
+16:59:06.430076 fa:16:3e:3a:32:30 > fa:16:3e:d4:20:e4, ethertype IPv4 (0x0800), length 98: 169.254.64.31 > 169.254.64.70: ICMP echo request, id 30369, seq 1, length 64
+16:59:06.430621 fa:16:3e:d4:20:e4 > fa:16:3e:3a:32:30, ethertype IPv4 (0x0800), length 98: 169.254.64.70 > 169.254.64.31: ICMP echo reply, id 30369, seq 1, length 64
+#####with vlan tag since this  addr is in another host
+
+[root@compute1 ~]# tcpdump -i eno1  host 169.254.64.70 and icmp -e -n     ##### the option -e is important
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on eno1, link-type EN10MB (Ethernet), capture size 262144 bytes
+09:48:50.909367 fa:16:3e:3a:32:30 > fa:16:3e:d4:20:e4, ethertype 802.1Q (0x8100), length 102: vlan 1701, p 0, ethertype IPv4, 169.254.64.31 > 169.254.64.70: ICMP echo request, id 31475, seq 4, length 64
+09:48:50.910167 fa:16:3e:d4:20:e4 > fa:16:3e:3a:32:30, ethertype 802.1Q (0x8100), length 102: vlan 1701, p 0, ethertype IPv4, 169.254.64.70 > 169.254.64.31: ICMP echo reply, id 31475, seq 4, length 64
+
+----------------
+     vm
+     eth0
+   ------------
+     |
+   tap
+   qbr   (these qbr and qvb stack is for the real network adpapter interface in the vm)
+   qvb
+    |
+-------------------
+   qvo                    
+    |
+    | add vlan tag
+    |      
+   br-int (internal)
+    |
+   int-br-eth (patch peer)         
+-----------------------
+    |
+  phy-br-eth0 (patch peer)
+   br-eth0 (internal)
+    eth0   (the real physical network adapter)    
+-------------------------
+      |
+  with vlantag 802.1q ethernet frame
+
+
+------
+* cinder
+[root@controller ~(keystone_admin)]# openstack host show compute2
++----------+----------------------------------+-----+-----------+---------+
+| Host     | Project                          | CPU | Memory MB | Disk GB |
++----------+----------------------------------+-----+-----------+---------+
+| compute2 | (total)                          |  16 |     57332 |     199 |
+| compute2 | (used_now)                       |  20 |     48640 |      50 |
+| compute2 | (used_max)                       |  20 |     48128 |      50 |
+| compute2 | c51843f33c184be9bfc55f8e35b59e38 |  20 |     48128 |      50 |
++----------+----------------------------------+-----+-----------+---------+
+[root@controller ~(keystone_admin)]# openstack host show compute3
+|----------+----------------------------------+-----+-----------+---------|
+| Host     | Project                          | CPU | Memory MB | Disk GB |
+|----------+----------------------------------+-----+-----------+---------|
+| compute3 | (total)                          | 16  | 26612     | 199     |
+| compute3 | (used_now)                       | 12  | 26112     | 20      |
+| compute3 | (used_max)                       | 12  | 25600     | 20      |
+| compute3 | c51843f33c184be9bfc55f8e35b59e38 | 12  | 25600     | 20      |
+|----------+----------------------------------+-----+-----------+---------|
+
+
+cinder list
+|--------------------------------------+--------+------------------+---------------------------+------+-------------+----------+-------------+--------------------------------------|
+| ID                                   | Status | Migration Status | Name                      | Size | Volume Type | Bootable | Multiattach | Attached to                          |
+|--------------------------------------+--------+------------------+---------------------------+------+-------------+----------+-------------+--------------------------------------|
+| 058e13e2-1ba5-4fb4-8586-0595ffe53e2e | in-use | -                | cmma2-mme-necc1-logs-00   | 5    | -           | false    | False       | c0b7107b-00a3-4f0d-80c4-9f844ae66767 |
+| 12e29c7f-9fa5-4123-b2bd-2c8cb0a099ee | in-use | -                | cmma2-mme-necc1-pcmd-00   | 5    | -           | false    | False       | c0b7107b-00a3-4f0d-80c4-9f844ae66767 |
+| 3ad875a5-e967-4d3c-b8d7-bd21c48100c0 | in-use | -                | cmma2-mme-necc1-pmx-00    | 5    | -           | false    | False       | c0b7107b-00a3-4f0d-80c4-9f844ae66767 |
+| 3f294d6c-07ca-4040-8e0e-7fff063d84eb | in-use | -                | cmma2-mme-necc1-kafka-00  | 20   | -           | false    | False       | c0b7107b-00a3-4f0d-80c4-9f844ae66767 |
+| 46758a0e-ff0f-40f3-a5a1-d3b2393be349 | in-use | -                | cmma2-mme-necc0-influx-00 | 5    | -           | false    | False       | be571124-19d2-4f79-8a18-f4b323905622 |
+| 4e89b4ce-0d69-4de5-b332-b19d074ce6f6 | in-use | -                | cmma2-mme-necc0-kafka-00  | 20   | -           | false    | False       | be571124-19d2-4f79-8a18-f4b323905622 |
+| 5859c373-9450-445e-800a-d0c54dd61223 | in-use | -                | cmma2-mme-necc0-logs-00   | 5    | -           | false    | False       | be571124-19d2-4f79-8a18-f4b323905622 |
+| 7db9a7f3-df18-450e-89e6-efb7fe477c00 | in-use | -                | cmma2-mme-necc0-pmx-00    | 5    | -           | false    | False       | be571124-19d2-4f79-8a18-f4b323905622 |
+| 8521b938-7b2b-42e0-8ca6-2cc4f884fcda | in-use | -                | cmma2-mme-necc1-influx-00 | 5    | -           | false    | False       | c0b7107b-00a3-4f0d-80c4-9f844ae66767 |
+| 9775a012-e255-4baf-8c84-d6bda52e5a6e | in-use | -                | cmm2-backup               | 20   | -           | false    | False       | be571124-19d2-4f79-8a18-f4b323905622 |
+| a96fbe8b-d01f-4b20-8284-2457db800b9c | in-use | -                | cmma2-mme-necc1-brick-00  | 5    | -           | false    | False       | c0b7107b-00a3-4f0d-80c4-9f844ae66767 |
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+
+[root@controller by-path(keystone_admin)]# openstack volume type show iscsi
++---------------------------------+--------------------------------------+
+| Field                           | Value                                |
++---------------------------------+--------------------------------------+
+| description                     | None                                 |
+| id                              | 7398f2ca-284f-40c3-8e08-7d1c26c8b16c |
+| is_public                       | True                                 |
+| name                            | iscsi                                |
+| os-volume-type-access:is_public | True                                 |
+| properties                      | volume_backend_name='lvm'            |
++---------------------------------+--------------------------------------+
+
+[root@controller by-path(keystone_admin)]# openstack project list
++----------------------------------+----------+
+| ID                               | Name     |
++----------------------------------+----------+
+| c51843f33c184be9bfc55f8e35b59e38 | admin    |
+-----------------------------------------------
+[root@controller by-path(keystone_admin)]# cinder quota-show admin
++----------------------+-------+
+|       Property       | Value |
++----------------------+-------+
+|   backup_gigabytes   |  1000 |
+|       backups        |   10  |
+|      gigabytes       |  1000 |
+|   gigabytes_iscsi    |   -1  |
+| per_volume_gigabytes |   -1  |
+|      snapshots       |   10  |
+|   snapshots_iscsi    |   -1  |
+|       volumes        |   10  |
+|    volumes_iscsi     |   -1  |
++----------------------+-------+
+
+[root@controller cinder(keystone_admin)]# tail /var/lib/cinder/cinder-volumes
+volume-dfe36401-93e5-49a7-8e96-530c0345346e {
+id = "rbcYjR-QbLd-uzJC-Rje1-E4po-2oeI-LWXGEq"
+status = ["READ", "WRITE", "VISIBLE"]
+flags = []
+creation_time = 1557323177
+creation_host = "controller"
+segment_count = 1
+
+segment1 {
+start_extent = 0
+extent_count = 1280
+
+type = "striped"
+stripe_count = 1
+
+stripes = [
+"pv0", 20480
+]
+}
+}
+}
+
+}
+# Generated by LVM2 version 2.02.177(2)-RHEL7 (2018-01-22): Wed May  8 21:49:28 2019
+
+contents = "Text Format Volume Group"
+version = 1
+
+description = ""
+
+creation_host = "controller"	# Linux controller 3.10.0-862.3.2.el7.x86_64 #1 SMP Mon May 21 23:36:36 UTC 2018 x86_64
+creation_time = 1557323368	# Wed May  8 21:49:28 2019
+*** in the configuration storage host and volume size
+answer.cfg
+CONFIG_CINDER_VOLUMES_SIZE=200G
+CONFIG_STORAGE_HOST=10.56.233.137/g' 
+CONFIG_COMPUTE_HOSTS=10.56.233.136, 10.56.233.138, 10.56.233.139/g 
+
+
+
+* glance
+glance image-create --name CMM19.0.0-mme-cpps --disk-format qcow2 --container-format bare --file CMM19.0.0-mme-cpps.qcow2
+
+* flavor
+[root@controller networks(keystone_admin)]# openstack flavor list 
++--------------------------------------+----------------------------------+-------+------+-----------+-------+-----------+
+| ID                                   | Name                             |   RAM | Disk | Ephemeral | VCPUs | Is Public |
++--------------------------------------+----------------------------------+-------+------+-----------+-------+-----------+
+| 0ad2db17-72d4-4fe1-82d3-8e985fa7b384 | flavors-ipds_flavor-5mdzu3jrwort | 15360 |   10 |         0 |     8 | False     |
+| 1                                    | m1.tiny                          |   512 |    1 |         0 |     1 | True      |
+| 2                                    | m1.small                         |  2048 |   20 |         0 |     1 | True      |
+| 201715d5-5da7-4fd8-abd7-1026b53a488e | flavors-dbs_flavor-rk2gz66lkurx  | 12288 |   10 |         0 |     4 | False     |
+| 254d8449-f284-402b-94e3-a63777432db6 | flavors-cpps_flavor-rt4xs3qctimc | 10240 |   10 |         0 |     4 | False     |
+| 3                                    | m1.medium                        |  4096 |   40 |         0 |     2 | True      |
+| 4                                    | m1.large                         |  8192 |   80 |         0 |     4 | True      |
+| 5                                    | m1.xlarge                        | 16384 |  160 |         0 |     8 | True      |
+| ab0abaeb-c10d-49db-93f8-f66371c26f7e | flavors-necc_flavor-5patnkgfz3e5 | 10240 |   20 |         0 |     4 | False     |
++--------------------------------------+----------------------------------+-------+------+-----------+-------+-----------+
+
+[root@controller networks(keystone_admin)]# openstack flavor show flavors-ipds_flavor-5mdzu3jrwort
++----------------------------+-----------------------------------------------------+
+| Field                      | Value                                               |
++----------------------------+-----------------------------------------------------+
+| OS-FLV-DISABLED:disabled   | False                                               |
+| OS-FLV-EXT-DATA:ephemeral  | 0                                                   |
+| disk                       | 10                                                  |
+| id                         | 0ad2db17-72d4-4fe1-82d3-8e985fa7b384                |
+| name                       | flavors-ipds_flavor-5mdzu3jrwort                    |
+| os-flavor-access:is_public | False                                               |
+| properties                 | hw:cpu_policy='None', hw:watchdog_action='disabled' |
+| ram                        | 15360                                               |
+| rxtx_factor                | 1.0                                                 |
+| swap                       |                                                     |
+| vcpus                      | 8                                                   |
++----------------------------+-----------------------------------------------------+
+[root@controller networks(keystone_admin)]# 
+
+
+* heat
+heat will orchestra many hosts together
+** heat stack-create
+heat stack-create -f flavors/flavors.hot.yaml -e flavors/flavors.env.yaml flavors
+heat stack-create -f networks/networks.hot.yaml -e networks/networks.env.yaml networks
+
+
+** heat stack-list
+[root@controller images(keystone_admin)]# heat stack-list
+|--------------------------------------+------------+-----------------+---------------------+--------------|
+| id                                   | stack_name | stack_status    | creation_time       | updated_time |
+|--------------------------------------+------------+-----------------+---------------------+--------------|
+| 130d0d1d-6679-4709-ad6e-c72928e84226 | flavors    | CREATE_COMPLETE | 2019-05-05T07:22:38 | None         |
+| 93d166df-61d5-4285-81be-242ad0567b2f | networks   | CREATE_COMPLETE | 2019-05-09T02:52:06 | None         |
+| ed76483e-7faf-49e5-86d5-d8796aa62e7b | CMM        | CREATE_COMPLETE | 2019-05-09T02:59:54 | None         | ## this will be shown after stack_create CMM
+|--------------------------------------+------------+-----------------+---------------------+--------------|
+
+** heat event-list 
+heat stack-create CMM -f servers/servers.hot.yaml -e servers/servers.env.yaml -Pf net=../jsondata/net.json -Pf net_id=../jsondata/net_id.json -P public_net=no_value
+list the event of the server(vm)
+root@controller images(keystone_admin)]# heat event-list CMM
++-------------------+--------------------------------------+-------------------------------------+--------------------+---------------------+
+| resource_name     | id                                   | resource_status_reason              | resource_status    | event_time          |
++-------------------+--------------------------------------+-------------------------------------+--------------------+---------------------+
+| CMM               | f01d58b4-f606-4405-b226-b8be85b92161 | Stack CREATE started                | CREATE_IN_PROGRESS | 2019-05-09T02:59:55 |
+| servergroup_0     | a5a7e7ca-c449-4cab-b7e4-e2d12dcbe676 | state changed                       | CREATE_IN_PROGRESS | 2019-05-09T02:59:55 |
+| om_security_group | a77684e3-18d5-40a8-a863-163f5355b4b9 | state changed                       | CREATE_IN_PROGRESS | 2019-05-09T02:59:56 |
+| servergroup_3     | 79ab8138-1244-4efe-a0ef-c0d4033a834c | state changed                       | CREATE_IN_PROGRESS | 2019-05-09T02:59:58 |
+| servergroup_2     | ac9f729c-81ee-4e25-8159-f453b29924fa | state changed                       | CREATE_IN_PROGRESS | 2019-05-09T02:59:58 |
+| servergroup_1     | ab3bd6f0-541a-4369-96f8-4d81c66747ab | state changed                       | CREATE_IN_PROGRESS | 2019-05-09T02:59:59 |
+| om_security_group | 9b277adc-e04f-40e1-b3b1-afc0a0d32c76 | state changed                       | CREATE_COMPLETE    | 2019-05-09T02:59:59 |
+| servergroup_1     | ff2e5c43-e6ef-40d9-a2c6-b303257b03cd | state changed                       | CREATE_COMPLETE    | 2019-05-09T02:59:59 |
+| servergroup_0     | 46ae5ca4-475c-47b8-87c4-acf3fedb089a | state changed                       | CREATE_COMPLETE    | 2019-05-09T02:59:59 |
+| servergroup_2     | e4fbde01-fd9b-47da-95bd-e2360b5190b2 | state changed                       | CREATE_COMPLETE    | 2019-05-09T02:59:59 |
+| servergroup_3     | e77081c2-7aaf-470e-ac35-dbb234a78153 | state changed                       | CREATE_COMPLETE    | 2019-05-09T02:59:59 |
+| necc0             | 06bf4dc0-1c99-4639-96e2-9b7f8218970f | state changed                       | CREATE_IN_PROGRESS | 2019-05-09T02:59:59 |
+| necc1             | 6a0b9103-82a6-4548-98e7-650101025abb | state changed                       | CREATE_IN_PROGRESS | 2019-05-09T03:00:01 |
+| necc0             | 1a85297c-a280-4834-bda8-7174d103e830 | state changed                       | CREATE_COMPLETE    | 2019-05-09T03:01:27 |
+| volume_attachment | 7e8f99b8-2eab-4b93-bde2-1c186afe687c | state changed                       | CREATE_IN_PROGRESS | 2019-05-09T03:01:27 |
+| necc1             | 6c5062c1-92d2-42c1-84db-ebbd9f8528ec | state changed                       | CREATE_COMPLETE    | 2019-05-09T03:01:30 |
+| ipds0             | a7db2982-18e1-427d-a0b4-5dbb959bfd66 | state changed                       | CREATE_IN_PROGRESS | 2019-05-09T03:01:30 |
+| ipds1             | bcdc3985-f1a1-4365-bc03-262870aac28a | state changed                       | CREATE_IN_PROGRESS | 2019-05-09T03:01:31 |
+| volume_attachment | d691d4c3-28b9-4fe4-83b1-b99dafa9cdba | state changed                       | CREATE_COMPLETE    | 2019-05-09T03:01:35 |
+| ipds0             | 5a8be07b-9944-4ba6-8671-19b988f43782 | state changed                       | CREATE_COMPLETE    | 2019-05-09T03:01:48 |
+| ipds1             | f793cb99-f2a1-42c3-9430-5f44746e7c24 | state changed                       | CREATE_COMPLETE    | 2019-05-09T03:01:49 |
+| dbs1              | 71815b13-1872-4d6b-801e-a77984141e62 | state changed                       | CREATE_IN_PROGRESS | 2019-05-09T03:01:49 |
+| dbs0              | 37508df5-7a27-4df9-b01b-e8c11b184a31 | state changed                       | CREATE_IN_PROGRESS | 2019-05-09T03:01:50 |
+| dbs1              | b1c0164c-0bb2-4e07-ba5e-3ad5785b3fb1 | state changed                       | CREATE_COMPLETE    | 2019-05-09T03:02:03 |
+| dbs0              | 0465e52d-7b9d-46b1-83d3-a3539d07507f | state changed                       | CREATE_COMPLETE    | 2019-05-09T03:02:04 |
+| cpps1             | 196bafb6-4855-4230-aa06-fb966b4f54ef | state changed                       | CREATE_IN_PROGRESS | 2019-05-09T03:02:04 |
+| cpps0             | 68dd1f41-0143-4ec1-917f-d75a9c5c2ec8 | state changed                       | CREATE_IN_PROGRESS | 2019-05-09T03:02:05 |
+| cpps1             | 723f8416-bfdf-41cd-8295-06fbb352c347 | state changed                       | CREATE_COMPLETE    | 2019-05-09T03:02:19 |
+| cpps0             | 2480b6fa-7581-4592-83be-2a627ffebe37 | state changed                       | CREATE_COMPLETE    | 2019-05-09T03:02:19 |
+| CMM               | 38c87745-5d56-4ef4-a9d1-09c8cfb223e5 | Stack CREATE completed successfully | CREATE_COMPLETE    | 2019-05-09T03:02:19 |
++-------------------+--------------------------------------+-------------------------------------+--------------------+---------------------+
+[root@controller images(keystone_admin)]#
+
+
+* security group
+** neutron security group
+neutron security-group-list
+
+** list security group
+[root@controller cmma2-mme(keystone_admin)]# openstack security group list
++--------------------------------------+-------------+------------------------+
+| ID                                   | Name        | Description            |
++--------------------------------------+-------------+------------------------+
+| 10c9a15a-3ae7-44ce-a80f-8cbd17dd2635 | default     | Default security group |
+| 46e96f6e-0247-409e-90c6-b941fd4f1f71 | default_cmm |                        |
++--------------------------------------+-------------+------------------------+
+
+** list security group rule 
+[root@controller cmma2-mme(keystone_admin)]# openstack security group rule list default
++--------------------------------------+-------------+-----------+------------+
+| ID                                   | IP Protocol | IP Range  | Port Range |
++--------------------------------------+-------------+-----------+------------+
+| 150cf0e0-e877-4c8c-93c1-7d39551888be |             |           |            |
+| 1ece1e2f-eef9-4024-8dd5-7dc0423d25b4 | tcp         | 0.0.0.0/0 | 1:65535    |
+| 8871b4f4-9562-42ce-ba7b-f823bba9da29 | icmp        | 0.0.0.0/0 |            |
+| 9b12238e-cd68-4bf3-81e6-a674116d2277 |             |           |            |
+| ec156d4c-3b22-4ca2-9ee2-449b72d9dc3d | udp         | 0.0.0.0/0 | 1:65535    |
++--------------------------------------+-------------+-----------+------------+
+[root@controller cmma2-mme(keystone_admin)]# openstack security group rule list default_cmm
++--------------------------------------+-------------+-----------+-------------+
+| ID                                   | IP Protocol | IP Range  | Port Range  |
++--------------------------------------+-------------+-----------+-------------+
+| 14dd59d3-5061-4ee6-bab8-25656d1caeb9 | tcp         | 0.0.0.0/0 | 123:123     |
+| 4fe5c9d3-e1b9-41a7-b6ae-aa4418e7dd3d | tcp         | 0.0.0.0/0 | 830:830     |
+| 762b2e08-4aeb-4d3d-be0e-5b698c973a8f | tcp         | 0.0.0.0/0 | 22:22       |
+| 8f3ab187-c388-47ba-bea6-00421db2e5b9 | udp         | 0.0.0.0/0 | 60000:60000 |
+| 943703f0-ec72-4927-98a2-6fcb565e5550 | icmp        | 0.0.0.0/0 |             |
+| d790d719-d397-4330-adab-76c449c82031 | tcp         | 0.0.0.0/0 | 1:65535     |
+| eb84c9a4-9aae-4132-a26f-ddde8696f871 | tcp         | 0.0.0.0/0 | 3784:3784   |
+| ebcd11a2-96f0-49d7-ab43-90026c519876 | udp         | 0.0.0.0/0 | 1:65535     |
+| ed51582e-3cac-4029-b39b-d72593bf6b40 | udp         | 0.0.0.0/0 | 161:161     |
++--------------------------------------+-------------+-----------+-------------+
+
+Descriptions of security_group_rule fields
+
+** create rule of security group
+openstack security group rule create --proto icmp 4443b0c5-d742-43c4-827d-99d727142031
+
+Name Mandatory Type Description 
+security_group_id Yes String Specifies the security group ID.
+direction Yes String Specifies the direction of access control.  The value can be egress or ingress.
+ethertype No String Specifies the protocol used by IP addresses.  The value can be IPv4 or IPv6.  If you do not set this parameter, IPv4 is used by default.
+protocol No String Specifies the protocol type.  If the parameter is left empty, the security group supports all types of protocols.  The value can be icmp, tcp, or udp.
+port_range_min No Integer Specifies the start port.  The value ranges from -1 to 65,535.  The value must be less than or equal to the value of port_range_max. An empty value indicates all ports. If protocol is icmp, the value range is determined by the ICMP-port range relationship table.
+port_range_max No Integer Specifies the end port.  The value ranges from -1 to 65,535.  The value must be greater than or equal to the value of port_range_min. An empty value indicates all ports. If protocol is icmp, the value range is determined by the ICMP-port range relationship table.
+
+remote_ip_prefix No String Specifies the remote IP address. If the access control direction is set to egress, the parameter specifies the source IP address. If the access control direction is set to ingress, the parameter specifies the destination IP address.  
+                      ###The parameter is exclusive with parameter remote_group_id.  The value can be in the CIDR format or IP addresses.
+
+remote_group_id No String Specifies the ID of the peer security group.  The value is exclusive with parameter remote_ip_prefix.
+
+
+(neutron) port-list
+    |--------------------------------------+----------------------+-------------------+---------------------------------------------------------------------------------------|
+    | id                                   | name                 | mac_address       | fixed_ips                                                                             |
+    |--------------------------------------+----------------------+-------------------+---------------------------------------------------------------------------------------|
+    | 1057fbed-4ddf-49eb-8291-2ada3ebcf0ce | cmma2-mme-necc1-om0  | fa:16:3e:51:c2:05 | {"subnet_id": "c3cd5fc3-70be-4b33-87fb-aba4e3829a3b", "ip_address": "10.56.247.4"}    |
+    | 1ff5ea8e-7a35-4484-b6ca-9cb545dc465d | cmma2-mme-necc1-int0 | fa:16:3e:3a:32:30 | {"subnet_id": "fed49f23-d98f-4e4c-9d4b-fd6e63a8e3c3", "ip_address": "169.254.64.31"}  |
+    | 2862c1ef-a7d2-49b4-b929-2473b39cee41 | cmma2-mme-ipds0-int0 | fa:16:3e:d4:20:e4 | {"subnet_id": "fed49f23-d98f-4e4c-9d4b-fd6e63a8e3c3", "ip_address": "169.254.64.70"}  |
+    | 5282c492-500a-4bee-8806-ca4790e7bda5 | cmma2-mme-cpps1-int0 | fa:16:3e:95:62:d1 | {"subnet_id": "fed49f23-d98f-4e4c-9d4b-fd6e63a8e3c3", "ip_address": "169.254.64.141"} |
+    | 5722c914-3ef3-4351-b4b7-52cc62367c1f | cmma2-mme-ipds1-s1   | fa:16:3e:86:82:8f | {"subnet_id": "c0a175a4-7b69-489c-b1fa-c1ad5222301b", "ip_address": "10.56.248.3"}    |
+    | 5c878341-600f-412e-a79d-519fe0616a06 | cmma2-mme-necc0-int0 | fa:16:3e:d6:5d:42 | {"subnet_id": "fed49f23-d98f-4e4c-9d4b-fd6e63a8e3c3", "ip_address": "169.254.64.30"}  |
+    | 67bbd432-9cb5-4699-a04d-780446ffea08 | cmma2-mme-dbs0-int0  | fa:16:3e:b3:cf:7b | {"subnet_id": "fed49f23-d98f-4e4c-9d4b-fd6e63a8e3c3", "ip_address": "169.254.64.10"}  |
+    | 6f04b22b-79bc-43d2-be1f-e89f3f263910 | cmma2-mme-cpps0-int0 | fa:16:3e:61:5a:1e | {"subnet_id": "fed49f23-d98f-4e4c-9d4b-fd6e63a8e3c3", "ip_address": "169.254.64.140"} |
+    | d179ec0e-543c-4dcd-bc0e-a50fdcb4193d | cmma2-mme-necc0-om0  | fa:16:3e:e9:3f:fb | {"subnet_id": "c3cd5fc3-70be-4b33-87fb-aba4e3829a3b", "ip_address": "10.56.247.3"}    |
+    | dc5484ff-f919-44b3-aaf1-ed5ac10e9f99 | cmma2-mme-ipds1-int0 | fa:16:3e:bb:2a:fe | {"subnet_id": "fed49f23-d98f-4e4c-9d4b-fd6e63a8e3c3", "ip_address": "169.254.64.71"}  |
+    | e76394b5-f6ff-416a-abb0-fc9c770715c9 | cmma2-mme-ipds0-s1   | fa:16:3e:03:f7:61 | {"subnet_id": "c0a175a4-7b69-489c-b1fa-c1ad5222301b", "ip_address": "10.56.248.2"}    |
+    | fd32af90-1f40-46ef-bc39-405faad548ce | cmma2-mme-dbs1-int0  | fa:16:3e:1a:18:78 | {"subnet_id": "fed49f23-d98f-4e4c-9d4b-fd6e63a8e3c3", "ip_address": "169.254.64.11"}  |
+    |--------------------------------------+----------------------+-------------------+---------------------------------------------------------------------------------------|
+
+(neutron) port-show cmma2-mme-necc0-om0
++-----------------------+-----------------------------------------------------------------------------------------------------------+
+| Field                 | Value                                                                                                     |
++-----------------------+-----------------------------------------------------------------------------------------------------------+
+| admin_state_up        | True                                                                                                      |
+| allowed_address_pairs | {"ip_address": "0.0.0.0/0", "mac_address": "fa:16:3e:e9:3f:fb"}                                           |
+| binding:host_id       | compute2                                                                                                  |
+| binding:profile       | {}                                                                                                        |
+| binding:vif_details   | {"port_filter": true, "ovs_hybrid_plug": true}                                                            |
+| binding:vif_type      | ovs                                                                                                       |
+| binding:vnic_type     | normal                                                                                                    |
+| device_id             | be571124-19d2-4f79-8a18-f4b323905622                                                                      |
+| device_owner          | compute:CMMZone                                                                                           |
+| dns_assignment        | {"hostname": "host-10-56-247-3", "ip_address": "10.56.247.3", "fqdn": "host-10-56-247-3.openstacklocal."} |
+| dns_name              |                                                                                                           |
+| extra_dhcp_opts       |                                                                                                           |
+| fixed_ips             | {"subnet_id": "c3cd5fc3-70be-4b33-87fb-aba4e3829a3b", "ip_address": "10.56.247.3"}                        |
+| id                    | d179ec0e-543c-4dcd-bc0e-a50fdcb4193d                                                                      |
+| mac_address           | fa:16:3e:e9:3f:fb                                                                                         |
+| name                  | cmma2-mme-necc0-om0                                                                                       |
+| network_id            | df2a0223-42d8-410c-bc35-0558f94822c6                                                                      |
+| security_groups       | 46e96f6e-0247-409e-90c6-b941fd4f1f71                                                                      |
+| status                | ACTIVE                                                                                                    |
+| tenant_id             | c51843f33c184be9bfc55f8e35b59e38                                                                          |
++-----------------------+-----------------------------------------------------------------------------------------------------------+
+(neutron) port-show cmma2-mme-necc0-int0
++-----------------------+-----------------------------------------------------------------------------------------------------------------+
+| Field                 | Value                                                                                                           |
++-----------------------+-----------------------------------------------------------------------------------------------------------------+
+| admin_state_up        | True                                                                                                            |
+| allowed_address_pairs | {"ip_address": "0.0.0.0/0", "mac_address": "fa:16:3e:d6:5d:42"}                                                 |
+| binding:host_id       | compute2                                                                                                        |
+| binding:profile       | {}                                                                                                              |
+| binding:vif_details   | {"port_filter": true, "ovs_hybrid_plug": true}                                                                  |
+| binding:vif_type      | ovs                                                                                                             |
+| binding:vnic_type     | normal                                                                                                          |
+| device_id             | be571124-19d2-4f79-8a18-f4b323905622                                                                            |
+| device_owner          | compute:CMMZone                                                                                                 |
+| dns_assignment        | {"hostname": "host-169-254-64-30", "ip_address": "169.254.64.30", "fqdn": "host-169-254-64-30.openstacklocal."} |
+| dns_name              |                                                                                                                 |
+| extra_dhcp_opts       |                                                                                                                 |
+| fixed_ips             | {"subnet_id": "fed49f23-d98f-4e4c-9d4b-fd6e63a8e3c3", "ip_address": "169.254.64.30"}                            |
+| id                    | 5c878341-600f-412e-a79d-519fe0616a06                                                                            |
+| mac_address           | fa:16:3e:d6:5d:42                                                                                               |
+| name                  | cmma2-mme-necc0-int0                                                                                            |
+| network_id            | 39a7b686-a1cc-4187-8cde-4d458e84b444                                                                            |
+| security_groups       | 10c9a15a-3ae7-44ce-a80f-8cbd17dd2635                                                                            |
+| status                | ACTIVE                                                                                                          |
+| tenant_id             | c51843f33c184be9bfc55f8e35b59e38                                                                                |
++-----------------------+-----------------------------------------------------------------------------------------------------------------+
+(neutron) security-group-list
++--------------------------------------+-------------+----------------------------------------------------------------------+
+| id                                   | name        | security_group_rules                                                 |
++--------------------------------------+-------------+----------------------------------------------------------------------+
+| 10c9a15a-3ae7-44ce-a80f-8cbd17dd2635 | default     | egress, IPv4                                                         |
+|                                      |             | egress, IPv6                                                         |
+|                                      |             | ingress, IPv4, 1-65535/tcp, remote_ip_prefix: 0.0.0.0/0              |
+|                                      |             | ingress, IPv4, 1-65535/udp, remote_ip_prefix: 0.0.0.0/0              |
+|                                      |             | ingress, IPv4, icmp, remote_ip_prefix: 0.0.0.0/0                     |
+|                                      |             | ingress, IPv4, remote_group_id: 10c9a15a-3ae7-44ce-a80f-8cbd17dd2635 |
+|                                      |             | ingress, IPv6, remote_group_id: 10c9a15a-3ae7-44ce-a80f-8cbd17dd2635 |
+| 46e96f6e-0247-409e-90c6-b941fd4f1f71 | default_cmm | egress, IPv4                                                         |
+|                                      |             | egress, IPv4, 1-65535/udp, remote_ip_prefix: 0.0.0.0/0               |
+|                                      |             | egress, IPv6                                                         |
+|                                      |             | ingress, IPv4, 1-65535/tcp, remote_ip_prefix: 0.0.0.0/0              |
+|                                      |             | ingress, IPv4, 1-65535/udp, remote_ip_prefix: 0.0.0.0/0              |
+|                                      |             | ingress, IPv4, 123/tcp, remote_ip_prefix: 0.0.0.0/0                  |
+|                                      |             | ingress, IPv4, 161/udp, remote_ip_prefix: 0.0.0.0/0                  |
+|                                      |             | ingress, IPv4, 22/tcp, remote_ip_prefix: 0.0.0.0/0                   |
+|                                      |             | ingress, IPv4, 3784/tcp, remote_ip_prefix: 0.0.0.0/0                 |
+|                                      |             | ingress, IPv4, 443/tcp, remote_ip_prefix: 0.0.0.0/0                  |
+|                                      |             | ingress, IPv4, 60000/udp, remote_ip_prefix: 0.0.0.0/0                |
+|                                      |             | ingress, IPv4, 830/tcp, remote_ip_prefix: 0.0.0.0/0                  |
+|                                      |             | ingress, IPv4, icmp, remote_ip_prefix: 0.0.0.0/0                     |
+| 919d8e36-a5a4-450a-af7c-bf4db5736a73 | default     | egress, IPv4                                                         |
+|                                      |             | egress, IPv6                                                         |
+|                                      |             | ingress, IPv4, remote_group_id: 919d8e36-a5a4-450a-af7c-bf4db5736a73 |
+|                                      |             | ingress, IPv6, remote_group_id: 919d8e36-a5a4-450a-af7c-bf4db5736a73 |
+| e8be4cd3-5e45-448b-9fbd-d0689b79ef82 | default     | egress, IPv4                                                         |
+|                                      |             | egress, IPv6                                                         |
+|                                      |             | ingress, IPv4, remote_group_id: e8be4cd3-5e45-448b-9fbd-d0689b79ef82 |
+|                                      |             | ingress, IPv6, remote_group_id: e8be4cd3-5e45-448b-9fbd-d0689b79ef82 |
++--------------------------------------+-------------+----------------------------------------------------------------------+
+
+
+[root@compute3 ~]# ipset list
+Name: NIPv410c9a15a-3ae7-44ce-a80f-
+Type: hash:net
+Revision: 3
+Header: family inet hashsize 1024 maxelem 65536
+Size in memory: 17168
+References: 3
+Members:
+128.0.0.0/1
+0.0.0.0/1   ##### how strage this one is, this is a network begin with [first number<128].*.*.*
+169.254.64.70
+10.56.248.2
+10.56.248.3
+169.254.64.10
+169.254.64.141
+169.254.64.140
+169.254.64.71
+169.254.64.11
+169.254.64.30
+169.254.64.31
+=================
+cat /tmp/cd in compute3
+qbr get the frame which has been stripped vlan tag from real interface of the host:
+
+May 15 16:10:54 compute3 kernel: TRACE: raw:PREROUTING:rule:2 IN=qbr36ed9370-ed OUT= PHYSIN=qvb36ed9370-ed MAC=fa:16:3e:96:c6:8f:00:1a:2f:a2:b1:7f:08:00 SRC=10.56.233.136 DST=10.56.248.3 LEN=84 TOS=0x00 PREC=0x00 TTL=63 ID=34710 DF PROTO=ICMP TYPE=8 CODE=0 ID=17225 SEQ=1
+...
+
+May 15 16:10:54 compute3 kernel: TRACE: nat:PREROUTING:policy:2 IN=qbr36ed9370-ed OUT= PHYSIN=qvb36ed9370-ed MAC=fa:16:3e:96:c6:8f:00:1a:2f:a2:b1:7f:08:00 SRC=10.56.233.136 DST=10.56.248.3 LEN=84 TOS=0x00 PREC=0x00 TTL=63 ID=34710 DF PROTO=ICMP TYPE=8 CODE=0 ID=17225 SEQ=1
+---------------------------------
+###after all RPREROUTING rule tranversing, the dst is not in local interface ip, then forward it through route tables (route -n) 
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+0.0.0.0         10.56.233.130   0.0.0.0         UG    0      0        0 br-eno1
+-------------------------------
+so out is qbr36ed9370-ed
+May 15 16:10:54 compute3 kernel: TRACE: mangle:FORWARD:rule:1 IN=qbr36ed9370-ed OUT=qbr36ed9370-ed PHYSIN=qvb36ed9370-ed PHYSOUT=tap36ed9370-ed MAC=fa:16:3e:96:c6:8f:00:1a:2f:a2:b1:7f:08:00 SRC=10.56.233.136 DST=10.56.248.3 LEN=84 TOS=0x00 PREC=0x00 TTL=63 ID=34710 DF PROTO=ICMP TYPE=8 CODE=0 ID=17225 SEQ=1
+
+
+
+May 15 16:10:54 compute3 kernel: TRACE: filter:neutron-openvswi-FORWARD:rule:1 IN=qbr36ed9370-ed OUT=qbr36ed9370-ed PHYSIN=qvb36ed9370-ed PHYSOUT=tap36ed9370-ed MAC=fa:16:3e:96:c6:8f:00:1a:2f:a2:b1:7f:08:00 SRC=10.56.233.136 DST=10.56.248.3 LEN=84 TOS=0x00 PREC=0x00 TTL=63 ID=34710 DF PROTO=ICMP TYPE=8 CODE=0 ID=17225 SEQ=1
+May 15 16:10:54 compute3 kernel: TRACE: filter:neutron-openvswi-sg-chain:rule:1 IN=qbr36ed9370-ed OUT=qbr36ed9370-ed PHYSIN=qvb36ed9370-ed PHYSOUT=tap36ed9370-ed MAC=fa:16:3e:96:c6:8f:00:1a:2f:a2:b1:7f:08:00 SRC=10.56.233.136 DST=10.56.248.3 LEN=84 TOS=0x00 PREC=0x00 TTL=63 ID=34710 DF PROTO=ICMP TYPE=8 CODE=0 ID=17225 SEQ=1
+May 15 16:10:54 compute3 kernel: TRACE: filter:neutron-openvswi-sg-chain:rule:1 IN=qbr36ed9370-ed OUT=qbr36ed9370-ed PHYSIN=qvb36ed9370-ed PHYSOUT=tap36ed9370-ed MAC=fa:16:3e:96:c6:8f:00:1a:2f:a2:b1:7f:08:00 SRC=10.56.233.136 DST=10.56.248.3 LEN=84 TOS=0x00 PREC=0x00 TTL=63 ID=34710 DF PROTO=ICMP TYPE=8 CODE=0 ID=17225 SEQ=1
+May 15 16:10:54 compute3 kernel: TRACE: filter:neutron-openvswi-i36ed9370-e:rule:2 IN=qbr36ed9370-ed OUT=qbr36ed9370-ed PHYSIN=qvb36ed9370-ed PHYSOUT=tap36ed9370-ed MAC=fa:16:3e:96:c6:8f:00:1a:2f:a2:b1:7f:08:00 SRC=10.56.233.136 DST=10.56.248.3 LEN=84 TOS=0x00 PREC=0x00 TTL=63 ID=34710 DF PROTO=ICMP TYPE=8 CODE=0 ID=17225 SEQ=1
+May 15 16:10:54 compute3 kernel: TRACE: filter:neutron-openvswi-i36ed9370-e:rule:2 IN=qbr36ed9370-ed OUT=qbr36ed9370-ed PHYSIN=qvb36ed9370-ed PHYSOUT=tap36ed9370-ed MAC=fa:16:3e:96:c6:8f:00:1a:2f:a2:b1:7f:08:00 SRC=10.56.233.136 DST=10.56.248.3 LEN=84 TOS=0x00 PREC=0x00 TTL=63 ID=34710 DF PROTO=ICMP TYPE=8 CODE=0 ID=17225 SEQ=1
+May 15 16:10:54 compute3 kernel: TRACE: filter:neutron-openvswi-sg-chain:return:7 IN=qbr36ed9370-ed OUT=qbr36ed9370-ed PHYSIN=qvb36ed9370-ed PHYSOUT=tap36ed9370-ed MAC=fa:16:3e:96:c6:8f:00:1a:2f:a2:b1:7f:08:00 SRC=10.56.233.136 DST=10.56.248.3 LEN=84 TOS=0x00 PREC=0x00 TTL=63 ID=34710 DF PROTO=ICMP TYPE=8 CODE=0 ID=17225 SEQ=1
+May 15 16:10:54 compute3 kernel: TRACE: filter:neutron-openvswi-sg-chain:return:7 IN=qbr36ed9370-ed OUT=qbr36ed9370-ed PHYSIN=qvb36ed9370-ed PHYSOUT=tap36ed9370-ed MAC=fa:16:3e:96:c6:8f:00:1a:2f:a2:b1:7f:08:00 SRC=10.56.233.136 DST=10.56.248.3 LEN=84 TOS=0x00 PREC=0x00 TTL=63 ID=34710 DF PROTO=ICMP TYPE=8 CODE=0 ID=17225 SEQ=1
+...
+May 15 16:10:55 compute3 kernel: TRACE: mangle:POSTROUTING:rule:1 IN= OUT=qbr36ed9370-ed PHYSIN=qvb36ed9370-ed PHYSOUT=tap36ed9370-ed SRC=10.56.233.136 DST=10.56.248.3 LEN=84 TOS=0x00 PREC=0x00 TTL=63 ID=35586 DF PROTO=ICMP TYPE=8 CODE=0 ID=17225 SEQ=2
+May 15 16:10:55 compute3 kernel: TRACE: mangle:neutron-openvswi-POSTROUTING:return:1 IN= OUT=qbr36ed9370-ed PHYSIN=qvb36ed9370-ed PHYSOUT=tap36ed9370-ed SRC=10.56.233.136 DST=10.56.248.3 LEN=84 TOS=0x00 PREC=0x00 TTL=63 ID=35586 DF PROTO=ICMP TYPE=8 CODE=0 ID=17225 SEQ=2
+
+
+

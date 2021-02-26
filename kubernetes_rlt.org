@@ -1,0 +1,1514 @@
+* install minikube
+https://kubernetes.io/docs/tasks/tools/install-minikube/
+
+** install minikube
+curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64 \
+  && chmod +x minikube
+
+[admin@TeamCI-1 ~]$ rm -rf .minikube/
+[admin@TeamCI-1 ~]$ rm -rf .kube
+
+### for the first time sarting, minikube will search current dir for .miniku direcotry, if not, it will download it.
+[admin@TeamCI-1 ~]$ minikube start --driver=kvm2
+* minikube v1.11.0 on Centos 7.5.1804
+* Using the kvm2 driver based on user configuration
+* Downloading driver docker-machine-driver-kvm2:
+* minikube 1.12.1 is available! Download it: https://github.com/kubernetes/minikube/releases/tag/v1.12.1
+* To disable this notice, run: 'minikube config set WantUpdateNotification false'
+
+    > docker-machine-driver-kvm2.sha256: 65 B / 65 B [-------] 100.00% ? p/s 0s
+    > docker-machine-driver-kvm2: 13.88 MiB / 13.88 MiB  100.00% 804.25 KiB p/s
+* Downloading VM boot image ...
+    > minikube-v1.11.0.iso.sha256: 65 B / 65 B [-------------] 100.00% ? p/s 0s
+    > minikube-v1.11.0.iso: 174.99 MiB / 174.99 MiB  100.00% 775.82 KiB p/s 3m5
+* Starting control plane node minikube in cluster minikube
+* Downloading Kubernetes v1.18.3 preload ...
+    > preloaded-images-k8s-v3-v1.18.3-docker-overlay2-amd64.tar.lz4: 397.34 MiB
+* Creating kvm2 VM (CPUs=2, Memory=6000MB, Disk=20000MB) ...
+#### for the second time, make sure execute minikube at the direcotry which contain .minkubu dir.
+
+** start minikube using driver kvm2 on a physical host
+*** verifying kvm works fine
+virt-host-validate
+
+modprobe fuse
+
+**** fix qemu/kvm authentication error
+Jul 07 14:07:33 TeamCI-1 libvirtd[1604]: 2020-07-07 06:07:33.936+0000: 1698: error : virPolkitCheckAuth:128 : authentication unavailable: no polkit agent available to authenti...unix.manage'
+Hint: Some lines were ellipsized, use -l to show in full.
+[root@TeamCI-1 ~]# usermod --append --groups libvirt `whoami
+
+
+*** start minikube vm as qemu/kvm
+minikube start --driver=<driver_name>
+
+minikube start --driver=kvm2
+
+minikube start as a kvm virutal machine
+
+rm .minikube
+
+[root@TeamCI-1 ~]# virsh list
+ Id    Name                           State
+----------------------------------------------------
+ 3     minikube                       running
+
+[root@TeamCI-1 ~]# minikube stop
+* Stopping "minikube" in kvm2 ...
+* Node "minikube" stopped.
+[root@TeamCI-1 ~]# virsh list
+ Id    Name                           State
+----------------------------------------------------
+
+[root@TeamCI-1 ~]# virsh list --all
+ Id    Name                           State
+----------------------------------------------------
+ -     762-ts1-172.24.76.101          shut off
+ -     minikube                       shut off
+ -     TAS_1116                       shut off
+ -     testcos7                       shut off
+
+
+minikube provisions and manages local Kubernetes clusters optimized for development workflows.
+
+Basic Commands:
+  start          Starts a local Kubernetes cluster
+  status         Gets the status of a local Kubernetes cluster
+  stop           Stops a running local Kubernetes cluster
+  delete         Deletes a local Kubernetes cluster
+  dashboard      Access the Kubernetes dashboard running within the minikube cluster
+  pause          pause Kubernetes
+  unpause        unpause Kubernetes
+
+Images Commands:
+  docker-env     Configure environment to use minikube's Docker daemon
+  podman-env     Configure environment to use minikube's Podman service
+  cache          Add, delete, or push a local image into minikube
+
+Configuration and Management Commands:
+  addons         Enable or disable a minikube addon
+  config         Modify persistent configuration values
+  profile        Get or list the the current profiles (clusters)
+  update-context Update kubeconfig in case of an IP or port change
+
+Networking and Connectivity Commands:
+  service        Returns a URL to connect to a service
+  tunnel         Connect to LoadBalancer services
+
+Advanced Commands:
+  mount          Mounts the specified directory into minikube
+  ssh            Log into the minikube environment (for debugging)
+  kubectl        Run a kubectl binary matching the cluster version
+  node           Add, remove, or list additional nodes
+
+Troubleshooting Commands:
+  ssh-key        Retrieve the ssh identity key path of the specified cluster
+  ip             Retrieves the IP address of the running cluster
+  logs           Returns logs to debug a local Kubernetes cluster
+  update-check   Print current and latest version number
+  version        Print the version of minikube
+
+*** restart  minikube
+[admin@TeamCI-1 ~]$ minikube delete
+* Deleting "minikube" in kvm2 ...
+* Removed all traces of the "minikube" cluster.
+#### this is optinal if there's no config issue
+[admin@TeamCI-1 ~]$ minikube config set driver kvm2
+! These changes will take effect upon a minikube delete and then a minikube start
+
+[admin@TeamCI-1 ~]$ minikube start --driver=kvm2
+* minikube v1.12.1 on Centos 7.5.1804
+* Using the kvm2 driver based on user configuration
+* Starting control plane node minikube in cluster minikube
+* Creating kvm2 VM (CPUs=2, Memory=6000MB, Disk=20000MB) ...
+* Found network options:
+  - HTTP_PROXY=http://10.144.1.10:8080
+  - HTTPS_PROXY=http://10.144.1.10:8080
+  - NO_PROXY=localhost,127.0.0.1,10.56.233.135,10.56.233.136,10.56.233.137,10.56.233.138,10.56.233.139,10.56.233.140,10.56.233.175,10.56.233.181,192.168.99.0/24,192.168.39.0/24
+  - http_proxy=http://10.144.1.10:8080
+  - https_proxy=http://10.144.1.10:8080
+  - no_proxy=localhost,127.0.0.1,10.56.233.135,10.56.233.136,10.56.233.137,10.56.233.138,10.56.233.139,10.56.233.140,10.56.233.175,10.56.233.181
+ Preparing Kubernetes v1.18.3 on Docker 19.03.12 ...
+  - env HTTP_PROXY=http://10.144.1.10:8080
+  - env HTTPS_PROXY=http://10.144.1.10:8080
+  - env NO_PROXY=localhost,127.0.0.1,10.56.233.135,10.56.233.136,10.56.233.137,10.56.233.138,10.56.233.139,10.56.233.140,10.56.233.175,10.56.233.181,192.168.99.0/24,192.168.39.0/24
+  - env NO_PROXY=localhost,127.0.0.1,10.56.233.135,10.56.233.136,10.56.233.137,10.56.233.138,10.56.233.139,10.56.233.140,10.56.233.175,10.56.233.181
+ Verifying Kubernetes components...
+ Enabled addons: default-storageclass, storage-provisioner
+ Done! kubectl is now configured to use "minikube"
+
+***** the normal status of minikube
+[admin@TeamCI-1 ~]$ minikube status
+minikube
+type: Control Plane
+host: Running
+kubelet: Running
+apiserver: Running
+
+***** minikube cluster ip address
+[admin@TeamCI-1 ~]$ minikube ip
+192.168.39.190
+
+add this to NO_PROXY env.
+export NO_PROXY=localhost,127.0.0.1,192.168.99.0/24,192.168.39.0/24
+
+
+*****  ssh inito kube's own docker image
+[admin@TeamCI-1 ~]$ minikube ssh
+                         _             _
+            _         _ ( )           ( )
+  ___ ___  (_)  ___  (_)| |/')  _   _ | |_      __
+/' _ ` _ `\| |/' _ `\| || , <  ( ) ( )| '_`\  /'__`\
+| ( ) ( ) || || ( ) || || |\`\ | (_) || |_) )(  ___/
+(_) (_) (_)(_)(_) (_)(_)(_) (_)`\___/'(_,__/'`\____)
+
+$ docker list
+docker: 'list' is not a docker command.
+See 'docker --help'
+$ docker ps -a
+CONTAINER ID        IMAGE                   COMMAND                  CREATED             STATUS              PORTS               NAMES
+f40bbd6ab6f5        k8s.gcr.io/echoserver   "nginx -g 'daemon ofâ€¦"   4 minutes ago       Up 4 minutes                            k8s_echoserver_hello-node-7bf657c596-h4d4t_default_a1a613e9-a95a-4764-b642-d5038909acaa_0
+276c1d40d7fd        k8s.gcr.io/pause:3.2    "/pause"                 5 minutes ago       Up 5 minutes                            k8s_POD_hello-node-7bf657c596-h4d4t_default_a1a613e9-a95a-4764-b642-d5038909acaa_0
+c1d5c0fed3b6        67da37a9a360            "/coredns -conf /etcâ€¦"   37 minutes ago      Up 37 minutes                           k8s_coredns_coredns-66bff467f8-vhc2g_kube-system_66605e1b-9496-4357-a20f-b40fb4f9040a_0
+99cabbd8c8d2        k8s.gcr.io/pause:3.2    "/pause"                 37 minutes ago      Up 37 minutes                           k8s_POD_coredns-66bff467f8-vhc2g_kube-system_66605e1b-9496-4357-a20f-b40fb4f9040a_0
+be078fdc1cc4        4689081edb10            "/storage-provisioner"   37 minutes ago      Up 37 minutes                           k8s_storage-provisioner_storage-provisioner_kube-system_e23c9e99-3314-4305-8b73-a75ee7f43475_0
+5e41fe4d9a81        k8s.gcr.io/pause:3.2    "/pause"                 37 minutes ago      Up 37 minutes                           k8s_POD_storage-provisioner_kube-system_e23c9e99-3314-4305-8b73-a75ee7f43475_0
+47053dec0f02        3439b7546f29            "/usr/local/bin/kubeâ€¦"   37 minutes ago      Up 37 minutes                           k8s_kube-proxy_kube-proxy-b4tbn_kube-system_645e8602-5a9d-40c5-a331-603587477b8a_0
+ef8c5db5a503        k8s.gcr.io/pause:3.2    "/pause"                 37 minutes ago      Up 37 minutes                           k8s_POD_kube-proxy-b4tbn_kube-system_645e8602-5a9d-40c5-a331-603587477b8a_0
+e6091b092d2d        303ce5db0e90            "etcd --advertise-clâ€¦"   38 minutes ago      Up 38 minutes                           k8s_etcd_etcd-minikube_kube-system_74bf420fdf26a78dc0d1f098bbf3a7d3_0
+19f6016083cc        76216c34ed0c            "kube-scheduler --auâ€¦"   38 minutes ago      Up 38 minutes                           k8s_kube-scheduler_kube-scheduler-minikube_kube-system_dcddbd0cc8c89e2cbf4de5d3cca8769f_0
+62fe748b5c1c        7e28efa976bd            "kube-apiserver --adâ€¦"   38 minutes ago      Up 38 minutes                           k8s_kube-apiserver_kube-apiserver-minikube_kube-system_a716b5e5aafc5ffc82c175558891ed2a_0
+c41589882517        da26705ccb4b            "kube-controller-manâ€¦"   38 minutes ago      Up 38 minutes                           k8s_kube-controller-manager_kube-controller-manager-minikube_kube-system_ba963bc1bff8609dc4fc4d359349c120_0
+32007b6c1c86        k8s.gcr.io/pause:3.2    "/pause"                 38 minutes ago      Up 38 minutes                           k8s_POD_etcd-minikube_kube-system_74bf420fdf26a78dc0d1f098bbf3a7d3_0
+352029ca7d3b        k8s.gcr.io/pause:3.2    "/pause"                 38 minutes ago      Up 38 minutes                           k8s_POD_kube-scheduler-minikube_kube-system_dcddbd0cc8c89e2cbf4de5d3cca8769f_0
+dbfafb5903ef        k8s.gcr.io/pause:3.2    "/pause"                 38 minutes ago      Up 38 minutes                           k8s_POD_kube-controller-manager-minikube_kube-system_ba963bc1bff8609dc4fc4d359349c120_0
+24f67716f5a1        k8s.gcr.io/pause:3.2    "/pause"                 38 minutes ago      Up 38 minutes                           k8s_POD_kube-apiserver-minikube_kube-system_a716b5e5aafc5ffc82c175558891ed2a_0
+
+***** kube's pods and docker container
+[admin@TeamCI-1 ~]$ kubectl get pods -A
+NAMESPACE     NAME                               READY   STATUS    RESTARTS   AGE
+default       hello-node-7bf657c596-h4d4t        1/1     Running   0          7m47s
+kube-system   coredns-66bff467f8-vhc2g           1/1     Running   0          40m
+kube-system   etcd-minikube                      1/1     Running   0          39m
+kube-system   kube-apiserver-minikube            1/1     Running   0          39m
+kube-system   kube-controller-manager-minikube   1/1     Running   0          39m
+kube-system   kube-proxy-b4tbn                   1/1     Running   0          40m
+kube-system   kube-scheduler-minikube            1/1     Running   0          39m
+kube-system   storage-provisioner                1/1     Running   0          40m
+
+
+***** minikube run as a root using force option
+[root@TeamCI-1 admin]# minikube start --driver=kvm2 --force=true
+
+*** kubectl  
+
+**** kubectl check all the elements
+
+[root@TeamCI-1 ~]# kubectl get all  -A
+[root@TeamCI-1 ~]# kubectl get all --all-namespaces
+========================================================
+NAMESPACE        NAME                                   READY   STATUS    RESTARTS   AGE
+default          pod/kibana-kibana-7586487748-kznkr     0/1     Running   0          37m
+default          pod/logstash-logstash-0                1/1     Running   0          43m
+elastic-system   pod/elastic-operator-0                 1/1     Running   0          3m8s
+kube-system      pod/coredns-66bff467f8-5c6j7           1/1     Running   0          3h16m
+kube-system      pod/etcd-minikube                      1/1     Running   0          3h16m
+kube-system      pod/kube-apiserver-minikube            1/1     Running   0          3h16m
+kube-system      pod/kube-controller-manager-minikube   1/1     Running   0          3h16m
+kube-system      pod/kube-proxy-qdrf8                   1/1     Running   0          3h16m
+kube-system      pod/kube-scheduler-minikube            1/1     Running   0          3h16m
+kube-system      pod/storage-provisioner                1/1     Running   0          3h16m
+
+NAMESPACE     NAME                                 TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)                  AGE
+default       service/kibana-kibana                ClusterIP   10.97.46.243   <none>        5601/TCP                 37m
+default       service/kubernetes                   ClusterIP   10.96.0.1      <none>        443/TCP                  3h16m
+default       service/logstash-logstash-headless   ClusterIP   None           <none>        9600/TCP                 43m
+kube-system   service/kube-dns                     ClusterIP   10.96.0.10     <none>        53/UDP,53/TCP,9153/TCP   3h16m
+
+NAMESPACE     NAME                        DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR            AGE
+kube-system   daemonset.apps/kube-proxy   1         1         1       1            1           kubernetes.io/os=linux   3h16m
+
+NAMESPACE     NAME                            READY   UP-TO-DATE   AVAILABLE   AGE
+default       deployment.apps/kibana-kibana   0/1     1            0           37m
+kube-system   deployment.apps/coredns         1/1     1            1           3h16m
+
+NAMESPACE     NAME                                       DESIRED   CURRENT   READY   AGE
+default       replicaset.apps/kibana-kibana-7586487748   1         1         0       37m
+kube-system   replicaset.apps/coredns-66bff467f8         1         1         1       3h16m
+
+NAMESPACE        NAME                                 READY   AGE
+default          statefulset.apps/logstash-logstash   1/1     43m
+elastic-system   statefulset.apps/elastic-operator    1/1     3h12m
+=======================================================
+
+
+***** delete the statueful set pods
+a statefulset could not be deleted by "kubectl delete pod", it will get the pod restart
+
+ot@TeamCI-1 ~]# kubectl delete statefulset.apps/elastic-operator -n elastic-system
+statefulset.apps "elastic-operator" deleted
+
+
+**** kubectl create deploymnet
+
+[root@TeamCI-1 ~]# kubectl create deployment hello-node --image=k8s.gcr.io/echoserver:1.4
+deployment.apps/hello-node created
+[root@TeamCI-1 ~]# export NO_PROXY=localhost,127.0.0.1,10.56.233.135,10.56.233.136,10.56.233.137,10.56.233.138,10.56.233.139,10.56.233.140,10.56.233.175,10.56.233.181,192.168.99.0/24,192.168.39.0/24
+[root@TeamCI-1 ~]# ^C
+[root@TeamCI-1 ~]# kubectl get deployments
+NAME         READY   UP-TO-DATE   AVAILABLE   AGE
+hello-node   1/1     1            1           98s
+[root@TeamCI-1 ~]# kubectl get pods
+NAME                          READY   STATUS    RESTARTS   AGE
+hello-node-7bf657c596-tc6ml   1/1     Running   0          119s
+
+***** get logs of the pod
+kubectl logs -f POD-NAME
+### get log to check
+
+***** muliptle containers within one pod:
+ kubectl describe node  calico-node-kpxcr 
+--------------
+Controlled By:  DaemonSet/calico-node
+Containers:
+  calico-node:
+...
+  install-cni
+----------------------
+sudo kubectl logs calico-node-kpxcr -n kube-system -c calico-node
+                  <podname>            <namespace>     <container>  
+
+*****  describe pod/service/deploymnet to check error if no logs of the pod
+kubectl describe pod quickstart-es-default-0
+
+***** get evnets from
+[root@TeamCI-1 ~]# kubectl get events
+LAST SEEN   TYPE     REASON                    OBJECT                             MESSAGE
+2m12s       Normal   Scheduled                 pod/hello-node-7bf657c596-tc6ml    Successfully assigned default/hello-node-7bf657c596-tc6ml to minikube
+2m10s       Normal   Pulling                   pod/hello-node-7bf657c596-tc6ml    Pulling image "k8s.gcr.io/echoserver:1.4"
+73s         Normal   Pulled                    pod/hello-node-7bf657c596-tc6ml    Successfully pulled image "k8s.gcr.io/echoserver:1.4"
+70s         Normal   Created                   pod/hello-node-7bf657c596-tc6ml    Created container echoserver
+69s         Normal   Started                   pod/hello-node-7bf657c596-tc6ml    Started container echoserver
+2m12s       Normal   SuccessfulCreate          replicaset/hello-node-7bf657c596   Created pod: hello-node-7bf657c596-tc6ml
+2m12s       Normal   ScalingReplicaSet         deployment/hello-node              Scaled up replica set hello-node-7bf657c596 to 1
+4m30s       Normal   NodeHasSufficientMemory   node/minikube                      Node minikube status is now: NodeHasSufficientMemory
+4m30s       Normal   NodeHasNoDiskPressure     node/minikube                      Node minikube status is now: NodeHasNoDiskPressure
+4m30s       Normal   NodeHasSufficientPID      node/minikube                      Node minikube status is now: NodeHasSufficientPID
+3m45s       Normal   RegisteredNode            node/minikube                      Node minikube event: Registered Node minikube in Controller
+3m44s       Normal   Starting                  node/minikube                      Starting kubelet.
+3m44s       Normal   NodeHasSufficientMemory   node/minikube                      Node minikube status is now: NodeHasSufficientMemory
+3m44s       Normal   NodeHasNoDiskPressure     node/minikube                      Node minikube status is now: NodeHasNoDiskPressure
+3m44s       Normal   NodeHasSufficientPID      node/minikube                      Node minikube status is now: NodeHasSufficientPID
+3m43s       Normal   NodeAllocatableEnforced   node/minikube                      Updated Node Allocatable limit across pods
+3m39s       Normal   Starting                  node/minikube                      Starting kube-proxy.
+3m33s       Normal   NodeReady                 node/minikube                      Node minikube status is now: NodeReady
+[root@TeamCI-1 ~]# kubectl config view
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority: /root/.minikube/ca.crt
+    server: https://192.168.39.87:8443
+  name: minikube
+contexts:
+- context:
+    cluster: minikube
+    user: minikube
+  name: minikube
+current-context: minikube
+kind: Config
+preferences: {}
+users:
+- name: minikube
+  user:
+    client-certificate: /root/.minikube/profiles/minikube/client.crt
+    client-key: /root/.minikube/profiles/minikube/client.key
+
+***** 
+**** 
+**** expose deployment service port
+[root@TeamCI-1 ~]# kubectl expose deployment hello-node --type=LoadBalancer --port=8080
+service/hello-node exposed
+[root@TeamCI-1 ~]# kubectl expose deployment hello-node --type=LoadBalancer --port=8080^C
+kubectl expose deployment helm-kibana-default-kibana --type=LoadBalancer --name=kiba-expose
+[root@TeamCI-1 ~]# ^C
+****  foward the port
+kubectl port-forward service/quickstart-es-http 9200
+
+
+***** kubectl with services/ minikube service detail
+[root@TeamCI-1 ~]# kubectl get services
+NAME         TYPE           CLUSTER-IP       EXTERNAL-IP   PORT(S)          AGE
+hello-node   LoadBalancer   10.103.104.210   <pending>     8080:32015/TCP   22s
+kubernetes   ClusterIP      10.96.0.1        <none>        443/TCP          5m17s
+[root@TeamCI-1 ~]# minikube service hello-node
+|-----------|------------|-------------|----------------------------|
+| NAMESPACE |    NAME    | TARGET PORT |            URL             |
+|-----------|------------|-------------|----------------------------|
+| default   | hello-node |        8080 | http://192.168.39.87:32015 |
+|-----------|------------|-------------|----------------------------|
+ Opening service default/hello-node in default browser...
+START /usr/bin/firefox "http://192.168.39.87:32015"
+
+**** delete service
+[root@TeamCI-1 ~]# kubectl delete service hello-node
+service "hello-node" deleted
+[root@TeamCI-1 ~]# kubectl get services
+NAME         TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
+kubernetes   ClusterIP   10.96.0.1    <none>        443/TCP   29m
+
+**** delete deployment 
+[root@TeamCI-1 ~]# kubectl get deployment
+NAME         READY   UP-TO-DATE   AVAILABLE   AGE
+hello-node   1/1     1            1           29m
+[root@TeamCI-1 ~]# kubectl delete deployment hello-node
+deployment.apps "hello-node" deleted
+
+**** using yaml to deployment docker container
+kubectl apply -f https://k8s.io/examples/application/guestbook/frontend-deployment.yaml
+=====================================================================
+apiVersion: apps/v1 # for versions before 1.9.0 use apps/v1beta2
+kind: Deployment
+metadata:
+  name: frontend
+  labels:
+    app: guestbook
+spec:
+  selector:
+    matchLabels:
+      app: guestbook
+      tier: frontend
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: guestbook
+        tier: frontend
+    spec:
+      containers:
+      - name: php-redis
+        image: gcr.io/google-samples/gb-frontend:v4
+        resources:
+          requests:
+            cpu: 100m
+            memory: 100Mi
+        env:
+        - name: GET_HOSTS_FROM
+          value: dns
+          # Using `GET_HOSTS_FROM=dns` requires your cluster to
+          # provide a dns service. As of Kubernetes 1.3, DNS is a built-in
+          # service launched automatically. However, if the cluster you are using
+          # does not have a built-in DNS service, you can instead
+          # access an environment variable to find the master
+          # service's host. To do so, comment out the 'value: dns' line above, and
+          # uncomment the line below:
+          # value: env
+        ports:
+        - containerPort: 80
+================================
+
+**** using yaml to create  services
+kubectl apply -f https://k8s.io/examples/application/guestbook/frontend-service.yaml
+=========
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  labels:
+    app: guestbook
+    tier: frontend
+spec:
+  type: NodePort 
+  ports:
+  - port: 80
+  selector:
+    app: guestbook
+    tier: frontend
+========================
+
+**** kubectl get deployment, service and pods
+[admin@TeamCI-1 root]$ kubectl get deployment
+NAME           READY   UP-TO-DATE   AVAILABLE   AGE
+frontend       2/2     2            2           9m18s
+redis-master   1/1     1            1           19m
+redis-slave    2/2     2            2           13m
+[admin@TeamCI-1 root]$ kubectl get service
+NAME           TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)        AGE
+frontend       NodePort    10.101.112.250   <none>        80:31543/TCP   5m44s
+kubernetes     ClusterIP   10.96.0.1        <none>        443/TCP        21m
+redis-master   ClusterIP   10.101.146.172   <none>        6379/TCP       14m
+redis-slave    ClusterIP   10.96.66.7       <none>        6379/TCP       10m
+[admin@TeamCI-1 root]$ kubectl get pods
+NAME                            READY   STATUS    RESTARTS   AGE
+frontend-56fc5b6b47-cnql6       1/1     Running   0          9m39s
+frontend-56fc5b6b47-lwzxp       1/1     Running   0          9m39s
+redis-master-6b54579d85-k5pd6   1/1     Running   0          19m
+redis-slave-799788557c-2j57d    1/1     Running   0          13m
+redis-slave-799788557c-pg87w    1/1     Running   0          13m
+[admin@TeamCI-1 root]$
+[admin@TeamCI-1 root]$ kubectl delete frontend
+error: the server doesn't have a resource type "frontend"
+[admin@TeamCI-1 root]$ kubectl delete deployment frontend
+deployment.apps "frontend" deleted
+[admin@TeamCI-1 root]$ kubectl get service
+NAME           TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)        AGE
+frontend       NodePort    10.101.112.250   <none>        80:31543/TCP   6m48s
+kubernetes     ClusterIP   10.96.0.1        <none>        443/TCP        22m
+redis-master   ClusterIP   10.101.146.172   <none>        6379/TCP       15m
+redis-slave    ClusterIP   10.96.66.7       <none>        6379/TCP       11m
+[admin@TeamCI-1 root]$ kubectl delete service frontend
+service "frontend" deleted
+[admin@TeamCI-1 root]$ kubectl get pods
+NAME                            READY   STATUS    RESTARTS   AGE
+redis-master-6b54579d85-k5pd6   1/1     Running   0          21m
+redis-slave-799788557c-2j57d    1/1     Running   0          14m
+redis-slave-799788557c-pg87w    1/1     Running   0          14m
+
+**** kubectl scale 
+kubectl scale deployment frontend --replicas=5
+
+
+**** minikube metrics for top
+$ git clone https://github.com/kodekloudhub/kubernetes-metrics-server.git
+$ kubectl create -f kubernetes-metrics-server/
+
+
+ot@TeamCI-1 ~]# kubectl top pods logstash-logstash-0
+NAME                  CPU(cores)   MEMORY(bytes)
+logstash-logstash-0   17m          489Mi
+[root@TeamCI-1 ~]# kubectl top pods elastic-operator-0 -n elastic-system
+NAME                 CPU(cores)   MEMORY(bytes)
+elastic-operator-0   6m           16Mi
+[root@TeamCI-1 ~]# kubectl top node minikube
+NAME       CPU(cores)   CPU%   MEMORY(bytes)   MEMORY%
+minikube   403m         20%    1994Mi          36%
+
+
+ot@host-192-168-82-11 ~]# docker exec -it 63ef9af3464d  curl  -XGET 'http://localhost:9200/_cluster/health?pretty=true'
+{
+  "error" : {
+    "root_cause" : [
+      {
+        "type" : "master_not_discovered_exception",
+        "reason" : null
+      }
+    ],
+    "type" : "master_not_discovered_exception",
+    "reason" : null
+  },
+  "status" : 503
+}
+
+** minikube driver=none 
+
+[root@host-192-168-82-11 ~]# minikube service kibana-kibana -n default
+|-----------|---------------|-------------|--------------|
+| NAMESPACE |     NAME      | TARGET PORT |     URL      |
+|-----------|---------------|-------------|--------------|
+| default   | kibana-kibana |             | No node port |
+|-----------|---------------|-------------|--------------|
+ service default/kibana-kibana has no node port
+
+
+[root@host-192-168-82-11 ~]# kubectl describe  service/kibana-kibana
+Name:              kibana-kibana
+Namespace:         default
+Labels:            app=kibana
+                   app.kubernetes.io/managed-by=Helm
+                   heritage=Helm
+                   release=kibana
+Annotations:       meta.helm.sh/release-name: kibana
+                   meta.helm.sh/release-namespace: default
+Selector:          app=kibana,release=kibana
+Type:              ClusterIP
+IP:                10.106.225.62
+Port:              http  5601/TCP
+TargetPort:        5601/TCP
+Endpoints:         172.17.0.4:5601
+Session Affinity:  None
+Events:            <none>
+
+
+[root@host-192-168-82-11 ~]# export no_proxy=192.168.82.11,172.17.0.4
+[root@host-192-168-82-11 ~]# curl 172.17.0.4:5601
+[root@host-192-168-82-11 ~]# curl -L 172.17.0.4:5601
+<!DOCTYPE html><html lang="en"><head><meta charSet="utf-8"/><meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/><meta name="viewport" content="width=device-width"/><title>Elastic</title><style>
+
+
+$ curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3
+helm install elasticsearch ./helm-charts/elasticsearch --set imageTag=8.0.0-SNAPSHOT
+  131  helm install elasticsearch ./helm-charts/elasticsearch --set imageTag=8.0.0-SNAPSHOT
+  134  helm uninstall elasticsearch
+
+kubectl label nodes master nodetype=master
+[vagrant@master multi]$ kubectl get node master --show-labels
+
+NAME     STATUS   ROLES    AGE     VERSION   LABELS
+master   Ready    master   3d19h   v1.18.6   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=master,kubernetes.io/os=linux,node-role.kubernetes.io/master=
+
+
+get pods -o wide   ### list the pods running on which node
+
+
+cat st.yaml
+=================
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: local-storage
+  provisioner: kubernetes.io/no-provisioner
+  volumeBindingMode: WaitForFirstConsumer
+====================
+cat > storageClass.yaml << EOF
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: my-local-storage
+  provisioner: kubernetes.io/no-provisioner
+  volumeBindingMode: WaitForFirstConsumer
+  EOF
+
+  kubectl create -f storageClass.yaml
+  -------------------
+[vagrant@master ~]$ kubectl apply -f st1.yaml
+storageclass.storage.k8s.io/local-storage1 created
+
+
+
+cat > persistentVolume.yaml << EOF
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: my-local-pv
+spec:
+  capacity:
+    storage: 500Gi
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: my-local-storage
+  local:
+    path: /mnt/disk/vol1
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - node1
+EOF
+
+    Note: You might need to exchange the hostname value ¿node1¿ in the nodeAffinity section by the name of the node that matches your environment.
+
+    The ¿hostPath¿ we had defined in our last blog post is replaced by the so-called ¿local path¿.
+
+Similar to what we have done in case of a hostPath volume in our last blog post, we need to prepare the volume on node1, before we create the persistent local volume on the master:
+
+# on the node, where the POD will be located (node1 in our case):
+DIRNAME="vol1"
+mkdir -p /mnt/disk/$DIRNAME 
+chcon -Rt svirt_sandbox_file_t /mnt/disk/$DIRNAME
+chmod 777 /mnt/disk/$DIRNAME
+
+# on master:
+kubectl create -f persistentVolume.yaml
+
+The output should look like follows:
+
+persistentvolume/my-local-pv created
+
+cat > persistentVolumeClaim.yaml << EOF
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: my-claim
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: my-local-storage
+  resources:
+    requests:
+      storage: 500Gi
+EOF
+
+kubectl create -f persistentVolumeClaim.yaml
+
+
+* install kubenet cluster
+using kubeadm to install kubenet cluster's nodes in centos7
+** make kubectl executing normally after install kubeadm
+master: ++ kubeadm init --ignore-preflight-errors=SystemVerification --apiserver-advertise-address=192.168.26.10 --pod-network-cidr=10.244.0.0/16 --token lesi2r.bg6wsvtsd24u26qi --token-ttl 0
+cat /etc/default/kubelet
+KUBELET_EXTRA_ARGS=--node-ip=192.168.26.10
+systemctl daemon-reload
+systemctl restart kubelet.service
+
+
+
+    kubeadm join --ignore-preflight-errors=SystemVerification --discovery-token-unsafe-skip-ca-verification --token lesi2r.bg6wsvtsd24u26qi 192.168.26.10:6443 
+
+sudo    kubeadm join --ignore-preflight-errors=SystemVerification --discovery-token-unsafe-skip-ca-verification --token nffian.5ggnuftoceqow9zv 192.168.26.10:6443
+
+
+ wget https://releases.hashicorp.com/vagrant/2.2.9/vagrant_2.2.9_x86_64.rpm
+ rpm -ivh vagrant_2.2.9_x86_64.rpm
+    vagrant plugin install vagrant-libvirt
+vagrant plugin install vagrant-libvirt
+vagrant plugin install vagrant-sshfs
+
+mkdir -p $HOME/.kube
+ cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+ chown $(id -u):$(id -g) $HOME/.kube/config
+
+** install kubenet using vagrant
+
+ wget https://releases.hashicorp.com/vagrant/2.2.9/vagrant_2.2.9_x86_64.rpm
+ rpm -ivh vagrant_2.2.9_x86_64.rpm
+    vagrant plugin install vagrant-libvirt
+vagrant plugin install vagrant-libvirt
+vagrant plugin install vagrant-sshfs
+
+
+*** proxy configuration for vargrant/docker
+vagrant will apply these proxy configurations in the docker,kubernet pods also.
+**** vagrant proxy plugin
+vagrant plugin install vagrant-proxyconf
+**** vagrant proxy configuration file
+[root@175 libvirt]# cat ~//.vagrant.d/Vagrantfile
+Vagrant.configure("2") do |config|
+  if Vagrant.has_plugin?("vagrant-proxyconf")
+    config.proxy.http     = "http://10.144.1.10:8080/"
+    config.proxy.https     = "http://10.144.1.10:8080/"
+    config.proxy.no_proxy = "localhost,127.0.0.1,192.168.26.10,10.96.0.0/12,10.244.0.0/16,.example.com"
+  end
+  # ... other stuff
+end
+
+*** install kubenet cluster(docker-es, kubeadm,kubelet,canal.....) in qemu/kvm cetos7 image
+https://technology.amis.nl/2020/04/30/quick-and-easy-a-multi-node-kubernetes-cluster-on-centos-7-qemu-kvm-libvirt/
+
+
+
+
+**** Install QEMU/KVM + libvirt
+We are going to use QEMU/KVM and access it through libvirt. Why? Because I want to approach bare metal performance as much as I can and QEMU/KVM does a good job at that. See for example this performance comparison of bare metal vs KVM vs Virtualbox. KVM greatly outperforms Virtualbox and approaches bare metal speeds in quite some tests. I do like the Virtualbox GUI though but I can live with the Virtual Machine Manager.
+The following will do the trick on CentOS 7
+sudo yum install qemu-kvm qemu-img virt-manager libvirt libvirt-python libvirt-client virt-install libvirt-devel
+
+
+
+**** Install Vagrant and required plugins
+Vagrant is used to create the virtual machines for the master and nodes. Vagrant can easily be installed from here. It even has a CentOS specific RPM which is nice.
+With Vagrant I¡¯m going to use two plugins. vagrant-libvirt and vagrant-sshfs. The first plugin allows vagrant to manage QEMU/KVM VMs through libvirt. The second plugin will be used for shared folders. Why sshfs? Mainly because libvirt shared folder alternatives such as NFS and 9p were more difficult to set-up and I wanted to be able to provide the same shared storage to all VMs.
+
+ wget https://releases.hashicorp.com/vagrant/2.2.9/vagrant_2.2.9_x86_64.rpm
+ rpm -ivh vagrant_2.2.9_x86_64.rpm
+    vagrant plugin install vagrant-libvirt
+vagrant plugin install vagrant-libvirt
+vagrant plugin install vagrant-sshfs
+
+**** Install kubectl
+
+First install kubectl on the host. This is described in detail here.
+
+cat <<EOF > /etc/yum.repos.d/kubernetes.repo
+[kubernetes]
+name=Kubernetes
+baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+enabled=1
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+EOF
+sudo yum install -y kubectl
+
+**** Create the VMs
+
+Execute the following under a normal user (you also installed the Vagrant plugins under this user).
+
+git clone https://github.com/MaartenSmeets/k8s-vagrant-multi-node.git
+cd k8s-vagrant-multi-node
+mkdir data/shared
+
+make up -j 3 BOX_OS=centos VAGRANT_DEFAULT_PROVIDER=libvirt NODE_CPUS=2 NODE_COUNT=1 MASTER_CPUS=4 MASTER_MEMORY_SIZE_GB=3  NODE_MEMORY_SIZE_GB=3
+
+
+
+make up -j 3 BOX_OS=centos VAGRANT_DEFAULT_PROVIDER=libvirt NODE_CPUS=3 NODE_COUNT=2 MASTER_CPUS=4 MASTER_MEMORY_SIZE_GB=9  NODE_MEMORY_SIZE_GB=6
+make up -j 3 VAGRANT_DEFAULT_PROVIDER=libvirt  BOX_OS=ubuntu KUBE_NETWORK=calico NODE_CPUS=8 NODE_COUNT=5 MASTER_CPUS=8 MASTER_MEMORY_SIZE_GB=16 NODE_MEMORY_SIZE_GB=40 DISK_SIZE_GB=100
+
+
+
+
+ot@175 cmm]# virsh list
+ Id    Name                           State
+ ----------------------------------------------------
+  3     k8s-vagrant-multi-node_master  running
+   4     k8s-vagrant-multi-node_node2   running
+    5     k8s-vagrant-multi-node_node1   running
+
+
+¡°
+try edit in /etc/ssh/sshd_config
+PasswordAuthentication yes
+
+
+**** 
+** clean the env for a new vagrant
+*** vagrant show the vm it started
+vagrant global-stauts
+id    name  ...
+
+*** ssh into vm by vagrant
+vagrant ssh <id in previous cmd>
+
+*** destroy the vm with id
+vagrant destroy <id in status cmd>
+
+==> master: Rsyncing folder: /root/k8s-vagrant-multi-node/data/ubuntu-master/ => /data
+==> master: Installing SSHFS client...
+==> master: Mounting SSHFS shared folder...
+==> master: Mounting folder via SSHFS: /root/k8s-vagrant-multi-node/data/shared => /shared
+
+
+ master: ++ KUBELET_EXTRA_ARGS_FILE=/etc/default/kubelet
+    master: ++ '[' -f /etc/default/kubelet ']'
+    master: ++ echo 'KUBELET_EXTRA_ARGS=--node-ip=192.168.26.10 '
+    master: ++ systemctl daemon-reload
+    master: ++ systemctl restart kubelet.service
+    master: /root
+    master: ++ echo /root
+    master: ++ mkdir -p /root/.kube
+    master: ++ cp -Rf /etc/kubernetes/admin.conf /root/.kube/config
+    master: +++ id -u
+    master: +++ id -g
+    master: ++ chown 0:0 /root/.kube/config
+
+vagrant@master:~$ mkdir .kube
+vagrant@master:~$ sudo cp /etc/kubernetes/admin.conf .kube/config
+vagrant@master:~$ sudo chown vagrant:vagrant .kube/config
+
+
+
+
+*** To remove domain of qemu/kvm
+vagrant destroy
+virsh list --all
+virsh destroy <THE_MACHINE> 
+virsh undefine <THE_MACHINE> --snapshots-metadata --managed-save
+virsh vol-list default
+virsh vol-delete --pool default <THE_VOLUME>
+
+
+
+
+ 1 node(s) had taint {node-role.kubernetes.io/master: }, that the pod didn't tolerate.
+[vagrant@master ~]$ kubectl describe node master |grep -i taint
+Taints:             node-role.kubernetes.io/master:NoSchedule
+
+tolerations:
+- key: "node-role.kubernetes.io/master"
+  operator: "Exists"
+  effect: "NoSchedul
+
+* kubernets taints
+** add a taint
+kubectl taint nodes node1 key=value:NoSchedule
+
+** remove a taint
+kubectl taint nodes node1 key:NoSchedule-
+
+[vagrant@master multi]$ kubectl describe nodes master |grep -i taint
+Taints:             node-role.kubernetes.io/master:NoSchedule
+[vagrant@master multi]$ kubectl taint nodes master  node-role.kubernetes.io/master:NoSchedule-
+node/master untainted
+
+
+** select node with taint to schedule the pod on
+tolerations:
+- key: "key"
+  operator: "Equal"
+  value: "value"
+  effect: "NoSchedule"
+
+tolerations:
+- key: "key"
+  operator: "Exists"
+  effect: "NoSchedule"
+* kubectl shell into pods 
+kubectl exec shell-demo env
+
+Experiment with running other commands. Here are some examples:
+
+kubectl exec shell-demo -- ps aux
+kubectl exec shell-demo -- ls /
+kubectl exec shell-demo -- cat /proc/1/mounts
+
+Opening a shell when a Pod has more than one container
+
+If a Pod has more than one container, use --container or -c to specify a container in the kubectl exec command. For example, suppose you have a Pod named my-pod, and the Pod has two containers named main-app and helper-app. The following command would open a shell to the main-app container.
+
+kubectl exec -i -t my-pod --container main-app -- /bin/bash
+
+**  scale in/out the resource
+kubectl scale --replicas=2 statefulset.apps/multi-data
+
+
+ls /sys/class/net
+kubectl get nodes --selector=kubernetes.io/role!=master -o jsonpath={.items[*].status.addresses[?\(@.type==\"InternalIP\"\)].address}
+
+* kubectl patch
+kubectl could patch the "spec" of the resource
+** output of get(get all the fields of a resource)
+hpa horizontalpodautoscaler
+
+$kubectl get hpa emms -n npv-cmm-23 -o json
+    "spec": {
+        "maxReplicas": 8,
+        "minReplicas": 2,
+        "scaleTargetRef": {
+            "apiVersion": "apps/v1",
+            "kind": "StatefulSet",
+            "name": "qa-23-emms"
+        },
+        "targetCPUUtilizationPercentage": 80
+    },
+$kubectl patch hpa amms -n npv-cmm-13 --patch "{\"spec\":{\"minReplicas\":3, \"maxReplicas\":5}}"
+
+***  patch statefulset 
+$kubectl get statefulset qa-13-necc -n npv-cmm-13 -o json
+  "spec": {
+   "updateStrategy": {
+            "rollingUpdate": {
+                "partition": 0
+            },
+            "type": "RollingUpdate"
+        }
+    },
+$kubectl patch statefulset necc -p '{"spec": "updateStrategy": { "rollingUpdate": { "partition": 0 }, "type": "RollingUpdate" } } }'
+
+
+   
+
+* istio
+** istio deployment
+*** kube api no proxy setttings
+ vim /etc/kubernetes/manifests/kube-apiserver.yaml 
+ no_proxy=...,istio-sidecar-injector.istio-system.svc
+
+*** Volume setup 
+MountVolume.SetUp failed for volume "istio-certs" : failed to sync secret cache: timed out waiting for the condition
+kubectl delete crd policies.authentication.istio.io
+
+*** apiresource gateway destinationrule virtualservice
+agrant@master:~/istio-1.4.2$ kubectl apply -f samples/tcp-echo/tcp-echo-all-v1.yaml -n istio-io-tcp-traffic-shifting
+gateway.networking.istio.io/tcp-echo-gateway created
+destinationrule.networking.istio.io/tcp-echo-destination created
+virtualservice.networking.istio.io/tcp-echo created
+
+
+
+
+vagrant@master:~/istio-1.4.2$ sudo kubectl api-resources -n istio-io-tcp-traffic-shifting  |grep -i gateway
+gateways                          gw               networking.istio.io/v1alpha3           true         Gateway
+vagrant@master:~/istio-1.4.2$ sudo kubectl get gateways  -n istio-io-tcp-traffic-shifting
+NAME               AGE
+tcp-echo-gateway   49m
+vagrant@master:~/istio-1.4.2$ sudo kubectl api-resources -n istio-io-tcp-traffic-shifting  |grep -i destination
+destinationrules                  dr               networking.istio.io/v1alpha3           true         DestinationRule
+vagrant@master:~/istio-1.4.2$ sudo kubectl get dr  -n istio-io-tcp-traffic-shifting
+NAME                   HOST       AGE
+tcp-echo-destination   tcp-echo   50m
+vagrant@master:~/istio-1.4.2$ sudo kubectl api-resources -n istio-io-tcp-traffic-shifting  |grep -i virtualservice
+virtualservices                   vs               networking.istio.io/v1alpha3           true         VirtualService
+vagrant@master:~/istio-1.4.2$ sudo kubectl get vs  -n istio-io-tcp-traffic-shifting
+NAME       GATEWAYS               HOSTS   AGE
+tcp-echo   ["tcp-echo-gateway"]   ["*"]   51m
+
+
+
+**** virtualservice linked with gateway and service version(subnet) 
+kubectl get virtualservice tcp-echo -o yaml -n istio-io-tcp-traffic-shifting
+spec:
+  gateways: - tcp-echo-gateway
+  hosts: - '*'
+  tcp:
+  - match:
+    - port: 31400
+    route:
+    - destination:
+        host: tcp-echo
+        port:
+          number: 9000
+        subset: v1
+
+**** gateways in istio_ingressgateway pod bind port 31400 for forwording
+vagrant@master:~$ sudo kubectl get gateways tcp-echo-gateway  -n istio-io-tcp-traffic-shifting   -o yaml
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"networking.istio.io/v1alpha3","kind":"Gateway","metadata":{"annotations":{},"name":"tcp-echo-gateway","namespace":"istio-io-tcp-traffic-shifting"},
+          "spec":{"selector":{"istio":"ingressgateway"},"servers":[{"hosts":["*"],"port":{"name":"tcp","number":31400,"protocol":"TCP"}}]}}
+
+
+vagrant@master:~$ kubectl exec -n istio-system istio-ingressgateway-864fd8ffc8-m6vjl  -- netstat -an
+Active Internet connections (servers and established)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State
+tcp        0      0 0.0.0.0:31400           0.0.0.0:*               LISTEN
+tcp        0      0 0.0.0.0:80              0.0.0.0:*               LISTEN
+tcp        0      0 0.0.0.0:15090           0.0.0.0:*               LISTEN
+
+
+**** Destinationrule for host tcp-echo both v1 and v2 are OK
+vagrant@master:~$ sudo kubectl get DestinationRule  -n istio-io-tcp-traffic-shifting
+NAME                   HOST       AGE
+tcp-echo-destination   tcp-echo   130m
+vagrant@master:~$ sudo kubectl get DestinationRule  -n istio-io-tcp-traffic-shifting   -o yaml
+apiVersion: v1
+items:
+- apiVersion: networking.istio.io/v1alpha3
+  kind: DestinationRule
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"networking.istio.io/v1alpha3","kind":"DestinationRule","metadata":{"annotations":{},"name":"tcp-echo-destination","namespace":"istio-io-tcp-traffic-shifting"},
+"spec":{"host":"tcp-echo","subsets":[{"labels":{"version":"v1"},"name":"v1"},{"labels":{"version":"v2"},"name":"v2"}]}}
+
+
+
+***** in host sleep 
+**** map the isotio ingressgateway's external ip and port for outside accessing 
+INGRESS_HOST is the ingress_gateway node ip
+ vagrant@master:~$ kubectl get po -l istio=ingressgateway -n istio-system -o jsonpath='{.items[0].status.hostIP}'
+
+vagrant@master:~$ sudo kubectl get service istio-ingressgateway -n istio-system
+NAME                   TYPE           CLUSTER-IP      EXTERNAL-IP   PORT(S)                                                                                                                                      AGE
+istio-ingressgateway   LoadBalancer   10.99.182.159   <pending>     15020:30786/TCP,31400:30776/TCP,80:30482/TCP,443:30372/TCP,15029:30804/TCP,15030:32098/TCP,15031:30561/TCP,15032:31985/TCP,15443:31416/TCP   8d
+
+
+expose the port 30776 as nodePort for accessing from INGRESS_HOST:30776, and it will go to port 31400 in isotio_ingress_gateway pods
+vagrant@master:~$ sudo kubectl get service istio-ingressgateway -n istio-system -o yaml
+name: tcp
+    nodePort: 30776
+    port: 31400
+    protocol: TCP
+    targetPort: 31400
+
+**** send requests from outside k8s
+ vagrant@master:~$ kubectl exec sleep-854565cb79-fs8jr -n istio-io-tcp-traffic-shifting -c sleep -- sh -c "(date; sleep 1) | nc $INGRESS_HOST 30776"
+one Tue Jan  5 08:46:43 UTC 2021
+
+#### if modify the virtual service tcp-echo configuration's subnet from v1 to v2, then
+ vagrant@master:~$ kubectl exec sleep-854565cb79-fs8jr -n istio-io-tcp-traffic-shifting -c sleep -- sh -c "(date; sleep 1) | nc $INGRESS_HOST 30776"
+two Tue Jan  5 08:46:43 UTC 2021
+
+***** add weight to two differnet micro service version
+kubectl get virtualservice tcp-echo -o yaml -n istio-io-tcp-traffic-shifting >virtualservice_tcp-echo.yaml_v2
+
+edit file virtualservice_tcp-echo.yaml_v2:
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+  ...
+spec:
+  ...
+  tcp:
+  - match:
+    - port: 31400
+    route:
+    - destination:
+        host: tcp-echo
+        port:
+          number: 9000
+        subset: v1
+      weight: 80
+    - destination:
+        host: tcp-echo
+        port:
+          number: 9000
+        subset: v2
+      weight: 20
+
+
+appply it as follow:
+ kubectl apply -f virtualservice_tcp-echo.yaml
+
+vagrant@master:~$ for i in {1..20}; do kubectl exec "$(kubectl get pod -l app=sleep -n istio-io-tcp-traffic-shifting -o jsonpath={.items..metadata.name})" -c sleep
+-n istio-io-tcp-traffic-shifting -- sh -c "(date; sleep 1) | nc $INGRESS_HOST $TCP_INGRESS_PORT"; done
+one Tue Jan  5 09:04:36 UTC 2021
+one Tue Jan  5 09:04:38 UTC 2021
+one Tue Jan  5 09:04:39 UTC 2021
+one Tue Jan  5 09:04:41 UTC 2021
+one Tue Jan  5 09:04:42 UTC 2021
+two Tue Jan  5 09:04:44 UTC 2021
+one Tue Jan  5 09:04:45 UTC 2021
+one Tue Jan  5 09:04:47 UTC 2021
+one Tue Jan  5 09:04:48 UTC 2021
+one Tue Jan  5 09:04:50 UTC 2021
+one Tue Jan  5 09:04:51 UTC 2021
+one Tue Jan  5 09:04:53 UTC 2021
+two Tue Jan  5 09:04:54 UTC 2021
+one Tue Jan  5 09:04:56 UTC 2021
+one Tue Jan  5 09:04:57 UTC 2021
+two Tue Jan  5 09:04:59 UTC 2021
+one Tue Jan  5 09:05:00 UTC 2021
+one Tue Jan  5 09:05:02 UTC 2021
+one Tue Jan  5 09:05:04 UTC 2021
+one Tue Jan  5 09:05:05 UTC 2021
+
+
+
+
+
+
+** istio mesh
+actual proxy is in envoy, and configuration proxy is in pilot
+*** get an overview of your mesh in pods
+ubuntu@master-cmm23-1:~$ istioctl proxy-status
+NAME                                                   CDS        LDS        EDS        RDS          PILOT                            VERSION
+istio-egressgateway-74c46fc97c-tbjhf.istio-system      SYNCED     SYNCED     SYNCED     NOT SENT     istio-pilot-75786cc7b5-tbdvk     1.5.0
+istio-ingressgateway-6966dc8c66-ks4fv.istio-system     SYNCED     SYNCED     SYNCED     NOT SENT     istio-pilot-75786cc7b5-tbdvk     1.5.0
+
+*** Retrieve diffs between Envoy and Istiod(Pilot in control pannel)
+ pilot VS. envoy
+ubuntu@master-cmm23-1:~$ istioctl proxy-status istio-ingressgateway-6966dc8c66-ks4fv.istio-system
+--- Pilot Clusters
++++ Envoy Clusters
+@@ -24,15 +24,15 @@
+                         "commonTlsContext": {
+                            "tlsCertificates": [
+                               {
+                                  "certificateChain": {
+                                     "filename": "/etc/certs/cert-chain.pem"
+                                  },
+                                  "privateKey": {
+-                                    "filename": "/etc/certs/key.pem"
++                                    "filename": "[redacted]"
+Listeners Match
+Routes Match
+---------------------------------------------------------------
+Here you can see that the listeners and routes match but the clusters are out of sync.
+
+
+
+*** proxy configuration for clusters, listeners, routes of pods
+
+vagrant@master:~/istio-1.4.2$ bin/istioctl proxy-status
+NAME                                                           CDS        LDS        EDS        RDS        PILOT                            VERSION
+sleep-854565cb79-fs8jr.istio-io-tcp-traffic-shifting           SYNCED     SYNCED     SYNCED     SYNCED     istio-pilot-64f794cf58-jqmq5     1.4.2
+tcp-echo-v1-6b459455b6-5pmf5.istio-io-tcp-traffic-shifting     SYNCED     SYNCED     SYNCED     SYNCED     istio-pilot-64f794cf58-jqmq5     1.4.2
+tcp-echo-v2-7bbc85bff5-tzvvn.istio-io-tcp-traffic-shifting     SYNCED     SYNCED     SYNCED     SYNCED     istio-pilot-64f794cf58-jqmq5     1.4.2
+
+vagrant@master:~/istio-1.4.2$ bin/istioctl proxy-status istio-ingressgateway-864fd8ffc8-m6vjl.istio-system
+Clusters Match
+Listeners Match
+Routes Match (RDS last loaded at Mon, 28 Dec 2020 06:27:37 UTC)
+vagrant@master:~/istio-1.4.2$
+
+
+**** get cluster proxy config
+vagrant@master:~/istio-1.4.2$ bin/istioctl proxy-config cluster sleep-854565cb79-fs8jr.istio-io-tcp-traffic-shifting
+istio-ingressgateway.istio-system.svc.cluster.local          31400     -              outbound      EDS
+sleep.istio-io-tcp-traffic-shifting.svc.cluster.local        80        -              outbound      EDS
+sleep.istio-io-tcp-traffic-shifting.svc.cluster.local        80        http           inbound       STATIC
+tcp-echo.istio-io-tcp-traffic-shifting.svc.cluster.local     9000      -              outbound      EDS
+tcp-echo.istio-io-tcp-traffic-shifting.svc.cluster.local     9000      v1             outbound      EDS
+tcp-echo.istio-io-tcp-traffic-shifting.svc.cluster.local     9000      v2             outbound      EDS
+
+
+vagrant@master:~/istio-1.4.2$ bin/istioctl proxy-config cluster 7tcp-echo-v1-6b459455b6-5pmf5.istio-io-tcp-traffic-shifting
+sleep.istio-io-tcp-traffic-shifting.svc.cluster.local        80        -              outbound      EDS
+tcp-echo.istio-io-tcp-traffic-shifting.svc.cluster.local     9000      -              outbound      EDS
+tcp-echo.istio-io-tcp-traffic-shifting.svc.cluster.local     9000      tcp            inbound       STATIC
+tcp-echo.istio-io-tcp-traffic-shifting.svc.cluster.local     9000      v1             outbound      EDS
+tcp-echo.istio-io-tcp-traffic-shifting.svc.cluster.local     9000      v2             outbound      EDS
+
+**** get listener  proxy config
+
+vagrant@master:~/istio-1.4.2$ bin/istioctl proxy-config listener tcp-echo-v1-6b459455b6-5pmf5.istio-io-tcp-traffic-shifting
+ADDRESS                                     PORT      TYPE
+10.244.219.93                               9000      TCP   ## netcat tcp echo server pods
+fd76:cbb9:e435:db4d:f2f2:402d:3b99:a19d     9000      TCP
+fe80::e84e:69ff:fef7:5fd7                   9000      TCP
+10.244.219.93                               15020     TCP
+10.99.182.159                               31400     TCP   # istio_ingress_gateway pods
+
+**** get routes
+ingressgateway config only product page 
+routes has match and route two elements
+"match": { "path": "/login",
+
+vagrant@master:~/istio-1.4.2$ bin/istioctl proxy-config routes istio-ingressgateway-864fd8ffc8-m6vjl.istio-system -o json
+[
+    {
+        "name": "http.80",
+        "virtualHosts": [
+            {
+                "name": "*:80",
+                "domains": [ "*", "*:80" ],
+                "routes": [
+                    {
+                        "match": { "path": "/productpage", "caseSensitive": true },
+                        "route": {
+                            "cluster": "outbound|9080||productpage.default.svc.cluster.local",
+                            "timeout": "0s",
+                            "retryPolicy": {
+                                "retryOn": "connect-failure,refused-stream,unavailable,cancelled,resource-exhausted,retriable-status-codes",
+                                "numRetries": 2,
+                                "retryHostPredicate": [
+                                    {
+                                        "name": "envoy.retry_host_predicates.previous_hosts"
+                                    }
+                                ],
+                                "hostSelectionRetryMaxAttempts": "5",
+                                "retriableStatusCodes": [
+                                    503
+                                ]
+                            },
+                            "maxGrpcTimeout": "0s"
+                        },
+                        "metadata": {
+                            "filterMetadata": {
+                                "istio": {
+                                    "config": "/apis/networking/v1alpha3/namespaces/default/virtual-service/bookinfo"
+                                }
+                            }
+                        },
+                        "decorator": {
+                            "operation": "productpage.default.svc.cluster.local:9080/productpage"
+                        },
+                        "typedPerFilterConfig": {
+                            "mixer": {
+                                "@type": "type.googleapis.com/istio.mixer.v1.config.client.ServiceConfig",
+                                "disableCheckCalls": true,
+                                "mixerAttributes": {
+                                    "attributes": {
+                                        "destination.service.host": {
+                                            "stringValue": "productpage.default.svc.cluster.local"
+                                        },
+                                        "destination.service.name": {
+                                            "stringValue": "productpage"
+                                        },
+                                        "destination.service.namespace": {
+                                            "stringValue": "default"
+                                        },
+                                        "destination.service.uid": {
+                                            "stringValue": "istio://default/services/productpage"
+                                        }
+                                    }
+                                },
+
+
+[
+    {
+        "virtualHosts": [
+            {
+                "name": "backend",
+                "domains": [
+                    "*"
+                ],
+                "routes": [
+                    {
+                        "match": {
+                            "prefix": "/stats/prometheus"
+                        },
+                        "route": {
+                            "cluster": "prometheus_stats"
+                        }
+                    }
+                ]
+            }
+        ]
+    }
+]
+
+
+**** 
+
+** deploy bookinfo demo
+*** url host and port
+kubectl get service2 -n istio-system
+istio-ingressgateway     LoadBalancer   10.99.182.159    <pending>     15020:30786/TCP,31400:30776/TCP,80:30482/TCP,443:30372/TCP,15029:30804/TCP,15030:32098/TCP,15031:30561/TCP,15032:31985/TCP,15443:31416/TCP   21d
+80:30482 
+
+
+
+kubectl get po -l istio=ingressgateway -n istio-system -o jsonpath='{.items[0].status.hostIP}'
+192.168.26.10
+
+
+so outside the pods the curl url is http://192.168.26.10:30482/productpage
+*** 
+** istio tcpdump
+*** enable tcpdump in the istio-sidecar-injector
+kubectl get configmap istio-sidecar-injector -n istio-system -o yaml
+save the yaml file and modfify this
+
+values.global.proxy.privileged=true
+##### comment out if 
+{{- if .Values.global.proxy.privileged }}
+          privileged: true
+{{- end }}
+#### save and kubectl apply -f file
+
+
+kubectl exec  istio-ingressgateway-864fd8ffc8-m6vjl  -n istio-system -- sudo tcpdump  port 9080 -A
+####################################################
+vagrant@master:~/istio-1.4.2$ kubectl exec productpage-v1-764fd8c446-dggtm  -c istio-proxy -- sudo tcpdump  port 9080  -A
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on eth0, link-type EN10MB (Ethernet), capture size 262144 bytes
+06:23:51.393391 IP 10-244-219-80.istio-ingressgateway.istio-system.svc.cluster.local.50194 > productpage-v1-764fd8c446-dggtm.9080: Flags [S], seq 2668994244, win 64400, options [mss 1400,sackOK,TS val 3821962340 ecr 0,nop,wscale 7], length 0
+06:23:51.393428 IP productpage-v1-764fd8c446-dggtm.9080 > 10-244-219-80.istio-ingressgateway.istio-system.svc.cluster.local.50194: Flags [S.], seq 451943903, ack 2668994245, win 65236, options [mss 1400,sackOK,TS val 2976544916 ecr 3821962340,nop,wscale 7], length 0
+06:23:51.393467 IP 10-244-219-80.istio-ingressgateway.istio-system.svc.cluster.local.50194 > productpage-v1-764fd8c446-dggtm.9080: Flags [.], ack 1, win 504, options [nop,nop,TS val 3821962340 ecr 2976544916], length 0
+06:23:51.393633 IP 10-244-219-80.istio-ingressgateway.istio-system.svc.cluster.local.50194 > productpage-v1-764fd8c446-dggtm.9080: Flags [P.], seq 1:859, ack 1, win 504, options [nop,nop,TS val 3821962341 ecr 2976544916], length 858
+...e.jx.GET /productpage HTTP/1.1
+host: 192.168.26.10:30482
+user-agent: curl/7.29.0
+accept: */*
+x-forwarded-for: 192.168.121.73
+x-forwarded-proto: http
+x-envoy-internal: true
+x-request-id: bf9e3f47-f9b1-4a8e-972e-37a637462d40
+x-envoy-decorator-operation: productpage.default.svc.cluster.local:9080/productpage
+x-istio-attributes: CikKGGRlc3RpbmF0aW9uLnNlcnZpY2UubmFtZRINEgtwcm9kdWN0cGFnZQoqCh1kZXN0aW5hdGlvbi5zZXJ2aWNlLm5hbWVzcGFjZRIJEgdkZWZhdWx0Ck8KCnNvdXJjZS51aWQSQRI/a3ViZXJuZXRlczovL2lzdGlvLWluZ3Jlc3NnYXRld2F5LTg2NGZkOGZmYzgtbTZ2amwuaXN0aW8tc3lzdGVtCkMKGGRlc3RpbmF0aW9uLnNlcnZpY2UuaG9zdBInEiVwcm9kdWN0cGFnZS5kZWZhdWx0LnN2Yy5jbHVzdGVyLmxvY2FsCkEKF2Rlc3RpbmF0aW9uLnNlcnZpY2UudWlkEiYSJGlzdGlvOi8vZGVmYXVsdC9zZXJ2aWNlcy9wcm9kdWN0cGFnZQ==
+x-b3-traceid: 50d1b0d7a9e91186ca141028260defb9
+x-b3-spanid: ca141028260defb9
+x-b3-sampled: 0
+content-length: 0
+
+
+06:23:51.393646 IP productpage-v1-764fd8c446-dggtm.9080 > 10-244-219-80.istio-ingressgateway.istio-system.svc.cluster.local.50194: Flags [.], ack 859, win 503, options [nop,nop,TS val 2976544917 ecr 3821962341], length 0
+06:23:51.408163 IP productpage-v1-764fd8c446-dggtm.43150 > 10-244-219-85.details.default.svc.cluster.local.9080: Flags [P.], seq 2659335201:2659336016, ack 958487560, win 502, options [nop,nop,TS val 1059073370 ecr 2263891484], length 815
+? -Z..>.GET /details/0 HTTP/1.1
+host: details:9080
+user-agent: curl/7.29.0
+accept-encoding: gzip, deflate
+accept: */*
+x-request-id: bf9e3f47-f9b1-4a8e-972e-37a637462d40
+x-forwarded-proto: http
+x-envoy-decorator-operation: details.default.svc.cluster.local:9080/*
+x-istio-attributes: Cj8KGGRlc3RpbmF0aW9uLnNlcnZpY2UuaG9zdBIjEiFkZXRhaWxzLmRlZmF1bHQuc3ZjLmNsdXN0ZXIubG9jYWwKPQoXZGVzdGluYXRpb24uc2VydmljZS51aWQSIhIgaXN0aW86Ly9kZWZhdWx0L3NlcnZpY2VzL2RldGFpbHMKJQoYZGVzdGluYXRpb24uc2VydmljZS5uYW1lEgkSB2RldGFpbHMKKgodZGVzdGluYXRpb24uc2VydmljZS5uYW1lc3BhY2USCRIHZGVmYXVsdApECgpzb3VyY2UudWlkEjYSNGt1YmVybmV0ZXM6Ly9wcm9kdWN0cGFnZS12MS03NjRmZDhjNDQ2LWRnZ3RtLmRlZmF1bHQ=
+x-b3-traceid: 50d1b0d7a9e91186ca141028260defb9
+x-b3-spanid: 143d6f81dac352f5
+x-b3-parentspanid: 1c9123d2f7e063d3
+x-b3-sampled: 0
+content-length: 0
+
+
+06:23:51.426026 IP 10-244-219-85.details.default.svc.cluster.local.9080 > productpage-v1-764fd8c446-dggtm.43150: Flags [P.], seq 1:344, ack 815, win 502, options [nop,nop,TS val 2263920313 ecr 1059073370], length 343
+E...73@.?.6.
+..U
+..V#x..9!\...?P...........
+....? -ZHTTP/1.1 200 OK
+content-type: application/json
+server: istio-envoy
+date: Thu, 21 Jan 2021 06:23:51 GMT
+content-length: 178
+x-envoy-upstream-service-time: 15
+
+{"id":0,"author":"William Shakespeare","year":1595,"type":"paperback","pages":200,"publisher":"PublisherA","language":"English","ISBN-10":"1234567890","ISBN-13":"123-1234567890"}
+06:23:51.426052 IP productpage-v1-764fd8c446-dggtm.43150 > 10-244-219-85.details.default.svc.cluster.local.9080: Flags [.], ack 344, win 502, options [nop,nop,TS val 1059073388 ecr 2263920313], length 0
+E..4..@.@..,
+..V
+..U..#x..?P9!]_...........
+? -l....
+06:23:51.445888 IP productpage-v1-764fd8c446-dggtm.45856 > 10-244-219-90.reviews.default.svc.cluster.local.9080: Flags [P.], seq 90287540:90288355, ack 1335629575, win 502, options [nop,nop,TS val 347072225 ecr 3898393708], length 815
+E..c.:@.@...
+..V
+..Z. #x.a..O..............
+.....\.lGET /reviews/0 HTTP/1.1
+host: reviews:9080
+user-agent: curl/7.29.0
+accept-encoding: gzip, deflate
+accept: */*
+x-request-id: bf9e3f47-f9b1-4a8e-972e-37a637462d40
+x-forwarded-proto: http
+x-envoy-decorator-operation: reviews.default.svc.cluster.local:9080/*
+x-istio-attributes: Cj8KGGRlc3RpbmF0aW9uLnNlcnZpY2UuaG9zdBIjEiFyZXZpZXdzLmRlZmF1bHQuc3ZjLmNsdXN0ZXIubG9jYWwKPQoXZGVzdGluYXRpb24uc2VydmljZS51aWQSIhIgaXN0aW86Ly9kZWZhdWx0L3NlcnZpY2VzL3Jldmlld3MKJQoYZGVzdGluYXRpb24uc2VydmljZS5uYW1lEgkSB3Jldmlld3MKKgodZGVzdGluYXRpb24uc2VydmljZS5uYW1lc3BhY2USCRIHZGVmYXVsdApECgpzb3VyY2UudWlkEjYSNGt1YmVybmV0ZXM6Ly9wcm9kdWN0cGFnZS12MS03NjRmZDhjNDQ2LWRnZ3RtLmRlZmF1bHQ=
+x-b3-traceid: 50d1b0d7a9e91186ca141028260defb9
+x-b3-spanid: 1ed7cd05a3363b5c
+x-b3-parentspanid: 1c9123d2f7e063d3
+x-b3-sampled: 0
+content-length: 0
+
+
+06:23:51.461957 IP 10-244-219-90.reviews.default.svc.cluster.local.9080 > productpage-v1-764fd8c446-dggtm.45856: Flags [P.], seq 1:513, ack 815, win 502, options [nop,nop,TS val 3898820673 ecr 347072225], length 512
+E..4..@.?...
+..Z
+..V#x. O....a.............
+.cHA....HTTP/1.1 200 OK
+x-powered-by: Servlet/3.1
+content-type: application/json
+date: Thu, 21 Jan 2021 06:23:51 GMT
+content-language: en-US
+content-length: 295
+x-envoy-upstream-service-time: 15
+server: istio-envoy
+
+{"id": "0","reviews": [{  "reviewer": "Reviewer1",  "text": "An extremely entertaining play by Shakespeare. The slapstick humour is refreshing!"},{  "reviewer": "Reviewer2",  "text": "Absolutely fun and entertaining. The play lacks thematic depth when compared to other plays by Shakespeare."}]}
+06:23:51.461979 IP productpage-v1-764fd8c446-dggtm.45856 > 10-244-219-90.reviews.default.svc.cluster.local.9080: Flags [.], ack 513, win 502, options [nop,nop,TS val 347072241 ecr 3898820673], length 0
+E..4.;@.@...
+..V
+..Z. #x.a..O..............
+.....cHA
+06:23:51.471039 IP productpage-v1-764fd8c446-dggtm.9080 > 10-244-219-80.istio-ingressgateway.istio-system.svc.cluster.local.50194: Flags [P.], seq 1:4358, ack 859, win 503, options [nop,nop,TS val 2976544994 ecr 3821962341], length 4357
+E..9.)@.@...
+########################################################
+
+
+** istio feature
+*** Request Routing
+http header request match to route to different version
+-----------------------------------------
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+...
+spec:
+  hosts:
+  - reviews
+  http:
+  - match:
+    - headers:
+        end-user:
+          exact: jason
+    route:
+    - destination:
+        host: reviews
+        subset: v2
+  - route:
+    - destination:
+        host: reviews
+        subset: v1
+----------------------------------------
+
+*** Fault Injection
+add delay time
+-------------------------
+$ kubectl get virtualservice ratings -o yaml
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+...
+spec:
+  hosts:
+  - ratings
+  http:
+  - fault:
+      delay:
+        fixedDelay: 7s
+        percentage:
+          value: 100
+    match:
+    - headers:
+        end-user:
+          exact: jason
+    route:
+    - destination:
+        host: ratings
+        subset: v1
+  - route:
+    - destination:
+        host: ratings
+        subset: v1
+------------------------------
+
+*** Reqeust Timeout
+A timeout for HTTP requests can be specified using the timeout field of the route rule. By default, the request timeout is disabled, but in this task you 
+override the reviews service timeout to 1 second
+--------------------------------
+$ kubectl apply -f - <<EOF
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: reviews
+spec:
+  hosts:
+  - reviews
+  http:
+  - route:
+    - destination:
+        host: reviews
+        subset: v2
+    timeout: 0.5s
+--------------------------------
+
+client will wait for 0.5s for response, if it exceed 0.5s, all the communication will drop.
+
+
+*** http traffic shifting
+add weight to different routes
+-----------------------------
+$ kubectl get virtualservice reviews -o yaml
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+...
+spec:
+  hosts:
+  - reviews
+  http:
+  - route:
+    - destination:
+        host: reviews
+        subset: v1
+      weight: 50
+    - destination:
+        host: reviews
+        subset: v3
+      weight: 50
+----------------------
+
+
+***  tcp traffic shifting
+$ kubectl get virtualservice tcp-echo -o yaml -n istio-io-tcp-traffic-shifting
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+  ...
+spec:
+  ...
+  tcp:
+  - match:
+    - port: 31400
+    route:
+    - destination:
+        host: tcp-echo
+        port:
+          number: 9000
+        subset: v1
+      weight: 80
+    - destination:
+        host: tcp-echo
+        port:
+          number: 9000
+        subset: v2
+      weight: 20
+
+
+
+
+*** circuit breaking
+at one time, only one connection allowed, Destination Rule 
+============================================================
+$ kubectl apply -f - <<EOF
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: httpbin
+spec:
+  host: httpbin
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 1
+      http:
+        http1MaxPendingRequests: 1
+        maxRequestsPerConnection: 1
+    outlierDetection:
+      consecutiveErrors: 1
+      interval: 1s
+      baseEjectionTime: 3m
+      maxEjectionPercent: 100
+EOF
+===================================================
+In the DestinationRule settings, you specified maxConnections: 1 and http1MaxPendingRequests: 1. These rules indicate that if you exceed more than one connection and 
+request concurrently, you should see some failures when the istio-proxy opens the circuit for further requests and connections.
+when concurretly http request sent, some return error code 503
+---------------------
+Code 200 : 17 (85.0 %)
+Code 503 : 3 (15.0 %)
+---------------------

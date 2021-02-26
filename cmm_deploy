@@ -1,0 +1,16 @@
+"http://135.111.28.198/~cmmloads/scm/mme_delivery/CMM21.0.2/CI/Images/{cmm-aimcpps_CMM21.0.2_B
+curl -k -L http://135.111.28.198/~cmmloads/scm/mme_delivery/CMM21.0.2/CI/Images
+
+http://135.111.28.199/~ltelogs/yaml/files/NPV-CMM-13
+
+cmm5-1  ssh ubuntu@135.111.39.82
+cmm-23    ssh ubuntu@135.111.39.194
+
+  ssh ubuntu@135.2.26.34
+ 1984  ssh ubuntu@135.2.215.19
+ 1985  ssh ubuntu@135.111.39.130
+ 1986  ssh ubuntu@135.111.39.82
+ 1987  history |grep ssh
+ 1989  ssh ubuntu@135.111.39.130
+ 2000  history |grep ssh
+

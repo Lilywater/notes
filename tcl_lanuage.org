@@ -1,0 +1,324 @@
+* basic variable define
+tclsh
+%
+** variables definition
+% set a 5
+%set location "Indian Hill Main"
+
+** variables deletion
+% unset a
+puts Hello\ $location
+Hello Indian Hill main
+
+** variables refrence
+% set a1 5
+5
+% set a2 $a1
+5
+%set a2
+5
+
+% puts $a2
+5
+
+% puts $abc
+1
+** built-in append
+append takes a variable name as its first argument, and any number of other words as additional arguments.
+append variable string ...
+% set foo z
+z
+% append foo a b   ### note here foo without $ to reference it, 
+zab
+
+* basic of tcl data structure
+** list
+set lstname {item1 item2 item3}
+set a list "lstname" as those value with space separated in bracket
+% set lstname {item1 item2 item3}
+item1 item2 item3
+% puts lstname
+lstname
+% puts $lstname
+item1 item2 item3
+
+% set a "thisis"
+thisis
+% puts a
+a
+% a.append("aa")
+invalid command name "a.append("aa")"
+% lappend a 34
+thisis 34
+% set a ""
+% puts $a
+
+% lappend a 34
+34
+% puts $a 34
+%
+
+*** list item could be a list or any type
+**** netsted  list
+% list "item 1" "item2" "item 3 a3"
+{item 1} item2 {item 3 a3}
+
+% set lst [list "item 1" "item 2" "item 3"]
+
+{item 1} {item 2} {item 3}
+% print $lst
+invalid command name "print"
+% puts $lst
+{item 1} {item 2} {item 3}
+
+
+** array 
+*** array could be set as a list format {}
+% array set val {a 1 c 5 d 7}
+% parray val
+val(a)  = 1
+val(c)  = 5
+val(d)  = 7
+*** [] return the list function value
+% array unset val
+% array set val [list a 1 c b d 3]
+% parray val
+val(a) = 1
+val(c) = b
+val(d) = 3
+
+
+% set port {a 1}
+array set val [list [lindex $port 0] [lindex $port 1]]a 1
+%
+% array set a [list [lindex $port 0] [lindex $port 1]]
+% parray a
+a(a) = 1
+
+** dictionary 
+*** create dict
+dict set colours  colour1 red 
+puts $colours
+colour1 red
+
+dict set colours  colour2 green
+puts $colours
+colour1 red colour2 green
+
+set colours [dict create colour1 "black" colour2 "white"]
+puts $colours
+colour1 black colour2 white
+
+*** Size of Dict
+[dict size dictname]
+
+set colours [dict create colour1 "black" colour2 "white"]
+puts [dict size $colours]
+
+2
+
+*** Dictionary Iteration
+set colours [dict create colour1 "black" colour2 "white"]
+foreach item [dict keys $colours] {
+   set value [dict get $colours $item]
+   puts $value
+}
+
+
+black
+white
+
+*** Value for Key in Dict
+[dict get $dictname $keyname]
+set colours [dict create colour1 "black" colour2 "white"]
+set value [dict get $colours colour1]
+puts $value
+
+
+black
+
+[dict keys $dictname]
+
+set colours [dict create colour1 "black" colour2 "white"]
+set keys [dict keys $colours]
+puts $keys
+
+
+colour1 colour2
+
+*** All Values in Dict
+
+
+[dict values $dictname]
+
+
+set colours [dict create colour1 "black" colour2 "white"]
+set values [dict values $colours]
+puts $values
+
+When the above code is executed, it produces the following result −
+
+black white
+
+*** Key Exists in Dict
+The syntax for checking if a key exists in dict is shown below −
+
+[dict exists $dictname $key]
+
+set colours [dict create colour1 "black" colour2 "white"]
+set result [dict exists $colours colour1]
+puts $result
+
+* tcl function definition
+proc function_name {  }  ### the brace is a list which could be empty or not
+** function without argument
+#!/usr/bin/tclsh
+
+proc helloWorld {} {
+   puts "Hello, World!"
+}
+helloWorld
+
+When the above code is executed, it produces the following result −
+
+Hello, World!
+
+** function/Procedures with Multiple Arguments
+#!/usr/bin/tclsh
+
+proc add {a b} {
+   return [expr $a+$b]
+}
+puts [add 10 30]  ### arguments seprated as space
+
+40
+
+** funcion/Procedures with Variable Arguments
+% proc avg {numbers} {
+  puts [lindex $numbers 0]
+  puts [lindex $numbers 1]
+}
+% avg {10 a6}   ##### arguments as a list
+10
+a6
+
+** function/Procedures with Default Arguments
+proc add {a {b 100} }  ### this means argument b's default value is 100
+ {
+   return [expr $a+$b]
+}
+puts [add 10 30]
+puts [add 10]
+
+40
+110
+
+** Recursive Procedures
+proc factorial {number} {
+   if {$number <= 1} {
+      return 1
+   } 
+   return [expr $number * [factorial [expr $number - 1]]]
+
+}
+puts [factorial 3]
+6
+
+** bulit in  function
+*** expr
+% puts [expr 1*3]
+% 3
+
+
+The eval Command
+eval is the Tc interpreter itself. It takes a Tcl script as a string, passes it to the interpreter for evaluation, and returns the result. In fact, eval takes any number of string arguments and concatenates them together into a single string with whitespace separating the arguments before evaluation.
+
+eval is useful for evaluating Tcl scripts passed by name. Consider this procedure that applies a Tcl script to a value:
+
+proc apply {script value} {
+    $script $value
+}
+
+Does it work? Sometimes:
+
+proc I x {set x}
+apply I foo
+=> foo
+Error: invalid command name "K 12"
+
+The problem is that Tcl only does one level of evaluation: it expands $script to K 12 and $value to foo, but the arguments are already boxed, so Tcl then gets an error looking for a command named K 12. This behavior is very simple and easy to understand, and so is usually what you want. But not in this case. eval is meant to solve precisely these problems.
+
+proc apply {script value} {
+    eval $script $value
+}
+apply {K 12} foo
+=> 12
+apply {expr 1 +} foo
+Error: syntax error in expression "1 + foo"
+apply {expr 1 +} 567
+=> 568
+
+
+** bu
+proc unknownStrCmd {string subcommand args} {
+        puts "Passing $subcommand through to strCore"
+        return [list strCore $subcommand {*}$args]
+}
+
+* class definition
+itcl::class className {
+    inherit baseClass ?baseClass...?
+    constructor args ?init? body
+    destructor body
+    method name ?args? ?body?
+    proc name ?args? ?body?
+    variable varName ?init? ?config?
+    common varName ?init?
+
+    public command ?arg arg ...?
+    protected command ?arg arg ...?
+    private command ?arg arg ...?
+
+    set varName ?value?
+    array option ?arg arg ...?
+}
+
+className objName ?arg arg ...?
+
+objName method ?arg arg ...?
+
+className::proc ?arg arg ...?
+
+------------------------------------- 
+The fundamental construct in [incr Tcl] is the class definition. Each class acts as a template for actual objects that can be created. The class itself is a namespace which contains things common to all objects. Each object has its own unique bundle of data which contains instances of the "variables"
+ defined in the class definition. Each object also has a built-in variable named "this", which contains the name of the object. Classes can also have "common" data members that are shared by all objects in a class.
+
+A class can only be defined once, although the bodies of class methods and procs can be defined again and again for interactive debugging. See the body and configbody commands for details.
+
+Each namespace can have its own collection of objects and classes. The list of classes available in the current context can be queried using the "itcl::find classes" command, and the list of objects, with the "itcl::find objects" command.
+
+A class can be deleted using the "delete class" command. Individual objects can be deleted using the "delete object" command. 
+
+** data members[ variable of class]
+***  variable data members
+variable varName ?init? ?config?
+    Defines an object-specific variable named varName. All object-specific variables are automatically available in class methods. They need not be declared with anything like the global command.
+    If the optional init string is specified, it is used as the initial value of the variable when a new object is created. Initialization forces the variable to be a simple scalar value; uninitialized variables, on the other hand, can be set within the constructor and used as arrays.
+    The optional config script is only allowed for public variables. If specified, this code fragment is executed whenever a public variable is modified by the built-in "configure" method. The config script can also be specified outside of the class definition using the configbody command.
+
+*** common data memembers
+common varName ?init?
+    Declares a common variable named varName. Common variables reside in the class namespace and are shared by all objects belonging to the class. They are just like global variables, except that they need not be declared with the usual global command. They are automatically visible in all class methods and procs.
+    If the optional init string is specified, it is used as the initial value of the variable. Initialization forces the variable to be a simple scalar value; uninitialized variables, on the other hand, can be set with subsequent set and array commands and used as arrays.
+    Once a common data member has been defined, it can be set using set and array commands within the class definition. This allows common data members to be initialized as arrays. For example: 
+
+** function of class
+*** "Methods" 
+ functions which operate on a specific object, and therefore have access to both "variables" and "common" data members.
+
+
+***  "Procs"
+ ordinary procedures in the class namespace, and only have access to "common" data members.
+If the body of any method or proc starts with "@", it is treated as the symbolic name for a C procedure. Otherwise, it is treated as a Tcl code script. See below for details on registering and using C procedures.
+
+
