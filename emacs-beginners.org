@@ -12,16 +12,26 @@ C-h a     查找 (关键字)
 C-h m     模式帮助
 寻找快捷键  输入M-x method 就可知道此命令有否绑定的快捷键
 
+*** execute method/function
+Alt+x ---->   M-x
+
 *** 配置文件.emacs生效
 不退出emacs就让配置文件生效  M-x eval-buffer
 
 *** 光标移动
+
+Unless you added a description to your link. Then, instead you should use the shortcut C-u C-c C-x C-v.
+Moving to top or end of the buffer
+M-<
+M->
 C-v 向上滚屏；M-v 向下滚屏
+
                上一行C-p
                    |
         向后移C-b ---向前移C-f
                    |
                  下一行C-n
+
 向后移一词（中文一标点）M-b ；向前移一词（中文一标点）M-f
 Meta系命令――语言单位（词，句子，段落等）
 Ctrl系命令――与语言无关基本单位（字符，行等）
@@ -58,6 +68,7 @@ gdb         M-x gdb
 日历        M-x calendar
 shell mode  M-x shell
 bbs         M-x ansi-term
+M-s .  search the word in cursor
 C-s  向前搜索；     
 C-r  向后搜索
 C-q  解除屏幕冻结
@@ -67,12 +78,106 @@ C-M-Shift-v向下滚动下一个窗口
 C-x o 切换光标到下一个窗口
 C-x C-q 改变缓冲区的只读状态
 
+** quik tutirial 
+C-g   #quit a partical entered command
+C-x C-c  # end emacs session
+
+C-x C-b       #list buffer
+C-x b <Buffername>  #swich to buffer by name
+C-x <-    prev buffer
+C-x ->    next buffer
+ 
+C-x 2  #split the current windown into 2
+C-x o  #select another window
+C-x 0  #del current window  
+
+C-x 4 b <BUFNAME>   # open a buffer in another window
+C-x C-o <filename>   # open a fiel in another window
+
+
+M-! <shell_comand>   #run the shell command and diplay the output(`shell-commad'
+ 
+C-x C-f  #find a file
+C-x C-s #save
+C-/    # undo
+
+evaluate a piece of Emacs Lisp code
+the code in between ()
+in "*scratch*" buffer, C-j to evaluate it
+(getenv "PATH") 
+(getenv "HOME") 
+
+
+
+** text eding 
 *C-@        mark a point（then shift and arrow key to select a region)*
 *** copy and paste
 C-w 剪切
    #run the shell command and diplay the output(`shell-commad'
 M-w 复制
 C-y 粘贴
+
+
+C-@  or C-<space>       mark a point（then shift and arrow key to select a region)*
+C-w 剪切  kill a region
+C-k  kill a line right of  the rest of the cursor 
+M-w 复制
+C-y 粘贴
+
+C-w ⇒ Cut (really kill)
+M-w ⇒ Copy (really kill-ring-save)
+C-y ⇒ Paste (really yank)
+M-y (after C-y) ⇒ Historic Paste of old cuts/copies “bonus” (really yank-pop, that is to say the kill-ring cometh)
+
+
+*** block or region editing
+**** select a region
+C-x-<space> start to block mode marking,
+select the region
+
+**** insert characters in the region
+C-x r t,
+inserting character you want in all the region
+
+M-x string-insert-rectangle <RET> STRING <RET>
+
+**** operations on the region
+C-w 剪切  kill a region
+M-w 复制
+C-y 粘贴
+
+
+
+
+emacs -nw // running in console
+
+In term mode the normal prefix key for Emacs commands is C-c. It works
+pretty much like C-x prefix key elsewhere in Emacs. I prefer using C-x
+in term mode too so I do this in my ~/.emacs file:
+
+    (add-hook 'term-mode-hook
+              '(lambda ()
+                 (term-set-escape-char ?\C-x)))
+
+how to redefine a key of some command
+C-h k 
+to search the command name
+C-@
+help text
+C-@ runs the command set-mark-command, 
+so in .emacs
+
+(global-set-key (kbd "C-c ,") 'set-mark-command) ; Ctrl+c ,
+ 
+In emacs, you can create any keyboard shortcut to any command. This page shows you how.
+
+For example, if you want 【F9】 for calendar, then, place this code (global-set-key (kbd "<f9>") 'calendar) in your emacs init file and restart emacs.
+
+If you are experimenting, and don't want to restart emacs every time you try to define a new key, you can place cursor at the end of parenthesis and call eval-last-sexp 【Ctrl+x Ctrl+e】. The new key will be active right away.
+
+
+
+
 *** 保存和回复工作环境
 （desktop-save-mode 1）
 M-x desktop-save-mode  #will save the desktop when emacs quit
@@ -139,7 +244,8 @@ In this mode, changing the filenames in the right-hand column and then typing C-
 M-x ispell-complete-word   ##will complete
 M-x flyspell-mode    ## will underline the wrong spelled words
 
-** 字典功能。							       :dict:
+** 字典功能。
+   :dict:
 aptitude安装dict-xdict, dictd, dictionary-el, 然后在.emacs中写
 (setq dictionary-sever "localhost")
 若想在线http://www.dict.org 查词，便不用安装dictd
@@ -225,15 +331,46 @@ M-x customize-face RET default RET
 Emacs建立目录树是很简单的。使用* 3就可以了。一级是一个*，二级是两个*，以此类推。当你导出以后会自动
 的生成目录链接。 在Emacs里面使用Shift+Tab键可以收起所有的目录树，再按Tab可以依次展开。
 Alt+左右方向键是减少/增加当前节点的层级.Alt+Shift+左右方向键 可以将效果作用到子节点上。Alt+上下键可以移动节点。
-**** Tag							:tag:for:tag:
+**** Tag
+     :tag:for:tag:
 当目录树的节点越来越多时，查找就不方便了，这时候可以给节点添加Tag。光标到节点上，Ctrl+c两次，
 就会提醒你输入tag添加即可。要查询tag，Ctrl+c \ 就可以了。 files/03.png
 
 **** 链接
+[[./pic/curev.jpg]][picture desciption]]
 链接格式[[link][]]  后面的中括号内是description可以省略
 按下Ctrl+c Ctrl+l就可以添加一个链接，可以链接任何文件。只要输入绝对路径或相对路径即可。
  对于图片来说，如果不给图片添加描述的话，在导出的时候，Emacs会自动显示图片，如果添加了描述则是超链接形式了。
-链接文件的名称，位置都由我来控制，即使我不使用Emacs了，我依然能到目录里面找到需要的文件。
+
+***** display the  link in plain text
+M-x font-lock-mode
+
+***** display the inline image link
+C-c C-x C-v (org-toggle-inline-images)
+Unless you added a description to your link. Then, instead you should use the shortcut C-u C-c C-x C-v.
+
+***** display inline image link with command
+the global command M-x org-display-inline-images. 
+
+
+Always display inline images in all Org files
+
+Add this line to your Emacs configuration file. It tells Emacs that each time you open an Org file it must display the images instead of its link.
+
+(setq org-startup-with-inline-images t)
+
+If you use this setting and don’t want to see images in a specific file, add this at the top of the org files that are not to display images:
+
+#+STARTUP: noinlineimages
+Display inline images in selected Org files only
+
+On the contrary, if you always want to see images save in specific org files:
+
+Don’t add the setq instruction we just saw
+  Add this line at the top of each file for which you want Emacs to display its images:
+
+        #+STARTUP: inlineimages
+
 
 **** 脚注
 Ctrl+c Ctrl+x f会自动给光标处添加一个脚注。我已经在上面添加了几个脚注了。添加完脚注，再按一次Ctrl+c Ctrl+x f就会回到原来添加脚注的地方。
@@ -257,7 +394,7 @@ emacs把第一行以|开头的行认做表格
 2到3步输入文本按tab会自动对齐
 
 **** TODO Write a letter to Don
-     SCHEDULED: <2011-10-13 四> DEADLINE: <2011-10-15 六>
+     :SCHEDULED: <2011-10-13 四> DEADLINE: <2011-10-15 六>
 可以做计划列表，名字特定为TODO，全部大写。 
 
  时间控制
@@ -317,13 +454,14 @@ nnml:mail.misc、        （～/Mail/mail/misc)   //misc 是个目录
     * C-c C-s C-l gnus-summary-sort-by-lines
     * C-c C-s C-n gnus-summary-sort-by-number
 
+**** 
 **** 查找 *所有* 邮件内容
 很多邮件的客户端程序都没有做到这点，其实用grep命令就可以搜索到
 grep -nH "pattern" misc
 找到后查看此邮件的subject，可以在邮件列表中找到这个subject的邮件
 有时因为编码问题grep查找中文会有问题，因为一般是GBK编码，grep
 用utf-8，所以可以用enca转换后查找 enca -x utf-8 <110 |grep 莉莉
-[[./chinese-encoding]]
+[[./pic/chinese-encoding]]]
 ****** 这基本上是使用gnus查看邮件的主要原因
 **** 删除邮件
   在buffer区，光标所在处  B-<delete>
@@ -346,93 +484,6 @@ grep -nH "pattern" misc
 
 
 
-
-
-
-* quik tutirial 
-C-g   #quit a partical entered command
-C-x C-c  # end emacs session
-
-C-x C-b       #list buffer
-C-x b <Buffername>  #swich to buffer by name
-C-x <-    prev buffer
-C-x ->    next buffer
- 
-C-x 2  #split the current windown into 2
-C-x o  #select another window
-C-x 0  #del current window  
-
-C-x 4 b <BUFNAME>   # open a buffer in another window
-C-x C-o <filename>   # open a fiel in another window
-
-
-M-! <shell_comand>   #run the shell command and diplay the output(`shell-commad'
- 
-C-x C-f  #find a file
-C-x C-s #save
-C-/    # undo
-
-
-
-*C-@        mark a point（then shift and arrow key to select a region)*
-C-w 剪切
-   #run the shell command and diplay the output(`shell-commad'
-M-w 复制
-C-y 粘贴
-
-C-w ⇒ Cut (really kill)
-M-w ⇒ Copy (really kill-ring-save)
-C-y ⇒ Paste (really yank)
-M-y (after C-y) ⇒ Historic Paste of old cuts/copies “bonus” (really yank-pop, that is to say the kill-ring cometh)
-emacs -nw // running in console
-
-In term mode the normal prefix key for Emacs commands is C-c. It works
-pretty much like C-x prefix key elsewhere in Emacs. I prefer using C-x
-in term mode too so I do this in my ~/.emacs file:
-
-    (add-hook 'term-mode-hook
-              '(lambda ()
-                 (term-set-escape-char ?\C-x)))
-
-how to redefine a key of some command
-C-h k 
-to search the command name
-C-@
-help text
-C-@ runs the command set-mark-command, 
-so in .emacs
-
-(global-set-key (kbd "C-c ,") 'set-mark-command) ; Ctrl+c ,
- 
-In emacs, you can create any keyboard shortcut to any command. This page shows you how.
-
-For example, if you want 【F9】 for calendar, then, place this code (global-set-key (kbd "<f9>") 'calendar) in your emacs init file and restart emacs.
-
-If you are experimenting, and don't want to restart emacs every time you try to define a new key, you can place cursor at the end of parenthesis and call eval-last-sexp 【Ctrl+x Ctrl+e】. The new key will be active right away.
-
-
-MOving to top or end of the buffer
-M-<
-M->
-
-block /rectangle
-C-x r r R 
-copy the rectagnel into Register R
-
-C-x r i R
-Instert the rectagnle in Reg R 
-
-
-C-x r k
-kill the rectangle and save it in kill-rect
-
-C-x r d
-delete the rectagle only
-
-C-x r y
-copy the rectangle stored in kill-rectangle
-
-M-x string-insert-rectangle <RET> STRING <RET>
 
 
 
@@ -802,3 +853,11 @@ M-x geben-end
 
 
 
+** debug lisp
+M-x debug-on-entry RET <functionname> RET
+evaluating the following in scratch buffer:
+(<functionname> <arg>)       ctrl+j
+
+d  step into a line 
+c  jump to another <function> setting by debug-on-entry
+l  list the <functions> set by debug-on-entry

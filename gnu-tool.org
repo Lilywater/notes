@@ -128,6 +128,7 @@ ms/call    function and its descendents per call, if this
 ** only for some user
 
 *** in command line
+core dump file location
 在linux平台下，设置core dump文件生成的方法：
 1) 在终端中输入ulimit -c 如果结果为0，说明当程序崩溃时，系统并不能生成core dump。
 2) 使用ulimit -c unlimited命令，开启core dump功能，并且不限制生成core dump文件的大小。如果需要限制，加数字限制即可。ulimit - c 1024

@@ -40,6 +40,7 @@ Ctrl + Shift + F8 查看所有断点
 Ctrl + N          快速查找类（也可查找当前工程中的文件，以文件名查找）
 Double Shift      任意位置查找  
 
+
 * iota importing after it satrt
 /local/ltemme/iota/itasiotaserver -s 540 -c ./runiotaflex -a TA -p 2121
 ...
@@ -382,6 +383,75 @@ proc 5gRegisAccept { args } {
         return 0
     }
 ---------------------------------------------------------------------------------------------
+    proc RunCSM { scen } {
+                    catch { $scen start }     ## this is similar to Scenario nssf_r16_test {..}  nssf_r16_test start       
+---------------------------------------------------                    
+when the test code is just like:
+scen_common_chain send amf_net1 <- gnb01 -msg  -mapping ::c_ue
+
+**** procedure of addchain
+  scen_common_chain addchainedsm "N2_NGSETUP_FAILURE" $::CSM::sm_NgSetupFailure_tgt_amf init done
+
+****  procedure to add CSM::TRIGGER
+proc InitNonUeN2InfoSubscribeRequest_mod { args } {
+    prepend ::CSM::TRIGGER(PRE_NLS_DETERMINELOCATIONREQUEST_AMF_TRIGGER) {
+       set ::c_ue(snd_nonue_n2info_subscribe_hdrframe) "basic_amf_non_ue_n2_info_subscribe_hdrframe_req"
+       set ::c_ue(snd_hdrblk_path)  "/namf-comm/v1/non-ue-n2-messages/subscriptions"
+       puts "QQQp tty2"
+       send amf_net1 <- lmf1_c -msg $::c_ue(snd_nonue_n2info_subscribe_hdrframe) -mapping ::c_ue
+       send ${::TARGET_AMF_NET} <- $::c_ue(lmfsim_c) -msg $::c_ue(snd_nonue_n2info_subscribe_hdrframe) -mapping ::c_ue
+    }
+     prepend ::CSM::TRIGGER(PRE_Nls_NONUEN2MESSAGETRANSFERREQ_AMF_TRIGGER) {
+        set ::c_ue(nonuemsgtransfer_contentid)   "nrppac_test"
+     }
+}
+
+
+
+add this InitNonUeN2InfoSubscribeRequest_mod in the beginning of the IOTA Procedure <5GRegistration..>
+-----
+proc 5gMTLR { args } {
+    InitNonUeN2InfoSubscribeRequest_mod  -lmfsim_c lmf1_c
+....
+}
+=======
+these need to be eval ed in the state machine
+------------------------------------------
+switch $msgType {
+				"DETERMINELOCATIONREQ" {
+					eval $::CSM::TRIGGER(PRE_NLS_DETERMINELOCATIONREQUEST_AMF_TRIGGER)
+					db update $::c_ue(rcv_data_NLsDetermineLocation) -mapping ::c_ue
+------------------------------------
+
+**** add_delay
+
+5gMTLR -positioning nonue_nrppa -postinitproc { 
+scen_common_chain addchainedsm "NONUEN2INFOSUBSCRIBERREQUEST" $::CSM::sm_nonUeN2InfoSubscribe init done;
+add_delay -state PRE_NLS_DETERMINELOCATIONRESPONSE_LMF_TRIGGER -delay 50000 -removeSm false; }
+
+in state machine, when evalute this trigger, it will delay 50000 ms?
+--------------------
+ eval $::CSM::TRIGGER(PRE_NLS_DETERMINELOCATIONRESPONSE_LMF_TRIGGER)
+- ---------------------
+
+========
+add_delay: Time before delay: "Thu, 31 Mar 2022 08:52:17 GMT"
+add_delay: Time after delay: "Thu, 31 Mar 2022 08:53:07 GMT"
+amf_net1_3 <--- HEADERSFRAME ---- lmf1_s
++++
+HTTP2 {{BODY {@HEADERSFRAME {{FLAGS $04} {HDRBLKFRAGMENT {{STATUS "200"} {TGPPSBIPRODUCERID EMPTY}}} {STREAMID $00000001}}}} {localName lmf1_s} {remoteName amf_net1_3}}
+
+>>>>>> SEND MESSAGE TEMPLATE: basic_snd_lmf_determine_location_res_hdrframe_tgt_amf
+amf_net1_3 <--- DATAFRAME(DETERMINELOCATIONRSP) ---- lmf1_s
+============
+
+CSM::CSM_STATE_MACHINE ::CSM::sm_nonUeN2InfoSubscribe {...}
+append ::CSM::TRIGGER(PRE_NLS_DETERMINELOCATIONRESPONSE_LMF_TRIGGER) {
+         |                       set ::c_ue(snd_lmf_determine_location_res_hdrframe)   snd_lmf_determine_location_problemdetails_hdrframe_rsp
+                 |                       set ::c_ue(snd_lmf_problemdetails_hdr_status)         $::f20018_params(lmf_status)
+                                         }
+
+
 
 ****  state machine defined not in CSM scope
 CSM::CSM_STATE_MACHINE ::CSM::sm_NgSetupResponse_tgt_amf {
@@ -621,6 +691,19 @@ Scenario scen_common_chain {
 ctpapp/lte/eps/msg/nudm.msgd
 ----------------------------------------------------
 ..
+**** field type string
+string size is how many characters of the string like "1234"
+set size 0x0004
+
+**** filed type int
+#range 0 to 9
+field:AdditionalTnlNbInt
+       set desc "AdditionalTnlNb"
+       set size 0x0001
+###        
+       set size 0x0002   #### range 11 to 99
+       set size 0x0001~0x0002   #### range 1 to 99
+
 
 field:MessageLength
         set desc "Message Length"
@@ -1276,6 +1359,24 @@ HTTP2MSG {
 
 
 * iota and Robot case
+Current installed IOTA version: 'iota_prod'
+Required IOTA Version: 'iota_v3_tag0118'
+Downloading and installing IOTA: 'iota_v3_tag0118'
+Configuring the IOTA Simulator
+
+** get iota version the testcase wanted in IOTA.py
+   def _wanted_iotaver(self):
+    |   ver = os.getenv('IOTA_VERSION')
+    |   if not ver:
+    |   |   application = self.sysInfo_application('application')
+    |   |   logger.info('cmm systemInfo show - application = {}'.format(application))
+    |   |   releaseNum = self.sysInfo_application('releaseNum')
+    |   |   logger.info('cmm systemInfo show - releaseNum = {}'.format(releaseNum))
+    |   |   # example: releaseNum = "20.0.0"  for CMM20.0.0 project
+    |   |   if application.lower() == 'amf':
+    |   |   |   if releaseNum == '20.0.2_example':
+
+
 ** invoking iota procedure asynchronizedly
 *** start iota procedure async (execute next robot clause immediately, not waiting for it complete)
 Iota Async Procedure Start 5gNgAmfConfigurationUpdate, -N2LinkCount ${totalN2Links} 
@@ -1433,3 +1534,1386 @@ Full Name:	F10904-11 Dc Pra Ite Regression.ite010 inter sys TAU with SGW reloc n
 /usr/tmp/getiotastack to get core dump files
 in the directory, open the dump file
 wisebridge could be ingroed
+
+* iota development
+** iota update 5G message
+*** iota message definition
+------------------------------
+set:updatesmcontextreq
+begin
+           ### field is upper case of the jsonname for encoding/decoding
+        CPCIOTENABLED          :        CpCiotEnabledBool      -O
+
+---------------------------------------------------------------------------------
+
+
+-----------------------------------------
+field:CpCiotEnabledBool
+  set desc "cpCiot Enabled"
+  set jsontype "boolean"
+  set jsonname "cpCiotEnabled"  ### json name defined in yaml property
+  set class "SBABoolean"
+end
+----------------------------
+
+
+
+**** iota test message
+encoding message:
+----------------------------
+ [01440]:  33 22 2c 20 22 63 70 43   69 6f 74 45 6e 61 62 6c   3", "cpCiotEnabl
+ [01450]:  65 64 22 3a 20 66 61 6c   73 65 2c 20 22 63 70 4f   ed": false, "cpO
+----------------------------------
+
+in message template:
+   {CPCIOTENABLED false}
+
+*** iota message multiple definition
+in *.msgd file, if you define a jsonname named SESSIONID, and other files alreay define it, you should set it in ignoreSymbols, or the linking to libEps.so library will fail
+set ignoreSymbols { BODY SESSIONID
+
+this could be detected here:
++ /umts6/atca/RHEL6.Xlcp/cross_120302/Xgcc/xgcc-i386/bin/i386-redhat-linux-g++ libEps.so.objfiles -fPIC -shared -Wl -L. -L/umts6/atca/RHEL6.Xlcp/ver_180104/product_loc/rpms_only/xgcc-i386/usr/lib -o ../../../../../../../obj/linux_x86/iota/opt/lib/libEps.so
+/wmm_nbu/glili/IOTA_REp/1_iota/obj/linux_x86/iota/ctpapp/lte/eps/linux_x86_iota_ctpapp_lte_eps5/NsmfMsgs.o: In function `Nsmf':
+/wmm_nbu/glili/IOTA_REp/1_iota/obj/linux_x86/iota/ctpapp/lte/eps/linux_x86_iota_ctpapp_lte_eps5/../../../../../../../obj/linux_x86/iota/ctpapp/lte/eps/msg/NsmfMsgs.C:25: multiple definition of `CPONLYIND'
+/wmm_nbu/glili/IOTA_REp/1_iota/obj/linux_x86/iota/ctpapp/lte/eps/linux_x86_iota_ctpapp_lte_eps2/ENasMsgSyms.o:/wmm_nbu/glili/IOTA_REp/1_iota/obj/linux_x86/iota/ctpapp/lte/eps/linux_x86_iota_ctpapp_lte_eps2/../../../../../../../obj/linux_x86/iota/ctpapp/lte/eps/msg/ENasMsgSyms.C:5: first defined here
+/wmm_nbu/glili/IOTA_REp/1_iota/obj/linux_x86/iota/ctpapp/lte/eps/linux_x86_iota_ctpapp_lte_eps5/NamfMsgs.o: In function `Namf':
+/wmm_nbu/glili/IOTA_REp/1_iota/obj/linux_x86/iota/ctpapp/lte/eps/linux_x86_iota_ctpapp_lte_eps5/../../../../../../../obj/linux_x86/iota/ctpapp/lte/eps/msg/NamfMsgs.C:23: multiple definition of `NID'
+/wmm_nbu/glili/IOTA_REp/1_iota/obj/linux_x86/iota/ctpapp/lte/eps/linux_x86_iota_ctpapp_lte_eps5/NsmfMsgs.o:/wmm_nbu/glili/IOTA_REp/1_iota/obj/linux_x86/iota/ctpapp/lte/eps/linux_x86_iota_ctpapp_lte_eps5/../../../../../../../iota/ctpapp/lte/wiseiota/hdr/ValInline.h:525: first defined here
+collect2: ld returned 1 exit status
+make: *** exit code 1 making ../../../../../../../obj/linux_x86/iota/opt/lib/libEps.so
+
+
+
+*** iota syntax error 
+wmm-iotarh6x32::1_iota:/wmm_nbu/glili/IOTA_REp/1_iota $ 
+obj/linux_x86/iota/opt/bin/gpdc iota/./ctpapp/lte/eps/msg/nsmf.msgd -g gtpv1
+
+
+** iota sbi (5G) message encode/decode
+*** how to test message encoding/decoding
+there are two parts, first one is headerframe, the second one is dataframe
+sut receive message for decoding, first, it receive headerframe, then it receive dataframe
+
+test.tcl:
+------------------------------------------------------
+send http2sut -> http2sim -msg pdu_session_notify_hdrframe_req -mapping ::c_ue
+recv http2sut -> http2sim -type HEADERSFRAME -msg pdu_session_notify_hdrframe_req -mapping ::c_ue
+
+send http2sut -> http2sim -msg pdu_session_notify_dataframe_req -mapping ::c_ue
+recv http2sut -> http2sim -type DATAFRAME -msg pdu_session_notify_dataframe_req -mapping ::c_ue
+-----------------------------------------------------
+
+***  iota command prompt
+when source test.tcl
+-------------------------------------------------------------------------------
++++
+HTTP2 {{BODY {@HEADERSFRAME {{FLAGS 4} {HDRBLKFRAGMENT {{AUTHORITY "2511:0:0:993::20:8080"} {CONTENTTYPE application/json} {HDRTABLESZ 4096} {METHOD POST} {PATH /nsmf-pdusession/v1/pdu-sessions/vsmfPduSessionUri} {SCHEME http}}} {STREAMID 1}}}} {localName http2sut} {remoteName http2sim}}
+
+>>>>>> SEND MESSAGE TEMPLATE: pdu_session_notify_hdrframe_req
+processHeaderFrame: service NOT found using precise method. Try again, but prefer _var_ over precise.
+processHeaderFrame: Resource NOT found for [vsmfPduSessionUri][reqmsg] in service dictionary.
+processHeaderFrame: Use old dictionary to populate rsp codes for path /nsmf-pdusession/v1/pdu-sessions/vsmfPduSessionUriprocessHeaderFrame: DEFAULT service found for: http2sut servicetype.nsmf-pdusession-post.4 16
+processHeaderFrame: service NOT found using precise method. Try again, but prefer _var_ over precise.
+processHeaderFrame: Resource NOT found for [vsmfPduSessionUri][reqmsg] in service dictionary.
+processHeaderFrame: Use old dictionary to populate rsp codes for path /nsmf-pdusession/v1/pdu-sessions/vsmfPduSessionUriprocessHeaderFrame: DEFAULT service found for: http2sim servicetype.nsmf-pdusession-post.4 16
++++
+HTTP2 {{BODY {@HEADERSFRAME {{FLAGS $04} {HDRBLKFRAGMENT {{AUTHORITY "2511:0:0:993::20:8080"} {CONTENTTYPE application/json} {HDRTABLESZ 4096} {METHOD POST} {PATH /nsmf-pdusession/v1/pdu-sessions/vsmfPduSessionUri} {SCHEME http}}} {STREAMID $00000001}}}} {localName http2sim} {remoteName http2sut}}
+
+
+http2sut ---- HEADERSFRAME ---> http2sim
+>>>>>> RECV MESSAGE TEMPLATE: pdu_session_notify_hdrframe_req
+http2sim <--- DATAFRAME(PDUSESSIONSTATUSNOTIFY) ---- http2sut
+
+*** iota encoding/decoding mechanism
+headerframe request
+-----------------------
+  BODY = -> HEADERSFRAME =
+                FLAGS = $04
+                STREAMID = $00000001
+                HDRBLKFRAGMENT =
+
+                    AUTHORITY = `2511:0:0:993::20:8080'
+                    CONTENTTYPE = `application/json'
+                    HDRTABLESZ = `4096'
+                    METHOD = `POST' #### this is req message
+                    PATH = `/nsmf-pdusession/v1/pdu-sessions'
+                    SCHEME = `http'
+--------------------------------------------------------
+servicetype[nsmf-pdusession-post][v1][pdu-sessions][reqmsg],                            ReadWrite,      20      //pdusessioncreatereq
+
+**** headerframe request info retrieving
+
+when decode an iota dataframe message, how do you know which message is this?
+after decoding a headerframe message, PATH field will be saved as pathstr, and get ResourceURI, then it will look up systemservice diciontary to get sbamsg number
+get sbamsg number, that's the next dataframe message type. statusmsg is the reply dataframe message
+after decoding headerframe request
+=================================
+22:18:59.600 N processHeaderFrame: Enter
+22:18:59.600 N processHeaderFrame: connname=http2simhttp2sut
+22:18:59.600 N processHeaderFrame: pathstr=/nsmf-pdusession/v1/pdu-sessions
+22:18:59.600 N processHeaderFrame: pathlen=32
+22:18:59.600 N processHeaderFrame: ResourceURI: [/nsmf-pdusession/v1/pdu-sessions], apistart=0.
+22:18:59.601 N processHeaderFrame: nftype = smf, stype = nsmf-pdusession-postservicename = nsmf-pdusession.
+22:18:59.601 N processContentType: Enter
+22:18:59.602 N getDefptr: connname=http2simhttp2sut
+22:18:59.602 N processContentType: contenttype=application/json
+22:18:59.602 N processHeaderFrame: HTTP2BLK streamiddata[http2simhttp2sut][1] =
+         boundary = `EMPTY'
+         contenttype = `json'
+         nftype = `smf'
+         sbamsg = `20'  #### the next receiving dataframe's message type after this headerframe
+#### servicetype[nsmf-pdusession-post][v1][pdu-sessions][reqmsg],                            ReadWrite,      20      //pdusessioncreatereq
+
+         servicename = `nsmf-pdusession'
+         statusmsg = `
+            201 = `21'
+            307 = `19'
+            400 = `22'
+            401 = `19'
+            403 = `22'
+            404 = `22'
+            411 = `19'
+            413 = `19'
+            415 = `19'
+            429 = `19'
+            500 = `22'
+            503 = `22''
+----------------------------------------------------
+
+
+**** dataframe request message
+***** encoding dataframe 
+after encoding all body message:     enc_bytes is the keyword
+N enc_bytes = { "supi": "imsi-310012601000000", "unauthenticatedSupi": false, "pei": "imei-123456789012345", "pduSessionId": 1, "dnn": "TESTDNN", "selecteddnn": "TESTDNN", "sNssai": { "sst": 1, "sd": "010203" }
+
+***** decoding dataframe 
+bytestr is the keyword for start decoding dataframe
+----------------------------------------------------------------
+N Http2Data::decode
+22:19:00.826 N Http2Data::decode - len(897)
+22:19:00.826 N bytestr length = 897
+22:19:00.826 N bytestr = { "statusInfo": {
+------------------------------------------------
+
+**** headerframe reply info 
+==================================================
+ BODY = -> HEADERSFRAME =
+                FLAGS = 4
+                STREAMID = 1
+                HDRBLKFRAGMENT =
+
+                    CONTENTTYPE = `application/json'
+                    HDRTABLESZ = `EMPTY'
+                    METHOD = `EMPTY'
+                    STATUS = `201'   ####statusmsg
+=====================================================
+servicetype[nsmf-pdusession-post][v1][pdu-sessions][statusmsg][201],                    ReadWrite,      21      //pdusessioncreatersp
+processHeaderFrame   ### keyword to look for decoding header frame
+
+
+
+
+processDataFrame  #### key word to look before decoding
+
+** IOTA callback message encoding/decoding
+*** in creat post message
+22:18:59.731 N SBASet::encodeField: p->name = VSMFPDUSESSIONURI
+22:18:59.731 N SBASet::encodeField: field.at(p->name) = http://testuri2.new/nsmf-pdusession/v1/pdu-sessions/vsmfPduSessionUriaab
+22:18:59.732 N SBAString::encode
+22:18:59.732 N fldlen = 72
+#### callbackURI = http://testuri2.new/nsmf-pdusession/v1/pdu-sessions/vsmfPduSessionUri
+#### save callbackURI here, for later using decode message from PATH   [/nsmf-pdusession/v1/pdu-sessions/vsmfPduSessionUri]
+22:18:59.732 N populateServiceDictionary, Json Callback String List = smf-post:27,400:19,403:19,404:19,411:19,413:19,415:19,429:19,500:19,503:19|smf-post/modify:28,200:29,400:19,403:19,404:19,411:19,413:19,415:19,429:19,500:19,503:19
+22:18:59.732 N populateServiceDictionaryItem, Json Callback String = smf-post:27,400:19,403:19,404:19,411:19,413:19,415:19,429:19,500:19,503:19, callbackURI = http://testuri2.new/nsmf-pdusession/v1/pdu-sessions/vsmfPduSessionUriaab
+22:18:59.732 N populateServiceDictionaryItem: networkFunction = smf, method = -post, suffix =
+22:18:59.732 N populateServiceDictionaryItem, Json Callback String = smf-post/modify:28,200:29,400:19,403:19,404:19,411:19,413:19,415:19,429:19,500:19,503:19, callbackURI = http://testuri2.new/nsmf-pdusession/v1/pdu-sessions/vsmfPduSessionUriaab
+22:18:59.732 N populateServiceDictionaryItem: networkFunction = smf, method = -post, suffix = /modify
+22:18:59.733 N SBASet::encode out->cur = 470 after VSMFPDUSESSIONURI
+
+=========================
+
+http2blk.sdt
+----------------------------------------
+//NSMF services
+servicetype[nsmf-pdusession-post],                     ReadWrite,      Dictionary
+servicetype[nsmf-pdusession-post][nftype],             ReadWrite,      "smf"
+servicetype[nsmf-pdusession-post][5],                  ReadWrite,      17      //retrievesmcontextreq
+servicetype[nsmf-pdusession-post][3],                  ReadWrite,      20      //pdusessioncreatereq
+servicetype[nsmf-pdusession-post][5],                  ReadWrite,      23      //updatepdusessionreq
+servicetype[nsmf-pdusession-post][5],                  ReadWrite,      26      //releasepdusessionreq
+servicetype[nsmf-pdusession-post][3],                  ReadWrite,      1       //createsmcontextreq
+servicetype[nsmf-pdusession-post][4],                  ReadWrite,      27      //pdusessionstatusnotify ### both they are number 4 means  path string seperated with slash
+servicetype[nsmf-pdusession-post][4],                  ReadWrite,      16      //smstatuscontextnotify
+servicetype[nsmf-pdusession-post][5],                  ReadWrite,      4       //releasesmcontextreq
+servicetype[nsmf-pdusession-post][5],                  ReadWrite,      13      //updatesmcontextreq
+
+----------------------------------------
+
+*** log message iota.log 
+when receiving notify_hdrframe but no create_pdu_session_post to save URI, then it won't know which type of message the later dataframe will be.
+recv http2sut -> http2sim -type HEADERSFRAME -msg pdu_session_notify_hdrframe_req -mapping ::c_ue
+-----------
+21:47:54.174 N Message after decode:
+        HTTP2 template
+
+            BODY = -> HEADERSFRAME =
+                FLAGS = $04
+                STREAMID = $00000001
+                HDRBLKFRAGMENT =
+
+                    AUTHORITY = `2511:0:0:993::20:8080'
+                    CONTENTTYPE = `application/json'
+                    HDRTABLESZ = `4096'
+                    METHOD = `POST'
+                    PATH = `/nsmf-pdusession/v1/pdu-sessions/vsmfPduSessionUri'
+                    SCHEME = `http'
+21:47:54.175 N processHeaderFrame: Enter
+21:47:54.175 N processHeaderFrame: connname=http2simhttp2sut
+21:47:54.175 N processHeaderFrame: pathstr=/nsmf-pdusession/v1/pdu-sessions/vsmfPduSessionUri
+21:47:54.175 N processHeaderFrame: pathlen=50
+21:47:54.175 N processHeaderFrame: Rervice NOT found using precise methodsourceURI: [/nsmf-pdusession/v1/pdu-sessions/vsmfPduSessionUri], apistart=0.
+21:47:54.175 N processHeaderFrame: nftype = smf, stype = nsmf-pdusession-postservicename = nsmf-pdusession.
+21:47:54.175 N processHeaderFrame: service NOT found using precise method. Try again, but prefer _var_ over precise.
+21:47:54.175 N processHeaderFrame: nftype = smf, stype = nsmf-pdusession-postservicename = nsmf-pdusession.
+21:47:54.175 N processHeaderFrame: Resource NOT found for [vsmfPduSessionUri][reqmsg] in service dictionary.
+21:47:54.176 N processHeaderFrame: Use old dictionary to populate rsp codes for path /nsmf-pdusession/v1/pdu-sessions/vsmfPduSessionUriprocessHeaderFrame: DEFAULT service found for: http2sim servicetype.nsmf-pdusession-post.4 16
+21:47:54.176 N processContentType: Enter
+21:47:54.176 N getDefptr: connname=http2simhttp2sut
+21:47:54.176 N processContentType: contenttype=application/json
+21:47:54.176 N processHeaderFrame: HTTP2BLK streamiddata[http2simhttp2sut][1] =
+         boundary = `EMPTY'
+         contenttype = `json'
+         nftype = `smf'
+         sbamsg = `16'
+         servicename = `nsmf-pdusession'
+21:47:54.177 B [http2sim.http2rtr:(135.111.215.169:57353|19:1459)] http2sim.http2rtr sending message = HEADERSFRAME template
+
+            BODY = -> HEADERSFRAME =
+                FLAGS = $04
+                STREAMID = $00000001
+------------------------------
+
+* iota log analysing
+** http1 encoding delimeter
+after encode
+bytestr=
+
+** http2 encoding delimeter
+after encode
+enc_bytes=
+03:46:29.881 N Message before encode:
+        HTTP2 template
+
+            BODY = -> DATAFRAME =
+                FLAGS = 1
+                STREAMID = 1
+                DATA = NSMF template
+
+                    BODY = -> CREATESMCONTEXTREQ =
+                        SUPI = imsi-310012601000000
+                        UNAUTHENTICATEDSUPI = false
+                        PEI = imei-123456789012345
+                        GPSI = msisdn-310012601000000
+
+
+egrep -n '^\s+/|^\s{4}\w' TS29503*.yaml
+
+
+
+/local/ltemme/iota/iota_latest/bin/IOTA -f iota.log -c $'\nEXP-EXECUTOR-FACTORY DEFAULT\n{\n\tPackage="Load"\n\tPackage="Rand"\n\tPackage="Bceval"\n\tPackage="Sleep"\n\tPackage="When"\n\tPackage="Resource"\n\tPackage="HexString"\n\tPackage="Exit"\n\tPackage="Log"\n\tPackage="CommonLTE"\n\tPackage="Configuration"\n\tPackage="GMA"\n\tPackage="Simulator"\n\tPackage="Connection"\n\tPackage="WiseMsg"\n\tPackage="Timer"\n\tPackage="Executor"\n\tPackage="UmtsLIG"\n\tCommand="source $env(IOTA)/tcl/export.tcl"\n        Command="eval $env(IOTASUBSTART)"\n        Command="when { signal SIGINT } { interrupt; };"\n        Auto_path="$env(IOTAPRELIB) $auto_path $env(IOTA)/autolib $env(IOTAPOSTLIB)"\n}\nEXP-EXECUTOR-FACTORY\n{\n\tPrompt="iota> "\n\tPackage="SystemExit"\n\tScript="stdin"\n        Command="eval $env(IOTASTART)"\n}\n' -E BMTDNb '-X4 0x71004000'
+
+
+
+
+ltemme@lm191:/local/ltemme/iota/test/msgtest $  $IOTA/bin/iota -dl -E BMTDNb -f iota.log -X"4 0x71004000"
++ CONFIGOPTS=''
++ getopts 'Vvtf:d:w:W:c:C:D:L:X:E:?' optchar
++ LOOPBACK=YES
++ export LOOPBACK
++ getopts 'Vvtf:d:w:W:c:C:D:L:X:E:?' optchar
++ IOTAOPT=' -E BMTDNb'
++ export IOTAOPT
++ getopts 'Vvtf:d:w:W:c:C:D:L:X:E:?' optchar
++ IOTA_LOGFILE=iota.log
++ getopts 'Vvtf:d:w:W:c:C:D:L:X:E:?' optchar
++ TRACEOPT='-X4 0x71004000'
++ export TRACEOPT
++ getopts 'Vvtf:d:w:W:c:C:D:L:X:E:?' optchar
++ expr 7 - 1
++ shift 6
++ : /local/ltemme/iota/iota_latest
++ export IOTA
++ SESSIONID=28441
++ export SESSIONID
++ . /local/ltemme/iota/iota_latest/bin/version.env
++ IOTA_VERSION=3.0
++ export IOTA_VERSION
++ IOTA_RELEASE=iota_v3_tag0113
++ export IOTA_RELEASE
++ [[ '' == ee ]]
++ [[ -x /local/ltemme/iota/iota_latest/bin/iota.env ]]
++ . /local/ltemme/iota/iota_latest/bin/iota.env
++ uname -n
++ HOST=lm191
++ DefaultShellHost=lm191
++ export HOST DefaultShellHost
++ TCL_LIBRARY=/local/ltemme/iota/iota_latest/tcl
++ export TCL_LIBRARY
++ ITCL_LIBRARY=/local/ltemme/iota/iota_latest/tcl
++ export ITCL_LIBRARY
++ LD_LIBRARY_PATH=/local/ltemme/iota/iota_latest/lib:
++ export LD_LIBRARY_PATH
++ PATH=/local/ltemme/iota/iota_latest/bin:/usr/lib64/qt-3.3/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/local/ltemme/bin
++ export PATH
++ NORESERROR=1
++ export NORESERROR
++ IotaTesLog=IotaTesLog
++ export IotaTesLog
++ /local/ltemme/iota/iota_latest/bin/iotastat -a -c
+T  INSTANCE             LOGIN     TIME               HOST      PORT   PID    STATUS
++ echo ''
+
++ [[ '' != '' ]]
++ [ YES '!=' YES ]
++ echo 'NOTE: LOOPBACK mode is turned on'
+NOTE: LOOPBACK mode is turned on
++ TLSDIR=/local/ltemme/iota/tls
++ mkdir -p /local/ltemme/iota/tls
++ openssl req -newkey rsa:2048 -nodes -sha256 -x509 -nodes -out /local/ltemme/iota/tls/IOTAcertificate.crt -keyout /local/lteme/iota/tls/IOTAkey.rsa.pem -days 500 -subj '/C=US/ST=IL/L=Naperville/O=Nokia/OU=ION/CN=Nokia/emailAddress=iotaadmin@nokia.com'
+Generating a 2048 bit RSA private key
+..........+++
+........................................................................+++
+writing new private key to '/local/ltemme/iota/tls/IOTAkey.rsa.pem'
+-----
++ openssl rsa -in /local/ltemme/iota/tls/IOTAkey.rsa.pem -pubout
++ 1> /local/ltemme/iota/tls/IOTAkey.pub
+writing RSA key
++ KEYDIR=/local/ltemme/iota/keys
++ mkdir -p /local/ltemme/iota/keys
++ ln -s /local/ltemme/iota/tls/IOTAkey.rsa.pem /local/ltemme/iota/keys/NRFkey.rsa.pem
+ln: failed to create symbolic link ‘/local/ltemme/iota/keys/NRFkey.rsa.pem’: File exists
++ ln -s /local/ltemme/iota/tls/IOTAkey.pub /local/ltemme/iota/keys/NRFkey.pub
+ln: failed to create symbolic link ‘/local/ltemme/iota/keys/NRFkey.pub’: File exists
++ [ '' '==' YES ]
++ IOTAPRELIB=''
++ export IOTAPRELIB
++ IOTAPOSTLIB=''
++ export IOTAPOSTLIB
++ IOTASUBSTART=''
++ export IOTASUBSTART
++ IOTASTART='loadConfig lte.cfg'
++ export IOTASTART
++ [ ! iota.log ]
++ echo 'NOTE: Starting IOTA now ......'
+NOTE: Starting IOTA now ......
++ /local/ltemme/iota/iota_latest/bin/IOTA -f iota.log -c $'\nEXP-EXECUTOR-FACTORY DEFAULT\n{\n\tPackage="Load"\n\tPackage="Rand"\n\tPackage="Bceval"\n\tPackage="Sleep"\n\tPackage="When"\n\tPackage="Resource"\n\tPackage="HexString"\n\tPackage="Exit"\n\tPackage="Log"\n\tPackage="CommonLTE"\n\tPackage="Configuration"\n\tPackage="GMA"\n\tPackage="Simulator"\n\tPackage="Connection"\n\tPackage="WiseMsg"\n\tPackage="Timer"\n\tPackage="Executor"\n\tPackage="UmtsLIG"\n\tCommand="source $env(IOTA)/tcl/export.tcl"\n        Command="eval $env(IOTASUBSTART)"\n        Command="when { signal SIGINT } { interrupt; };"\n        Auto_path="$env(IOTAPRELIB) $auto_path $env(IOTA)/autolib $env(IOTAPOSTLIB)"\n}\nEXP-EXECUTOR-FACTORY\n{\n\tPrompt="iota> "\n\tPackage="SystemExit"\n\tScript="stdin"\n        Command="eval $env(IOTASTART)"\n}\n' -E BMTDNb '-X4 0x71004000'
+***************************************************
+*
+*Release   : iota_v3_tag0113
+*Built on  : wmm-iotarh6x32
+* Lawful Interception related
+** documents
+ 3gpp 33128 Protocol and procedures for Lawful Interception 
+ pdf document for ETSI TS 103 221-1 : 
+ xsd files 
+* iota GDB usage
+** runiota firstly
+** gdb using processid to attach runiota executable file
+#gdb  /local/ltemme/iota/iota_latest/bin/IOTA $(pgrep -n IOTA) |tee gdb.out 
+gdb  -p  $(pgrep -n IOTA)  
+
+** inside gdb prompt
+  set substitute-path ../../../../../../../../iota /local/ltemme/iota/iota_msglen/iota 
+  dir /local/ltemme/iota/iota_imr/iota/ctpapp/lte/message/ 
+  dir /local/ltemme/iota/iota_imr/iota/ctpapp/lte/base-w/msg
+  dir /local/ltemme/iota/iota_imr/iota/ctpapp/lte/wiseiota/protocol/com
+  dir /local/ltemme/iota/iota_imr/iota/ctpapp/lte/eps/msg/ 
+  break Decoder::decode 
+  continue 
+
+** source test file in runiota prompt
+
+** back to gdb prompt
+the program halted
+
+** other gdb command
+watch _data[1] if _data[1]=16 
+Continue 
+
+   x/64xb this->_data 
+   dir /local/ltemme/iota/iota_msglen/iota/ctpapp/lte/message 
+   commands 
+
+   set trace-commands off 
+
+   set set logging off 
+
+   set logging file data.txt 
+
+   printf "watch ((char*) (*0x%x))[2] if (((char*) (*0x%x))[0] == 0 && ((char*) (*0x%x))[1] == 16 && ((char*) (*0x%x))[2] == 0)",_data,_data,_data,_data 
+
+   source data.txt 
+
+   end 
+    watch ((char*) (*0x92727f8))[2] if (((char*) (*0x92727f8))[0] == 0 && ((char*) (*0x92727f8))[1] == 16 && ((char*) (*0x92727f8))[2] == 0) 
+     b DOE-Postmaster.C:1216 
+     commands 
+     Where 
+     c 
+     end 
+
+      b  CommonlteProxy.C:221 
+      commands 
+      Where 
+      c 
+      end 
+
+      ============================================================ 
+      b  SSL_SOCK_SEQPACK_Connector.cpp:469 
+      commands 
+      c 
+      end 
+
+  SSL_SOCK_SEQPACK_Connector.cpp:511 
+
+
+* iota debug 
+Scenario.tcl Template.tcl
+Tcl/Itcl debugging – iotavartrace, iotaproctrace, set errorInfo, puts/log/report statements 
+
+* IOTA simulator
+git log show a comment with "IOTA Code Base for 5G HTTP2"
+its a base code for 5g http2 simulator
+
+
+** iota wisesim 
+*** a simulator constructor function
+ protocol ## releate to some type of protocol
+ an according router fsm to new 
+
+HTTP1::HTTP1( WISESIM_LWP& parnt,
+               ConfigurationBlock* config,
+               const RWCString& alias,
+               const RWCString& highestLevelPostMaster,
+               LTE *LTEComposite
+       )
+       :WiseSim(parnt, config, alias, highestLevelPostMaster, LTEComposite)
+       ,_http1rtr(0)
+       _blkdataptr = new Sdt(system_sdt, getSdtFile("http1blk.sdt"));
+       (*_blkdataptr)["ENTITYNAME"] = alias.data();
+       (*_blkdataptr)["ENTITYTYPE"] = config->classname().data();
+
+       initSdtByConfig(config, _blkdataptr);
+       (*(system_sdt->get_symbol_table()))[alias.data()] = *(_blkdataptr->get_symbol_table());
+
+
+
+       Protocol::Package::require("Http1"); 
+
+       // Make HTTP1 router
+       Sdt* fsmsdtptr = new Sdt(_blkdataptr, getSdtFile("http1rtr.sdt"));
+       Fsm* fsmptr = new http1rtrfsm(*_blkdataptr);
+       fsmptr->name("http1rtr");
+       _http1rtr = new WiseFsm(fsmsdtptr,
+                             _blkdataptr,
+                             fsmptr,
+                             parnt,
+                             config->param(0) + ".http1rtr",
+                             "",
+                             this);
+
+*** how to create the instance with the constructor(new)
+the instance name is the alias, which will be refered in iota script later on
+void* EPS_Factory::make(ConfigurationBlock* c, void* parameter)
+{.......
+        } else if (className == "LteLIG") {
+            msg = "NOTE: Constructing " + className + " simulator: " + alias;
+            cout << msg << endl;
+            lw.log('N', msg);
+            returnValue = new LteLIG(ltelwp, c, alias, higherPM);
+##c is the configure block, alias is the simulator's instance name, higherPM is such as (135.111.25.169:34187|0:0)
+        } else if (className == "gUE") {
+            msg = "NOTE: Constructing " + className + " simulator: " + alias;
+            cout << msg << endl;
+            lw.log('N', msg);
+            returnValue = new gUE(ltelwp, c, alias, higherPM);
+
+*** iota simulator constructor process
+11:03:01.292 N NOTE: Constructing FIVEGICF simulator: icf1_s
+11:03:01.293 N NOTE: Reloading AMF data block: amf_net1
+11:03:01.296 b DOE:  LWP Instance (338) created
+11:03:01.296 N [icf1_s-amfs:(10.39.144.173:42458|20:1153)] icf1_s-amfs NOTE: TCP Acceptor: icf1_s-amfs is listening at: 172.16.59.97:20102
+11:03:01.298 I iota> 
+11:03:01.527 N NOTE: Constructing HTTP1 simulator: admf1_s
+11:03:01.529 N NOTE: Initializing Protocol: FiveGLiX1
+11:03:01.530 N NOTE: Reloading AMF data block: amf_net1
+11:03:01.531 b DOE:  LWP Instance (339) created
+11:03:01.531 N [admf1_s-amfs:(10.39.144.173:42458|20:1158)] admf1_s-amfs NOTE: TCP Acceptor: admf1_s-amfs is listening at: 172.16.59.96:20103
+11:03:01.532 I iota> 
+11:03:02.768 N NOTE: Reloading AMF data block: amf_net1
+11:03:02.769 N NOTE: Constructing HTTP1 simulator: admf1_c
+11:03:02.772 b DOE:  LWP Instance (340) created
+11:03:02.772 b DOE: TCPConnector::Open - use local address and SO_REUSEADDR
+11:03:02.777 N [admf1_c-amf_net1:(10.39.144.173:42458|20:1164)] admf1_c-amf_net1 NOTE: TCP (c) Connection: admf1_c-amf_net1 established.
+        Remote Address: 172.16.46.241:443
+                Local  Address: 172.16.59.96:25000
+                11:03:02.778 N NOTE: admf1_c connection to amf_net1 is now open
+                11:03:02.779 I iota> 
+                11:03:03.024 U amf_net1 <--- DATAREQ(CREATEDESTINATIONREQ) ---- admf1_c 
+                11:03:03.025 U >>>>>> SEND MESSAGE TEMPLATE: basic_lix1_createdestination_req 
+
+*** loop test?
+two entity(simulator) 
+one is http1sim another is http1sut
+01:47:55.247 U http1sut <--- DATAREQ ---- http1sim
+01:47:55.250 U >>>>>> SEND MESSAGE TEMPLATE: example_req
+###get message from queue
+01:47:55.252 T >> getMsgFromQueue() wait for 10 secs
+01:47:55.253 B [http1sim:(135.111.25.169:48277|19:1494)] http1sim : Receive DeliveryRequest message. Type [WiseMsg], From [():135.111.25.169:48277|11:0]
+01:47:55.253 B [http1sim.http1rtr:(135.111.25.169:48277|19:1495)] http1sim.http1rtr handle message internal = FALSE
+01:47:55.253 N enclen = 0
+01:47:55.253 N http1sim send it ipnetwork procedue rtr
+01:47:55.253 B [http1sim.http1rtr:(135.111.25.169:48277|19:1495)] http1sim.http1rtr sending message = HTTP1 template
+            BODY = -> DATAREQ =                                                                                              
+        from PID=1495(http1sim::http1rtr) to PID=13                                                                          
+01:47:55.253 B PID=1495(http1sim::http1rtr) keeps in the same state Processing                                               
+01:47:55.253 T [IPNETWORK:(135.111.25.169:48277|19:13)] IPNETWORK <- WiseMsg                                                 
+01:47:55.253 T [IPNETWORK:(135.111.25.169:48277|19:13)] IPNETWORK handleOutBound()                                           
+01:47:55.253 m [IPNETWORK:(135.111.25.169:48277|19:13)] IPNETWORK http1sut <= http1sim                                       
+        HTTP1 template                                                                                                       
+            BODY = -> DATAREQ =                                                                                              
+                REQUESTLINE =                                                                                                
+01:47:55.253 T [Http1358:(135.111.25.169:48277|380:1592)] Http1358 <- PH::messageHandler WiseMsg
+01:47:55.253 T [Http1358:(135.111.25.169:48277|380:1592)] Http1358 >> PH::handleOutBound()
+01:47:55.253 T [Http1358:(135.111.25.169:48277|380:1592)] Http1358 >> PH::handleOutBound(Http1)
+01:47:55.253 T MsgLenCheck(Http1)::encodeApplMessage()
+----------------------------
+
+STATE Processing;
+        INPUT HTTP1;
+        /* Message may come from Script or AMF or http1_amf FSM */
+        DECISION 'SENDER';
+        (IPNETWORK):  ###when INPUT message HTTP1's SENDER is IPNETWORK
+                                /* route to scenario */
+        ELSE:
+                TASK 'GENMSGDEBUG(ENTITYNAME << "send it ipnetwork procedue rtr " << "\\n")';
+                /* send it to IPNETWORK */
+                OUTPUT EXTERNAL rcvd_prim TO IPNETWORK;
+--------------------------------------------------
+.......
+.........
+01:47:55.254 M [http1sim-amfs-0:(135.111.25.169:48277|20:1661)] http1sim-amfs-0 sending message
+01:47:55.255 T [http1sut-http1sim:(135.111.25.169:48277|20:1594)] http1sut-http1sim >> Connection::handle_input()
+01:47:55.255 T [http1sut-http1sim:(135.111.25.169:48277|20:1594)] http1sut-http1sim length from TCP Read = 91
+01:47:55.255 M [http1sut-http1sim:(135.111.25.169:48277|20:1594)] http1sut-http1sim received message
+        0000  50 4f 53 54 20 2f 65 78 61 6d 70 6c 65 2f 70 61  POST /example/pa
+        0016  74 68 20 48 54 54 50 2f 31 2e 31 0d 0a 63 6f 6e  th HTTP/1.1..con
+        0032  74 65 6e 74 2d 74 79 70 65 3a 20 74 65 78 74 2f  tent-type: text/
+        0048  78 6d 6c 0d 0a 63 6f 6e 74 65 6e 74 2d 6c 65 6e  xml..content-len
+        0064  67 74 68 3a 20 30 0d 0a 68 6f 73 74 3a 20 6d 79  gth: 0..host: my
+        0080  2d 73 65 72 76 65 72 0d 0a 0d 0a                 -server....
+01:47:55.255 T [http1sut-http1sim:(135.111.25.169:48277|20:1594)] http1sut-http1sim >> Connection::sendToOwner()
+01:47:55.255 T [Http1359:(135.111.25.169:48277|381:1593)] Http1359 <- PH::messageHandler Primitive
+01:47:55.255 T [Http1359:(135.111.25.169:48277|381:1593)] Http1359 PH::messageHandler: msg from connection
+01:47:55.255 T [Http1359:(135.111.25.169:48277|381:1593)] Http1359 >> PH::handleInBound()
+01:47:55.255 T [Http1359:(135.111.25.169:48277|381:1593)] Http1359 PH::setAttrib: prim - stream based
+01:47:55.255 T Decoder::getHttp1Length Enter
+01:47:55.255 T Decoder::getHttp1Length content-length found
+01:47:55.255 T Decoder::getHttp1Length CR LF CR LF found after content-length value
+01:47:55.255 T Decoder::getHttp1Length msglen = 91
+01:47:55.255 T Decoder::getHttp1Length _size = 91
+01:47:55.255 N Entering GPD::Sequence::decodeField(BODY)
+.........................
+.........................
+
+01:47:55.257 N Message after decode:
+        HTTP1 template
+
+            BODY = -> DATAREQ =
+                REQUESTLINE =
+                    HTTP1HOST = my-server
+01:47:55.257 N http1sut RouteToSenario procedue rtr
+01:47:55.257 T putMsgToQueue() >>
+01:47:55.257 T message count after: 1
+01:47:55.257 T << putMsgToQueue()
+01:47:55.257 B PID=1497(http1sut::http1rtr) keeps in the same state Processing
+
+--------------------------------------------
+STATE Processing;
+        INPUT HTTP1;
+        /* Message may come from Script or AMF or http1_amf FSM */
+        DECISION 'SENDER';
+        (IPNETWORK):  ###when INPUT message HTTP1's SENDER is IPNETWORK
+                                /* route to scenario */
+                                TASK 'GENMSGDEBUG(ENTITYNAME << " RouteToSenario procedue rtr " << "\\n")';
+                                TASK 'WiseMsg *wmsg = new WiseMsg(rcvd_prim, TRUE)';
+                                TASK 'UPMsgQueue::instance()->putMsgToQueue(wmsg)';
+-----------------------------------------------------------------------
+
+
+** IOTA itcl extension
+addCommand("loadConfig", ItclConfigLoadExtension)
+
+ /* Description: Itcl proxy to the "loadConfig" tcl command. It loads a configuration
+ *      file and does the make according to the contents of the configuration       file.  */
+
+int ItclConfigLoadExtension(ClientData clientData, Tcl_Interp* interp, int objc, Tcl_Obj* CONST objv[] )
+
+*** link itcl class with real simulator c++ instance with alias name
+::itcl::class WiseSim {
+        inherit CommonLTE
+
+        constructor {a1} {CommonLTE::constructor $a1} {}
+----------------
+::itcl::class LteLIG {
+        inherit WiseSim
+        .............
+        constructor {a1} {WiseSim::constructor $a1} {
+        }
+
+in the config block file:
+LteLIG lic1 {....}      <C++ simulator class name> <aliasname>
+
+synax:   <tcl class name>  <alias name which in c++ instance creation with config block> < tcl class instance name>
+in tcl shell:
+LteLIG lic1 <tcl instance name>
+
+*** itcl class method
+::itcl::body LteLIG::deactintreq
+
+
+** IOTA itcl interface with simulator
+
+HTTP1.tcl|47| ::itcl::body HTTP1::connect { rmtname } {
+HTTP1.tcl|56| ::itcl::body HTTP1::openConn {args} {
+HTTP1.tcl|102| ::itcl::body HTTP1::closeConn {args} {
+HTTP1.tcl|148| ::itcl::body HTTP1::checkConn {args} {
+HTTP1.tcl|182| ::itcl::body HTTP1::keepalive { status args } {
+HTTP1.tcl|235| ::itcl::body HTTP1::keepaliversp { status args } {
+HTTP1.tcl|288| ::itcl::body HTTP1::ping { args } {
+HTTP1.tcl|334| ::itcl::body HTTP1::pingrsp { status args } {
+HTTP1.tcl|387| ::itcl::body HTTP1::getutctime { } {
+HTTP1.tcl|392| ::itcl::body HTTP1::getx1tid { } {
+
+::itcl::body HTTP1::connect { rmtname } {
+       ::set m [Message #auto _HTTP1CONNECT]
+       $m set localName $ltealias
+       $m set remoteName $rmtname
+       $m send $address
+       ::itcl::delete object $m
+}
+
+
+** IOTA simulator fsm(finite state machine)
+*.sd file is the stte machine definition
+** iota simulator constructor process
+11:03:01.292 N NOTE: Constructing FIVEGICF simulator: icf1_s
+11:03:01.293 N NOTE: Reloading AMF data block: amf_net1
+11:03:01.296 b DOE:  LWP Instance (338) created
+11:03:01.296 N [icf1_s-amfs:(10.39.144.173:42458|20:1153)] icf1_s-amfs NOTE: TCP Acceptor: icf1_s-amfs is listening at: 172.16.59.97:20102
+11:03:01.298 I iota> 
+11:03:01.527 N NOTE: Constructing HTTP1 simulator: admf1_s
+11:03:01.529 N NOTE: Initializing Protocol: FiveGLiX1
+11:03:01.530 N NOTE: Reloading AMF data block: amf_net1
+11:03:01.531 b DOE:  LWP Instance (339) created
+11:03:01.531 N [admf1_s-amfs:(10.39.144.173:42458|20:1158)] admf1_s-amfs NOTE: TCP Acceptor: admf1_s-amfs is listening at: 172.16.59.96:20103
+11:03:01.532 I iota> 
+11:03:02.768 N NOTE: Reloading AMF data block: amf_net1
+11:03:02.769 N NOTE: Constructing HTTP1 simulator: admf1_c
+11:03:02.772 b DOE:  LWP Instance (340) created
+11:03:02.772 b DOE: TCPConnector::Open - use local address and SO_REUSEADDR
+11:03:02.777 N [admf1_c-amf_net1:(10.39.144.173:42458|20:1164)] admf1_c-amf_net1 NOTE: TCP (c) Connection: admf1_c-amf_net1 established.
+        Remote Address: 172.16.46.241:443
+                Local  Address: 172.16.59.96:25000
+                11:03:02.778 N NOTE: admf1_c connection to amf_net1 is now open
+                11:03:02.779 I iota> 
+                11:03:03.024 U amf_net1 <--- DATAREQ(CREATEDESTINATIONREQ) ---- admf1_c 
+                11:03:03.025 U >>>>>> SEND MESSAGE TEMPLATE: basic_lix1_createdestination_req 
+
+*** loop test?
+two entity(simulator) 
+one is http1sim another is http1sut
+01:47:55.247 U http1sut <--- DATAREQ ---- http1sim
+01:47:55.250 U >>>>>> SEND MESSAGE TEMPLATE: example_req
+###get message from queue
+01:47:55.252 T >> getMsgFromQueue() wait for 10 secs
+01:47:55.253 B [http1sim:(135.111.25.169:48277|19:1494)] http1sim : Receive DeliveryRequest message. Type [WiseMsg], From [():135.111.25.169:48277|11:0]
+01:47:55.253 B [http1sim.http1rtr:(135.111.25.169:48277|19:1495)] http1sim.http1rtr handle message internal = FALSE
+01:47:55.253 N enclen = 0
+01:47:55.253 N http1sim send it ipnetwork procedue rtr
+01:47:55.253 B [http1sim.http1rtr:(135.111.25.169:48277|19:1495)] http1sim.http1rtr sending message = HTTP1 template
+            BODY = -> DATAREQ =                                                                                              
+        from PID=1495(http1sim::http1rtr) to PID=13                                                                          
+01:47:55.253 B PID=1495(http1sim::http1rtr) keeps in the same state Processing                                               
+01:47:55.253 T [IPNETWORK:(135.111.25.169:48277|19:13)] IPNETWORK <- WiseMsg                                                 
+01:47:55.253 T [IPNETWORK:(135.111.25.169:48277|19:13)] IPNETWORK handleOutBound()                                           
+01:47:55.253 m [IPNETWORK:(135.111.25.169:48277|19:13)] IPNETWORK http1sut <= http1sim                                       
+        HTTP1 template                                                                                                       
+            BODY = -> DATAREQ =                                                                                              
+                REQUESTLINE =                                                                                                
+01:47:55.253 T [Http1358:(135.111.25.169:48277|380:1592)] Http1358 <- PH::messageHandler WiseMsg
+01:47:55.253 T [Http1358:(135.111.25.169:48277|380:1592)] Http1358 >> PH::handleOutBound()
+01:47:55.253 T [Http1358:(135.111.25.169:48277|380:1592)] Http1358 >> PH::handleOutBound(Http1)
+01:47:55.253 T MsgLenCheck(Http1)::encodeApplMessage()
+----------------------------
+
+STATE Processing;
+        INPUT HTTP1;
+        /* Message may come from Script or AMF or http1_amf FSM */
+        DECISION 'SENDER';
+        (IPNETWORK):  ###when INPUT message HTTP1's SENDER is IPNETWORK
+                                /* route to scenario */
+        ELSE:
+                TASK 'GENMSGDEBUG(ENTITYNAME << "send it ipnetwork procedue rtr " << "\\n")';
+                /* send it to IPNETWORK */
+                OUTPUT EXTERNAL rcvd_prim TO IPNETWORK;
+--------------------------------------------------
+.......
+.........
+01:47:55.254 M [http1sim-amfs-0:(135.111.25.169:48277|20:1661)] http1sim-amfs-0 sending message
+01:47:55.255 T [http1sut-http1sim:(135.111.25.169:48277|20:1594)] http1sut-http1sim >> Connection::handle_input()
+01:47:55.255 T [http1sut-http1sim:(135.111.25.169:48277|20:1594)] http1sut-http1sim length from TCP Read = 91
+01:47:55.255 M [http1sut-http1sim:(135.111.25.169:48277|20:1594)] http1sut-http1sim received message
+        0000  50 4f 53 54 20 2f 65 78 61 6d 70 6c 65 2f 70 61  POST /example/pa
+        0016  74 68 20 48 54 54 50 2f 31 2e 31 0d 0a 63 6f 6e  th HTTP/1.1..con
+        0032  74 65 6e 74 2d 74 79 70 65 3a 20 74 65 78 74 2f  tent-type: text/
+        0048  78 6d 6c 0d 0a 63 6f 6e 74 65 6e 74 2d 6c 65 6e  xml..content-len
+        0064  67 74 68 3a 20 30 0d 0a 68 6f 73 74 3a 20 6d 79  gth: 0..host: my
+        0080  2d 73 65 72 76 65 72 0d 0a 0d 0a                 -server....
+01:47:55.255 T [http1sut-http1sim:(135.111.25.169:48277|20:1594)] http1sut-http1sim >> Connection::sendToOwner()
+01:47:55.255 T [Http1359:(135.111.25.169:48277|381:1593)] Http1359 <- PH::messageHandler Primitive
+01:47:55.255 T [Http1359:(135.111.25.169:48277|381:1593)] Http1359 PH::messageHandler: msg from connection
+01:47:55.255 T [Http1359:(135.111.25.169:48277|381:1593)] Http1359 >> PH::handleInBound()
+01:47:55.255 T [Http1359:(135.111.25.169:48277|381:1593)] Http1359 PH::setAttrib: prim - stream based
+01:47:55.255 T Decoder::getHttp1Length Enter
+01:47:55.255 T Decoder::getHttp1Length content-length found
+01:47:55.255 T Decoder::getHttp1Length CR LF CR LF found after content-length value
+01:47:55.255 T Decoder::getHttp1Length msglen = 91
+01:47:55.255 T Decoder::getHttp1Length _size = 91
+01:47:55.255 N Entering GPD::Sequence::decodeField(BODY)
+.........................
+.........................
+
+01:47:55.257 N Message after decode:
+        HTTP1 template
+
+            BODY = -> DATAREQ =
+                REQUESTLINE =
+                    HTTP1HOST = my-server
+01:47:55.257 N http1sut RouteToSenario procedue rtr
+01:47:55.257 T putMsgToQueue() >>
+01:47:55.257 T message count after: 1
+01:47:55.257 T << putMsgToQueue()
+01:47:55.257 B PID=1497(http1sut::http1rtr) keeps in the same state Processing
+
+--------------------------------------------
+STATE Processing;
+        INPUT HTTP1;
+        /* Message may come from Script or AMF or http1_amf FSM */
+        DECISION 'SENDER';
+        (IPNETWORK):  ###when INPUT message HTTP1's SENDER is IPNETWORK
+                                /* route to scenario */
+                                TASK 'GENMSGDEBUG(ENTITYNAME << " RouteToSenario procedue rtr " << "\\n")';
+                                TASK 'WiseMsg *wmsg = new WiseMsg(rcvd_prim, TRUE)';
+                                TASK 'UPMsgQueue::instance()->putMsgToQueue(wmsg)';
+-----------------------------------------------------------------------
+
+*** fsm handle message from IPNETWORK
+                        DECISION 'workMode == IPNetwork::MODE_SCRIPTING';
+                        (TRUE):
+                                /* Forward messages requiring processing to fivegx2_amf FSM */
+                                DECISION 'FIVEGX2BLK(msg2que) == "off"';
+                                (TRUE):
+                                        /* route message to simulator */
+                                        TASK 'Value fivegx2msg = rcvd_prim';
+                                        /* change the FIVEGX2PDU type to real message TYPE */
+                                        TASK 'fivegx2msg.type(fivegx2Type)';
+                                        CALL RouteToAmfFsm(fivegx2msg);
+                                        NEXTSTATE -;
+                                ELSE:
+                                ENDDECISION;
+
+                                /* route to scenario */## if msg2que on
+                                TASK 'WiseMsg *wmsg = new WiseMsg(rcvd_prim, TRUE)';
+                                TASK 'UPMsgQueue::instance()->putMsgToQueue(wmsg)';
+                        ELSE:
+                                /* route message to simulator */
+                                TASK 'Value fivegx2msg = rcvd_prim';
+                                /* change the FIVEGX2PDU type to real message TYPE */
+                                TASK 'fivegx2msg.type(fivegx2Type)';
+                                CALL RouteToAmfFsm(fivegx2msg);
+                                NEXTSTATE -;
+                        ENDDECISION;
+
+
+*** iota simulator messageque on/off
+when recv a message and decode it, then rtr st will decide to put it to messageque or send to the actual dst simulator.
+**** messge queue on
+20:30:57.308 B [fivegx2sut.fivegx2rtr:(135.111.25.169:36160|19:1521)] fivegx2sut.fivegx2rtr handle message internal = FALSE
+20:30:57.308 T putMsgToQueue() >>
+
+**** messge queue off
+20:28:53.801 B [fivegx2sut.fivegx2rtr:(135.111.25.169:56090|19:1520)] fivegx2sut.fivegx2rtr handle message internal = FALSE
+20:28:53.801 B [fivegx2sut.fivegx2rtr:(135.111.25.169:56090|19:1520)] fivegx2sut.fivegx2rtr sending message = KEEPALIVEREQ template
+
+        from PID= 1520(fivegx2sut::fivegx2rtr) to PID=1619
+### this 1619 is entity fivegx2sut's amf fsm: fivegx2_amf.sd 
+20:28:53.801 B PID=1520(fivegx2sut::fivegx2rtr) keeps in the same state Processing
+20:28:53.801 B [():135.111.25.169:56090|19:1619]  handle message internal = TRUE
+20:28:53.801 N fivegx2sut  fivegx2 message type rtr
+20:28:53.802 N mkX2KeepAliveAck message:
+
+*** iota simulator encode/decode
+**** encode 
+***** encode timing
+when ipnetwork get the message from netowrk
+-------
+02:19:58.857 T [IPNETWORK:(135.111.25.169:48904|19:13)] IPNETWORK <- WiseMsg
+02:19:58.857 T [IPNETWORK:(135.111.25.169:48904|19:13)] IPNETWORK handleOutBound()
+02:19:58.857 m [IPNETWORK:(135.111.25.169:48904|19:13)] IPNETWORK http1sim <= http1sut
+ HTTP1 template
+
+            BODY = -> DATARSP =
+                STATUSLINE =
+                    HTTPVERSION = HTTP/1.1
+                    STATUS = 200
+                    REASON = OK
+                HEADERFIELDS =
+                    CONTENTTYPE = text/xml
+                    CONTENTLENGTH = 607
+                    HTTP1HOST = NIL
+                    CONNECTION = keep-alive
+                DATA = FIVEGLIX1 template
+
+                    BODY = -> ACTIVATETASKRSP =
+                        ADMFIDENTIFIER = admfID
+-----------------------
+
+***** how to encode
+-----------------------------------------------------------------------
+02:19:58.857 T [Http1359:(135.111.25.169:48904|381:1586)] Http1359 <- PH::messageHandler WiseMsg
+02:19:58.857 T [Http1359:(135.111.25.169:48904|381:1586)] Http1359 >> PH::handleOutBound()
+02:19:58.857 T [Http1359:(135.111.25.169:48904|381:1586)] Http1359 >> PH::handleOutBound(Http1)
+02:19:58.857 T MsgLenCheck(Http1)::encodeApplMessage()
+02:19:58.857 N Entering GPD::Sequence::encodeField
+02:19:58.857 N GPD::Choice::encode
+02:19:58.857 N Http1Seq::encode
+02:19:58.857 N out->cur = 0
+02:19:58.857 N name = DATARSP
+02:19:58.857 N Http1Seq::encodeField: p->name = STATUSLINE
+----------------------------------------------------------
+
+Http1Seq encoding
+----------------------------------------------
++Boolean Http1Seq::encode(Value& field, ioptr* out, Boolean subField)
+{
+    int     seqlen=0;
+       Boolean version_present = FALSE;
+
+       GENMSGDEBUG("Http1Seq::encode");
+       GENMSGDEBUG("out->cur = " << out->cur << "\n");
+       GENMSGDEBUG("name = " << name << "\n");
+
+       List_of_piter<AV> iter(_fields);
+       AV* p;
+       while (! iter.at_end()) {
+
+               iter.next(p);
+               if (!encodeField(field, p, out)) {
+                       return FALSE;
+               }
+
+       }
+--------------------------------
+
+**** decode
+***** deocde timing
+02:19:58.861 T [http1sim-amfs-0:(135.111.25.169:48904|20:1661)] http1sim-amfs-0 >> Connection::sendToOwner()
+02:19:58.861 T [Http1358:(135.111.25.169:48904|380:1585)] Http1358 <- PH::messageHandler Primitive
+02:19:58.861 T [Http1358:(135.111.25.169:48904|380:1585)] Http1358 PH::messageHandler: msg from connection
+02:19:58.861 T [Http1358:(135.111.25.169:48904|380:1585)] Http1358 >> PH::handleInBound()
+02:19:58.861 T [Http1358:(135.111.25.169:48904|380:1585)] Http1358 PH::setAttrib: prim - stream based
+02:19:58.861 T Decoder::getHttp1Length Enter
+02:19:58.861 T Decoder::getHttp1Length content-length found
+02:19:58.861 T Decoder::getHttp1Length CR LF CR LF found after content-length value
+02:19:58.861 T Decoder::getHttp1Length msglen = 703
+02:19:58.861 T Decoder::getHttp1Length _size = 703
+02:19:58.862 N Entering GPD::Sequence::decodeField(BODY)
+02:19:58.862 N endPos = 703
+02:19:58.862 N input->cur = 0
+02:19:58.862 N GPD::Choice::decode
+02:19:58.862 N GPD::Choice::decode _idflddef is set
+02:19:58.862 N GPD::Choice::decode p->id/idv = 1
+02:19:58.862 N Enter Http1Seq::decode
+02:19:58.862 N seqLen = 703
+02:19:58.862 N input->cur = 1
+02:19:58.862 N Enter Http1Seq::decodeField
+***** 
+
+*** iota connection open
+**** TCPcliConn:open
+23:53:15.172 T [http2sut-http2sim:(135.111.25.169:56172|20:17)] http2sut-http2sim >> TCPcliConn::open()
+23:53:15.172 b DOE: TCPConnector::Open - use local address and SO_REUSEADDR
+23:53:15.172 N [http2sut-http2sim:(135.111.25.169:56172|20:17)] http2sut-http2sim NOTE: TCP (c) Connection: http2sut-http2sim established.
+                Remote Address: 135.111.25.169:50200
+                Local  Address: 135.111.25.169:20201
+23:53:15.173 N NOTE: http2sut connection to http2sim is now open
+23:53:15.173 B [():135.111.25.169:56172|19:18]  sending message = HTTP2 template
+
+            BODY = -> MAGICFRAME =
+
+**** multipleip
+3:53:15.065 N umtslib2.C:setupMultipleIPAssoc: remoteData=
+         localAddr = `135.111.25.169:50200'
+         multipleip = `1-2', owner=http2sim.http2rtr, protocol=Http2, tranType=TCP
+
+**** multipleip will open two enetity, the second one will be with _1
+ltemme@lm191:/local/ltemme/iota/test/msgtest $ grep -i tcpcliconn::open iota.log_mip
+23:18:00.534 T [http2sut-http2sim:(135.111.25.169:35969|20:19)] http2sut-http2sim >> TCPcliConn::open()
+23:18:00.537 T [http2sut_1-http2sim:(135.111.25.169:35969|20:22)] http2sut_1-http2sim >> TCPcliConn::open()
+
+
+**  iota cfg 
+lte.cfg is the configure file for simulator
+the client and server will point to each other
+---------------------------------------------------------
+HTTP1 http1sim {  ### <simulator name>  <entityname>
+    conntype = real   ### this means this is the server side, it will accept connections
+    amfs {
+       http1sut {}  #### this is the client entityname, you should refer it outside this scope
+       multipleip = "1-2" ### there's only one serverip:port to two clients ip:ports
+       localAddr = "135.111.32.41:50100" ###server ip:port
+    }
+}
+
+HTTP1 http1sut {  #### <simulator name> <aliasname>
+#    conntype = real ### client need to comment this out
+    amfs {
+       http1sim { ### server entityname, defined as above
+          multipleip = "2-1"  ### there're two clients to one serverip:port 
+          localAddr = "135.111.32.41:20101,135.111.32.41:20102"  ###client ip port
+       }
+    }
+}
+------------------------------------------------------
+
+*** runiota log
+--
+HTTP2 http2sim {
+    priv_key     = NRFkey.rsa.pem
+    conntype = real   ### http2sim only act as a tcp server
+    simmaxframesz = 8192
+    mmes {
+       http2sut {}
+       # The following servers are used for testing multiple AMF connections
+       #http2sut1 {}
+       #http2sut2 {}
+       multipleip = "1-2"   ### one ip listen at 50000 will accept two ports 20001 and 20002
+       localAddr = "135.111.25.169:50000"
+    }
+}
+
+# HTTP2 ClientSUT
+HTTP2 http2sut {
+    amfs {
+       http2sim {
+          multipleip = "2-1" ### two clients port 20001 and 20002 will connect to server port 50000
+          localAddr = "135.111.25.169:20001,135.111.25.169:20002"
+---
+------------
+ltemme@lm191:/local/ltemme/iota/test/msgtest $ grep  Acceptor iota.log |grep -i http2
+ http2sim-mmes >> Acceptor()
+ http2sim-mmes >> TCP_Acceptor()
+ http2sim-mmes >> Acceptor::regHandler(135.111.25.169:20001)  ## first client handler registered
+ http2sim-mmes >> TCP_Acceptor::open()
+ http2sim-mmes NOTE: TCP Acceptor: http2sim-mmes is listening at: 135.111.25.169:50000
+ http2sim-mmes >> Acceptor::regHandler(135.111.25.169:20002) ## second client handler registered
+##### a tcp SYN packet is coming from 20001 
+ http2sim-mmes >> TCP_Acceptor::handle_input()
+ http2sim-mmes >> Acceptor::getHandler(135.111.25.169:20001)
+ http2sim-mmes TCP_Acceptor::handle_input - found handler for:135.111.25.169:20001
+##### http2sim as a tcp server accept the connection request
+ http2sim-mmes NOTE: TCP Acceptor: http2sim-mmes accepted connection request
+
+##### a tcp SYN packet is coming from 20002 
+ http2sim-mmes >> TCP_Acceptor::handle_input()
+ http2sim-mmes >> Acceptor::getHandler(135.111.25.169:20002)
+ http2sim-mmes TCP_Acceptor::handle_input - found handler for:135.111.25.169:20002
+##### http2sim as a tcp server accept the connection request
+ http2sim-mmes NOTE: TCP Acceptor: http2sim-mmes accepted connection request
+
+ http2sim-mmes >> TCP_Acceptor::close()
+ http2sim-mmes >> TCP_Acceptor::handle_close()
+--------------------
+
+client connect to the server
+---------------------------------------------------------------------------------
+01:28:18.861 T [IPNETWORK:(135.111.25.169:38284|19:13)] IPNETWORK >> getConnection()
+01:28:18.861 D [IPNETWORK:(135.111.25.169:38284|19:13)] IPNETWORK found RegEntry for: http2suthttp2sim
+01:28:18.861 T [IPNETWORK:(135.111.25.169:38284|19:13)] IPNETWORK >> getConnection()
+01:28:18.861 D [IPNETWORK:(135.111.25.169:38284|19:13)] IPNETWORK found RegEntry for: http2suthttp2sim
+01:28:18.861 T [IPNETWORK:(135.111.25.169:38284|19:13)] IPNETWORK >> getAcceptor()
+01:28:18.861 D [IPNETWORK:(135.111.25.169:38284|19:13)] IPNETWORK found RegEntry for: http2suthttp2sim
+01:28:18.861 T [http2sut-http2sim:(135.111.25.169:38284|20:1583)] http2sut-http2sim >> TCPcliConn::open()
+---------------------------------------------------------------------------
+
+
+close the connection
+-------
+ltemme@lm191:/local/ltemme/iota/test/msgtest $ grep Connection::close iota.log |grep -i http2
+02:24:11.623 T [http2sut-http2sim:(135.111.25.169:38284|20:1583)] http2sut-http2sim >> Connection::close()
+02:24:11.625 T [http2sut_1-http2sim:(135.111.25.169:38284|20:1586)] http2sut_1-http2sim >> Connection::close()
+02:24:11.626 T [http2sim-mmes-0:(135.111.25.169:38284|20:1657)] http2sim-mmes-0 >> Connection::close()
+02:24:11.626 F [http2sim-mmes-0:(135.111.25.169:38284|20:1657)] http2sim-mmes-0 Connection::close - deactivate failed
+02:24:11.628 T [http2sim-mmes-0:(135.111.25.169:38284|20:1657)] http2sim-mmes-0 >> Connection::close()
+02:24:11.628 N [http2sim-mmes-0:(135.111.25.169:38284|20:1657)] http2sim-mmes-0 Connection::close - already closed
+02:24:11.631 T [http2sim-mmes-1:(135.111.25.169:38284|20:1660)] http2sim-mmes-1 >> Connection::close()
+------------------------------------
+
+
+conntype =real
+
+*** ate runtime env
+**** tcl procedure to create a NE(network element)
+CreateHTTP2Server -name udm2_s -ip ${IOTA['NRF1_V4']} -port ${CMM['HTTP_PORT']} -amfip ${CMM['NNRF_V4']} -delay 5000
+###network element name is udm2_s 
+proc CreateHTTP2Server { args } {
+        array set argarray [getargs $args [list "-name" "-ip" "-port" "-amfip"] [list "-delay"]]
+        set firstip [lindex [split $argarray(-ip) ,] 0]
+        set simcfg "
+..........
+        set siminitfilename $argarray(-name).init
+        writefile $simcfgfilename $simcfg
+        writefile $siminitfilename $siminit
+        source $siminitfilename
+        if { $argarray(-delay) != "" } {
+                #after $argarray(-delay)
+        }
+}
+
+**** ate cfg
+ltemme@lm602:/local/ltemme/iota $ cat udm2_s.cfg
+----------------------
+AMF amf_net1 {
+    conntype = real
+        http2s {
+                udm2_s {
+                        multipleip = "2-1"
+                        localAddr = "172.16.46.202:fp1,172.16.46.202:fp2"
+#                       localAddr = "172.16.46.202:fp"
+                }
+        }
+}
+HTTP2 udm2_s {  ### HTTP2 is C++ simulator classname, and udm2_s is alias
+    ip = 172.16.59.73
+    amfip = 172.16.46.202
+    amf1ip = 172.16.46.202
+
+    conntype = real
+        amfs {
+                amf_net1 {}
+
+                multipleip = "1-2"
+                localAddr = "172.16.59.73:8080"
+        }
+}
+------------------- 
+
+ltemme@lm602:/local/ltemme/iota $ cat udm2_s.init
+loadConfig udm2_s.cfg
+HTTP2 udm2_s udm2_s  ## this is for tcl HTTP2<itcl classname> udm2_s<sim name in tcl script, could be anyone> 
+                        udm2_s(instance name of C++/alias name in config)
+##::itcl::class HTTP2 {}... in HTTP2.tcl file
+
+        public method reset {level}
+        public method connect { args }
+        public method nr10hb { status args }
+        public method nr10hbrsp { status args }
+        public method openConn {args}
+        public method closeConn {args}
+        public method checkConn {args}
+        public method keepalive { status args }
+        public method keepaliversp { status args }
+        public method ping { args }
+        public method pingrsp { status args }
+        public method genOauthAccessToken { map }
+        public method genPdnConn { enctmpl global_array }
+        public method base64Encode { hexstr }
+        public method base64Decode { hexstr }
+------------------------------------------------------------------
+tcl script
+----------------------
+HTTP2 http2sut http2sut
+HTTP2 http2sim http2sim
+
+set isopen [http2sim checkConn -rname http2sut]
+http2sut closeConn -lname http2sut_1 -rname http2sim
+http2sut openConn -lname http2sut_1 -rname http2sim
+
+send http2sut -> http2sim -msg udm_uecm_registration_hdrframe_req -mapping ::c_ue
+recv http2sut -> http2sim -type HEADERSFRAME -msg udm_uecm_registration_hdrframe_req -mapping ::c_u
+
+---------------------------------------------
+
+itcl interface for send
+------
+./ctpapp/lte/umts/scripting/Scenario.tcl:583:::itcl::body Scenario::send {ne1 arrow ne2 args} {
+-----------------------------------------------------------------
+
+**** ate testcase log
+---------------
+02:05:34.379 N NOTE: Constructing HTTP2 simulator: udm2_s
+### this the the  new HTTP2(ltelwp, c, alias, higherPM); function called in C++, alias is udm2_s
+### if loadConfig this HTTP2 configuration, the HTTP2 who has alias as udm2_s is created
+02:05:34.401 N [udm2_s-amfs:(135.111.249.47:36304|20:1112)] udm2_s-amfs NOTE: TCP Acceptor: udm2_s-amfs is listening at: 172.16.59.73:8080
+02:05:34.401 b DOE:  LWP Instance (246) created
+02:05:34.401 b DOE:  LWP Instance (247) created
+02:05:34.401 b DOE:  LWP Instance (248) created
+.......
+02:06:26.094 N [udm2_s-amfs-0:(135.111.249.47:36304|20:2553)] udm2_s-amfs-0 NOTE: TCP (s) Connection: udm2_s-amfs-0 established.
+		Remote Address: 172.16.46.202:28137
+		Local  Address: 172.16.59.73:8080
+02:06:26.094 N [udm2_s-amfs:(135.111.249.47:36304|20:1112)] udm2_s-amfs NOTE: TCP Acceptor: udm2_s-amfs accepted connection request
+02:06:26.094 N [udm2_s-amfs-1:(135.111.249.47:36304|20:2554)] udm2_s-amfs-1 NOTE: TCP (s) Connection: udm2_s-amfs-1 established.
+		Remote Address: 172.16.46.202:28136
+		Local  Address: 172.16.59.73:8080
+02:06:26.095 N [udm2_s-amfs:(135.111.249.47:36304|20:1112)] udm2_s-amfs NOTE: TCP Acceptor: udm2_s-amfs accepted connection request
+02:06:26.104 M [udm2_s-amfs-0:(135.111.249.47:36304|20:2553)] udm2_s-amfs-0 received message
+	0000  50 52 49 20 2a 20 48 54 54 50 2f 32 2e 30 0d 0a  PRI * HTTP/2.0..
+	0016  0d 0a 53 4d 0d 0a 0d 0a 00 00 1e 04 00 00 00 00  ..SM............
+	0032  00 00 03 00 00 00 64 00 04 00 00 ff ff 00 01 00  ......d.........
+	0048  00 10 00 00 02 00 00 00 00 00 06 00 00 07 d0     ...............
+02:06:26.104 M [udm2_s-amfs-1:(135.111.249.47:36304|20:2554)] udm2_s-amfs-1 received message
+	0000  50 52 49 20 2a 20 48 54 54 50 2f 32 2e 30 0d 0a  PRI * HTTP/2.0..
+	0016  0d 0a 53 4d 0d 0a 0d 0a 00 00 1e 04 00 00 00 00  ..SM............
+	0032  00 00 03 00 00 00 64 00 04 00 00 ff ff 00 01 00  ......d.........
+	0048  00 10 00 00 02 00 00 00 00 00 06 00 00 07 d0     ...............
+02:06:26.105 m [IPNETWORK:(135.111.249.47:36304|19:4)] IPNETWORK amf_net1_1 => udm2_s
+	
+--------------------------	
+cat udm2_c.cfg
+AMF amf_net1 {
+    conntype = real
+        http2s {
+                udm2_c {
+                        localAddr = "172.16.46.224:8080"
+                }
+        }
+}
+
+HTTP2 udm2_c {
+        ip = 172.16.59.74
+    amfip = 172.16.46.224
+    amf1ip = 172.16.46.224
+
+        amfs {
+                amf_net1 {
+                    localAddr = "172.16.59.74:8080"
+                }
+
+        }
+}
+---------------------------------- 
+
+02:05:34.408 N NOTE: Reloading AMF data block: amf_net1
+02:05:34.409 N NOTE: Constructing HTTP2 simulator: udm2_c
+02:05:34.427 b DOE:  LWP Instance (249) created
+02:05:34.427 b DOE: TCPConnector::Open - use local address and SO_REUSEADDR
+02:05:34.428 I iota> 
+02:05:34.438 N [udm2_c-amf_net1:(135.111.249.47:36304|20:1124)] udm2_c-amf_net1 NOTE: TCP (c) Connection: udm2_c-amf_net1 established.
+		Remote Address: 172.16.46.224:8080
+		Local  Address: 172.16.59.74:8080
+02:05:34.438 N NOTE: udm2_c connection to amf_net1 is now open
+02:05:34.439 N udm2_c ---- MAGICFRAME --->> amf_net1
+02:05:34.439 N udm2_c ---- SETTINGSFRAME --->> amf_net1
+02:05:34.439 N udm2_c ---- WINDOWUPDATEFRAME --->> amf_net1
+
+
+** iota SDL state machine
+ *.sd file syntax is defined here: iota/ctpapp/lte/wiseiota/sim/hdr/sdlmacs.h
+   SDL_SUCCESS        : value returned to SMD when NEXTSTATE is executed   
+   SDL_DFLT           : value returned when current state of the SDL       does not handle the current message (the SDL       
+                        Machine Driver (SMD) will then call the model's    'star state' function)                             
+   SDL_NXSST          : macro for NEXTSTATE statement when same state is specified (e.g., NEXTSTATE - ;)
+
+** coredump cathing
+*** where is the core file generated
+sysctl -a |grep core
+kernel.core_pattern
+
+ltemme@lm191:/local/ltemme/iota/test/msgtest $ sysctl -a |grep core_pattern
+kernel.core_pattern = /var/core/%h-%e-%p.core
+
+*** generate core files without limits
+ulimit -c unlimited
+
+*** stack size
+ulimit -s 6144   ### runiotaflex for regression testing
+ulimit -s 2048   ### runiota for our own msg test
+
+* IOTA http2 uplayer message encdoe/decode 
+** iota support different type but the same json name and field name
+udm16.msgd
+in different set object:
+        SHAREDSMSSUBSDATAID             :       sharedSmsSubsDataIdNoNameArr            -O
+
+        SHAREDSMSSUBSDATAID             :       sharedSmsSubsDataIdOneOf        -O
+
+**
+ set:sharedSmsSubsDataIdOneOf
+        set desc "Shared SMS Subscription Data ID OneOf"
+        set jsontype "object"
+        set jsonname "sharedSmsSubsDataId"
+        set class "SBAOneOf"
+begin
+        SHAREDSMSSUBSDATAIDSTR          :       sharedSmsSubsDataIdNoNameStr            -O
+        SHAREDSMSSUBSDATAIDARR          :       sharedSmsSubsDataIdNoNameArr            -O
+end
+
+
+list:sharedSmsSubsDataIdNoNameArr
+        set desc "Shared SMS Subscribption Data ID List"
+        set jsontype "array"
+        set jsonname "ignore"
+begin
+        SHAREDDATAIDARR :       sharedDataIdNoNameStr
+end
+
+** http2 decode
+*** sbi interface 
+20:46:36.730 N Enter processDataFrame
+20:46:36.730 N decodeDataPayload: Enter
+20:46:36.730 N decodeDataPayload: connname=http2simhttp2sut
+20:46:36.730 N msgtype = 12
+20:46:36.730 N setGlblContentType: connname=http2simhttp2sut
+20:46:36.730 N setGlblContentType: http2_content_type_decode=json
+20:46:36.730 N setGlblContentType: multipart_boundary_decode=EMPTY
+20:46:36.730 N ftntype = udm, srvname = nudm-uecm
+20:46:36.730 N srvversion = 16:1.1.3, release = 16
+20:46:36.730 N Entering GPD::Sequence::decodeField(BODY)
+20:46:36.730 N endPos = 875
+20:46:36.730 N input->cur = 0
+20:46:36.730 N GPD::Choice::decode
+20:46:36.730 N GPD::Choice::decode _idflddef is set
+20:46:36.730 N GPD::Choice::decode p->id/idv = 12
+20:46:36.730 N Enter SBASet::decode, max = 876
+20:46:36.730 N seqLen = 875
+20:46:36.730 N input->cur = 0
+20:46:36.730 N Enter SBASet::decodeField
+20:46:36.730 N starting input->cur = 0
+20:46:36.730 N endPos = 875
+20:46:36.730 N _jsonType = message
+20:46:36.730 N _jsonName = UECMUpdateAmfRegistrationReq
+
+***  xml decode
+0:30:12.525 N Enter processDataFrame
+20:30:12.525 N decodeDataPayload: Enter
+20:30:12.525 N decodeDataPayload: connname=http2simhttp2sut
+20:30:12.525 N ftntype = admf, srvname = X1
+20:30:12.525 N messagename =ModifyTaskResponse
+20:30:12.525 N msgtype = 19
+20:30:12.525 N  dataval with message type:
+
+
+** http1 decode
+20:15:18.462 B [http1sim.http1rtr:(135.111.25.169:60382|19:1485)] http1sim.http1rtr handle message internal = FALSE
+20:15:18.462 N Data payload length = 658
+20:15:18.462 N decodeDatareqPayload: Enter
+20:15:18.462 N decodeDatareqPayload: connname=http1simhttp1sut
+20:15:18.462 N messagename =ActivateTaskResponse
+
+* iota AKA implementation
+** log 
+----------------------------
+ AKA_UE::computeKnas5g enter 
+ ItclAKAComputeKnas5gExt
+-------------------------
+
+** source code
+AKA.tcl:
+-----------------------------------------
+::itcl::body AKA_UE::computeKnas5g {} {
+    trace_
+    log "AKA_UE::computeKnas5g enter"
+        set _params(isUe)  "true"
+    do_computeKnas5g
+}
+----------------
+./ctpapp/lte/umts/scripting/AKA.tcl:134:       
+ protected method do_computeKnas5g {}            @AKA-computeKnas5g  ### @<symbol> is meaningful here in addmethod
+./ctpapp/lte/umts/scripting/AKAScriptProxy.C:4082:
+    if (ie->addMethod("AKA-computeKnas5g",         ItclAKAComputeKnas5gExt) != TCL_OK) {
+--------------
+when AKA_UE::computeKnas5g was called, ItclAKAComputeKnas5gExt will be invoked.
+
+* iota testcase scripting
+**  add_msg_filter
+ If you want to send this message during any IOTA procedure, you can use interactive IOTA and setup a filter to send this message when IOTA receives any specific message.   For example to send this 5GMMSTATUS message when CMM sends any INITIALCONTEXTSETUPREQUEST to IOTA, the command would be:
+
+add_msg_filter -handlemsg INITIALCONTEXTSETUPREQUEST -send_msgname basic_snd_ngmmstatus_secure_tgt_amf -continue_processing true -send_from_sim gnb01 -tcl_commands { set ::c_ue(ngmmstatus_mmcause) 20; ::ueAKA mkSecurityHeader ::c_ue; ::ueAKA incrNasCount}
+
+
+** AKA_UE
+After that I was able to successfully send the message from IOTA using the following commands (after UE 5gRegistrationSUCI and 5gPduEstablishment):
+Iota> set ::c_ue(ngmmstatus_mmcause) 20
+Iota> ueAKA mkSecurityHeader ::c_ue
+Iota> ueAKA incrNasCount;
+Iota> 5gSendAsyncMsg -msg_name basic_snd_ngmmstatus_secure_tgt_amf -sim_name gnb01
+ 
+::itcl::body AKA_UE::mkSecurityHeader
+
+*** mapped security context
+in iota case:
+----------------------------------------
+set ::c_ue(kasme) $::c_ue(contextrsp_n26_uemmcontext_kasme)
+catch {delete obj ueAKA}
+AKA_UE ::ueAKA ue1
+ueAKA computeKasmeToKamf ::c_ue    ## compute Kamf from kasme for mapping security context
+-----------------------------------
+
+** debug iota  state machine: showscripts
+                "waitfor_DETERMINELOCATIONREQUEST" {                                                                                                  switch $msgType {
+                                "DETERMINELOCATIONREQ" {
+        |       |       |       |       puts "xabcd"
+        |       |       |       |       puts "[scen_common_chain showscripts]"
+
+useMTDB db
+
+
+* itcl syntax
+itcl will define a class object very similar C++, constructor, destructor, method, proc
+proc is similar to method, but it can be refered without class object or class name.
+
+::itcl::class Scenario {
+      inherit Documentable
+      constructor {script {mtdb ""}} ### the first layer is argument list {script mtdb}
+                                     ### when mtdb need a default value, then use {mtdb ""} instead of mtdb
+      ### this is the body of the constructor
+      {
+                trace_
+                ::set _script $script
+                ::set _MTDB $mtdb
+                ::set _MSGQUEUE [MessageQueue #auto ]
+        }
+
+usage of the class:
+-------------
+Scenario nssf_r16_test {
+    useMTDB db  ### this useMTDB is the method of Scenario class
+    set ::c_ue(data_flags)  1..
+    send ...
+} db
+-----------------------
+the the instance of class Scenario is nssf_r16_test, and the first argument script is within the "{}", the second 
+argument is db with sapce seperated with the first argument, so this is the create and initialization of the object.
+-----------------------
+nssf_r16_test start  ### the start is a method of the Scenario class, 
+------------------------
+--------------------------------------
+::itcl::body Scenario::start {} {
+        trace_
+        $_MSGQUEUE setWorkMode 1
+        cleanup
+        if {([catch { eval $_script  ### evaluate the script passed
+-----------------------------------

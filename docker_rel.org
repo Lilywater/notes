@@ -11,6 +11,9 @@ docker image could be pull from docker hub.
 **** docker login
 to login into docker hub--------- https://hub.docker.com/
 
+sudo docker login --username=mqyyy777
+#this will workaround pull limits:
+#You have reached your pull rate limit
 
 **** docker pull
 docker pull mysql:<version>
@@ -530,9 +533,12 @@ docker commit <continer-name> <imgname>
 service docker restart
 
 *** method 2
-[root@localhost ~]# cat  /etc/systemd/system/docker.service.d/http-proxy.conf
-[Service]
-Environment="HTTP_PROXY=http://135.245.48.34:8000/" "HTTPS_PROXY=http://135.245.48.34:8000/"
+ cat /etc/systemd/system/docker.service.d/http-proxy.conf
+ [Service]
+ Environment="HTTP_PROXY=http://10.144.1.10:8080/"
+ Environment="HTTPS_PROXY=http://10.144.1.10:8080/"
+ Environment="NO_PROXY=10.69.151.36,127.0.0.1"
+
 [root@localhost ~]# systemctl daemon-reload
 [root@linux-node1 ~]# systemctl restart docker
 
@@ -552,10 +558,24 @@ https://www.youtube.com/watch?v=aFlgm6G59fw&list=PLwmPBqRou8AOb_RPjM4gwTqPkzmXcp
 249 webm
 
 
+** docker save container to a tar file
+docker export 
+ docker export  962209ba8291 > ttcn_docker_container.tar
+
+** docker import tar file as images
+cat ttcn_docker_container.tar |  docker import - ttcn:7
+
+**  docker save container to image
+docker commit <continer-name> <imgname>
+
+
 ** docker save image as a tar file
+docker save -o <tar-file-name>  <container-name>
 sudo docker save -o /home/matrix/matrix-data.tar matrix-data
 docker save <image> | bzip2 | ssh user@host 'bunzip2 | docker load'
 
+
+** 
 
 ** load a tar file which generated from image 
 Copy the image from the path to any host. Now import to your local Docker installation using:
@@ -617,3 +637,181 @@ A challenge password []:
 ...
 
 openssl x509 -req -sha256 -days 365 -in server.csr -signkey server.key -out server.crt
+
+
+** capture container's packets in host
+assuming container's name is registry:
+[root@node6 ~]# docker exec -it registry /usr/sbin/ifconfig
+OCI runtime exec failed: exec failed: container_linux.go:367: starting container process caused: exec: "/usr/sbin/ifconfig": stat /usr/sbin/ifconfig: no such file or directory: unknown
+###########the container may not have some executable commands available
+
+docker exec -it <containername> ls /sys/class/net    #### find out the network interface in container
+eth0  lo
+
+[root@node6 ~]# docker exec -it registry cat /sys/class/net/eth0/iflink  ### find out which number it is in the host
+26
+
+
+[root@node6 ~]# ip addr |grep ^26      #### get the corresponding interface name in host
+26: veth7488a0a@if25: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master docker0 state UP group default
+
+[root@node6 ~ ]# tcpdump -i veth7488a0a port 5000    #### capture the packets in the host 
+or tcpdump -i any port 5000   #### to capture all the packets, listening on any, link-type LINUX_SLL (Linux cooked), capture size 262144 bytes
+
+
+
+
+
+
+* docker cpu and memory limitation
+** CPU limitations
+By default, each container’s access to the host machine’s CPU cycles is unlimited. You can set various constraints to limit a given container’s access to the host machine’s CPU cycles. Most users use and configure the default CFS scheduler. You can also configure the realtime scheduler.
+Configure the default CFS scheduler
+
+The CFS is the Linux kernel CPU scheduler for normal Linux processes. Several runtime flags allow you to configure the amount of access to CPU resources your container has. When you use these settings, Docker modifies the settings for the container’s cgroup on the host machine.
+Option  Description
+--cpus=<value>  Specify how much of the available CPU resources a container can use. For instance, if the host machine has two CPUs and you set --cpus="1.5", the container is guaranteed at most one and a half of the CPUs. This is the equivalent of setting --cpu-period="100000" and --cpu-quota="150000".
+--cpu-period=<value>    Specify the CPU CFS scheduler period, which is used alongside --cpu-quota. Defaults to 100000 microseconds (100 milliseconds). Most users do not change this from the default. For most use-cases, --cpus is a more convenient alternative.
+--cpu-quota=<value>     Impose a CPU CFS quota on the container. The number of microseconds per --cpu-period that the container is limited to before throttled. As such acting as the effective ceiling. For most use-cases, --cpus is a more convenient alternative.
+--cpuset-cpus   Limit the specific CPUs or cores a container can use. A comma-separated list or hyphen-separated range of CPUs a container can use, if you have more than one CPU. The first CPU is numbered 0. A valid value might be 0-3 (to use the first, second, third, and fourth CPU) or 1,3 (to use the second and fourth CPU).
+--cpu-shares    Set this flag to a value greater or less than the default of 1024 to increase or reduce the container’s weight, and give it access to a greater or lesser proportion of the host machine’s CPU cycles. This is only enforced when CPU cycles are constrained. When plenty of CPU cycles are available, all containers use as much CPU as they need. In that way, this is a soft limit. --cpu-shares does not prevent containers from being scheduled in swarm mode. It prioritizes container CPU resources for the available CPU cycles. It does not guarantee or reserve any specific CPU access.
+
+If you have 1 CPU, each of the following commands guarantees the container at most 50% of the CPU every second.
+
+docker run -it --cpus=".5" ubuntu /bin/bash
+
+Which is the equivalent to manually specifying --cpu-period and --cpu-quota;
+
+$ docker run -it --cpu-period=100000 --cpu-quota=50000 ubuntu /bin/bash
+
+** Memory limitaions
+
+
+** memory limitation
+
+
+* docker host and container process cpu memory checking
+docker share the kernel of the host, so in host preint process , cpu, memory , you will see all contianer's cpu, memory usage as well
+you can inspect a container id to get hte process id of this running container.
+docker inspect <containerid>
+
+** ps -aef --forest
+show the docker process, with parenet containerd,
+for example 20069 is a running container, and the child process which run within continaer is below it.
+and 20069 is the container process id in host, host only had 20069 for the process id of this running container.
+------------------------------------------------------------------------------------------
+root     19923     1  0 Jul15 ?        00:01:05 /usr/bin/containerd-shim-runc-v2 -namespace moby -id fe3348917ba9b3369f73a30c46154d22cf4248dae08946398a14c54970d686b9 -address /run/containerd
+root     19974 19923  0 Jul15 ?        00:01:21  \_ /usr/bin/kube-controllers
+root     20069     1  0 Jul15 ?        00:01:28 /usr/bin/containerd-shim-runc-v2 -namespace moby -id 299522b1a29220420e73fea8cd0a4dfa1bc3ccdafa207f345300da265d149018 -address /run/containerd
+root     20097 20069  0 Jul15 ?        00:00:00  \_ /usr/bin/runsvdir -P /etc/service/enabled
+root     20217 20097  0 Jul15 ?        00:00:00      \_ runsv bird6
+root     20372 20217  0 Jul15 ?        00:00:18      |   \_ bird6 -R -s /var/run/calico/bird6.ctl -d -c /etc/calico/confd/config/bird6.cfg
+root     20218 20097  0 Jul15 ?        00:00:00      \_ runsv bird
+root     20373 20218  0 Jul15 ?        00:00:20      |   \_ bird -R -s /var/run/calico/bird.ctl -d -c /etc/calico/confd/config/bird.cfg
+root     20219 20097  0 Jul15 ?        00:00:00      \_ runsv confd
+root     20222 20219  0 Jul15 ?        00:00:11      |   \_ calico-node -confd
+root     20220 20097  0 Jul15 ?        00:00:00      \_ runsv felix
+root     20224 20220  2 Jul15 ?        00:28:50          \_ calico-node -felix
+root      1382     1  0 Jun04 tty1     00:00:00 /sbin/agetty -o -p -- \u --noclear tty1 linux
+root      1386     1  0 Jun04 ?        00:00:00 /usr/bin/python3 /usr/share/unattended-upgrades/unattended-upgrade-shutdown --wait-for-signal
+root      1412     1  0 Jun04 ?        00:00:02 /usr/lib/policykit-1/polkitd --no-debug
+root      1638     1  3 Jun04 ?        1-07:07:50 /usr/bin/dockerd -H fd:// --containerd=/run/containerd/containerd.sock
+root      2217     1  0 Jun04 ?        00:00:00 /usr/sbin/sshd -D
+root     15333  2217  0 02:34 ?        00:00:00  \_ sshd: ubuntu [priv]
+ubuntu   15467 15333  0 02:34 ?        00:00:00      \_ sshd: ubuntu@pts/0
+ubuntu   15468 15467  0 02:34 pts/0    00:00:00          \_ -bash
+ubuntu   16094 15468  0 05:53 pts/0    00:00:00              \_ man ps
+ubuntu   16104 16094  0 05:53 pts/0    00:00:00              |   \_ pager
+ubuntu   29064 15468  0 06:33 pts/0    00:00:00              \_ ps -aef --forest
+root      7625     1  0 Jun29 ?        00:01:13 /usr/lib/snapd/snapd
+root     18143     1  3 Jul15 ?        00:30:17 /usr/bin/kubelet --bootstrap-kubeconfig=/etc/kubernetes/bootstrap-kubelet.conf --kubeconfig=/etc/kubernetes/kubelet.conf --config=/var/lib/kub
+ubuntu   15335     1  0 02:34 ?        00:00:05 /lib/systemd/systemd --user
+ubuntu   15336 15335  0 02:34 ?        00:00:00  \_ (sd-pam)
+--------------------------------------------------------------------------------------------------------------
+
+** pstree
+ubuntu@lm890-Master:~$ pstree
+systemd─┬─VGAuthService
+        ├─accounts-daemon───2*[{accounts-daemon}]
+        ├─agetty
+        ├─atd
+        ├─containerd─┬─containerd-shim─┬─registry───22*[{registry}]
+        │            │                 └─10*[{containerd-shim}]
+        │            ├─12*[containerd-shim─┬─pause]
+        │            │                     └─9*[{containerd-shim}]]
+        │            ├─containerd-shim─┬─pause
+        │            │                 └─10*[{containerd-shim}]
+        │            ├─containerd-shim─┬─kube-controller───11*[{kube-controller}]
+        │            │                 └─9*[{containerd-shim}]
+        │            ├─containerd-shim─┬─kube-scheduler───12*[{kube-scheduler}]
+        │            │                 └─9*[{containerd-shim}]
+        │            ├─containerd-shim─┬─kube-apiserver───14*[{kube-apiserver}]
+
+
+** top in host
+top 
+1 for every cpu core's usage.
+one process could upto 200% for %CPU usage, %CPU is based on every CPU unit
+%
+------------------------------------------------------------------------------
+top - 16:20:20 up 23:56,  2 users,  load average: 0.63, 0.47, 0.51
+Tasks: 304 total,   1 running, 191 sleeping,   1 stopped,   0 zombie
+%Cpu(s):  1.0 us,  0.6 sy,  0.0 ni, 97.5 id,  0.6 wa,  0.0 hi,  0.3 si,  0.0 st
+KiB Mem : 82468688 total, 68047408 free,  1793840 used, 12627440 buff/cache
+KiB Swap:        0 total,        0 free,        0 used. 80153312 avail Mem
+
+  PID USER      PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+ COMMAND
+17229 root      20   0 1312624 573868  71396 S   9.9  0.7 169:06.53 kube-apiserver
+17877 root      20   0 2006728 114848  65336 S   4.3  0.1  85:16.73 kubelet
+17332 root      20   0 10.189g 149704  38668 S   3.6  0.2  55:36.18 etcd
+20224 root      20   0  146736  40580  26284 S   2.3  0.0  28:57.36 calico-node
+ 2074 root      20   0 4088620 121696  51440 S   2.0  0.1  46:51.22 dockerd
+17445 root      20   0  884300 141268  59540 S   2.0  0.2  43:46.17 kube-controller
+19962 root      20   0 10.257g 187512  19296 S   2.0  0.2  12:19.19 etcd
+27126 ubuntu    20   0   43044   4260   3380 R   1.0  0.0   0:00.22 top
+------------------------------------------------------------------
+
+press "1" to show all cpu unit usage
+==========================================================================
+top - 16:22:35 up 23:58,  2 users,  load average: 0.35, 0.45, 0.50
+Tasks: 304 total,   1 running, 191 sleeping,   1 stopped,   0 zombie
+%Cpu0  :  2.4 us,  0.7 sy,  0.0 ni, 93.7 id,  1.7 wa,  0.0 hi,  1.4 si,  0.0 st
+%Cpu1  :  0.0 us,  0.3 sy,  0.0 ni, 96.7 id,  1.3 wa,  0.0 hi,  1.6 si,  0.0 st
+%Cpu2  :  0.3 us,  0.3 sy,  0.0 ni, 97.7 id,  1.3 wa,  0.0 hi,  0.3 si,  0.0 st
+%Cpu3  :  0.3 us,  0.3 sy,  0.0 ni, 98.7 id,  0.7 wa,  0.0 hi,  0.0 si,  0.0 st
+%Cpu4  :  4.3 us,  1.3 sy,  0.0 ni, 94.0 id,  0.0 wa,  0.0 hi,  0.3 si,  0.0 st
+%Cpu5  :  0.7 us,  0.3 sy,  0.0 ni, 99.0 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st
+%Cpu6  :  1.0 us,  0.0 sy,  0.0 ni, 99.0 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st
+%Cpu7  :  0.3 us,  0.0 sy,  0.0 ni, 99.7 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st
+%Cpu8  :  1.7 us,  1.0 sy,  0.0 ni, 97.0 id,  0.3 wa,  0.0 hi,  0.0 si,  0.0 st
+%Cpu9  :  0.0 us,  0.0 sy,  0.0 ni, 99.7 id,  0.3 wa,  0.0 hi,  0.0 si,  0.0 st
+%Cpu10 :  0.7 us,  0.0 sy,  0.0 ni, 98.7 id,  0.7 wa,  0.0 hi,  0.0 si,  0.0 st
+%Cpu11 :  0.7 us,  0.0 sy,  0.0 ni, 99.3 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st
+%Cpu12 :  2.0 us,  0.7 sy,  0.0 ni, 97.0 id,  0.0 wa,  0.0 hi,  0.3 si,  0.0 st
+%Cpu13 :  1.0 us,  0.3 sy,  0.0 ni, 98.3 id,  0.0 wa,  0.0 hi,  0.3 si,  0.0 st
+%Cpu14 :  1.0 us,  0.3 sy,  0.0 ni, 98.7 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st
+%Cpu15 :  1.0 us,  0.0 sy,  0.0 ni, 99.0 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st
+KiB Mem : 82468688 total, 68048048 free,  1791236 used, 12629400 buff/cache
+KiB Swap:        0 total,        0 free,        0 used. 80155912 avail Mem
+
+  PID USER      PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+ COMMAND
+17229 root      20   0 1312624 573884  71396 S   9.6  0.7 169:22.65 kube-apiserver
+17877 root      20   0 2006728 114848  65336 S   6.6  0.1  85:24.88 kubelet
+17332 root      20   0 10.189g 149704  38668 S   3.6  0.2  55:41.51 etcd
+ 2074 root      20   0 4088620 121696  51440 S   3.3  0.1  46:55.66 dockerd
+17445 root      20   0  884300 141268  59540 S   2.3  0.2  43:50.19 kube-controller
+20224 root      20   0  146736  40580  26284 S   2.0  0.0  29:00.16 calico-node
+19962 root      20   0 10.257g 187248  19296 S   1.0  0.2  12:20.14 etcd
+20891 root      20   0  750984  46976  30968 S   1.0  0.1  12:32.74 coredns
+20902 root      20   0  750984  46344  30676 S   0.7  0.1  12:23.18 coredns
+27126 ubuntu    20   0   43044   4260   3380 R   0.7  0.0   0:01.11 top
+
+**  top in container 
+docker top container
+
+** tell if the system is a container or host
+ cat /proc/1/sched | head -n 1
+ systemd 
+
+
+

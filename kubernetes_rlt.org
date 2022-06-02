@@ -1,4 +1,5 @@
-* install minikube
+* minikube for starter
+** install minikube
 https://kubernetes.io/docs/tasks/tools/install-minikube/
 
 ** install minikube
@@ -10,24 +11,24 @@ curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/miniku
 
 ### for the first time sarting, minikube will search current dir for .miniku direcotry, if not, it will download it.
 [admin@TeamCI-1 ~]$ minikube start --driver=kvm2
-* minikube v1.11.0 on Centos 7.5.1804
-* Using the kvm2 driver based on user configuration
-* Downloading driver docker-machine-driver-kvm2:
-* minikube 1.12.1 is available! Download it: https://github.com/kubernetes/minikube/releases/tag/v1.12.1
-* To disable this notice, run: 'minikube config set WantUpdateNotification false'
-
-    > docker-machine-driver-kvm2.sha256: 65 B / 65 B [-------] 100.00% ? p/s 0s
-    > docker-machine-driver-kvm2: 13.88 MiB / 13.88 MiB  100.00% 804.25 KiB p/s
-* Downloading VM boot image ...
-    > minikube-v1.11.0.iso.sha256: 65 B / 65 B [-------------] 100.00% ? p/s 0s
-    > minikube-v1.11.0.iso: 174.99 MiB / 174.99 MiB  100.00% 775.82 KiB p/s 3m5
-* Starting control plane node minikube in cluster minikube
-* Downloading Kubernetes v1.18.3 preload ...
-    > preloaded-images-k8s-v3-v1.18.3-docker-overlay2-amd64.tar.lz4: 397.34 MiB
-* Creating kvm2 VM (CPUs=2, Memory=6000MB, Disk=20000MB) ...
+ * minikube v1.11.0 on Centos 7.5.1804
+ * Using the kvm2 driver based on user configuration
+ * Downloading driver docker-machine-driver-kvm2:
+ * minikube 1.12.1 is available! Download it: https://github.com/kubernetes/minikube/releases/tag/v1.12.1
+ * To disable this notice, run: 'minikube config set WantUpdateNotification false'
+ 
+     > docker-machine-driver-kvm2.sha256: 65 B / 65 B [-------] 100.00% ? p/s 0s
+     > docker-machine-driver-kvm2: 13.88 MiB / 13.88 MiB  100.00% 804.25 KiB p/s
+ * Downloading VM boot image ...
+     > minikube-v1.11.0.iso.sha256: 65 B / 65 B [-------------] 100.00% ? p/s 0s
+     > minikube-v1.11.0.iso: 174.99 MiB / 174.99 MiB  100.00% 775.82 KiB p/s 3m5
+ * Starting control plane node minikube in cluster minikube
+ * Downloading Kubernetes v1.18.3 preload ...
+     > preloaded-images-k8s-v3-v1.18.3-docker-overlay2-amd64.tar.lz4: 397.34 MiB
+ * Creating kvm2 VM (CPUs=2, Memory=6000MB, Disk=20000MB) ...
 #### for the second time, make sure execute minikube at the direcotry which contain .minkubu dir.
 
-** start minikube using driver kvm2 on a physical host
+*** start minikube using driver kvm2 on a physical host
 *** verifying kvm works fine
 virt-host-validate
 
@@ -54,8 +55,8 @@ rm .minikube
  3     minikube                       running
 
 [root@TeamCI-1 ~]# minikube stop
-* Stopping "minikube" in kvm2 ...
-* Node "minikube" stopped.
+ * Stopping "minikube" in kvm2 ...
+ * Node "minikube" stopped.
 [root@TeamCI-1 ~]# virsh list
  Id    Name                           State
 ----------------------------------------------------
@@ -110,18 +111,18 @@ Troubleshooting Commands:
 
 *** restart  minikube
 [admin@TeamCI-1 ~]$ minikube delete
-* Deleting "minikube" in kvm2 ...
-* Removed all traces of the "minikube" cluster.
+** Deleting "minikube" in kvm2 ...
+Removed all traces of the "minikube" cluster.
 #### this is optinal if there's no config issue
 [admin@TeamCI-1 ~]$ minikube config set driver kvm2
 ! These changes will take effect upon a minikube delete and then a minikube start
 
 [admin@TeamCI-1 ~]$ minikube start --driver=kvm2
-* minikube v1.12.1 on Centos 7.5.1804
-* Using the kvm2 driver based on user configuration
-* Starting control plane node minikube in cluster minikube
-* Creating kvm2 VM (CPUs=2, Memory=6000MB, Disk=20000MB) ...
-* Found network options:
+ minikube v1.12.1 on Centos 7.5.1804
+ Using the kvm2 driver based on user configuration
+ Starting control plane node minikube in cluster minikube
+  Creating kvm2 VM (CPUs=2, Memory=6000MB, Disk=20000MB) ...
+ Found network options:
   - HTTP_PROXY=http://10.144.1.10:8080
   - HTTPS_PROXY=http://10.144.1.10:8080
   - NO_PROXY=localhost,127.0.0.1,10.56.233.135,10.56.233.136,10.56.233.137,10.56.233.138,10.56.233.139,10.56.233.140,10.56.233.175,10.56.233.181,192.168.99.0/24,192.168.39.0/24
@@ -152,6 +153,9 @@ apiserver: Running
 add this to NO_PROXY env.
 export NO_PROXY=localhost,127.0.0.1,192.168.99.0/24,192.168.39.0/24
 
+
+minikub start as not a root in airframe
+[admin1@allinone ]$ minikube start 
 
 *****  ssh inito kube's own docker image
 [admin@TeamCI-1 ~]$ minikube ssh
@@ -184,6 +188,10 @@ c41589882517        da26705ccb4b            "kube-controller-manâ€¦"   38 minute
 dbfafb5903ef        k8s.gcr.io/pause:3.2    "/pause"                 38 minutes ago      Up 38 minutes                           k8s_POD_kube-controller-manager-minikube_kube-system_ba963bc1bff8609dc4fc4d359349c120_0
 24f67716f5a1        k8s.gcr.io/pause:3.2    "/pause"                 38 minutes ago      Up 38 minutes                           k8s_POD_kube-apiserver-minikube_kube-system_a716b5e5aafc5ffc82c175558891ed2a_0
 
+
+***** alias kubectl as:   alias kubectl="minikube kubectl --"
+
+
 ***** kube's pods and docker container
 [admin@TeamCI-1 ~]$ kubectl get pods -A
 NAMESPACE     NAME                               READY   STATUS    RESTARTS   AGE
@@ -199,6 +207,10 @@ kube-system   storage-provisioner                1/1     Running   0          40
 
 ***** minikube run as a root using force option
 [root@TeamCI-1 admin]# minikube start --driver=kvm2 --force=true
+
+
+**
+
 
 *** kubectl  
 
@@ -273,7 +285,7 @@ Controlled By:  DaemonSet/calico-node
 Containers:
   calico-node:
 ...
-  install-cni
+ install-cni
 ----------------------
 sudo kubectl logs calico-node-kpxcr -n kube-system -c calico-node
                   <podname>            <namespace>     <container>  
@@ -546,6 +558,8 @@ NAME     STATUS   ROLES    AGE     VERSION   LABELS
 master   Ready    master   3d19h   v1.18.6   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=master,kubernetes.io/os=linux,node-role.kubernetes.io/master=
 
 
+
+
 get pods -o wide   ### list the pods running on which node
 
 
@@ -636,7 +650,12 @@ kubectl create -f persistentVolumeClaim.yaml
 
 * install kubenet cluster
 using kubeadm to install kubenet cluster's nodes in centos7
-** make kubectl executing normally after install kubeadm
+
+** make kubectl executing normally after install kubeadm on master node
+
+sudo kubeadm init --pod-network-cidr=10.244.0.0/16  
+
+
 master: ++ kubeadm init --ignore-preflight-errors=SystemVerification --apiserver-advertise-address=192.168.26.10 --pod-network-cidr=10.244.0.0/16 --token lesi2r.bg6wsvtsd24u26qi --token-ttl 0
 cat /etc/default/kubelet
 KUBELET_EXTRA_ARGS=--node-ip=192.168.26.10
@@ -644,12 +663,26 @@ systemctl daemon-reload
 systemctl restart kubelet.service
 
 
-
+** join into the cluster in work nodes
     kubeadm join --ignore-preflight-errors=SystemVerification --discovery-token-unsafe-skip-ca-verification --token lesi2r.bg6wsvtsd24u26qi 192.168.26.10:6443 
-
 sudo    kubeadm join --ignore-preflight-errors=SystemVerification --discovery-token-unsafe-skip-ca-verification --token nffian.5ggnuftoceqow9zv 192.168.26.10:6443
 
 
+*** check join command in master
+kubeadm token create --print-join-command
+W0709 15:14:23.995320    7155 kubelet.go:200] cannot automatically set CgroupDriver when starting the Kubelet: cannot execute 'docker info -f {{.CgroupDriver}}': exit status 2
+W0709 15:14:24.002418    7155 configset.go:348] WARNING: kubeadm cannot validate component configs for API groups [kubelet.config.k8s.io kubeproxy.config.k8s.io]
+kubeadm join 10.69.151.33:6443 --token gxsxle.smctjsn9l6ppowto     --discovery-token-ca-cert-hash sha256:edf7aff939b30ac9fe1e79e3bfefc7c690538db88c65e6d681297da5df64151c
+ubuntu@node3:~$
+ubuntu@node3:~$
+
+
+** restart the whole kubelete clustser
+sudo kubeadm reset -f #### on the master node
+sudo kubeadm init --pod-network-cidr=10.244.0.0/16 ### start on master
+kubeadm join .....    #### start on work nodes, rejoin the new init process of master
+
+vagrant plugin install vagrant-proxyconf  vagrant-libvirt vagrant-sshfs  vagrant-reload --plugin-clean-sources --plugin-source https://rubygems.org
  wget https://releases.hashicorp.com/vagrant/2.2.9/vagrant_2.2.9_x86_64.rpm
  rpm -ivh vagrant_2.2.9_x86_64.rpm
     vagrant plugin install vagrant-libvirt
@@ -688,7 +721,19 @@ end
 https://technology.amis.nl/2020/04/30/quick-and-easy-a-multi-node-kubernetes-cluster-on-centos-7-qemu-kvm-libvirt/
 
 
+*** vagrant command sets
+**** vagrant global-status
+show vagrant start virtual machine
 
+**** vagrant destroy <virma>
+
+**** vagrant box 
+vagrant box list
+vagrant add box 
+***** vagrant add a local box file 
+vagrant box add   --provider libvirt --name generic/ubuntu1804  file:///root/cmmp2/libvirt.box  
+
+vagrant box remove generic/ubuntu1804
 
 **** Install QEMU/KVM + libvirt
 We are going to use QEMU/KVM and access it through libvirt. Why? Because I want to approach bare metal performance as much as I can and QEMU/KVM does a good job at that. See for example this performance comparison of bare metal vs KVM vs Virtualbox. KVM greatly outperforms Virtualbox and approaches bare metal speeds in quite some tests. I do like the Virtualbox GUI though but I can live with the Virtual Machine Manager.
@@ -811,6 +856,195 @@ tolerations:
   operator: "Exists"
   effect: "NoSchedul
 
+* kubernete help
+
+Basic Commands (Beginner):
+  create        Create a resource from a file or from stdin.
+  expose        Take a replication controller, service, deployment or pod and expose it as a new Kubernetes Service
+  run           Run a particular image on the cluster
+  set           Set specific features on objects
+
+Basic Commands (Intermediate):
+  explain       Documentation of resources
+  get           Display one or many resources
+  edit          Edit a resource on the server
+  delete        Delete resources by filenames, stdin, resources and names, or by resources and label selector
+
+Deploy Commands:
+  rollout       Manage the rollout of a resource
+  scale         Set a new size for a Deployment, ReplicaSet or Replication Controller
+  autoscale     Auto-scale a Deployment, ReplicaSet, or ReplicationController
+
+Cluster Management Commands:
+  certificate   Modify certificate resources.
+  cluster-info  Display cluster info
+  top           Display Resource (CPU/Memory/Storage) usage.
+  cordon        Mark node as unschedulable
+  uncordon      Mark node as schedulable
+  drain         Drain node in preparation for maintenance
+  taint         Update the taints on one or more nodes
+
+Troubleshooting and Debugging Commands:
+  describe      Show details of a specific resource or group of resources
+  logs          Print the logs for a container in a pod
+  attach        Attach to a running container
+  exec          Execute a command in a container
+  port-forward  Forward one or more local ports to a pod
+  proxy         Run a proxy to the Kubernetes API server
+  cp            Copy files and directories to and from containers.
+  auth          Inspect authorization
+
+Advanced Commands:
+  diff          Diff live version against would-be applied version
+  apply         Apply a configuration to a resource by filename or stdin
+  patch         Update field(s) of a resource using strategic merge patch
+  replace       Replace a resource by filename or stdin
+  wait          Experimental: Wait for a specific condition on one or many resources.
+  convert       Convert config files between different API versions
+  kustomize     Build a kustomization target from a directory or a remote url.
+
+Settings Commands:
+  label         Update the labels on a resource
+  annotate      Update the annotations on a resource
+  completion    Output shell completion code for the specified shell (bash or zsh)
+
+Other Commands:
+  alpha         Commands for features in alpha
+  api-resources Print the supported API resources on the server
+  api-versions  Print the supported API versions on the server, in the form of "group/version"
+  config        Modify kubeconfig files
+  plugin        Provides utilities for interacting with plugins.
+  version       Print the client and server version information
+
+** apply or delete resources defined in a yaml files
+kubectl apply -f <name.yaml>
+kubectl delete -f <nam.yaml>
+
+
+** label node with label
+*** label  node
+kubeclt label nodes <nodename> <label>=<labelvalue>
+kubectl label nodes master nodetype=master
+
+*** show label
+[vagrant@master multi]$ kubectl get node master --show-labels
+NAME     STATUS   ROLES    AGE     VERSION   LABELS
+master   Ready    master   3d19h   v1.18.6   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=master,kubernetes.io/os=linux,node-role.kubernetes.io/master=
+
+
+*** remove a label
+kubeclt label nodes <nodename> <label>-
+kubectl label nodes master nodetype-
+
+** get <resourcetype>  <resource name>
+kubectl get <resourcetype> <resource name> <namespace> <-o yaml>   ### -o yaml will generate all the defined resources
+kubectl get deployment cmm-operator -n cmm-cd  -o yaml >myoperator.yaml
+
+kubectl get PersistentVolume -n cmm-cd
+
+
+*** get all the resources in a namespace
+kubectl get all -n kube-system
+===================================
+pod/local-path-provisioner-7bf96f54f5-w6v78    1/1     Running   0          15m
+
+NAMESPACE     NAME                     TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)                                               AGE
+default       service/kubernetes       ClusterIP   10.96.0.1       <none>        443/TCP                                               41m
+
+NAMESPACE     NAME                                    DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR                     AGE
+kube-system   daemonset.apps/kube-proxy               6         6         6       6            6           kubernetes.io/os=linux            41m
+
+NAMESPACE            NAME                                      READY   UP-TO-DATE   AVAILABLE   AGE
+ocal-path-storage   deployment.apps/local-path-provisioner    1/1     1            1           15m
+
+NAMESPACE            NAME                                                 DESIRED   CURRENT   READY   AGE
+kube-system          replicaset.apps/consul-server-795879879c             1         1         1       7m7s
+ =======================================
+resource type is pod, service daemonset, deployment, replicaset...
+
+** get all  api-resource in the cluster
+
+ubuntu@node3:~$ kubectl api-resources --verbs=list -n kube-sytem
+NAME                              SHORTNAMES       APIGROUP                       NAMESPACED   KIND
+componentstatuses                 cs                                              false        ComponentStatus
+configmaps                        cm                                              true         ConfigMap
+endpoints                         ep                                              true         Endpoints
+events                            ev                                              true         Event
+limitranges                       limits                                          true         LimitRange
+namespaces                        ns                                              false        Namespace
+nodes                             no                                              false        Node
+persistentvolumeclaims            pvc                                             true         PersistentVolumeClaim
+persistentvolumes                 pv                                              false        PersistentVolume
+pods                              po                                              true         Pod
+podtemplates                                                                      true         PodTemplate
+replicationcontrollers            rc                                              true         ReplicationController
+resourcequotas                    quota                                           true         ResourceQuota
+secrets                                                                           true         Secret
+serviceaccounts                   sa                                              true         ServiceAccount
+services                          svc                                             true         Service
+mutatingwebhookconfigurations                      admissionregistration.k8s.io   false        MutatingWebhookConfiguration
+validatingwebhookconfigurations                    admissionregistration.k8s.io   false        ValidatingWebhookConfiguration
+customresourcedefinitions         crd,crds         apiextensions.k8s.io           false        CustomResourceDefinition
+apiservices                                        apiregistration.k8s.io         false        APIService
+controllerrevisions                                apps                           true         ControllerRevision
+daemonsets                        ds               apps                           true         DaemonSet
+deployments                       deploy           apps                           true         Deployment
+replicasets                       rs               apps                           true         ReplicaSet
+statefulsets                      sts              apps                           true         StatefulSet
+horizontalpodautoscalers          hpa              autoscaling                    true         HorizontalPodAutoscaler
+cronjobs                          cj               batch                          true         CronJob
+jobs                                               batch                          true         Job
+certificatesigningrequests        csr              certificates.k8s.io            false        CertificateSigningRequest
+cmms                                               cmm.nokia.com                  true         CMM
+leases                                             coordination.k8s.io            true         Lease
+endpointslices                                     discovery.k8s.io               true         EndpointSlice
+events                            ev               events.k8s.io                  true         Event
+ingresses                         ing              extensions                     true         Ingress
+network-attachment-definitions    net-attach-def   k8s.cni.cncf.io                true         NetworkAttachmentDefinition
+nodes                                              metrics.k8s.io                 false        NodeMetrics
+pods                                               metrics.k8s.io                 true         PodMetrics
+ingressclasses                                     networking.k8s.io              false        IngressClass
+ingresses                         ing              networking.k8s.io              true         Ingress
+networkpolicies                   netpol           networking.k8s.io              true         NetworkPolicy
+runtimeclasses                                     node.k8s.io                    false        RuntimeClass
+poddisruptionbudgets              pdb              policy                         true         PodDisruptionBudget
+podsecuritypolicies               psp              policy                         false        PodSecurityPolicy
+clusterrolebindings                                rbac.authorization.k8s.io      false        ClusterRoleBinding
+clusterroles                                       rbac.authorization.k8s.io      false        ClusterRole
+rolebindings                                       rbac.authorization.k8s.io      true         RoleBinding
+roles                                              rbac.authorization.k8s.io      true         Role
+priorityclasses                   pc               scheduling.k8s.io              false        PriorityClass
+csidrivers                                         storage.k8s.io                 false        CSIDriver
+csinodes                                           storage.k8s.io                 false        CSINode
+storageclasses                    sc               storage.k8s.io                 false        StorageClass
+volumeattachments                                  storage.k8s.io                 false        VolumeAttachment
+ippools                                            whereabouts.cni.cncf.io        true         IPPool
+ubuntu@node3:~$
+
+
+
+*** get a specific api-resource
+kubectl get pv (PersistentVolume) 
+ ubuntu@lm905-Master:~$ kubectl get pv
+NAME                                       CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM                                                            STORAGECLASS   REASON   AGE
+pvc-036b6f82-9e2a-455a-8a66-a73d0f500d05   5Gi        RWO            Delete           Bound    npv-ate/local-path-npv-ate-necc-data-pcmd-ate-qa45g-necc-0       local-path              28h
+pvc-0d042711-3481-43b1-9ab9-d553227c2984   1Gi        RWO            Delete           Bound    npv-ate/local-path-npv-ate-necc-data-kafka-ate-qa45g-necc-1      local-path              28h
+pvc-0fdf0bef-2a2c-48f3-a6d0-ac8ed72bf67a   1Gi        RWO            Delete           Bound    npv-ate/local-path-npv-ate-necc-data-charging-ate-qa45g-necc-2   local-path              28h
+pvc-128b1cb8-e9a9-4290-82b5-45255ec5598a   1Gi        RWO            Delete           Bound    npv-ate/local-path-npv-ate-necc-data-logs-ate-qa45g-necc-2       local-path              28h
+pvc-2add2f2e-f7e3-4a08-bc3a-48e6e792bf8c   1Gi        RWO            Delete           Bound    npv-ate/local-path-npv-ate-ctcs-data-redis-ate-qa45g-ctcs-0      local-path              28h
+
+
+*** permission forbidden to get some api-resource
+All kubelet resource permission is through clusterrolebindings and clusterroles.
+
+
+** describe <resource type> or <resource api>
+kubectl describe ippools -A
+kubectl describe  pods <podname> -n <namesapce>
+
+
+
+
 * kubernets taints
 ** add a taint
 kubectl taint nodes node1 key=value:NoSchedule
@@ -857,11 +1091,28 @@ kubectl scale --replicas=2 statefulset.apps/multi-data
 ls /sys/class/net
 kubectl get nodes --selector=kubernetes.io/role!=master -o jsonpath={.items[*].status.addresses[?\(@.type==\"InternalIP\"\)].address}
 
-* kubectl patch
+* kubectl  modify the setting of the resource
 kubectl could patch the "spec" of the resource
-** output of get(get all the fields of a resource)
+** kubectl apply <updated_yaml_file>
+this method only available when you apply the yaml files firstly
+
+*** output of get(get all the fields of a resource)
+kubectl get hpa emms -n npv-cmm-23 -o json > <update_yaml_file>
+
+*** edit the update_yaml_file
+
+*** kubectl apply -f <update_yaml_file>
+
+
+
+** kubectl edit 
+kubectl edit <resourcename>
+save and exit
+
+**  kubectl patch
 hpa horizontalpodautoscaler
 
+*** kubectl patch with json
 $kubectl get hpa emms -n npv-cmm-23 -o json
     "spec": {
         "maxReplicas": 8,
@@ -875,7 +1126,7 @@ $kubectl get hpa emms -n npv-cmm-23 -o json
     },
 $kubectl patch hpa amms -n npv-cmm-13 --patch "{\"spec\":{\"minReplicas\":3, \"maxReplicas\":5}}"
 
-***  patch statefulset 
+****  patch statefulset  for updateStrategy
 $kubectl get statefulset qa-13-necc -n npv-cmm-13 -o json
   "spec": {
    "updateStrategy": {
@@ -888,7 +1139,477 @@ $kubectl get statefulset qa-13-necc -n npv-cmm-13 -o json
 $kubectl patch statefulset necc -p '{"spec": "updateStrategy": { "rollingUpdate": { "partition": 0 }, "type": "RollingUpdate" } } }'
 
 
-   
+**** patch statefulset for replica
+kubectl describe statefulset 
+Replicas:           0 desired | 0 total
+kubectl patch statefulsets <stateful-set-name> -p '{"spec":{"replicas":1}}'
+
+kubectl describe statefulset 
+Replicas:           1 desired | 0 total
+Events:
+  Type     Reason        Age              From                    Message
+    ----     ------        ----             ----                    -------
+      Warning  FailedCreate  3s (x9 over 4s)  statefulset-controller  create Pod cmm-qa45g-paps-0 in StatefulSet cmm-qa45g-paps failed error: Pod "cmm-qa45g-paps-0" is invalid: spec.containers[0].image: Required value
+
+**** scaling the statefulset with replicas  
+kubectl scale statefulset web --replicas=1 
+
+
+*** kubectl patch using patch file
+cat patch-file-2.yaml
+====================================================
+spec:
+  template:
+    spec:
+      containers:
+      - name: patch-demo-ctr-3
+        image: gcr.io/google-samples/node-hello:1.0
+=======================================================
+In your patch command, set type to merge:
+
+kubectl patch deployment patch-demo  --patch "$(cat patch-file-2.yaml)"
+
+**** merge patch with file
+kubectl patch deployment patch-demo --type merge --patch "$(cat patch-file-2.yaml)"
+
+* delete a node 
+** On Master Node
+#Find the node# kubectl get nodes
+
+#Drain it# kubectl drain nodetoberemoved
+kubectl drain <node_name> [--ignore-daemonsets --force --delete-local-data]
+node "<node_name>" cordoned
+
+#### delete the one can't be deleted
+ kubectl delete pod <pod_name> -n=<namespace> --grace-period=0 --force
+
+#Delete it# kubectl delete node nodetoberemoved
+
+** 
+
+** On Worker Node (nodetoberemoved).
+#Remove join/init setting from node
+kubeadm reset
+
+or restart kubelet service
+ systemctl restart kubelet
+ > systemctl status kubelet Active: active (running) since .....
+
+
+** on master node
+kubectl uncordon <node_name> ### if you didn't using kubeadm reset
+kubectl join     ### if you kubeadm reset
+
+
+
+* k8s selector
+** statefulset define
+vagrant@master:~$ kubectl describe gashpc -n gashpc
+error: the server doesn't have a resource type "gashpc"
+vagrant@master:~$ kubectl describe sts gashpc -n gashpc
+Name:               gashpc
+Namespace:          gashpc
+CreationTimestamp:  Tue, 10 Aug 2021 09:18:50 +0000
+Selector:           app=gashpc
+Labels:             <none>
+Annotations:        <none>
+Replicas:           1 desired | 1 total
+Update Strategy:    RollingUpdate
+  Partition:        0
+Pods Status:        1 Running / 0 Waiting / 0 Succeeded / 0 Failed
+Pod Template:
+  Labels:       app=gashpc
+  Annotations:  k8s.v1.cni.cncf.io/networks: signaling@eth3,cmm-internal@eth2
+  Containers:
+   gashpc:
+    Image:        192.168.26.10:5000/gashpc:latest
+    Port:         <none>
+    Host Port:    <none>
+    Environment:  <none>
+    Mounts:
+      /gashpc from gashpc-storage (rw)
+  Volumes:  <none>
+Volume Claims:
+  Name:          gashpc-storage
+  StorageClass:  local-storage
+  Labels:        <none>
+  Annotations:   <none>
+  Capacity:      100Mi
+  Access Modes:  [ReadWriteOnce]
+Events:          <none>
+vagrant@master:~$
+
+** pod labels and annatations
+agrant@master:~$ kubectl describe pod gashpc-0 -n gashpc
+Name:         gashpc-0
+Namespace:    gashpc
+Priority:     0
+Node:         node2/192.168.26.12
+Start Time:   Tue, 10 Aug 2021 09:18:50 +0000
+Labels:       app=gashpc
+              controller-revision-hash=gashpc-66886df994
+              statefulset.kubernetes.io/pod-name=gashpc-0
+Annotations:  k8s.v1.cni.cncf.io/network-status:
+                [{
+                    "name": "k8s-pod-network",
+                    "ips": [
+                        "10.244.104.8",
+                        "fdf9:b572:a5a1:be5:3f6f:1943:1663:dfc8"
+                    ],
+                    "default": true,
+                    "dns": {}
+                },{
+                    "name": "signaling",
+                    "interface": "eth3",
+                    "ips": [
+                        "172.16.0.22",
+                        "172.16.0.42",
+                        "172.16.0.67",
+                        "172.16.0.92",
+                        "172.16.0.117",
+                        "172.16.0.142",
+                        "172.16.0.167",
+                        "172.16.0.192",
+                        "172.16.0.217",
+                        "172.16.0.242",
+                        "172.16.0.254"
+                    ],
+                    "mac": "52:54:00:fb:93:3f",
+                    "dns": {}
+
+
+** 
+
+
+
+* kubectl troubeshoot events or log
+** kubectl get events -A
+
+** kubectl describe events -n <namesapce>
+ubuntu@node3:~$ kubectl describe events  cmm-qa45g-pap -n cmm-cd
+Name:             cmm-qa45g-paps.16911862cf2fe0fa
+Namespace:        cmm-cd
+Labels:           <none>
+Annotations:      <none>
+API Version:      v1
+Count:            9      #####events couldn't be viewed as timestamp since it will count number of this kind of events
+Event Time:       <nil>
+First Timestamp:  2021-07-12T16:35:53Z  #### only latest timestamp 
+Involved Object:
+  API Version:       apps/v1
+    Kind:              StatefulSet
+      Name:              cmm-qa45g-paps
+        Namespace:         cmm-cd
+          Resource Version:  434451
+            UID:               2849aa35-fbb0-47cb-a244-1ed33ff7c492
+            Kind:                Event
+            Last Timestamp:      2021-07-12T16:35:54Z
+            Message:             create Pod cmm-qa45g-paps-0 in StatefulSet cmm-qa45g-paps failed error: Pod "cmm-qa45g-paps-0" is invalid: spec.containers[0].image: Required value
+            Metadata:
+              Creation Timestamp:  2021-07-12T16:35:53Z
+                Managed Fields:
+                    API Version:  v1
+
+
+
+*** describe events and filter events name
+this will filter events name begin with cmm-qa45g-paps
+ubuntu@node3:~$ kubectl describe events  cmm-qa45g-pap -n cmm-cd
+Name:             cmm-qa45g-paps.16911862cf2fe0fa
+
+** journalctl -u kubelet   #### get kubelet service log
+ubuntu@node3:~$ journalctl -u kubelet |head
+-- Logs begin at Fri 2021-06-18 03:36:04 UTC, end at Mon 2021-07-12 16:17:01 UTC. --
+Jun 24 03:11:51 node3 systemd[1]: Started kubelet: The Kubernetes Node Agent.
+Jun 24 03:11:52 node3 systemd[1]: kubelet.service: Current command vanished from the unit file, execution of the command list won't be resumed.
+Jun 24 03:11:52 node3 systemd[1]: Stopping kubelet: The Kubernetes Node Agent...
+Jun 24 03:11:52 node3 systemd[1]: Stopped kubelet: The Kubernetes Node Agent.
+Jun 24 03:11:52 node3 systemd[1]: Started kubelet: The Kubernetes Node Agent.
+Jun 24 03:11:52 node3 kubelet[26249]: F0624 03:11:52.457346   26249 server.go:198] failed to load Kubelet config file /var/lib/kubelet/config.yaml, error failed to read kubelet config file "/var/lib/kubelet/config.yaml", error: open /var/lib/kubelet/config.yaml: no such file or directory
+Jun 24 03:11:52 node3 kubelet[26249]: goroutine 1 [running]:
+Jun 24 03:11:52 node3 kubelet[26249]: k8s.io/kubernetes/vendor/k8s.io/klog/v2.stacks(0xc0001a4001, 0xc0001b6840, 0xfb, 0x14d)
+Jun 24 03:11:52 node3 kubelet[26249]:         /workspace/anago-v1.19.4-rc.0.51+5f1e5cafd33a88/src/k8s.io/kubernetes/_output/dockerized/go/src/k8s.io/kubernetes/vendor/k8s.io/klog/v2/klog.go:996 +0xb9
+ 
+
+** grep all journal log for kube
+ubuntu@node3:~$ journalctl |grep  kube
+Jun 29 08:07:45 node3 kubelet[1376]: E0629 08:07:45.535276    1376 pod_workers.go:191] Error syncing pod 617dd051-3094-4a82-8073-9ce89d33b234 ("coredns-f9fd979d6-l5x7f_kube-system(617dd051-3094-4a82-8073-9ce89d33b234)"), skipping: failed to "StartContainer" for "coredns" with CrashLoopBackOff: "back-off 5m0s restarting failed container=coredns pod=coredns-f9fd979d6-l5x7f_kube-system(617dd051-3094-4a82-8073-9ce89d33b234)"
+Jun 29 08:07:46 node3 kubelet[1376]: I0629 08:07:46.534557    1376 topology_manager.go:219] [topologymanager] RemoveContainer - Container ID: 259115d5fc44000388cd294c6446569174292610e12d3566d39f9d7f9592433d
+Jun 29 08:07:46 node3 kubelet[1376]: E0629 08:07:46.535470    1376 pod_workers.go:191] Error syncing pod 79fd6d25-89c3-488c-be6c-0b5269e83eda ("coredns-f9fd979d6-bl6jp_kube-system(79fd6d25-89c3-488c-be6c-0b5269e83eda)"), skipping: failed to "StartContainer" for "coredns" with CrashLoopBackOff: "back-off 5m0s restarting failed container=coredns pod=coredns-f9fd979d6-bl6jp_kube-system(79fd6d25-89c3-488c-be6c-0b5269e83eda)"
+
+
+* trouble shooting crash backoff
+when a container reboot or down, it's very difficult to troubleshoot the reason.
+maybe resource(memory, cpu) not sufficient
+** docker events check oom
+docker events -f 'event=oom' --since '10h'  
+
+** logs of container checking
+maybe the logic of the container image itself has something wrong in it. 
+when a docker container has a very time window up, it's difficult to check logs, and even if you check log, the last time log will be gone.
+So container logs must be in other place to check later.
+
+*** get the container in the worknode you want to troubleshoot
+sudo docker ps -a
+b599491403d0   b41efb321922           "/opt/nokia/scripts/"   4 minutes ago   Exited (1) 3 minutes ago            
+   k8s_amms_cmm-qa45g-amms-0_cmm-cd_0d6eed48-636f-4d01-8250-908e1e7c7076_69
+
+*** docker inspect the container to check volume mount
+docker inspect <container-id>
+
+                 "Type": "bind",
+                "Source": "/var/lib/kubelet/pods/0d6eed48-636f-4d01-8250-908e1e7c7076/volumes/kubernetes.io~empty-dir/shared-log",  ####host directory 
+                "Destination": "/var/log",                                                                                         ####container dir     
+                "Mode": "",
+                "RW": true,
+                "Propagation": "rprivate"
+            },
+
+here /var/log is the log directory
+
+ls -l /var/lib/kubelet/pods/0d6eed48-636f-4d01-8250-908e1e7c7076/volumes/kubernetes.io~empty-dir/shared-log
+-rw-r--r-- 1 root root   24069 Jul 12 17:21 init_aim_container.log
+-rw-r--r-- 1 root root  376230 Jul 12 17:21 initContainer.log
+-rw-r--r-- 1 root root   76680 Jul 12 17:21 init_platservices_container.log
+-rw-r--r-- 1 root root   31657 Jul 12 17:21 init_service_container.log
+-rw-r--r-- 1 root root    9585 Jul 12 17:21 init_unbound.log
+-rw-r----- 1 root root  523750 Jul 12 17:21 local.log
+-rw-r--r-- 1 root root  506963 Jul 12 17:21 MMEtk.log
+-rw-r--r-- 1 root root 1000038 Jul 12 14:51 MMEtk.log.old
+-rw-r--r-- 1 root root   34965 Jul 12 17:22 platservices_script.log
+-rw-r--r-- 1 root root   57084 Jul 12 17:21 post_init_container.log
+-rw-r--r-- 1 root root   32305 Jul 12 17:21 probe_server.log
+-rw-r--r-- 1 root root   13845 Jul 12 17:22 restart_pod.log
+-rw-r--r-- 1 root root    1412 Jul 12 17:15 serf_check.log
+-rw-r--r-- 1 root root   86620 Jul 12 17:21 serf_handler.log
+-rw-r--r-- 1 root root  222977 Jul 12 17:22 serf.log
+-rw------- 1 root root    7705 Jul 12 17:22 sshd.log
+drwxr-xr-x 2 root root    4096 Jul 12 10:08 unbound
+-rw-r--r-- 1 root root     702 Jul 12 10:08 unbound_monitor.log
+
+
+everytime the pods restart, the voluems shared-log is always in the same directory since kube only restart the pod, so the pod name not changed.
+and all the logs in that dir have been appended, you could see the previous logs.
+
+** status of node resource checking
+vagrant@master:~$ kubectl describe node node1
+=======================================================================================
+Name:               node1
+Roles:              <none>
+Annotations:        kubeadm.alpha.kubernetes.io/cri-socket: /var/run/dockershim.sock
+                    node.alpha.kubernetes.io/ttl: 0
+                    volumes.kubernetes.io/controller-managed-attach-detach: true
+CreationTimestamp:  Thu, 30 Sep 2021 08:31:07 +0000
+Taints:             <none>
+Unschedulable:      false
+Lease:
+  HolderIdentity:  node1
+  AcquireTime:     <unset>
+  RenewTime:       Fri, 08 Oct 2021 02:31:24 +0000
+Conditions:
+  Type             Status  LastHeartbeatTime                 LastTransitionTime                Reason                       Message
+  ----             ------  -----------------                 ------------------                ------                       -------
+  MemoryPressure   False   Fri, 08 Oct 2021 02:29:44 +0000   Fri, 08 Oct 2021 02:24:42 +0000   KubeletHasSufficientMemory   kubelet has sufficient memory available
+  DiskPressure     False   Fri, 08 Oct 2021 02:29:44 +0000   Fri, 08 Oct 2021 02:24:42 +0000   KubeletHasNoDiskPressure     kubelet has no disk pressure
+  PIDPressure      False   Fri, 08 Oct 2021 02:29:44 +0000   Fri, 08 Oct 2021 02:24:42 +0000   KubeletHasSufficientPID      kubelet has sufficient PID available
+  Ready            True    Fri, 08 Oct 2021 02:29:44 +0000   Fri, 08 Oct 2021 02:24:42 +0000   KubeletReady                 kubelet is posting ready status. AppArmor enabled
+Addresses:
+  InternalIP:  192.168.26.11
+  Hostname:    node1
+Capacity:
+  cpu:                8
+  ephemeral-storage:  64800356Ki
+  hugepages-2Mi:      0
+  memory:             41194568Ki
+  pods:               110
+Allocatable:
+  cpu:                8
+  ephemeral-storage:  59720007991
+  hugepages-2Mi:      0
+  memory:             41092168Ki
+  pods:               110
+System Info:
+  Machine ID:                 05e6c882f8fe4b9b98be0ea92df84a72
+  System UUID:                d48bb45a-7a5f-4a76-b84a-dbd16fa790b8
+  Boot ID:                    a54a699d-2ecc-47d5-8ea3-21334f8b2cba
+  Kernel Version:             5.0.0-20-generic
+  OS Image:                   Ubuntu 18.04.2 LTS
+  Operating System:           linux
+  Architecture:               amd64
+  Container Runtime Version:  docker://20.10.8
+  Kubelet Version:            v1.19.4
+  Kube-Proxy Version:         v1.19.4
+PodCIDR:                      10.244.2.0/24
+PodCIDRs:                     10.244.2.0/24
+Non-terminated Pods:          (2 in total)
+  Namespace                   Name                 CPU Requests  CPU Limits  Memory Requests  Memory Limits  AGE
+  ---------                   ----                 ------------  ----------  ---------------  -------------  ---
+  kube-system                 calico-node-56dxc    250m (3%)     0 (0%)      0 (0%)           0 (0%)         7d17h
+  kube-system                 kube-proxy-kqgj9     0 (0%)        0 (0%)      0 (0%)           0 (0%)         7d18h
+Allocated resources:
+  (Total limits may be over 100 percent, i.e., overcommitted.)
+  Resource           Requests   Limits
+  --------           --------   ------
+  cpu                250m (3%)  0 (0%)
+  memory             0 (0%)     0 (0%)
+  ephemeral-storage  0 (0%)     0 (0%)
+  hugepages-2Mi      0 (0%)     0 (0%)
+Events:
+  Type    Reason                   Age                    From        Message
+  ----    ------                   ----                   ----        -------
+  Normal  Starting                 7d18h                  kubelet     Starting kubelet.
+  Normal  NodeAllocatableEnforced  7d18h                  kubelet     Updated Node Allocatable limit across pods
+  Normal  Starting                 7d17h                  kube-proxy  Starting kube-proxy.
+  Normal  NodeHasSufficientMemory  6m27s (x3 over 7d18h)  kubelet     Node node1 status is now: NodeHasSufficientMemory
+  Normal  NodeHasNoDiskPressure    6m27s (x3 over 7d18h)  kubelet     Node node1 status is now: NodeHasNoDiskPressure
+  Normal  NodeHasSufficientPID     6m27s (x3 over 7d18h)  kubelet     Node node1 status is now: NodeHasSufficientPID
+  Normal  NodeReady                6m27s (x2 over 7d17h)  kubelet     Node node1 status is now: NodeReady
+======================================================================================
+vagrant@master:~$
+
+** Failed to create pod sandbox
+k8s use a pod sandbox to create real pod in the node. 
+For example, if you create a pod with multiple/single containers to run, then a Pod 
+=========================
+vagrant@master:~$ sudo docker ps |grep control
+bed36a073d66   quay.io/calico/kube-controllers   "/usr/bin/kube-contr¿"  k8s_calico-kube-controllers_calico-kube-controllers-69f49c8d66-fwfnc_kube-system_8d463cb3-06ed-4f74-87cf-1b1294bdd30e_0
+d71bbaa59388   k8s.gcr.io/pause:3.2              "/pause"                k8s_POD_calico-kube-controllers-69f49c8d66-fwfnc_kube-system_8d463cb3-06ed-4f74-87cf-1b1294bdd30e_0
+=============================
+
+=====================================================================
+vagrant@master:~$ kubectl get pods -A
+NAMESPACE     NAME                                       READY   STATUS              RESTARTS   AGE
+kube-system   calico-kube-controllers-69f49c8d66-fwfnc   1/1     Running             0          7d18h
+================================================================================
+
+one container is k8s_POD_calico-kube-controllers, the other one is  k8s_calico-kube-controllers,
+if you encounter a "Failed to create pod sandbox", it means the k8s_POD creation failed.
+It usually related to resource allocation, cpu, memory, volumes and network interfaces, one of them fail, the sandbox will be failed to create.
+----------------
+ network for pod "coredns-f9fd979d6-2d6x6": networkPlugin cni failed to set up pod "coredns-f9fd979d6-2d6x6_kube-system" network: Multus: [kube-system/coredns-f9fd979d6-2d6x6]: error adding container to network "k8s-pod-network": delegateAdd: error invoking conflistAdd - "k8s-pod-network": conflistAdd: error in getting result from AddNetworkList:
+-------------------
+
+/etc/cni/net.d/
+is the cni directory, sandbox will find the interface to add, make sure its empty.
+
+** 
+** 
+* network service mesh
+A service mesh is a dedicated layer that provides secure service-to-service communication for on-prem, cloud, or multi-cloud infrastructure. 
+Service meshes are often used in conjunction with the microservice architectural pattern, but can provide value in any scenario where complex networking is involved.
+
+Service meshes typically consist of a control plane, and a data plane. The control plane is responsible for securing the mesh, facilitating service discovery, health checking, policy enforcement, and other similar operational concerns.
+sevice mesh provide a service Level(service name) 
+every application provide a service, and the client request a service, it need to know the ip:port of this service, but in k8s cluster, the ip address is not fixed, the 
+application pods maybe deployed on the other k8s work nodes, then the ip may changed. In this case, dnsname is very important for client interface. It could always request
+with dnsname but the ip may changed.
+_________________________________                                  ____________________________
+| Application A |               |                                 |             |             |
+|               | sidecar proxy |-------------------------------- |sidecar proxy|Application B|           
+--------------------------------|                                 |_____________|_____________|
+
+inside a mesh, if Application A want to initiate a request to Application B for service B, it use sidecar proxy to get the real ip from service mesh control plane,
+and sidecar proxy A send a ip:port request to Application B, sidecar proxy B could allow the request to Application B or not based on the policy configured in a the service mesh.
+
+A service mesh has a datacenter, it will manage all the services within this mesh. If you want to provide service to the other Applications within the mesh, you should 
+register the service to datacenter. For example, Application B register it's service B1, dnsname, ip , port to datacenter, Application A use dnsname for initiating,
+sidecar proxy A will query real ip with dnsname from datacenter, datacenter will tell Application A  the real ip of this dnsname.
+
+sidecar proxy is usually a pod, but if we want to get a native way for lantency sensative, you can run consul also on the Application pods
+_________________________________                                  _____________________________
+| Application A |               |                                  |              |             |
+|               | consul agent  | -------------------------------- | consul agent | ApplicationB|
+--------------------------------|                                  |______________|_____________|
+
+
+
+
+take consul as a service mesh example.
+
+** consul node and services
+consul node means an application which provide services.  So consul node is the Application with the sidecar proxy.
+
+[t@cmm-qa45g-necc0 consul]# consul members
+Node   Address              Status  Type    Build  Protocol  DC   Segment
+necc0  10.244.225.97:8301   alive   server  1.9.0  2         dc1  <all>
+necc1  10.244.199.252:8301  alive   server  1.9.0  2         dc1  <all>
+necc2  10.244.103.147:8301  alive   server  1.9.0  2         dc1  <all>
+alms0  10.244.103.136:8301  alive   client  1.9.0  2         dc1  <default>
+cpps0  10.244.225.94:8301   alive   client  1.9.0  2         dc1  <default>
+cpps1  10.244.40.198:8301   alive   client  1.9.0  2         dc1  <default>
+ctcs0  10.244.199.248:8301  alive   client  1.9.0  2         dc1  <default>
+dbs0   10.244.104.145:8301  alive   client  1.9.0  2         dc1  <default>
+eems0  10.244.103.129:8301  alive   client  1.9.0  2         dc1  <default>
+ipds0  10.244.225.80:8301   alive   client  1.9.0  2         dc1  <default>
+ipds1  10.244.40.199:8301   alive   client  1.9.0  2         dc1  <default>
+lihs0  10.244.103.130:8301  alive   client  1.9.0  2         dc1  <default>
+
+
+
+[root@cmm-qa45g-necc0 /]# consul catalog nodes -detailed
+Node   ID                                    Address         DC   TaggedAddresses                                                                           Meta
+alms0  c0ee0223-64ec-12c2-abc0-a9f3a7c94d35  10.244.103.136  dc1  lan=10.244.103.136, lan_ipv4=10.244.103.136, wan=10.244.103.136, wan_ipv4=10.244.103.136  consul-network-segment=, vm_type=alms
+cpps0  8871c059-6bac-2baf-c7b0-793a06feffda  10.244.225.94   dc1  lan=10.244.225.94, lan_ipv4=10.244.225.94, wan=10.244.225.94, wan_ipv4=10.244.225.94      consul-network-segment=, vm_type=cpps
+cpps1  abadaa28-d4b9-535f-1da6-ba2bf5834c8d  10.244.40.198   dc1  lan=10.244.40.198, lan_ipv4=10.244.40.198, wan=10.244.40.198, wan_ipv4=10.244.40.198      consul-network-segment=, vm_type=cpps
+ctcs0  24ef4cf9-d60e-52da-23d3-e78d08700c79  10.244.199.248  dc1  lan=10.244.199.248, lan_ipv4=10.244.199.248, wan=10.244.199.248, wan_ipv4=10.244.199.248  consul-network-segment=, vm_type=ctcs
+dbs0   ca1a9669-4d8f-a597-e0b2-bf931ceab68b  10.244.104.145  dc1  lan=10.244.104.145, lan_ipv4=10.244.104.145, wan=10.244.104.145, wan_ipv4=10.244.104.145  consul-network-segment=, pool_id=0, pool_mem=0, pool_type=DBS, vip=None, vm_type=dbs
+eems0  784e9ee4-bd23-a5c5-f15e-7000aeb2947f  10.244.103.129  dc1  lan=10.244.103.129, lan_ipv4=10.244.103.129, wan=10.244.103.129, wan_ipv4=10.244.103.129  consul-network-segment=, vm_type=eems
+ipds0  bd108456-0b25-2f44-47df-d159df92c469  10.244.225.80   dc1  lan=10.244.225.80, lan_ipv4=10.244.225.80, wan=10.244.225.80, wan_ipv4=10.244.225.80      consul-network-segment=, vm_type=ipds
+ipds1  b1088d2b-ed2c-cab7-d423-ad17b6975aea  10.244.40.199   dc1  lan=10.244.40.199, lan_ipv4=10.244.40.199, wan=10.244.40.199, wan_ipv4=10.244.40.199      consul-network-segment=, vm_type=ipds
+lihs0  53ed2d2e-8aa1-41fb-a4ab-cb8391e19965  10.244.103.130  dc1  lan=10.244.103.130, lan_ipv4=10.244.103.130, wan=10.244.103.130, wan_ipv4=10.244.103.130  consul-network-segment=, vm_type=lihs
+necc0  72a965fe-a7ba-c014-ab54-8d234f8342ce  10.244.225.97   dc1  lan=10.244.225.97, lan_ipv4=10.244.225.97, wan=10.244.225.97, wan_ipv4=10.244.225.97      consul-network-segment=, vm_type=necc
+necc1  f77bea95-fa71-4e2b-4aa1-1b17d78f879d  10.244.199.252  dc1  lan=10.244.199.252, lan_ipv4=10.244.199.252, wan=10.244.199.252, wan_ipv4=10.244.199.252  consul-network-segment=, vm_type=necc
+necc2  f068725f-eb04-5aad-d464-4540f5ce6066  10.244.103.147  dc1  lan=10.244.103.147, lan_ipv4=10.244.103.147, wan=10.244.103.147, wan_ipv4=10.244.103.147  consul-network-segment=, vm_type=necc
+
+
+Starts the Consul agent and runs until an interrupt is received. The agent represents a single node in a cluster.
+In the application pod, start consul to make a service mesh
+/usr/bin/consul agent -config-dir /etc/consul
+===================
+frontend sentinel
+    mode tcp
+    bind *:26378
+    default_backend sentinel
+
+backend sentinel
+    mode tcp{{range service "sentinel"}}
+    server {{.Node}}_{{.Address}}:{{.Port}} {{.Address}}:{{.Port}} {{end}}
+==============================================================
+it means: 
+service sentinel
+server necc0_10.244.225.97:26378    necc0_10.244.225.97:26378
+
+
+###list how many services regitered in the datacenter, there are 3 tags 0,1,2
+[root@cmm-qa45g-necc0 consul]# consul catalog services -tags
+sentinel          0,1,2
+vault             0,1,2
+
+** consul dns service
+[root@cmm-qa45g-necc0 consul]# netstat -anp |grep -w 53
+tcp        0      0 127.0.0.1:53            0.0.0.0:*               LISTEN      1676/consul
+udp        0      0 127.0.0.1:53            0.0.0.0:*                           1676/consul
+[root@cmm-qa45g-necc0 consul]# ps aux |grep consul
+root      1676  4.1  0.1 819652 99256 ?        Sl   Aug25 1389:53 /usr/bin/consul agent -config-dir /etc/consul
+
+
+*** query consul nodes 
+[root@cmm-qa45g-necc0 consul]# dig alms0.node.consul
+;; ANSWER SECTION:
+alms0.node.consul.      0       IN      A       10.244.103.136
+
+*** query consul service
+[root@cmm-qa45g-necc0 consul]# dig sentinel.service.consul
+;; ANSWER SECTION:
+sentinel.service.consul. 0      IN      A       10.244.199.252
+sentinel.service.consul. 0      IN      A       10.244.225.97
+sentinel.service.consul. 0      IN      A       10.244.103.147
+
+**  consul acl (access )
+Consul ACL Policy List
+Command: consul acl policy list
+
+
 
 * istio
 ** istio deployment
@@ -1512,3 +2233,444 @@ when concurretly http request sent, some return error code 503
 Code 200 : 17 (85.0 %)
 Code 503 : 3 (15.0 %)
 ---------------------
+
+* Prometheus
+Prometheus monitoring is quickly becoming the Docker and Kubernetes monitoring tool to use. To deploy a Prometheus server and metrics exporters, setup kube-state-metrics,
+pull and collect those metrics, and configure alerts with Alertmanager and dashboards with Grafana. 
+
+ Two technology shifts took place that created a need for a new monitoring framework:
+DevOps culture: Prior to the emergence of DevOps, monitoring consisted of hosts, networks, and services. Now, developers need the ability to easily integrate app and 
+business related metrics as an organic part of the infrastructure, because they are more involved in the CI/CD pipeline and can do a lot of operations-debugging on their own.
+Monitoring needed to be democratized, made more accessible, and cover additional layers of the stack.
+
+Containers and Kubernetes: Container-based infrastructures are radically changing how we do logging, debugging, high-availability, etc., and monitoring is not an exception. 
+Now you have a huge number of volatile software entities, services, virtual network addresses, and exposed metrics that suddenly appear or vanish. 
+Traditional monitoring tools are not designed to handle this.
+** install prometheus
+
+*** create namespace
+    kubectl create namespace prometheus
+
+***  Add the prometheus-community chart repository.
+
+    helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+
+***     Deploy Prometheus.
+
+    helm upgrade -i prometheus prometheus-community/prometheus \
+        --namespace prometheus \
+            --set alertmanager.persistentVolume.storageClass="gp2",server.persistentVolume.storageClass="gp2"
+
+
+
+* docker 's registry 2 container for local image pull from insted of public docker hub
+** deploying the registry container
+Docker Registry
+This image contains an implementation of the Docker Registry HTTP API V2 for use with Docker 1.6+. See github.com/docker/distribution for more details about what it is.
+
+Run a local registry: Quick Version
+$ docker run -d -p 5000:5000 --restart always --name registry registry:2
+
+
+** push image to local container <hostname::5000
+$ docker pull ubuntu   #### pull an image from the docker hub in internet website
+$ docker tag ubuntu localhost:5000/ubuntu  #### tag the image with tag localhost:5000/ubuntu
+$ docker push localhost:5000/ubuntu        #### push the image to localhost:5000 
+
+#for i in `cat fl`; do
+ sudo docker load <deployment/NPV-ATE-890/images/${i}-CMM21.0.0_B1_C1798.tar.gz;
+ sudo docker tag ${i}:CMM21.0.0_B1_C1649 192.168.26.10:5000/$i:CMM21.0.0_B1_C1798
+ sudo docker push 192.168.26.10:5000/$i:CMM21.0.0_B1_C1649   ### push the image with version to 192.168.26.10
+
+** check if there's any image in the registry container
+*** /v2/_catalog
+curl -X GET http://172.24.17.100:5000/v2/_catalog
+{"repositories":["cmm-aimcpps","cmm-aimctcs","cmm-aimdbs","cmm-aimeems","cmm-aimfds","cmm-aimipds","cmm-aimipps","cmm-aimlihs","cmm-aimpaps","cmm-aimsfds","cmm-aimufds","cmm-alarm","cmm-alms","cmm-init","cmm-loglocal","cmm-lxprofile","cmm-mmemon","cmm-operator","cmm-platservices","cmm-redis","ipps","necc","paps"]}
+
+*** /v2/<imagename>/tags/list
+ubuntu@lm886-Master:~$ curl -X GET http://172.24.17.100:5000/v2/cmm-aimcpps/tags/list
+{"name":"cmm-aimcpps","tags":["CMM22.0.0_B8000_C4","CMM22.0.0_B1_C1171"]}
+
+
+
+* kubernet schedule/deploy pods details
+** pods controlled by which 
+ubuntu@node3:~$ kubectl describe pod coredns-f9fd979d6-7mf54 -n kube-system |grep -i control
+Controlled By:  ReplicaSet/coredns-f9fd979d6o
+
+ubuntu@node3:~$ kubectl describe pod kube-multus-ds-amd64-2vs29 -n kube-system |grep -i control
+              controller-revision-hash=546d959cf
+Controlled By:  DaemonSet/kube-multus-ds-amd64
+
+ubuntu@node3:~$ kubectl describe pod cmm-qa45g-ipds-0 -n cmm-cd |grep -i control
+              controller-revision-hash=cmm-qa45g-ipds-5d8dcb489
+Controlled By:  StatefulSet/cmm-qa45g-ipds
+
+** pods scheduled on the specific node using Node-Selectors
+ubuntu@node3:~$ kubectl describe pod coredns-f9fd979d6-7mf54 -n kube-system |grep -i node-sel
+Node-Selectors:  kubernetes.io/os=linux
+ubuntu@node3:~$ kubectl get nodes  --show-labels
+NAME     STATUS   ROLES    AGE     VERSION   LABELS
+node10   Ready    <none>   7d21h   v1.19.4   kubernetes.io/arch=amd64,kubernetes.io/hostname=node10,kubernetes.io/os=linux,nodetype=worker,region=region1
+node14   Ready    <none>   7d21h   v1.19.4   kubernetes.io/arch=amd64,kubernetes.io/hostname=node14,kubernetes.io/os=linux,nodetype=worker,region=region1
+node3    Ready    master   7d21h   v1.19.4   kubernetes.io/arch=amd64,,kubernetes.io/hostname=node3,kubernetes.io/os=linux,node-role.kubernetes.io/master=,nodetype=master
+
+
+** three kinds of pods controller
+***  Deployment 
+Deployment is a resource to deploy a stateless application, if using a PVC, all replicas will be using the same Volume and none of it will have its own state.
+    The backing storage obviously must have ReadWriteMany or ReadOnlyMany accessMode if you have more than one replica pod.
+[[./pic/k8s_deployment.png][picture of deployment]]
+
+**** normal deployment equal to replicaset
+ubuntu@node3:~$ kubectl get  ReplicaSet -A
+NAMESPACE            NAME                                 DESIRED   CURRENT   READY   AGE
+cmm-cd               cmm-operator-855b68d5db              1         1         1       124m
+kube-system          calico-kube-controllers-69f49c8d66   1         1         1       7d21h
+kube-system          consul-server-795879879c             1         1         1       7d21h
+kube-system          coredns-f9fd979d6                    2         2         2       7d21h
+kube-system          metrics-server-76d6dcf9d5            1         1         1       7d21h
+local-path-storage   local-path-provisioner-7bf96f54f5    1         1         1       7d21h
+ubuntu@node3:~$ kubectl get  deployment -A
+NAMESPACE            NAME                      READY   UP-TO-DATE   AVAILABLE   AGE
+cmm-cd               cmm-operator              1/1     1            1           124m
+kube-system          calico-kube-controllers   1/1     1            1           7d21h
+kube-system          consul-server             1/1     1            1           7d21h
+kube-system          coredns                   2/2     2            2           7d21h
+kube-system          metrics-server            1/1     1            1           7d21h
+local-path-storage   local-path-provisioner    1/1     1            1           7d21h
+
+
+
+
+***  StatefulSet 
+Statefulsets is used for Stateful applications, each replica of the pod will have its own state, and will be using its own Volume.
+Persistence in StatefulSets with Replicas
+    StatefulSet is useful for running things in cluster e.g Hadoop cluster, MySQL cluster, where each node has its own storage.
+[[./pic/k8s_statefulset.png][picture of statefulsets]]
+
+**** pods controlled by which sort ot k8s deployments?
+ubuntu@node3:~$ kubectl get pods -A|grep ipds
+cmm-cd               cmm-qa45g-ipds-0                           5/5     Running   0          131m
+cmm-cd               cmm-qa45g-ipds-1                           5/5     Running   0          131m
+
+ubuntu@node3:~$ kubectl describe pod cmm-qa45g-ipds-0 -n cmm-cd |grep -i control
+              controller-revision-hash=cmm-qa45g-ipds-5d8dcb489
+Controlled By:  StatefulSet/cmm-qa45g-ipds
+
+
+*** DaemonSet
+ubuntu@node3:~$ kubectl describe pod kube-multus-ds-amd64-2vs29 -n kube-system |grep -i control
+              controller-revision-hash=546d959cf
+Controlled By:  DaemonSet/kube-multus-ds-amd64
+
+multus will de deployed on every node in the cluster including master.
+vagrant@master:~$ kubectl get pods -n kube-system -o wide
+NAME                                       READY   STATUS    RESTARTS   AGE     IP               NODE     NOMINATED NODE   READINESS GATES
+
+coredns-558bd4d5db-gz7bl                   1/1     Running   2          22h     10.244.166.132   node1    <none>           <none>
+etcd-master                                1/1     Running   2          22h     192.168.26.10    master   <none>           <none>
+kube-apiserver-master                      1/1     Running   2          22h     192.168.26.10    master   <none>           <none>
+kube-controller-manager-master             1/1     Running   26         22h     192.168.26.10    master   <none>           <none>
+kube-multus-ds-amd64-5kthn                 1/1     Running   0          129m    192.168.26.10    master   <none>           <none>
+kube-multus-ds-amd64-942ns                 1/1     Running   0          129m    192.168.26.15    node5    <none>           <none>
+kube-multus-ds-amd64-ct7t9                 1/1     Running   0          129m    192.168.26.12    node2    <none>           <none>
+kube-multus-ds-amd64-r5n24                 1/1     Running   0          129m    192.168.26.11    node1    <none>           <none>
+kube-multus-ds-amd64-wb8j7                 1/1     Running   0          129m    192.168.26.13    node3    <none>           <none>
+kube-multus-ds-amd64-ww9j6                 1/1     Running   0          129m    192.168.26.14    node4    <none>           <none>
+
+vagrant@master:~$ kubectl describe pod kube-multus-ds-amd64-ww9j6 -n kube-system |grep -i control
+              controller-revision-hash=84b96cb86f
+Controlled By:  DaemonSet/kube-multus-ds-amd64
+vagrant@master:~$ kubectl describe pod kube-multus-ds-amd64-ww9j6 -n kube-system |grep -i node
+Node:         node4/192.168.26.14
+              tier=node
+Node-Selectors:              kubernetes.io/arch=amd64
+                             node.kubernetes.io/disk-pressure:NoSchedule op=Exists
+                             node.kubernetes.io/memory-pressure:NoSchedule op=Exists
+                             node.kubernetes.io/network-unavailable:NoSchedule op=Exists
+                             node.kubernetes.io/not-ready:NoExecute op=Exists
+                             node.kubernetes.io/pid-pressure:NoSchedule op=Exists
+                             node.kubernetes.io/unreachable:NoExecute op=Exists
+                             node.kubernetes.io/unschedulable:NoSchedule op=Exists
+
+
+[[./pic/k8s_daemonset.png][picture of daemonset]]
+DaemonSet is a controller similar to ReplicaSet that ensures that the pod runs on all the nodes of the cluster. If a node is added/removed from a cluster,
+ DaemonSet automatically adds/deletes the pod
+
+** pods delete
+*** delete one pod
+kubectl delete pod <pod-name> -n <name-space>
+when you delete a pod controlled by above replicasets, it will restart the pod automatically.
+
+
+
+*** delete all pods in replica sets (depoyment, statefulset)
+ubuntu@lm890-Master:~$ kubectl describe sts ate-qa-ipds -n npv-ate -n npv-ate |grep -i replica
+Replicas:           2 desired | 2 total
+
+  kubectl scale sts ate-qa-necc -n npv-ate --replicas=0
+
+
+*** delete all pods in a daemonset
+ubuntu@lm890-Master:~$ kubectl describe  DaemonSets kube-multus-ds-amd64 -n kube-system |grep -i replica
+###no replica here
+  kubectl scale DaemonSets kube-multus-ds-amd64 -n kube-sytem --replicas=0 will not working
+
+#kubectl rollout restart DaemonSets kube-multus-ds-amd64 -n kube-system
+this will restart all the pods in DaemonSets kube-multus-ds-amd6
+
+
+** Vagrant
+Vagrant will start up a virtual machine(libvirt or virtualbox) in the host using configuration Vagrantfile
+libvirt is very limited compare to virtualbox.
+based on my experiment, the public_network and vagrant package not working for libvirt 
+*** Vagarantfile definition
+**** vagrant box 
+  config.vm.box = "ubuntu/xenial64"
+
+****  define hostname and domain name
+ENV['VAGRANT_DEFAULT_PROVIDER'] = 'virtualbox'
+Vagrant.configure("2") do |config|
+    config.vm.define "ubuntu-01" do |config|
+    config.vm.hostname = "ubuntu-01"
+    config.vm.box = "generic/ubuntu1804
+
+****  shell provision
+  config.vm.provision "shell", inline: $script
+***** vagrant provision
+ this command will execute the vm.provison "shell" in the already up vm.
+
+**** other provisions
+reload is a vagrant plugin  ##vagrant plugin install vagrant-reload
+subconfig.vm.provision :reload  ## this will execute the reload plugin 
+
+
+**** vagrant network definition
+#config.vm.network "forwarded_port", guest: 80, host: 8080  ### expose guest 80 port on host port 8080 which run vagrant up
+#config.vm.network "private_network", ip: "192.168.33.10"
+#config.vm.network "public_network"
+
+*** vagran box add/list/remove
+vagrant box add --provider libvirt generic/ubuntu1804
+
+*** vagrant up
+this command will up the box with the Vagrantfile defined in current directory
+vagrant up --provider libvirt
+cat Vagrantfile
+----------
+Vagrant.configure("2") do |config|
+  config.vm.box = "ubuntu/xenial64"
+  config.vm.provider "virtualbox" do |vb|
+    vb.memory = "4096"
+  end
+
+  config.vm.provision "shell", inline: <<-SHELL
+    apt-get update
+    apt-get dist-upgrade -y
+    shutdown -r now
+  SHELL
+end
+----------
+$script = <<-SCRIPT
+echo I am provisioning TTTT...
+date > /etc/vagrant_provisioned_at
+SCRIPT
+Vagrant.configure("2") do |config|
+  config.vm.box = "generic/ubuntu1804"
+  config.vm.box_check_update = false
+  config.vm.provision "shell", inline: $script
+  end
+end
+-------------------------
+
+
+*** vagrant destroy
+vagrant destroy  ### this will detroy the vm started by vagrant up  executed in the same directory  
+
+*** vagrant env clean up
+some times, vagrant will mess up, you need to remove box
+vagrant destroy  ### this will detroy the vm started by vagrant up  executed in the same directory  
+vagrant box remove <boxname>
+rm ./.vagrant/*
+rm ~/.vagrant.d/data
+[root@allinone ubuntu]# ls ~/.vagrant.d/
+boxes  bundler  data  gems  insecure_private_key  plugins.json  rgloader  setup_version  tmp
+
+clean vagrant remaining  shell script:
+------------------------
+vagrant destroy
+rm -rf ~/.vagrant.d/data/
+rm -rf ~/.vagrant.d/rgloader/
+rm -rf ~/.vagrant.d/tmp/
+rm -rf .vagrant
+----------------------
+
+*** vagrant provision
+in the curretn vagrant up vm, 
+it wil execute the vm.provision field
+.vm.provision "shell"
+
+*** vagrant package
+save the current up vm, this will only effect in virtualbox not in libvirt
+vagrant package --output box_name.box --base "vm machine name" --vagrantfile Vagrantfile
+
+you could add the box_name.box using 
+vagrant box add --name "<name of box>"  file:///<path of the box_name.box>
+then vagrant up this <name of box> will get the same vm when packaged
+
+
+vagrant@master:~$ kubectl api-resources|grep cni
+network-attachment-definitions    net-attach-def   k8s.cni.cncf.io/v1                     true         NetworkAttachmentDefinition
+ippools                                            whereabouts.cni.cncf.io/v1alpha1       true         IPPool
+vagrant@master:~$ kubectl get NetworkAttachmentDefinition -A
+error: the server doesn't have a resource type "NetworkAttachmentDefinition"
+vagrant@master:~$ kubectl get network-attachment-definitions -A
+NAMESPACE   NAME                             AGE
+npv-ate     external-ipds-cmmeth2-npv-ate    21m
+npv-ate     external-ipps-cmmeth2-npv-ate    21m
+npv-ate     external-lihs-cmmeth2-npv-ate    21m
+npv-ate     external-paps-cmmeth2-npv-ate    21m
+npv-ate     ipvlan-nw-alms-ip-alms-npv-ate   21m
+npv-ate     ipvlan-nw-oam-ip-necc-npv-ate    21m
+vagrant@master:~$
+
+* linux virtual network devices
+** VETH
+calico is the default k8s-pod-network
+
+** IPVLAN
+
+* kubectl services
+Types of Kubernetes Service:
+Kubernetes Services allows external connection to the internal cluster Pods and also manages internal communication among the Pods within the cluster via different Services type in defined int the ServiceSpec.
+These service types are
+ClusterIP     (Exposes the service on a cluster-internal IP. Choosing this value makes the service only reachable from within the cluster. This is the default ServiceType)
+NodePort  Exposes the service on each Node¿s IP at a static port (the NodePort). A ClusterIP service, to which the NodePort service will route, is automatically created. You¿ll be able to contact the NodePort service, from outside the cluster, by requesting <NodeIP>:<NodePort>.
+LoadBalancer
+
+
+if you want to expose the clusterip , use port-foward
+
+*** ousside the k8s nodes
+
+kubectl port-forward service/kube-dns 9200
+outside the k8s nodes
+nc <k8s-masterip> 9200
+ 
+
+* install virtualbox
+ export KERN_DIR=/usr/src/kernels/`uname -r`
+ Step 4 ¿ Install Oracle VirtualBox and Setup
+ Use the following command to install VirtualBox using the yum command line tool. It will install the latest version of VirtualBox 5.2 on your system.
+
+ yum install VirtualBox-6.0
+ After installation, we need to rebuild kernel modules using the following command.
+
+ service vboxdrv setup
+
+ There were problems setting up VirtualBox.  To re-start the set-up process, run
+   /sbin/vboxconfig
+
+
+* CustomResourceDefinition and its usage
+ kubectl create secret docker-registry docker --docker-server=docker.io --docker-username=mqyyy777  --docker-email=mqyyy777@163.com --docker-password=   -n <namespace>
+since we create a secret named docker,
+we can pull image with this secret
+
+  imagePullSecrets:
+    - name: docker 
+
+** create CustomeResourceDefinition(CRD)
+example_crd.yaml:
+-----------------------------------------
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  # name must match the spec fields below, and be in the form: <plural>.<group>
+  name: crontabs.stable.example.com
+spec:
+  # group name to use for REST API: /apis/<group>/<version>
+  group: stable.example.com
+  # list of versions supported by this CustomResourceDefinition
+  versions:
+    - name: v1
+      # Each version can be enabled/disabled by Served flag.
+      served: true
+      # One and only one version must be marked as the storage version.
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                cronSpec:
+                  type: string
+                image:
+                  type: string
+                replicas:
+                  type: integer
+                
+                imagePullSecrets:
+                  description: ImagePullSecrets is an array of references to container registry pull secrets to use. These are applied to all images to be pulled.
+                  items:
+                    properties:
+                      name:
+                        type: string
+                    type: object
+                  type: array
+
+  # either Namespaced or Cluster
+  scope: Namespaced
+  names:
+    # plural name to be used in the URL: /apis/<group>/<version>/<plural>
+    plural: crontabs
+    # singular name to be used as an alias on the CLI and for display
+    singular: crontab
+    # kind is normally the CamelCased singular type. Your resource manifests use this.
+    kind: CronTab
+    # shortNames allow shorter string to match your resource on the CLI
+    shortNames:
+    - ct
+-------------------------------------------------------------
+kubectl apply -f example_crd.yaml
+
+you can get crd definition from
+kubetl get CustomeResourceDefinition CronTab -o yaml 
+
+** create custom objects
+If you save the following YAML to my-crontab.yaml:
+==================================
+apiVersion: "stable.example.com/v1"
+kind: CronTab
+metadata:
+  name: my-new-cron-object
+spec:
+  cronSpec: "* * * * */5"
+  image: my-awesome-cron-image 
+  imagePullSecrets:
+    - name: docker
+
+============================
+kubectl apply -f my-crontab.yaml
+You can then manage your CronTab objects using kubectl. For example:
+
+kubectl get crontab
+Should print a list like this:
+
+NAME                 AGE
+my-new-cron-object   6s
+Resource names are not case-sensitive when using kubectl, and you can use either the singular or plural forms defined in the CRD, as well as any short names.
+
+You can also view the raw YAML data:
+
+kubectl get ct -o yaml
+
+** 
+
+** delete the crd
+kubectl delete -f resourcedefinition.yaml
+kubectl get crontabs

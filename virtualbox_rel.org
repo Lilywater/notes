@@ -1,0 +1,38 @@
+* 
+** install virtualbox
+cd /etc/yum.repos.d/
+wget http://download.virtualbox.org/virtualbox/rpm/rhel/virtualbox.repo
+rpm -Uvh http://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+
+yum install gcc make patch  dkms qt libgomp
+yum install kernel-headers kernel-devel fontforge binutils glibc-headers glibc-devel
+reboot
+
+yum install VirtualBox-6.0
+After installation, we need to rebuild kernel modules using the following command.
+
+service vboxdrv setup
+
+** list vm 
+vboxmanage list runningvms
+vboxmanage list vms
+
+** control vm 
+vboxmanage controlvm <subcommand>
+VBoxManage controlvm        <uuid|vmname>
+  pause|resume|reset|poweroff|savestate|
+  acpipowerbutton|acpisleepbutton|
+  keyboardputscancode <hex> [<hex> ...]| ...
+
+
+
+** delete locked virtualbox vm
+ps aux |grep -i boxheadless
+root      9435 19.0  0.3 4547556 896992 ?      Sl   13:48   5:30 /usr/lib/virtualbox/VBoxHeadless 
+kill -9 9435
+
+
+**  mount shared folder in the guest os
+shared is the name in the host you named in virtualbox settings
+vagrant@master:~$ sudo mount -t vboxsf shared /shared
+

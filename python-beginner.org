@@ -195,6 +195,7 @@ lists index from 0, and the last element could be indexed with -1;
 
 
 
+**** 
 *** concatenation
 >>> squares+ [36,49]
 [1,4,9,16,25,36,49]
@@ -697,6 +698,22 @@ AttributeError: 'NoneType' object has no attribute 'group'
 ab
 ab
 >>>
+
+
+
+*** 
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1346,3 +1363,46 @@ dog.parse(5)
 
 ====================================================================
 
+
+
+* python chinese character not supported  issue
+python3 support utf8 encoding 
+** python source code with Chinese character.
+at the beginning of the python source code
+# -*- encoding==utf-8 -*-
+
+** string related coding error
+*** echeck default system coding
+import sys
+>>>sys.getdefaultencoding()       
+'ascii'
+
+*** fix the system coding as utf-8
+----
+import sys
+reload(sys)
+sys.setdefaultencoding("utf-8")
+----------------
+
+*** testing it
+=============
+import chardet
+a = '测试'
+chardet.detect(a
+================
+
+** print not support chinese character
+Python UnicodeEncodeError: 'ascii' codec can't encode character in position 0: ordinal not in range(128) [duplicate]
+*** check python stdout encoding
+--------------------------------
+>>>sys.stdout.encoding
+'UTF-8'   ### if not utf-8, adding below python code 
+------------------------
+
+
+*** fix the stdout encoding as utf-8
+-------------------------
+import sys
+import codecs
+sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
+------------------

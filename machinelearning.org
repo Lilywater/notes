@@ -1,4 +1,125 @@
-* Basice conception
+
+
+
+
+* Basic conception in statistics
+in statistics, we will get an estimated value from a group of dataset.
+
+** Expected/Expectaion 
+In probability theory, the expected value of a random variable X , denoted E(X) is a generalization of the weighted average,
+
+and is intuitively the arithmetic mean of a large number of independent realizations of  X. 
+the estimator will generate a expected value.
+
+** Variance
+The variance of a random variable X is the expected value of the squared deviation from the mean of X,  μ = E[X]    
+variance is based on E(X) [the mean of X], it is the expectation of the squared deviation of a random variable from its mean.
+Var(X)=E[(X-μ)^2]
+
+Var(X)=E[(X-E(X])^2] = E[X^2-2XE[X]+E[X]^2] = E[X^2] - 2E[X]E[X]+ E[X]^2 = E[X^2]-E[X]^2
+
+Var(X)=Cov(X,X)
+
+*** VARIANCE OF DISCRETE RANDOM VARIABLE
+**** var expressed with mean
+    IF THE GENERATOR OF RANDOM VARIABLE XIS DISCRETE WITH PROBABILITY MASS FUNCTION X 1 ↦ P 1 , X 2 ↦ P 2 , … , X N ↦ P N , THEN
+
+    VAR( X ) = ∑(I = 1,N)[ PI⋅( X I − Μ )^ 2 ]
+
+WHERE Μ IS THE EXPECTED VALUE. THAT IS,
+    Μ = ∑(I = 1, N)[ PI XI] 
+
+THE VARIANCE OF A COLLECTION OF  EQUALLY LIKELY VALUES CAN BE WRITTEN AS
+
+    VAR(X)= 1/N ∑(I = 1,N)[ (XI−Μ)^2] 
+M = 1/n ∑(i=1,n) xi 
+
+**** var expressed without mean
+The variance of a set of n equally likely values can be equivalently expressed, without directly referring to the mean,
+in terms of squared deviations of all points from each other:[1]
+
+    Var ⁡ ( X ) = 1/n^2 ∑(i=1,n) ∑(j=1,n) 1/2(xi−xj)^2 = 1/n^2 ∑i∑j>i (x i − x j)^ 2 
+
+with expectation μ=E(X) and variance σ2=E[(Xi- μ)^2 /n]
+
+The sample variance of a random variable demonstrates two aspects of estimator bias: 
+firstly, the naive estimator is biased, which can be corrected by a scale factor; 
+second, the unbiased estimator is not optimal in terms of mean squared error (MSE), which can be minimized by using a different
+scale factor, resulting in a biased estimator with lower MSE than the unbiased estimator. 
+
+*** sample variance
+ The sample variance of a random variable demonstrates two aspects of estimator bias: firstly, the naive estimator is biased, which can be corrected by a
+ scale factor; second, the unbiased estimator is not optimal in terms of mean squared error (MSE), which can be minimized by using a different scale factor, resulting
+ in a biased estimator with lower MSE than the unbiased estimator
+
+Suppose X1, ..., Xn are independent and identically distributed (i.i.d.) random variables with expectation μ and variance σ^2.
+If the sample mean and uncorrected sample variance are defined as
+
+ X¯ = 1/n ∑(i=1,n)Xi
+**** biased estimator
+ S^2 = 1/n ∑ (i=1,n)( Xi − X¯ )^ 2
+E[S^2] = (1-1/n)σ^2
+
+**** unbiased estimator
+ S^2 = 1/(n-1) ∑ (i=1,n)( Xi − X¯ )^2
+ E[S^2] = σ^2
+
+** standard deviation
+
+ 
+** Bias
+In statistics, the bias (or bias function) of an estimator is the difference between this estimator's expected value and the 
+true value of the parameter being estimated. An estimator or decision rule with zero bias is called unbiased. 
+In statistics, "bias" is an objective property of an estimator. 
+Bias can also be measured with respect to the median, rather than the mean (expected value), in which case one distinguishes 
+median-unbiased from the usual mean-unbiasedness property. Bias is a distinct concept from consistency. 
+Consistent estimators converge in probability to the true value of the parameter, but may be biased or unbiased;  
+
+** Covariance
+Covariance meansures the directional relationship between the returns on two assets.
+A positive covariance means that asset returns move together while a negative covaraince means they move inversely.
+If the greater values of one variable mainly correspond with the greater values of the other variable, and the same holds for the lesser values (that is, the
+variables tend to show similar behavior), the covariance is positive.
+
+*** formula
+X,Y is two sets with n elements in each
+
+
+    cov(X,Y) = E[( X − E[ X ] ) ( Y − E[ Y ] ) ]
+    = E ⁡ [ X Y − XE[Y] − E[X]Y + E[X]E[Y]] = E[X Y] −E[X]E[Y] − E[X]E[Y] + E[X]E[Y] = E[XY] − E[X]E[Y] 
+    
+Cov(X,Y) = SUM[(Xi-Xm)*(Yi-Ym)]/(n-1)  ### i=1...n
+
+*** example of covariance calculation
+ Assume an analyst in a company has a five-quarter data set that shows quarterly gross domestic product (GDP) growth in percentages (x) and a company's new product line growth in percentages (y). The data set may look like:
+
+     Q1: x = 2, y = 10
+     Q2: x = 3, y = 14
+     Q3: x = 2.7, y = 12
+     Q4: x = 3.2, y = 15
+     Q5: x = 4.1, y = 20
+
+The average x value equals 3, and the average y value equals 14.2. To calculate the covariance, the sum of the products of the xi values minus the average x value, multiplied by the yi values minus the average y values would be divided by (n-1), as follows:
+
+   Cov(x,y) = ((2 - 3) x (10 - 14.2) + (3 - 3) x (14 - 14.2) + ... (4.1 - 3) x (20 - 14.2)) / 4 = (4.2 + 0 + 0.66 + 0.16 + 6.38) / 4 = 2.85
+
+Having calculated a positive covariance here, the analyst can say that the growth of the company's new product line has a positive relationship with quarterly GDP growth.  
+
+
+** matrix of covariance in numpy
+*** numpy.cov description
+ numpy.cov(m, y=None, rowvar=True, bias=False, ddof=None, fweights=None, aweights=None, *, dtype=None)[source]
+ Estimate a covariance matrix, given data and weights.
+ Covariance indicates the level to which two variables vary together. If we examine N-dimensional samples, X = [x_1, x_2, ... x_N]^T, then the covariance matrix element C_{ij} is the covariance of x_i and x_j. The element C_{ii} is the variance of x_i.
+
+*** source code
+x=[2,3,2.7,3.2,4.1]
+>>> y=[10,14,12,15,20]
+>>> X=np.stack((x,y),axis=0)
+>>> np.cov(X)
+array([ [ 0.585,  2.85 ],
+       [ 2.85 , 14.2  ]   ])
+** machine learning concepts of these statistics terms
 if we have some set of data like (height, weight) of a mice, for example(the higher, the heavier), 10 sets of data.
 we randomly pick 5 as a training sets, the other 5 left as a testing set.
 this 5 training sets could be depicted in a x,y chart(x:height, y:weight), it more like a curve.
@@ -7,13 +128,18 @@ this 5 training sets could be depicted in a x,y chart(x:height, y:weight), it mo
 ** Variance[ 方差】 and Bias
 machine learning is to find a function f(x) for a training set, then test the function in the testing set to verify if this is a good function.
 =f(x)
+*** estimator's bias
 firstly we try a f(x)=a+bx  linear model, if we try all the a,b parameter, we could find a best one f(x)
 L(f)= ∑(yn-f(xn))^2   here(n=1....5 ) training dataset(x1,y1),(x2,y2),(x3,y3),(x4,y4),(x5,y5) 
 L(f) means loss function, it means the bias of this function. so L(f) is the less the better.
 
+*** estimator's variance
 if we find the best liner function, we should verify this function using the testing data
 V(f)= ∑(yn-f(xn))^2   here(n=1....5 ) training dataset(x6,y6),(x7,y7),(x8,y8),(x8,y8),(x10,y10) 
+Var(X)=E[(X-μ)^2]  μ=mean of X(x6,x7,x8,x9,x10),  
 if V(f) is large, means the viariance is big.
+
+
 
 *** overfitting
 For a specific modle if a function f1 has the lowest bias, but has very large variance;
@@ -22,6 +148,7 @@ Obviously, f2 is better. Though f1 has the lowest bias, but it has very large va
 but for test data it's not fit at all, so this is called overfitting.
 
 we can see the function f should  be with low bias and low variance(consistantly predicting across different datasets, acurately model the true relationship).
+
 
 
 ** machine learning model
@@ -108,6 +235,68 @@ array([ [ [0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2],
         [0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2]]])
 >>>
 
+
+***  eye to generate  I matrix
+>>> eye(3)
+array([ [ 1.,  0.,  0.], [ 0.,  1.,  0.], [ 0.,  0.,  1.]])
+
+
+*** compare matrix's every value with one value
+a = np.array([ [1, 2, 3], [4, 5, 6], [7, 8, 9] ])
+
+a > 3
+array([ [False, False, False], [ True,  True,  True], [ True,  True,  True]])
+
+*** nonzero
+nonzero get the True value of array a's indices
+np.nonzero(a > 3)
+ (array([1, 1, 1, 2, 2, 2]),
+  array([0, 1, 2, 0, 1, 2]))
+a[1,0] ,a [1,1], a[1,2], a[2,0], a[2,1],a[2,2]
+  4   ,   5    ,     6  ,   7  ,  8    ,   9
+
+*** var
+variance is the average of the squared deviations from the mean, var= mean(x) where x=(a-a.mean)^2
+
+** python sympy 
+sympy is for derivative ( 导数 )  
+pip install sympy
+
+from sympy import Symbol, Derivative
+
+x= Symbol('x')
+y= Symbol('y')
+function= x**2 * y**3 + 12*y**4
+partialderiv= Derivative(function, y)
+partialderiv.doit()
+
+** numpy statistic method
+*** numpy.cov
+numpy.cov(m, y=None, rowvar=True, bias=False, ddof=None, fweights=None, aweights=None, *, dtype=None)[source]
+
+    Estimate a covariance matrix, given data and weights.
+
+    Covariance indicates the level to which two variables vary together. If we examine N-dimensional samples, X = [x_1, x_2, ... x_N]^T, then the covariance matrix element C_{ij} is the covariance of x_i and x_j. The element C_{ii} is the variance of x_i.
+
+    See the notes for an outline of the algorithm.
+
+    Parameters
+
+        marray_like
+
+            A 1-D or 2-D array containing multiple variables and observations. Each row of m represents a variable, and each column a single observation of all those variables. Also see rowvar below.
+        yarray_like, optional
+
+            An additional set of variables and observations. y has the same form as that of m.
+        rowvarbool, optional
+
+            If rowvar is True (default), then each row represents a variable, with observations in the columns. Otherwise, the relationship is transposed: each column represents a variable, while the rows contain observations.
+        biasbool, optional
+
+            Default normalization (False) is by (N - 1), where N is the number of observations given (unbiased estimate). If bias is True, then normalization is by N. These values can be overridden by using the keyword ddof in numpy versions >= 1.5.
+        ddofint, optional
+
+            If not None the default value implied by bias is overridden. Note that ddof=1 will return the unbiased estimate, even if both fweights and aweights are specified, and ddof=0 will return the simple average. See the notes for the details. The default value is None.    
 
 * machine learning in action
 ** classification with k nearest neigbors(KNN)
@@ -229,7 +418,7 @@ myData=[ [1,'yes'],[1,'no']]
 >>> trees.calcShannonEnt(myData)
 [ [1, 'yes'], [1, 'no']]
 labelCounts is {'yes': 1, 'no': 1}  the count of label count is 2
-prob is: 0.500000 and the current ent is 0.000000 and clac is -0.500000
+piprob is: 0.500000 and the current ent is 0.000000 and clac is -0.500000
 labelCounts is {'yes': 1, 'no': 1}  the count of label count is 2
 prob is: 0.500000 and the current ent is 0.500000 and clac is -0.500000
 shaent is 1.000000
@@ -397,7 +586,7 @@ Negative     	5       760             765
 Total       	50    	950         	1000 
 
 P(user|Positive)=P(Positive|User)*P(user)/P(Positive)
-
+/
 if we have a 1000 element sample, we know who's User or Non-user, and the testing Postive, Negative.
  if User then 45/(45+5)=90% User tested positive, 10% User tested negative 
  if Non-User then 760/(760+190)=80% Non-user tested negative, %20 non-user tested positive.
@@ -446,5 +635,861 @@ so P(Y|Wn)=0, in trainig element, there if there are word n, it will be 0.
 so we will avoid this 0 occaition, we use P(Wn)=(Num[Wn]+1) / (2+sum(Num[Wn]))
 P(Y|Wn) is too small, python won't get accurate result, we use log(P(Y|Wn)) to replace P(Y|Wn)
 since f(log(x)) and f(x) has similar curve, so replacement is OK.
-[[./curve.jpg][picture of  f(x) and f(log(x)) curve ]]
+[[./pic/curve.jpg]][picture of  f(x) and f(log(x)) curve ]]
+[[./pic/curve.jpg]][picture of x]]
+[[./pic/curve.jpg]][picutr]]
 
+
+** Gradient Descent
+Gradient descent is an optimization algorithm used to minimize some function by iteratively moving in the direction of steepest descent as defined by the negative of the gradient.
+In machine learning, we use gradient descent to update the parameters of our model. Parameters refer to coefficients in Linear Regression and weights.
+
+if there's a function curve f(w), we want to find the minimize value of f(w), then w is what value.
+we can try......????
+w is a random value as initiative value in the curve W0, then which direction(left or right)  and  how much will the w move along the horizontal axis to get close to the minmum(f(w))?
+the next move is based on W n-1 to get Wn
+Wn+1=Wn + ?
+the optimal way is every step we will close to the minimum, how? and how many steps will it take,0---n? this n can't be too much since computer couldn't deal with it.
+so to garanteen every step in the right direction, we need the gradient of the curve of the Wn-1, since the gradient is bigger, the bigger value should add to Wn-1.
+from this curve , we can see f'(w)=0 is the min f(w), so gradient is 0 means no variantce for f(w), the less gradient means the less value should add to Wn-1, thus, it 
+can guaranteen that when Wn close to the min(fWn), it will convergence.
+
+iterate n steps....
+Wn+1=Wn + Cos'(Wn) ### n=0 W0 is a random value, every sample's element has x, y value, plug f(x) with w and x,  .......
+
+but we need to multipy the gradient with a factor, since how wide is the step is also important, if the factor is too large,
+it might overshoot, if it's too small, then it may take too much steps to get close to convergence,
+this factor called learning rate
+
+*** example for linear regression:
+y=x+b, training dataset is f(y)=x+3 
+Cos[f(x),y]=(f(x)-y)^2  ## cost function is f(x) and y's distance square, it's a >=0 value  
+Cos(b)=(x+b-y)^2       ## plug f(x) with x+b, we consider x,y here as constant, b is variable,
+                       ## the goal is when b is what value, cos(b) is minimum
+cos(b) curve is 
+[[./pic/yx2.jpg]][picture of cos(b)  curve ]]
+gradient is Cos'(b)= -2(y - (x + b))
+
+def test():
+   X,Y=genData() b=40
+   for k in range(100):              #heavy on matrix operations, how many steps to iterate
+      b=update_weights2(11,X,Y, 0.1) #we initialize b with 11 since we
+
+def genData():
+   dataX=[] dataY=[]
+   for i in range(10):
+       dataX.append(i)  dataY.append(i+3)   ### f(y)=x+3
+   return dataX,dataY
+
+
+def update_weights( b, X, Y, learning_rate):
+    b_deriv = 0
+    N = len(X)
+    for i in range(N):
+        # -2(y - (mx + b))
+        b_deriv += -2*(Y[i] - (X[i] + b))
+    b -= (b_deriv / float(N)) * learning_rate
+    print  "b_deriv is " , b_deriv/N,   " b is " , b
+===========================================================
+
+when learning rate is 0.1, left side, right side learning rate is 0.01 
+------------------------------------------------
+b_deriv is  74  b is  32.6                                  b_deriv is   74,    b is  39.26 
+b_deriv is  59.2  b is  26.68                               b_deriv is   72.52, b is  38.53    
+b_deriv is  47.36  b is  21.944                             b_deriv is   71,06, b is  37.82       
+b_deriv is  37.888  b is  18.1552                           b_deriv is   69.64, b is   37,12
+b_deriv is  30.3104  b is  15.12416                         b_deriv is   68.25, b is    36.44                
+b_deriv is  24.24832  b is  12.699328                       b_deriv is   66.89, b is    35.77                   
+b_deriv is  19.398656  b is  10.7594624                     b_deriv is   65.55  b is   35.12                         
+b_deriv is  15.5189248  b is  9.20756992                      ###when factor is 0.01, the variance is very small                         
+b_deriv is  12.41513984  b is  7.966055936                    #### it take more steps to make b get 3, compare to the left colum                   
+b_deriv is  9.932111872  b is  6.9728447488                                             
+b_deriv is  7.9456894976  b is  6.17827579904                                              
+b_deriv is  6.35655159808  b is  5.54262063923                                        
+b_deriv is  5.08524127846  b is  5.03409651139                                 
+b_deriv is  4.06819302277  b is  4.62727720911
+b_deriv is  3.25455441822  b is  4.30182176729
+b_deriv is  2.60364353457  b is  4.04145741383
+b_deriv is  2.08291482766  b is  3.83316593106
+b_deriv is  1.66633186213  b is  3.66653274485
+b_deriv is  1.3330654897  b is  3.53322619588
+b_deriv is  1.06645239176  b is  3.4265809567
+b_deriv is  0.853161913409  b is  3.34126476536
+b_deriv is  0.682529530727  b is  3.27301181229
+b_deriv is  0.546023624582  b is  3.21840944983
+b_deriv is  0.436818899665  b is  3.17472755987
+b_deriv is  0.349455119732  b is  3.13978204789
+b_deriv is  0.279564095786  b is  3.11182563831
+b_deriv is  0.223651276629  b is  3.08946051065   #### when f(b) is close to minimum, b will vary little, 
+b_deriv is  0.178921021303  b is  3.07156840852   #### gradient is less and less
+b_deriv is  0.143136817042  b is  3.05725472682
+b_deriv is  0.114509453634  b is  3.04580378145
+b_deriv is  0.0916075629071  b is  3.03664302516
+b_deriv is  0.0732860503257  b is  3.02931442013
+-----------------------------------------------
+
+**** f(x)=mx+b linear regression's gradient
+
+Cos[f(x),y]=(f(x)-y)^2  ## cost function is f(x) and y's distance square, it's a >=0 value  
+Cos[f(x),y]=(mx+b-y)^2       ## plug f(x) with x+b, we consider x,y here as constant, b,m is variable,
+Cos[f(x),y](b,m)=(mx+b-y)^2       ## plug f(x) with x+b, we consider x,y here as constant, b,m is variable,
+Cos(b,m)=(mx+b-y)^2       ## consider x,y here as constant, b,m is variable
+
+get partial derivative of b and w
+Cos'(b)=  -2(y - (mx + b))
+Cos'(w)=  -2x(y - (mx + b))
+--------------------------------------------
+def update_weights(m, b, X, Y, learning_rate):
+    m_deriv = 0 b_deriv = 0
+    N = len(X)
+    for i in range(N):
+        # -2x(y - (mx + b))
+        m_deriv += -2*X[i] * (Y[i] - (m*X[i] + b))
+        # -2(y - (mx + b))
+        b_deriv += -2*(Y[i] - (m*X[i] + b))
+    # We subtract because the derivatives point in direction of steepest ascent
+    m -= (m_deriv / float(N)) * learning_rate
+    b -= (b_deriv / float(N)) * learning_rate
+    return m, b
+-----------------------------------------------------
+
+def test():
+   X,Y=genData()    ### generate X, Y with function y=2x+3, real m=2, b=3  
+   for k in range(100):              #heavy on matrix operations, how many steps to iterate
+      b=update_weights2(15, 11,X,Y, 0.1) #we initialize b with 11, m with 15
+
+
+
+
+** logistic regression
+Logistic regression is a classification algorithm used to assign observations to a discrete set of classes. Unlike linear regression which outputs continuous number values,
+logistic regression transforms its output using the logistic sigmoid function to return a probability value which can then be mapped to two or more discrete classes.
+
+
+
+*** Sigmoid activation
+
+In order to map predicted values to probabilities, we use the sigmoid function. The function maps any real value into another value between 0 and 1. 
+In machine learning, we use sigmoid to map predictions to probabilities.
+S(z)=1/(1+exp(-z))
+s(z) = output between 0 and 1 (probability estimate)
+z(-infinity,+infinity) = input to the function (your algorithm’s prediction e.g. mx + b)
+e = base of natural log
+
+S(0)=0.5   p>=0.5, class=1  p<0.5, class=0
+
+[[./pic/sigmoid.jpg]][picture of  sigmoid curve ]]
+
+[[./pic/logistic_regression.png][picture of logistic regression and inverse of it ]]
+
+
+
+*** Cost function /Loss function
+
+Unfortunately we can’t (or at least shouldn’t) use the same cost function MSE (L2) as we did for linear regression. Why? There is a great math explanation in chapter 3 of Michael Neilson’s deep learning book [5], but for now I’ll simply say it’s because our prediction function is non-linear (due to sigmoid transform). Squaring this prediction as we do in MSE results 
+in a non-convex function with many local minimums. If our cost function has many local minimums, gradient descent may not find the optimal global minimum.
+
+Math 
+Instead of Mean Squared Error, we use a cost function called Cross-Entropy, also known as Log Loss. Cross-entropy loss can be divided into two separate cost functions: one for y=1
+and one for y=0.
+Cost(H(z),y)=-log(H(z))    if y=1 ### this -log(v) curve, horizontal [0,1], and the Cost(vertical) is (+infinity to 0), it simulate h(wx) and 1's close, the closer, cost lesser(0) 
+Cost(H(z),y)=-log(1-H(z))  if y=0 ### this -log(1-v) curve, horizontal [0,1], and the Cost(vertical) is (0 to +inifinity),it simulating h(wx) and 0's close, the closer, cost lesser(0)
+
+[[./pic/h(x)_Cost.jpg]][picture of hx and cost  curve ]]
+
+
+
+above two functions compressed into one:
+Cost(H(z),y)=y*log(H(z))+(1-y)log(1-H(z))
+
+**** derivative of cost function with  z
+One of the neat properties of the sigmoid function is its derivative is easy to calculate. If you’re curious, there is a good walk-through derivation on stack overflow [6]. Michael Neilson also covers the topic in chapter 3 of his book.
+http://math.stackexchange.com/questions/78575/derivative-of-sigmoid-function-sigma-x-frac11e-x 
+sigmod'(z)=s(z)(1−s(z))
+
+Which leads to an equally beautiful and convenient cost function derivative:
+Cost'=x(s(z)−y)
+z=w0+w1*x1+w2*x2     ###  
+
+W[i](n+1)=W(n)+ alpha * Cost'(W)   
+
+*** real example
+Studied     Slept   Passed
+4.85        9.63    1
+8.62        3.23    0
+5.43        8.23    1
+9.21        6.34    0
+
+now the predicted value is discrete, 1 or 0, two classes
+to get x1 is studied, x2 is Slept,
+still we assume z is a linear modle like this:
+z=w1*x1+w2*x2   #### let's assume w0=0 in this case
+
+when x is multiple, then we vector it using numpy, then many operation could be done in the numpy matrix
+-------------------------------------------------------------------------------
+def gradAscent(dataMatIn, classLabels):
+    dataMatrix = mat(dataMatIn)             #convert to NumPy matrix (2,100) (column, row)
+    labelMat = mat(classLabels).transpose() #convert to NumPy matrix (100,2)  (column, row)
+    m,n = shape(dataMatrix)                 #m is 100, n is 2
+    alpha = 0.001 # maxCycles = 500
+    maxCycles = 100
+    weights = ones((n,1))                   # weights initialization value (1,2), [ [1], [1]  ], w1=1, w2=1  
+    for k in range(maxCycles):              #heavy on matrix operations
+        h = sigmoid(dataMatrix*weights)     #matrix mult matrix(2,100)* matrix(1,2) = matrix(1,100) (1 column: w1*x1+w2*x2, 100 row)
+        error = (labelMat - h)              #vector subtraction matrix(1,100)-matrix(1,100) = error(1,100)
+        weights = weights + alpha * dataMatrix.transpose()* error   #  matrix(100,2) * error(1,100) = matrix (1,2) 
+    return weights
+------------------------------------------------------------------------
+
+
+
+** ada boost
+*** real sample
+>>> datMat
+matrix([ [ 1. ,  2.1],  #i=1
+        [ 2. ,  1.1],   #i=2
+        [ 1.3,  1. ],   #i=3
+        [ 1. ,  1. ],
+        [ 2. ,  1. ]])  #i=5
+>>> classLab
+
+assume we have two classification (-1,1), 
+[1.0, 1.0, -1.0, -1.0, 1.0]
+
+**** classifier for this sample, assumen we have total T classifier as follow:
+dimensions is  0 lt means -1:  lt threshVal is  0.9  ###classifier 1  first feature is <=0.9, then h(x)=-1, otherwise, h(x)=1
+dimensions is  0 lt means -1:  gt threshVal is  0.9  ### classifier 2 first feature is >0.9,   then y=-1, otherwise, h(x)=1
+dimensions is  0 lt means -1:  lt threshVal is  1.0
+dimensions is  0 lt means -1:  gt threshVal is  1.0
+dimensions is  0 lt means -1:  lt threshVal is  1.1
+dimensions is  0 lt means -1:  gt threshVal is  1.1
+dimensions is  0 lt means -1:  lt threshVal is  1.2
+dimensions is  0 lt means -1:  gt threshVal is  1.2
+dimensions is  0 lt means -1:  lt threshVal is  1.3
+dimensions is  0 lt means -1:  gt threshVal is  1.3
+..................................................
+dimensions is  1 lt means -1:  gt threshVal is  1.55 ### second feature is >1.55, then h(x)=-1, otherwise 1
+dimensions is  1 lt means -1:  lt threshVal is  1.66 ### second feature is <=1.66, then h(x)=-1, otherwise 1
+dimensions is  1 lt means -1:  gt threshVal is  1.66
+dimensions is  1 lt means -1:  lt threshVal is  1.77
+dimensions is  1 lt means -1:  gt threshVal is  1.77
+dimensions is  1 lt means -1:  lt threshVal is  1.88
+dimensions is  1 lt means -1:  gt threshVal is  1.88
+dimensions is  1 lt means -1:  lt threshVal is  1.99
+dimensions is  1 lt means -1:  gt threshVal is  1.99
+dimensions is  1 lt means -1:  lt threshVal is  2.1
+dimensions is  1 lt means -1:  gt threshVal is  2.1  
+
+*** figure out f function of sample i
+we need to get F function,  and the sign means which class, and the absolute value is the confidence of this prediction
+
+Ft(xi)=sum[1...t]ft(xi)  ###the Tth classifier is positive if the sample is in a positive class and negative otherwise
+classifier 1---t all from total T classifier mentioned above, when Ft(xi)'s sign is equal to y, then, the iteration stop.
+f_t(xi) = a_t *  h(xi)   h(xi){1,-1}  is 1 or -1  ###a_t means confident about classifier t's  prediction, h(xi) is the classifier t value 
+
+where each ft function is a weak learner that takes an object x  as input and returns a value indicating the class of the object. 
+For example, in the two-class problem, the sign of the weak learner output identifies the predicted object class and the absolute value gives the confidence in that classification.
+
+
+t means the classifier, maybe we only nedd 3 classifiers???
+we will find many classifiers to classify the sample i.
+F[t](x)=F[t-1](x)+ a_t*h(xi) 
+
+F1(xi)+=a_t*h(xi) 
+
+
+*** error function  for function ft(xi)
+for the classifier t, E(ft) means error rate of the ft(xi)  
+0<E(ft(xi))<1
+
+E(ft(xi),yi]=exp(-yi*ft(xi))=exp(-yi*h(xi)*a_t)   #### predictedval based on the classifier: h(xi){1,-1}    actual value:  yi{-1,1}  
+since E(ft) is the error rate it range [0,1]
+when predict is correct[yi=ht(xi)] E(ft)=exp(-a_t),  ### a_t>0 is bigger, E(ft) will be less to a minimum 0, a_t=0, E(ft)=1 
+otherwise     [yi!=ht(xi)]  E(ft)=exp(a_t)  ### a_t<0 absolute is bigger, E(ft) will be lesser to minimum 0,  a_t=0, E(ft)=1 
+the figure will show this relationship:
+
+[[./pic/exp.jpg]][picture of Exponential Function curve ]]
+red curve is E(ft)=exp(-a_t) a_t[0,+infite], E(ft)[1,0] 
+purple curve is  E(ft)=exp(a_t) a_t[-infite,0], E(ft)[0,1] 
+at last, the E value will converge to 0, this is the base of the iteration
+
+absolute value a_t is bigger, the E(f) is lesser to converge to 0. 
+so this exp(-yi*h(xi)*a_t) stimulate the relationship between a_t and E, a_t is the confident value.
+
+*** inducing iteration equation based on this E(f) and ft(xi)
+as we can see E(ft) is exp(-a_t), so when E'(ft)=0 , the E(ft) is minimum.
+E(ft(xi)) = exp(-yi*ft(xi)) =exp(-yi*f[t-1](xi)-yi*a_t*h(xi))=exp(-yi*f[t-1](xi))*exp(-yi*a_t*h(xi))
+introducing a new Wt value assuming : Wt=E(f[t-1)(x))  then Wt+1=E(f[t)(x)) 
+
+**** choose classifier t
+E=sum(1<i<N)(Wt*exp(-a_t)[yi=ht(xi)] + Wt*exp(a_t)[yi!=ht(xi)] )
+E=sum(1<i<N)(Wt*exp(-a_t)[yi=ht(xi)] + Wt*exp(a_t)[yi!=ht(xi)] + Wt*exp(-a_t)[yi!=ht(xi)] -  Wt*exp(-a_t)[yi!=ht(xi)])  )  
+E =sum(1<i<N)(Wt*exp(-a_t) + sum(1<i<N)( Wt[yi!=ht(xi)]) * (exp(a_t)-exp(-a_t) )
+we can tell that only right side of sum(1<i<N)( Wt[yi!=ht(xi)])  related to classifer t
+so to minimize E(t) based on classifier t: Minimum(  sum(1<i<N)( Wt[yi!=ht(xi)]) )
+
+
+**** weight iteration equation
+ E(f[t-1)(x))=exp(-yi*f[t-1](xi)) 
+plug these E(ft(xi))=Wt*exp(-yi*a_t*ht(xi))
+W[t+1]=Wt*exp(-yi*ht(xi)*a_t)     ### weight iteration equation
+
+**** choose a_t value to make E(ft) minimum. derivative E with a_t
+E(ft(xi))=Wt*exp(-yi*a_t*ht(xi))
+we can split this summation between those data points
+E=sum(1<i<N)(Wt*exp(-a_t)[yi=ht(xi)] + Wt*exp(a_t)[yi!=ht(xi)] )
+
+E=sum(1<i<N)(Wt*exp(-a_t)[yi=ht(xi)] + Wt*exp(a_t)[yi!=ht(xi)] )
+dE/d(a_t) =0 
+d(exp(x))/dx=exp(x)    d(exp(-x))/dx=-exp(-x)
+
+***** inducing the equation based on above three lines
+0=sum(1<i<N)(Wt*exp(-a_t)[yi=ht(xi)] + sum(1<i<N)(Wt*exp(a_t)[yi!=ht(xi)]))
+sum(1<i<N)(Wt*exp(-a_t)[yi=ht(xi)] = sum(1<i<N)(Wt*exp(a_t)[yi!=ht(xi)]))
+exp(-a_t)*sum(1<i<N)Wt[yi=ht(xi)] = exp(a_t)*sum(1<i<N)Wt[yi!=ht(xi)] 
+log[exp(-a_t)*sum(1<i<N)Wt[yi=ht(xi)] ] = log [ exp(a_t)*sum(1<i<N)Wt[yi!=ht(xi)]  ]
+-at+log(sum(1<i<N)Wt[yi=ht(xi)] ) = a_t+ log(sum(1<i<N)Wt[yi!=ht(xi)])
+2*a_t= log(sum(1<i<N)Wt[yi=ht(xi)] ) -  log(sum(1<i<N)Wt[yi!=ht(xi)])
+  a_t   = 0.5* log(sum(1<i<N)Wt[yi=ht(xi)]/sum(1<i<N)Wt[yi!=ht(xi)])
+
+
+a_t=0.5*ln(sum[yi=ht(xi)]Wt / sum[yi!=ht(xi)]Wt )
+in fact this sum[yi=ht(xi)]Wt / sum[yi!=ht(xi)]Wt, 
+assuming e_t =  sum[yi!=ht(xi),i=1--N]Wt,i  all sample added up for classifier t
+a_t=0.5*ln((1-e_t)/e_t)   ### classifier t's confidence factor a_t should be equal this to make the E minimum.
+
+*** how to iterate ft....
+combinded these two:
+W[t+1] = Wt*exp(-yi*ht(xi)*a_t) 
+a_t = 0.5*ln((1-e_r)/e_r) 
+e_t =  sum[yi!=ht(xi),i=1--N]Wt,i
+
+W1=E(f0(xi)), that we have no clue, so just initialize it with W1[1--5]=[0.2,0.2,0.2,0.2.0.2]
+we could iterate W[t+1],i based on the Wt,i. Of course, the first classifier  W1 should have initial value, W1[1--5]=[0.2,0.2,0.2,0.2.0.2]
+
+
+a_1 = 0.5*ln((1-e_1)/e_1) 
+e_1 =  sum[yi!=h1(xi),i=1--N]W1,i   ### since we have W1 as initial value, e_1 is known, then a_1 is known, then W2 will be known as:
+W2 = W1*exp(-yi*h1(xi)*a_1)  ---->e_2------->a_2
+ 
+how to choose which classifier as f1? 
+W1[1--5]=[0.2,0.2,0.2,0.2.0.2]
+ Minimum[classifer 1...T](  sum(1<i<N)( W1[yi!=h1(xi)]) )
+
+*** example output
+>>> datMat
+matrix([ [ 1. ,  2.1],  #i=1
+        [ 2. ,  1.1],   #i=2
+        [ 1.3,  1. ],   #i=3
+        [ 1. ,  1. ],
+        [ 2. ,  1. ]])  #i=5
+>>> classLab
+
+assume we have two classification (-1,1), 
+[1.0, 1.0, -1.0, -1.0, 1.0]
+
+
+>>> adaboost.adaBoostTrainDS(datMat,classLab)
+bestStump(classifer 1) ,error(sumW[yi!=hx]) ,classEst(h(x)) : {'dim': 0, 'ineq': 'lt', 'thresh': 1.3}  ::   [[ 0.2]] :: 
+ [ [-1.] [ 1.] [-1.] [-1.] [ 1.]]
+D=W1: [ [ 0.2  0.2  0.2  0.2  0.2]]
+### this is the initial value
+a_1 is::  0.69314718 
+##### a_1=0.5*ln((1-e_1)/e_1)  e_1 is sum[h(xi)!=y, 1<i<N](W1,i)
+####   W2 = W1*exp(-yi*h1(xi)*a_1)  
+aggClassEst :  [ [-0.69314718  0.69314718 -0.69314718 -0.69314718  0.69314718]]
+###Ft(xi) =  a_1*h1(xi)
+aggErroros is : [ [ 1.] [ 0.] [ 0.] [ 0.] [ 0.]] ##  only get the sign is the same, not same, 1, the same 0
+total error:  0.2  #### get how many elements's sign is incorrect
+ 
+
+bestStump(classifier 2) ,error,classEst: {'dim': 1, 'ineq': 'lt', 'thresh': 1.0}  ::   [[ 0.125]] ::  
+[ [ 1.] [ 1.] [-1.] [-1.] [-1.]]  
+D W2: [ [ 0.5    0.125  0.125  0.125  0.125]] 
+classEst:  [ [ 1.  1. -1. -1. -1.]
+a_2 is:: 0.97295507
+####   W3 = W2*exp(-yi*h2(xi)*a_2)  
+aggClassEst += h2(xi)*a_2 :  [[ 0.27980789  1.66610226 -1.66610226 -1.66610226 -0.27980789]
+ aggErroros is : [[ 0.] [ 0.] [ 0.] [ 0.] [ 1.]]
+total error:  0.2
+
+
+bestStump(classifier 3) ,error, classEst: {'dim': 0, 'ineq': 'lt', 'thresh': 0.90000000000000002}  ::   [[ 0.14285714]] ::
+  [[ 1.] [ 1.] [ 1.] [ 1.] [ 1.]]
+D=W3: [[ 0.28571429  0.07142857  0.07142857  0.07142857  0.5       ]]
+classEst:  [[ 1.  1.  1.  1.  1.]
+a_3 is:: 0.89587973
+aggClassEst:  [[ 1.17568763  2.56198199 -0.77022252 -0.77022252  0.61607184]] 
+aggErroros is : [[ 0.] [ 0.] [ 0.] [ 0.] [ 0.]]
+total error:  0.0
+
+#####the result is f1 classifer,a_1 is 0.69, f2 a_2 is 0.97, f3 a_3 is 0.89
+
+([{'dim': 0, 'ineq': 'lt', 'thresh': 1.3, 'alpha': 0.6931471805599453}, 
+{'dim': 1, 'ineq': 'lt', 'thresh': 1.0, 'alpha': 0.9729550745276565},
+ {'dim': 0, 'ineq': 'lt', 'thresh': 0.90000000000000002, 'alpha': 0.8958797346140273}], 
+F(xi) =matrix([[ 1.17568763], [ 2.56198199], [-0.77022252], [-0.77022252], [ 0.61607184]]))
+the sign of this matrix is exactly the y's sign
+y is:
+[1.0, 1.0, -1.0, -1.0, 1.0]
+
+F(xi)=0.69*h1(xi)+0.97*h2(xi)+0.89*h3(xi)
+so if we have a tested sample xi, we can use F(xi) to get a matrix, the sign of the matrix is the predicted value
+
+*** the result "total error" will converge.... 
+>>> adaboost.adaBoostTrainDS(datMat,classLabels)
+bestStump,error,classEst: {'dim': 0, 'ineq': 'lt', 'thresh': 1.3}  ::   [[ 0.2]] ::  [[total error:  0.2
+bestStump,error,classEst: {'dim': 1, 'ineq': 'lt', 'thresh': 1.0}  ::   aggClassEst:  [[ 0.27980789  1.66610226 -1.66610226 -1.66610226 -0.27980789]] 
+aggErroros is                                                            : [[ 0.] [ 0.] [ 0.] [ 0.] [ 1.]]
+total error:  0.2
+
+bestStump,error,classEst: {'dim': 0, 'ineq': 'lt', 'thresh': 0.90000000000000002}  :: 
+  [[aggClassEst:  [[ 1.17568763  2.56198199 -0.77022252 -0.77022252  0.61607184]] 
+total error:  0.0
+
+bestStump,error,classEst: {'dim': 0, 'ineq': 'lt', 'thresh': 1.3}  ::   [[ 0.16666667]] ::                                                             [[-1.]
+aggClassEst:  [[ 0.37096867  3.36670095 -1.57494148 -1.57494148  1.4207908 ]]
+ aggErroros is                                                            : [[ 0.] [ 0.] [ 0.] [ 0.] [ 0.]]
+total error:  0.0
+
+bestStump,error,classEst: {'dim': 1, 'ineq': 'lt', 'thresh': 1.0}  ::   [[ 0.175]] ::  
+D: [[ 0.5    0.025  0.15   0.15   0.175]]
+classEst:  [[ 1.  1. -1. -1. -1.]
+aggClassEst:  [[ 1.14626738  4.14199965 -2.35024018 -2.35024018  0.64549209]
+aggErroros is        : [[ 0.] [ 0.] [ 0.] [ 0.] [ 0.]]
+total error:  0.0
+
+([{'dim': 0, 'ineq': 'lt', 'thresh': 1.3, 'alpha': 0.6931471805599453}, {'dim': 1, 'ineq': 'lt', 'thresh': 1.0, 'alpha': 0.9729550745276565}, 
+{'dim': 0, 'ineq': 'lt', 'thresh': 0.90000000000000002, 'alpha': 0.8958797346140273},
+ {'dim': 0, 'ineq': 'lt', 'thresh': 1.3, 'alpha': 0.8047189562170499}, {'dim': 1, 'ineq': 'lt', 'thresh': 1.0, 'alpha': 0.7752987062055835}],                                                            matrix([[ 1.14626738],
+matrix([[ 1.14626738], [ 4.14199965], [-2.35024018], [-2.35024018], [ 0.64549209]]))
+
+
+
+** linear matrix regression.
+*** matrix X and Y to present xi and yi 
+(row, column)
+X(n*2)=[ 1  X1]
+         1  X2
+         .....
+         1   Xn
+
+B(2*1)=[B1]
+        B2
+Y(nx1)=[ Y1]
+         Y2
+         Yn
+-----------------------------------------------------------------
+y=bx+e
+Y(n*1) = X(n*2)B(2*1)+E(n*1)
+Y=X*B+E
+E=Y-X*B
+e=y-bx     e*e=(y-bx)^2
+E[f(X)]=(Y-X*B)'*(Y-X*B)   ### for matrix, X^2=X*X'   
+dE[f(X)]/dB= ###derivative minimum value is 0
+####d(y^2+x^2-2xyb)/d(b)=-2x(y-xb)
+
+-2X'(Y-XB)=0    
+-----------------------------------------------------------------
+X'Y=(X'X)B
+B=(X'X)^(-1)X'Y  ####X' is transpose of X, or XT 
+###  X^(-1)*X=I
+I=[1 0 0]
+   0 1 0
+   0 0 1 
+
+*** Locally Weighted Regression
+Model-based methods, such as neural networks and the mixtures of Gaussians, use the data to build a parameterized model.
+After training, the model is used for predictions and the data are generally discarded. In contrast, "memory-based" methods are non-parametric approaches
+that explicitly retain the training data, and use it each time a prediction needs to be made. Locally weighted regression (LWR) is a memory-based method that performs a
+regression around a point of interest using only training data that are "local" to that point. (nearest to the point)
+
+  In locally weighted regression, points are weighted by proximity to the current x in question using a kernel. A regression is then computed using the weighted points
+suppose we have a test x value, we want to predict the y, we don't use the pre-training parameter model.
+we use the locally points(related to the tested x value) to train the model.
+
+hi(x)=h(x-xi)=exp(-k*(x-xi)^2)    ## for a training model, x is the tested value(consider it as a constant),  xi is a variable, k is a parameter
+                                  ## the closer xi to x, hi(x) is lesser 
+f(x)=exp(-k(x-k2)(x-k2))  ####k=1, k2 testing data =1, x is nearer to k2,f(x) is larger, 0<=f(x)<=1, f(x) as a weighted factor,  
+                          #### x<-1 or x>3 then f(x) will converge to 0, that means this x will be ignored.....
+[[./pic/local_reg_hx.jpg]][picture of f(x) Function curve ]]
+
+E[f(X)]=(Y-X*B)'*(Y-X*B)   ### for matrix, X^2=X*X'   
+plug X=W*X   ####here  W=exp(-k(x-k2)(x-k2))   
+
+W=matrix(eye(4))
+matrix([ [ 1.,  0.,  0.,  0.],
+         [ 0.,  1.,  0.,  0.],
+         [ 0.,  0.,  1.,  0.],
+         [ 0.,  0.,  0.,  1.]])
+update W[j,j] as exp(-k(x-xj)(x-xj))
+
+X(n*2)=[ 1  X1]
+         1  X2
+         .....
+         1   Xn
+
+B(2*1)=[B1]
+        B2
+Y(nx1)=[ Y1]
+         Y2
+         Yn
+-
+xTx = xMat.T * (W * xMat)
+      (2*n)*((n*n)*(n*2)) ----------------->    (2*n)*(n*2) ------->xTx(2*2)
+
+B = xTx.I * (xMat.T * (W * yMat))
+    (2*2) * ((2*n)*((n*n)*(n*1)))    -------> (2*2) * ((2*n)*(n*1))  ------>(2*2)*(2*1) -----> B(2,1)
+
+dE[f(X)]/dB= ###derivative minimum value is 0
+B=(X'X)^(-1)X'Y  ####X' is transpose of X, or XT 
+B=(X'WX)^(-1)X'(WY)  ####X' is transpose of X, or XT 
+
+
+** regression tree
+regression tree is for splitting dataset, how to split the data? 
+we could iterate many classifier to split data, but which one is better?
+here we will omit the math, derivation, we get it from the recursive invoking function only in computer.
+we use every element's distance to the average value of the dataset as a base to get a better/best classifer.
+
+
+
+
+*** regression Leaf and Error function take mean as the base
+**** mean 
+Returns the average of the array elements
+
+**** variance
+variance: is a numpy var function  
+The variance is the average of the squared deviations from the mean, i.e., var = mean(x), where x = abs(a - a.mean())**2.
+
+**** regLeaf and regErr using mean and variance
+def regLeaf(dataSet):#returns the value used for each leaf
+                     # the average value of the last column of dataSet matrix
+        return mean(dataSet[:,-1])
+
+def regErr(dataSet): #### the average value of the last column of dataSet matrix
+        return var(dataSet[:,-1]) * shape(dataSet)[0]
+#### we choose splitter which could split r and l tree with closest regErr(r tree)+ regErr(l tree) value to the parent dataset's regErr(parent) value
+
+
+#### we can split a matrix based on the feature and value
+datset is  [ [ -2.266273, 1] [-31.584855, 2] [ 18.97665,3 ] [ -1.798377, 4 ]   [  0.946348,  5] [17.171057, 6] [-18.051318, 7] ]
+the first column is feature x, the second colum is y
+
+### assuming this dataset has only 1  features, 0 , the split value is more or less than the value
+def binSplitDataSet(dataSet, feature, value):
+    mat2 = []; mat3 = []
+    nn=nonzero(dataSet[:,feature] > value)
+    for e in nn[0]:
+       mat2.append(dataSet[e,].tolist()[0])
+    nn=nonzero(dataSet[:,feature] <= value)
+    for e in nn[0]:
+       mat3.append(dataSet[e,].tolist()[0])
+    return mat(mat2),mat(mat3)                    ####left is > , right is <=
+
+####################
+def chooseBestSplit(dataSet, leafType=regLeaf, errType=regErr, ops=(1,4)):
+    tolS = ops[0]; ### the threshhold of  parent's variance and subsets' variance distance
+    tolN = ops[1]  ### how many elements within one dataset is OK, don't split the dataset too small, 4 elements is the least elements in the sub datasets
+    #if all the target variables are the same value: quit and return value
+    if len(set(dataSet[:,-1].T.tolist()[0])) == 1: #exit cond 1
+        print("exit cond 1, leafType dataset is ", dataSet )
+        return None, leafType(dataSet)
+    m,n = shape(dataSet)
+    #the choice of the best feature is driven by Reduction in RSS error from mean(average value of the dataset)
+    S = errType(dataSet)   ### value y's distance to the mean of the dataset's value y
+    bestS = inf; bestIndex = 0; bestValue = 0
+    for featIndex in range(n-1):
+        for splitVal in dataSet[:,featIndex].tolist():
+            nn= shape(nonzero(dataSet[:,featIndex] > splitVal))[1]
+            if nn == 0: continue;
+            mat0, mat1 = binSplitDataSet(dataSet, featIndex, splitVal)
+            if (shape(mat0)[0] < tolN) or (shape(mat1)[0] < tolN): continue
+            newS = errType(mat0) + errType(mat1)   #### the splitting err value is sum of these two subsets.
+            if newS < bestS:
+                bestIndex = featIndex
+                bestValue = splitVal
+                bestS = newS
+    #if the decrease (S-bestS) is less than a threshold don't do the split
+    if (S - bestS) < tolS:
+        print("exit cond 2, leafType tols is ", tolS, " and S is ", S, " best S is ", bestS )
+        return None, leafType(dataSet) #exit cond 2
+    mat0, mat1 = binSplitDataSet(dataSet, bestIndex, bestValue)
+    if (shape(mat0)[0] < tolN) or (shape(mat1)[0] < tolN):  #exit cond 3
+        print("exit cond 3, leafType dataset is ", dataSet )
+        return None, leafType(dataSet)
+    return bestIndex,bestValue              ######returns the best feature to split on
+#######
+def createTree(dataSet, leafType=regLeaf, errType=regErr, ops=(1,4)):# createTree is a recursive function
+    feat, val = chooseBestSplit(dataSet, leafType, errType, ops)   #choose the best split for dataSet
+    if feat == None: return val #if the splitting hit a stop condition return val, get leaf, stop recursively invoking
+    retTree = {}
+    retTree['spInd'] = feat
+    retTree['spVal'] = val
+    lSet, rSet = binSplitDataSet(dataSet, feat, val)               ##split the dataset based on the feat,val  from chooseBestSplit into rSet and lSet
+    retTree['left'] = createTree(lSet, leafType, errType, ops)     ### recursively invoke createTree on lSet left child tree
+    retTree['right'] = createTree(rSet, leafType, errType, ops)   ### recursively invoke createTree on rSet right child tree
+    return retTree
+
+#####
+input data set as 
+[[./pic/dataset2.jpg]][picture of two classifer testset  ]]
+we can see there are 2 subsets/classifiers 
+ouput as:
+return tree is , {'spInd': 0, 'spVal': [0.48813], 'right': -0.044650285714285719, 'left': 1.0180967672413792}
+the dataset is divided as two sets.
+     left y's avarage value is 1.01 when x <=0.48813
+     left y's avarage value is -0.044  when x>0.48813
+#####
+[[./pic/datasetm.jpg]][picture of serveral classifer testset  ]]
+we can see there are 5 subsets/classifiers 
+return tree is , {'spInd': 0, 'spVal': [0.39435], 
+'right': {'spInd': 0, 'spVal': [0.197834], 'right': -0.023838155555555553, 'left': 1.0289583666666666},
+'left':  {'spInd': 0, 'spVal': [0.582002], 'right': 1.980035071428571, 
+                                           'left': {'spInd': 0, 'spVal': [0.797583], 'right': 2.9836209534883724, 'left': 3.9871631999999999}}}
+#### the output is a five leaves tree 
+
+                                0.39425                                     
+                               /       \
+                     x > 0.39425       x< 0.39425    
+                        /                 \
+                       /                   \
+                    0.582                   0.197
+                 /       \                   /  \
+              x>0.582    x<0.582      x>0.197   x<0.197
+               /           \               /      \
+              0.79          1.98         1.02     -0.02
+             /   \         
+            >     <
+           /       \
+          3.98    2.98
+when we have x, we could get y's value at leave. say,  x>0.79, y=3.98;      0.582 < x < 0.79, y=2.98;   0.39 < x  <0.58, y=1.98  ........
+so when we have a testing data, we can predict y's value.
+
+
+
+*** linearSolve  Leaf and Error function
+def linearSolve(dataSet):   ### assuming y and x is liner relation y=w0*x1+w1*x2   ws is (w0,w1)
+    m,n = shape(dataSet)
+    X = mat(ones((m,n))); Y = mat(ones((m,1)))#create a copy of data with 1 in 0th postion
+    X[:,1:n] = dataSet[:,0:n-1]; Y = dataSet[:,-1]#and strip out Y
+    xTx = X.T*X
+    if linalg.det(xTx) == 0.0:
+        raise NameError('This matrix is singular, cannot do inverse,\n\
+        try increasing the second value of ops')
+    ws = xTx.I * (X.T * Y)
+    return ws,X,Y
+
+def modelLeaf(dataSet):#create linear model and return coeficients
+    ws,X,Y = linearSolve(dataSet)
+    return ws
+
+def modelErr(dataSet):
+    ws,X,Y = linearSolve(dataSet)
+    yHat = X * ws
+    return sum(power(Y - yHat,2))
+
+#### x1=1    x1,  x2,        y
+datset is  [ [1,  -2.266273, 1] [1,  -31.584855, 2] [1,  18.97665,3 ] [1, -1.798377, 4 ]   [1,  0.946348,  5] [ 1, 17.171057, 6] [ 1,-18.051318, 7] ]
+
+
+ createTree(dataSet, modelLeaf, modelErr, (1,10))# createTree using linear model function 
+
+ return tree is , 
+{'spInd': 0, 'spVal': [0.285477],
+ 'right': matrix([ [ 3.46877936], [ 1.18521743]]), 
+'left': matrix([ [  1.69855694e-03], [ 1.19647739e+01]])}
+
+                        0.285
+                     /          \
+                 x2>0.285      x2<=0.285
+            y=1.69+0.000019*x2      y=3.46+1.18*x2
+so if we have a test data x2, based on it >?<0.285 we have function  y=1.69+0.000019*x2   ?   y=3.46+1.18*x2
+
+
+[[./pic/datasetmline.jpg]][picture of two lines  ]]
+one line the slop is near 0, another line is y=x... 
+
+
+*** tranverse the tree
+### recursively tranverse the tree
+
+def treeForeCast(tree, inData, modelEval=regTreeEval):
+    if not isTree(tree): return modelEval(tree, inData)   ####get the leaf node, y value
+    if inData[tree['spInd']] > tree['spVal']:
+        if isTree(tree['left']): return treeForeCast(tree['left'], inData, modelEval)   ### invoking itself to tranverse left tree
+        else: return modelEval(tree['left'], inData)
+    else:
+        if isTree(tree['right']): return treeForeCast(tree['right'], inData, modelEval)   ### invoking itself to tranverse right tree
+        else: return modelEval(tree['right'], inData)
+
+def createForeCast(tree, testData, modelEval=regTreeEval):
+    m=len(testData)
+    yHat = mat(zeros((m,1)))
+    for i in range(m):
+        yHat[i,0] = treeForeCast(tree, mat(testData[i]), modelEval)
+    return yHat
+
+*** corrcoef 
+Pearson product-moment correlation coefficients.
+R(ij)=C(ij)/squareroot(C(ii)*C(jj) )
+corrcoef(yHat,testMat[:,1],rowvar=0)[0,1]
+0.96408523182221406
+
+array([[0.45038594, 0.37079802, 0.92676499],
+       [0.64386512, 0.82276161, 0.4434142 ],
+       [0.22723872, 0.55458479, 0.06381726]])
+
+R2 = np.corrcoef(xarr, yarr)
+
+R2
+array([[ 1.        ,  0.99256089, -0.68080986,  0.75008178, -0.934284  ,
+        -0.99004057],
+       [ 0.99256089,  1.        , -0.76492172,  0.82502011, -0.97074098,
+        -0.99981569],
+       [-0.68080986, -0.76492172,  1.        , -0.99507202,  0.89721355,
+         0.77714685],
+       [ 0.75008178,  0.82502011, -0.99507202,  1.        , -0.93657855,
+        -0.83571711],
+       [-0.934284  , -0.97074098,  0.89721355, -0.93657855,  1.        ,
+         0.97517215],
+       [-0.99004057, -0.99981569,  0.77714685, -0.83571711,  0.97517215,
+         1.        ]])
+0.96408523182221406
+
+
+** The k-means clustering algorithm
+clustering is different from classifying, since in classifying, we know how many classes there will be, but in clustering, we don't know how many clusters there will be.
+
+k-means clustering is a method of vector quantization, originally from signal processing, that aims to partition n observations into k clusters in which each observation 
+belongs to the cluster with the nearest mean (cluster centers or cluster centroid), serving as a prototype of the cluster. This results in a partitioning of the data space 
+into Voronoi cells.  
+
+#### source code slip######
+def randCent(dataSet, k):     ### get middle value in between all the dataset, genrate k centroids
+    n = shape(dataSet)[1]
+    centroids = mat(zeros((k,n)))#create centroid mat
+    for j in range(n):#create random cluster centers, within bounds of each dimension
+        minJ = min(dataSet[:,j])
+        rangeJ = float(max(dataSet[:,j]) - minJ)
+        centroids[:,j] = mat(minJ + rangeJ * random.rand(k,1))
+    return centroids
+### #
+
+def kMeans(dataSet, k, distMeas=distEclud, createCent=randCent):
+    m = shape(dataSet)[0]
+    clusterAssment = mat(zeros((m,2)))#create mat to assign data points #to a centroid, holds SE of each point
+                                      #first column is the cetroids index to k, the second colume is the the minimum distance means value
+    centroids = createCent(dataSet, k) ### centroids is a random matrix(k,2)
+    clusterChanged = True
+    while clusterChanged:            ##### loop through until all m find the correct index of centroid, and no change any more
+        clusterChanged = False
+        for i in range(m):  #for each data point from 0 to m, find out which centroid[k] in nearest to this m datapoint?
+            minDist = inf; minIndex = -1
+            for j in range(k):
+                distJI = distMeas(centroids[j,:],dataSet[i,:])  #### findout distance meens between centroids[j] and dataset[i]
+                if distJI < minDist:
+                    minDist = distJI; minIndex = j
+            if clusterAssment[i,0] != minIndex   ####  clusterAssment i get updataed, the overall loop will continue
+               clusterChanged = True
+               print "index aa is changed ", i
+            clusterAssment[i,:] = minIndex,minDist**2          #### get the minimum distance and which centroids index is for this i is minimum,
+        print "centroids", centroids
+        for cent in range(k):                                 #recalculate centroids
+            ptsInClust = dataSet[nonzero(clusterAssment[:,0].A==cent)[0]] #get all the point in this cluster 0 to k
+            centroids[cent,:] = mean(ptsInClust, axis=0) #assign centroid to mean of all the dataset which is in cluster k, make it closer to those datapoints further
+    return centroids, clusterAssment
+
+def test():
+    datMat=mat(loadDataSet('testSet.txt'))
+    myc,clust=kMeans(datMat,4)   ### k=4 here, how do you know there's four clusters beforehand?
+
+#### output result  #####
+>>> kMeans.test()
+centroids [[ 2.46976929 -2.42033541]
+ [ 1.11573805  2.94133373]
+ [ 3.823596    4.55713054]
+ [-2.49329505 -0.13888859]]
+centroids [[ 2.65077367 -2.79019029]
+ [ 1.31272626  3.01350289]
+ [ 3.49342817  3.53328433]
+ [-3.231108   -0.45641674]]
+centroids [[ 2.65077367 -2.79019029]
+ [ 0.6088648   3.19658355]
+ [ 3.46019088  2.88948625]
+ [-3.34884281 -0.77772481]]
+centroids [[ 2.65077367 -2.79019029]
+ [-1.26726581  3.25992505]
+ [ 2.942346    2.80047613]
+ [-3.54251791 -2.066412  ]]
+centroids [[ 2.65077367 -2.79019029]
+ [-2.46154315  2.78737555]
+ [ 2.6265299   3.10868015]
+ [-3.53973889 -2.89384326]]
+
+
+####
+>>> datMat
+matrix([ [ 1.658985,  4.285136],
+        [-3.453687,  3.424321],
+        [ 4.838138, -1.151539],
+        [-5.379713, -3.362104],
+        [ 0.972564,  2.924086],
+        [-3.567919,  1.531611],
+#### dataset graph is as follow, centroids in each cluster:
+[[./pic/dataset_cluster1.jpg]][picture of datset clusters  ]]
+from the picture of dataset clusters, we can see there are 4 clusters from the picture, but when we don't have the graph beforehand, how we know there are 4 clusters.
+
+*** bi kMeans
+**** kMeans is not accurate example
+Let's see other datasets, from picutre, we see there are 3 clusters, kMeans(dataset,3)
+[[./pic/kMeans_not_good.jpg]][picture of another dataset not goog with only kMeans function  ]]
+obviously the cluster is not correct here
+
+use biKemans(dataSet,3), we will get result as follow:
+[[./pic/bikMeans_good_for_same.jpg]][picture of another dataset not goog with only kMeans function  ]]
+
+
+**** use biKmeans is better than kmeans
+biKmeans use cluster's minimum distance as a group to calculate, split group and Nosplit group as two groups and sum two group's distance as the overall minimum vlaue 
+compared to kMeans, kMeans use every element to centroids to calculate minimum distance 
+biKmeans use subset to apply kMeans to get two childsets, it will make the division more accurate and every time add extra one subgroup
+
+dataset(m,2)
+def biKmeans(dataSet, k, distMeas=distEclud):
+    m = shape(dataSet)[0]
+    clusterAssment = mat(zeros((m,2)))              #### clusterAssment(index of centList , distance value )   -------matrix(m, 2)
+    centroid0 = mean(dataSet, axis=0).tolist()[0]   ####centroids0 [average value of every column]
+    centList =[centroid0] #create a list with one centroid   ##### centList initialized as cetnroid0 as first element 
+    for j in range(m):      #calc initial Error
+        clusterAssment[j,1] = distMeas(mat(centroid0), dataSet[j,:])**2   ### the initialization value for dataset as distance to mean as the whole clustserAssment
+    while (len(centList) < k):   ### the maximum value of centList's elements k=3
+        lowestSSE = inf
+        for i in range(len(centList)):     ####use every element's index in centList for splitting clustser i, get the minimum distance with every cluster i been split and unsplit set
+            ptsInCurrCluster = dataSet[nonzero(clusterAssment[:,0].A==i)[0],:]  ## get the data points currently in cluster i for biKmeans
+            centroidMat, splitClustAss = kMeans(ptsInCurrCluster, 2, distMeas)  ## split the data into 2 sets, based on every element's disatance to centroid 
+            sseSplit = sum(splitClustAss[:,1])                                  ## the sum of new splited 2 sets's clusterAssment's distance
+            sseNotSplit = sum(clusterAssment[nonzero(clusterAssment[:,0].A!=i)[0],1]) ## the other set who has't been divided's distance value 
+            print "sseSplit, and notSplit: ",sseSplit,sseNotSplit
+            if (sseSplit + sseNotSplit) < lowestSSE:
+                bestCentToSplit = i
+                bestNewCents = centroidMat
+                bestClustAss = splitClustAss.copy()
+                lowestSSE = sseSplit + sseNotSplit
+        bestClustAss[nonzero(bestClustAss[:,0].A == 1)[0],0] = len(centList)     ### set 1 as a lenghth of centList, t bigger 1 than the maximum index
+        bestClustAss[nonzero(bestClustAss[:,0].A == 0)[0],0] = bestCentToSplit   ### set 0 as the bestcentToSplit index
+        centList[bestCentToSplit] = bestNewCents[0,:].tolist()[0]                ###replace a centroid with two best centroids
+        centList.append(bestNewCents[1,:].tolist()[0])           ###adding a new centroid in centList corresponding new cluster index(which bigger thatn the ex max index)          
+        clusterAssment[nonzero(clusterAssment[:,0].A == bestCentToSplit)[0],:]= bestClustAss  ####reassign clusterAssment with bestClustAss clusters 
+    return mat(centList), clusterAssment
+
+
+
+#####
+centList[index]=(x,y)  #### as a centroid,  clusterAssment[data row i, distance value of data row i],
+the indicy of these two means the cluster j's corresponding value, centList[j] is the cluster j's centoid, clusterAssement[j] is the datset's row and distance of row i
+the dataset will be divided into k clusters, everytime we divide the datasets/subdatsets into two sets with kMeans(dataset,2,distmeans) with current index i of centList,
+we use the minimum one as the best to divide the cluster i into two sets with index i and len(centList) [bigger 1 than current maximum index, thus with extra one cluster]
+
+** 

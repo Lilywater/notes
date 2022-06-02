@@ -1,0 +1,272 @@
+* statistic value of a dataset
+** mean
+ the average value of a dataset
+ u= sum(X) / N    ##N is how many elements in the dataset
+
+** variance
+  The average of the squared differences from the Mean.
+  (X-u)^2 / N     
+
+** standard variance
+  The Standard Deviation is a measure of how spread out numbers are.
+  the squared root of variance 
+[[./pic/standard-deviation-formula.gif][picture variance formula of population]]
+
+
+*** sample variance
+
+[[./pic/standard-deviation-sample.gif][picture of sampled variance]]
+
+** median
+The Median is the "middle" of a sorted list of numbers. If there are two numbers in the middle
+get average number of these two numbers
+
+
+** Correlation
+
+When the two sets of data are strongly linked together we say they have a High Correlation.
+
+The word Correlation is made of Co- (meaning "together"), and Relation
+    Correlation is Positive when the values increase together, and
+    Correlation is Negative when one value decreases as the other increases
+
+* scipy.stats in python
+this will provide random variables with uniform or norm .....
+** scipy.stats.uniform
+   A uniform continuous random variable. in default uniform() is on [0,1] using the parameters loc
+and scale, distributins on [loc, loc + sacle]
+*** rvs will generate all the datasets comply to the uniform pdf rule
+rvs(loc=0,scale=1,size=1, random_state=None)
+
+data_uniform = uniform.rvs(size=n, loc = start, scale=width)
+##data_uniform is a datasets with size n, from loc to loc+scale
+### show datasets with 
+ax = sns.distplot(data_uniform, bins=100, kde=True,  color='skyblue',
+                  hist_kws={"linewidth": 15,'alpha':1})
+ax.set(xlabel='Uniform Distribution ', ylabel='Fre\bequency')
+plt.show()
+
+*** rv set as the unifrom function rule
+**** pdf    
+x2=np.linspace(1,3,1000)  ### generate 1000 elements from 1 to 3
+plt.plot(x2,rv.pdf(x2),'green' ) ### show the x2 and rv.pdf(x2) curve
+**** cdf
+     rv2.cdf(x2)
+**** ppf 
+
+** scipy.stats.norm     
+
+** RandomizedSearchCV
+estimatorestimator object.
+    A object of that type is instantiated for each grid point. This is assumed to implement the scikit-learn estimator interface. Either estimator needs to provide a score function, or scoring must be passed.
+param_distributionsdict or list of dicts
+    Dictionary with parameters names (str) as keys and distributions or lists of parameters to try. Distributions must provide a rvs method for sampling (such as those from scipy.stats.distributions). If a list is given, it is sampled uniformly. If a list of dicts is given, first a dict is sampled uniformly, and then a parameter is sampled using that dict as above.
+===========================================
+EN = Pipeline([     ('scaler', StandardScaler()),
+ #   ('EN', ElasticNet(l1_ratio=0,alpha=0.00000001))
+     ('EN', ElasticNet(l1_ratio=1,alpha=1))  ])
+#### get the best parameter for ElasticNet, from 0 to 1 using RandomizedSearchCV
+params = {'EN__alpha':uniform(), 'EN__l1_ratio':uniform()}
+print("params of uniform :",  params['EN__alpha'])
+#clf = RandomizedSearchCV(EN, params, random_state=RANDOM_STATE)
+clf = RandomizedSearchCV(EN, params)
+search = clf.fit(X_train, y_train)  ######fit the model with X,y train data
+print("search param is",search.best_params_) ####get the best parameter
+==========================
+search param is {'EN__alpha': 0.3984914362554828, 'EN__l1_ratio': 0.8033420475911143}
+   
+* statistic function of a dataset
+** pdf
+   Probability density function.
+*** pdf of uniform distribution    
+[[./pic/pdf_uniform.png][picture of uniform pdf]]
+
+since all the probability will add up to 1, the area under the curve(blue line) must be equal
+to 1, the length of the interval determines the height of the curve.
+
+[[./pic/uniform_pdf_functioncurv.png][picture of uniform pdf curve]]
+
+
+**** visualize the uniform rv datasets
+===========================================
+n = 10000    start = 10    width = 20
+data_uniform = uniform.rvs(size=n, loc = start, scale=width)
+ax = sns.distplot(data_uniform,  
+                  bins=100,
+                  kde=True,
+                  color='skyblue',
+                  hist_kws={"linewidth": 15,'alpha':1})
+ax.set(xlabel='Uniform Distribution ', ylabel='Fre\bequency')
+plt.show()
+============================================================
+[[./pic/uniform_data_distribution.png][picture of uniform data visualization]]
+
+*** pdf of norm distribution
+A normal distribution has a bell-shaped density curve described by its mean and standard deviation . The density curve is symmetrical, centered about its mean, with its
+spread determined by its standard deviation showing that data near the mean are more frequent in occurrence than data far from the mean. The probability distribution
+function of a normal density curve with mean and standard deviation  at a given point is given by:
+
+Normal Distribution, also known as Gaussian distribution, is ubiquitous in Data Science. You will encounter it at many places especially in topics of statistical inference. It is one of the assumptions of many data science algorithms too.
+
+A normal distribution has a bell-shaped density curve described by its mean μ
+and standard deviation σ. The density curve is symmetrical, centered about its mean, with its spread determined by its standard deviation showing that
+data near the mean are more frequent in occurrence than data far from the mean. The probability distribution function of a normal density curve with mean μ
+and standard deviation σ at a given point x is given by:
+
+[[./pic/norm_pdf.png][picture of pdf of norm]]
+
+
+Almost 68% of the data falls within a distance of one standard deviation from the mean on either side and 95% within two standard deviations. Also it worth
+mentioning that a distribution with mean and standard deviation  is called a standard normal distribution.
+
+**** visualize the norm rv datasets
+===========================
+from scipy.stats import norm
+data_normal = norm.rvs(size=10000,loc=0,scale=1)
+ax = sns.distplot(data_normal,
+                  bins=100,
+                  kde=True,
+                  color='skyblue',
+                  hist_kws={"linewidth": 15,'alpha':1})
+ax.set(xlabel='Normal Distribution', ylabel='Frequency')
+
+[Text(0,0.5,u'Frequency'), Text(0.5,0,u'Normal Distribution')]
+=====================================
+
+https://www.datacamp.com/community/tutorials/probability-distributions-python
+*** gamma distribution
+[[./pic/gamma_distribution.png][picture of gamma distribution of discret value]]
+    
+*** Exponential Distribution Function
+[[./pic/exponential_distribution.png][picture of exponential distribution of discret value]]
+
+*** binomial discret distribution
+
+[[./pic/binomial_distribution.png][picture of binomial distribution of discret value]]
+
+*** Bernoulli Discret Distribution Function
+
+The Bernoulli distribution, named after Swiss mathematician Jacob Bernoulli,[1] is the discrete probability distribution of a random variable which takes
+the value 1 with probability p  and the value 0 with probability q = 1 − p .
+Less formally, it can be thought of as a model for the set of possible outcomes of any single experiment that asks a yes–no question
+    
+[[./pic/bernoulli_distribution.png][picture of bernoulli distribution of discret value]]
+
+
+
+
+
+** cdf
+Cumulative distribution function.
+*** cdf of uniform distribution
+x distributed from 1 to 3, and y is cumulative probability, it means the probability of xi <=X is  yi
+x<=1.5 probability is 0.5, x<=3 probabiltiy is 1, red is cdf, green is ppf
+
+[[./pic/uniform_cdf_ppf_1_3.png][picture of unifrom cdf from 1 to 3]]
+
+
+
+
+** ppf
+Percent point function (inverse of cdf — percentiles).
+it means x and y exchanged, means x is the probability, x is the distribution value
+here x is (0,1), y is (1,3)
+
+
+
+* cross validate using metrics
+** classification validation metrics
+*** Precision
+precison is the fraction of the correct portion of returned results.
+
+*** Recall
+recall is the fration the correct portion of the results that should be returned.
+
+
+*** example of above
+======
+from sklearn import metrics
+y_pred = [0, 1, 1, 0]
+y_true = [0, 1, 0, 1]
+print("precesion:",metrics.precision_score(y_true, y_pred)) # 0.5
+print("\nrecall",metrics.recall_score(y_true, y_pred))      #0.5 
+================================
+ precision= numberof( correct pred 1 ) / numberof( returned pred 1)
+               = 1/2 = 0.5    ###the second 1 is correct/ total number of 1 in y_pred
+recall = numberof (correct pred 1 )/ numberof( 1 in y_true)
+       =  1/2 =0.5 ### the second1 inpred is correct/ totoal number of 1 in y_true
+
+y_pred = [0, 1, 0, 0] ##total number of returned 1 is 1
+y_true = [0, 1, 0, 1] ## total number of should returen 1 is 2
+the second 1 in pred is correct, only 1 is correct
+in such case: precision = 1/1 =1,
+              recall = 1/2 =0.5
+
+*** f1 score
+The traditional F-measure or balanced F-score (F1 score) is the harmonic mean of precision and recall:
+prec is precision
+f1= 2 /(prec^-1 + recall^-1) = 2* (prec * recall) /(prec + recall)
+take above example, f1= 2*1*0.5/(1+0.5) = 0.66
+
+*** fbeta score
+B is beta, prec is precision
+fbeta = (1+B^2) * (prec * recall) /(B^2 *prec + recall)
+take above exapmple, B=0.5, fbeta = (1+0.5^2)*1*0.5 / (0.5^2*1 + 0.5) = 0.8333
+
+
+*** threshhold of precision and recall
+y_pred could be a probility of true(1), not just true or false,
+so the value of problility could be deemed as different threshhold
+----------------------------------------------------------
+import numpy as np
+from sklearn.metrics import precision_recall_curve
+from sklearn.metrics import average_precision_score
+y_true = np.array([0, 0, 1, 1])
+y_pred = np.array([0.1, 0.4, 0.35, 0.8])
+precision, recall, threshold = precision_recall_curve(y_true, y_pred)
+print("probability value is \n", y_pred>0.35)
+
+print("0.35 pr", metrics.precision_score(y_true, y_pred >= 0.35))
+print("0.4 pr", metrics.precision_score(y_true, y_pred >= 0.4))
+print("0.8 pr", metrics.precision_score(y_true, y_pred >=0.8))
+
+print("0.35 re", metrics.recall_score(y_true, y_pred >= 0.35))
+print("0.4 re", metrics.recall_score(y_true, y_pred >= 0.4))
+print("0.8 re", metrics.recall_score(y_true, y_pred >=0.8))
+
+print("precision is", precision)
+print("recall is", recall)
+print("threshold is", threshold)
+print("avpre is:", average_precision_score(y_true, y_pred))
+------------------------------------------------
+#### precision_score could be based on probability value
+precision_score(true_labels, y_pred_prob > 0.4)
+
+result is:
+===================
+probability value is 
+ [False  True False  True]
+0.35 pr 0.6666666666666666
+0.4 pr 0.5
+0.8 pr 1.0
+0.35 re 1.0
+0.4 re 0.5
+0.8 re 0.5
+precision is [0.66666667 0.5        1.         1.        ]
+recall is [1.  0.5 0.5 0. ]
+threshold is [0.35 0.4  0.8 ]
+avpre is: 0.8333333333333333
+=============================
+
+**** average presision score
+AP = sum(n)[ (Rn - Rn-1) * Pn ]
+
+threshhold >= 0.35        0.4       0.8       
+------------------------------------------------------
+precision is [0.66666667 0.5        1.         1.        ]
+recall is    [1.         0.5        0.5        0. ]
+------------------------------------------------------
+           n= 3            2        1          0
+
+AP = (R1-R0)*P1 + (R2-R1)*P2 + (R3-R2)*P3
+   =(0.5-0)*1 +(0.5-0.5)* 0.5 + (1-0.5) * 0.67 =0.83

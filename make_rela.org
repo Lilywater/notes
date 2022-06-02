@@ -1690,6 +1690,22 @@ COLLECT_GCC_OPTIONS='-v' '-o' 'test' '-shared-libgcc' '-mtune=generic' '-march=x
  /usr/libexec/gcc/x86_64-redhat-linux/4.8.5/collect2 --build-id --no-add-needed --eh-frame-hdr --hash-style=gnu -m elf_x86_64 -dynamic-linker /lib64/ld-linux-x86-64.so.2 -o test /usr/lib/gcc/x86_64-redhat-linux/4.8.5/../../../../lib64/crt1.o /usr/lib/gcc/x86_64-redhat-linux/4.8.5/../../../../lib64/crti.o /usr/lib/gcc/x86_64-redhat-linux/4.8.5/crtbegin.o -L/usr/lib/gcc/x86_64-redhat-linux/4.8.5 -L/usr/lib/gcc/x86_64-redhat-linux/4.8.5/../../../../lib64 -L/lib/../lib64 -L/usr/lib/../lib64 -L/usr/lib/gcc/x86_64-redhat-linux/4.8.5/../../.. /tmp/ccpjvjz8.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-redhat-linux/4.8.5/crtend.o /usr/lib/gcc/x86_64-redhat-linux/4.8.5/../../../../lib64/crtn.o
 =============================
 
+bad value (generic) for -mtune= switch
+a docker img which used to run on 32 system : uname -a
+  2.6.18-308.24.1.el5PAE #1 SMP Tue Dec 4 18:28:32 EST 2012 i686 i686 i386 GNU/Linux
+
+now run on 64 system:
+ uname -a
+  Linux esp-ate-173a-tester 3.10.0-1160.el7.x86_64 #1 SMP Mon Oct 19 16:18:59 UTC 2020 x86_64 x86_64 x86_64 GNU/Linux
+--------------------------------------
+ifeq ($(DOCKER_IMG),dye)
+export LIBRARY_PATH=/usr/lib:/usr/lib/gcc/i386-redhat-linux/4.1.1
+GCC_DIR = /usr/lib/gcc/i386-redhat-linux/4.1.1/include/
+CFLAGS += -Wa,--32 -march=i686 \
+       $(INCLUDE_FLAG)$(GCC_DIR)
+       endif
+---------------------------------------
+
 *** ld option -m  elf_i386 ###to generate i386 executable files
  [admin1@prot-ttcn-test64 test]$ ld -m elf_i386 -s -o hello hello.o
 

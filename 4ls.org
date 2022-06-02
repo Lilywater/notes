@@ -22,9 +22,78 @@ I used NLG151 to simulate ENB and SGW:
 IP：135.252.110.151 
 Username/password: ltemme/ltemme1
 
-Usage:
+** make sure ip address ready
+ping N2 interface's ip configured in necc
+-----------------------------------------
+cmm subnet create --subnetId 3 --ipv 4 --base "21.100.0.0" --subnetMask "255.255.0.0" --defaultGateway "21.100.0.1" --interfaceLabelL eth2
+##### interfaceLableL should be the singalling interface in ipds
+
+cmm serviceIp create --poolType IPDS --poolId 0 --poolMemberId 0 --subnetLoc external --assignmentType fixed --niType DNS --svcIp 21.100.46.125
+cmm serviceIp create --poolType IPDS --poolId 0 --poolMemberId 1 --subnetLoc external --assignmentType fixed --niType DNS --svcIp 21.100.46.126
+
+cmm amfServiceIp create --name N2 --svcIpV4 21.100.46.201 --poolId 0
+cmm amfServiceIp create --name N8 --svcIpV4 21.100.46.202 --poolId 0
+cmm amfServiceIp create --name N11 --svcIpV4 21.100.46.203 --poolId 0
+cmm amfServiceIp create --name N12 --svcIpV4 21.100.46.204 --poolId 0
+-----------------------------------------------------------------------
+
+root@gashpc-0:/gashpc/NLGv4_210708_000536_9d3834f $ ping 21.100.46.201
+PING 21.100.46.201 (21.100.46.201) 56(84) bytes of data.
+64 bytes from 21.100.46.201: icmp_seq=1 ttl=64 time=0.261 ms
+----------------------------------
 
 
+ltemme@gashpc-0:/local/home/ltemme $ sudo tcpdump -i eth3:N01 icmp
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on eth3:N01, link-type EN10MB (Ethernet), capture size 262144 bytes
+06:30:32.150212 IP 21.100.0.1 > 21.100.46.201: ICMP echo request, id 1164, seq 1, length 64
+06:30:32.150432 IP 21.100.46.201 > 21.100.0.1: ICMP echo reply, id 1164, seq 1, length 64
+06:30:33.150111 IP 21.100.0.1 > 21.100.46.201: ICMP echo request, id 1164, seq 2, length 64
+
+------------------------------------------------------------
+
+root@gashpc-0:/gashpc/NLGv4_210708_000536_9d3834f $ ./nlgcmd dump
+        Dump mmeS10_1 log, ip=21.100.0.81
+
+                Dump mmeS10_1 perf counts
+
+                        Dump enbS1_1 log, ip=21.100.0.200
+
+
+** plumb ip and config
+*** plubmip and config withinone setp ./nlgcmd config *.tcl
+plumbif and config:
+
+
+./nlgcmd config will plumb ip and config,you can use configOnly if the ip has already been plumbed
+root@gashpc-0:/gashpc/NLGv4_210708_000536_9d3834f $ ./nlgcmd config usrCfg_amf_1UE.tcl
+
+ Kill nlg tasks ....
+
+
+  ****** NLG status: NLGdown ******
+
+  Found and Read ./vm_info.tcl ....
+  NLG config ATE: ESP-ATE-138
+  start plubming IPs ...
+
+  06:14:27 - ./fns_add_ips ./generated_mme_env.tcl
+  **********************
+  IP config file: ./generated_mme_env.tcl will be read.
+  Found and Read ./vm_info.tcl ....
+
+  06:14:27 - Plumbing 500 IPv4 addresses for NLG...
+
+
+plumb IP:
+notice your singalling ip iterface eth:
+./fns_add_ips  ta_ipdef.tcl
+
+
+*** pulmip and config two setups
+****  ./fns_add_ips ./generated_mme_env.tcl
+
+**** configOnly 
 cd /local/ltemme/loadGen/NLGv3_wo_hss_emu
 ./nlgcmd configOnly cprtemplate/usrCfg.v4.tcl nokia_ipdef_pet5.tcl
 ./nlgcmd up  ####  ****** NLG status: NLGup ****** 
@@ -44,6 +113,10 @@ CLI&gt; exec ./RUN/df_exec.sim-sgw
 ./nlgcmd start   //start NLG
 ./nlgcmd state  //check ongoing procedures measurement
 ./nlgcmd down  //stop NLG
+./nlgcmd stop  //stop NLG
+./nlgcmd exit  //exit NLG
+rm -rf RUN /// delete the configuration files in RUN directory
+
 
     我们本地HSS emulator 的地址：
 
@@ -1934,6 +2007,15 @@ ls -l /home/cmm/logs.tgz
 cmm nfIpEndpoints delete Nausf_UEAuthentication_EpList~Nausf_UEAuthentication_Ep1
 
 *** get pcmd logs dynamically
+wget http://135.2.201.122//pcmd_viewer/default/APCMD.pm
+wget http://135.2.201.122//pcmd_viewer/default/apcmd_viewer.pl   
+wget http://135.2.201.122//pcmd_viewer/default/pcmd_viewer.pl   
+wget http://135.2.201.122//pcmd_viewer/default/PCMD.pm
+
+chmod 755 /tmp/pcmd_viewer/apcmd_viewer.pl
+chmod 644 /tmp/pcmd_viewer/APCMD.pm
+
+
 apcmd_viewer]$cd /tmp/apcmd_viewer;
 apcmd_viewer]$ ./apcmd_viewer.pl -rt -a localhost -p 14116 |tee /tmp/abc
 
@@ -1988,10 +2070,99 @@ Suite Setup       Run Keywords      IOTA Suite Setup Basic     PCMD.Install Pcmd
         file.close()
 +++++++++++++++++++++++++++++++++++++++++++++
 
-*** 
-*** view tools in website
+*** view pcmd tools in website
 http://135.111.28.187/~dmlkm/pcmd.html
+http://cmmlsp1.ih.lucent.com/~dmlkm/5g.html
+-----------
+#########################################################################
 
+1->PCMD Version: "8" :CMM21.5+
+2->PCMD Type: "1" :AMF
+3->PCMD Id: "0002e79e" :Unique PCMD ID
+4->Record Sequence Number: "1" :A sequence identifier for the UE
+5->Timezone: "-05:00" :Timezone offset from UTC
+6->Month Day: "10:15" :Month and Day
+7->Year: "2021" :Year
+8->Record Duration (ms): "52" :Duration in mmilliseconds
+9->Procedure Id: "1" :5GS Registration
+10->Procedure SubType: "1" :Initial Registration
+11->Procedure Start Time: "30100412" :Milliseconds since 00:00 UTC (08:21:40)
+12->Procedure Duration (ms): "52" :Milliseconds
+13->Procedure CFC: "1" :Normal
+14->Procedure CFCQ: "100" :Success
+15->Procedure SCFCQ: "0" :Not Set 
+16->Procedure CCSTUE: "0" :Not Set
+80->Type of Initiation: "1" :UE Originated 
+81->Service Initiation Number: "1" :Number incremented by 1 whenever Service Request received while UE idle
+82->UE VLR Index: "749" ::
+83->Subscription Permanent Identifier: "460020301100001" :Globally unique 5G Subscription Permanent Identifier (SUPI) of type IMSI
+84->Permanent Equipment Identifier: "60020301:100001:01" :Origin, model, and serial number of the device
+85->Subscription Concealed Identifier: "460:02:1:00:00:0301100001" :Subscription Concealed Identifier (SUCI) containing SUPI of type IMSI
+86->5G-TMSI: "c0c002ed" :5G Temporary Mobile Subscriber Identity (TMSI)
+87->Subscriber Number: "3587003600201" :The MSISDN identifying the subscription
+88->Sending 5G Node ID: "460:02:01:001:01" :Globally unique AMF identifier (GUAMI) -> MCC:MNC:AMF region ID:AMF Set Id:AMF Pointer
+89->AMF UE NGAP ID: "4294990624" :Uniquely identify UE over the N2 interface within AMF
+90->GNB UE NGAP ID: "8388609" :Uniquely identify UE over the N2 interface within gNodeB
+94->AUSF ID: "9007faf2-abcd-473e-9e8e-f2b6207e3910" :UUID of the Authentication Server Function (AUSF)
+95->NRF ID: "0e9ab0df-abcd-490a-b4a0-4f4824098534" :UUID of the Network Repository Function (NRF)
+97->PCF ID: "749f5045-abcd-456a-ac3a-cbde3cf17086" :UUID of the Policy Control Function (PCF)
+99->UDM ID: "bd7c4cb3-abcd-4db0-a8fc-becab18f9211" :UUID of the Unified Data Management (UDM)
+101->Procedure Marker (1): "1" :N1 NAS REGISTRATION REQUEST
+102->Procedure Marker (2): "166" :NNRF DISCOVER AUSF REQUEST
+103->Procedure Marker (3): "167" :NNRF DISCOVER AUSF RESPONSE
+104->Procedure Marker (4): "162" :N12 AUSF AUTHENTICATION INFORMATION REQUEST
+105->Procedure Marker (5): "163" :N12 AUSF AUTHENTICATION INFORMATION RESPONSE
+106->Procedure Marker (6): "14" :N1 NAS AUTHENTICATION REQUEST
+107->Procedure Marker (7): "15" :N1 NAS AUTHENTICATION RESPONSE
+108->Procedure Marker (8): "164" :N12 AUSF AUTHENTICATION CONFIRM REQUEST
+109->Procedure Marker (9): "165" :N12 AUSF AUTHENTICATION CONFIRM RESPONSE
+110->Procedure Marker (10): "23" :N1 NAS SECURITY MODE COMMAND
+111->Procedure Marker (11): "24" :N1 NAS SECURITY MODE COMPLETE
+112->Procedure Marker (12): "144" :N8 UDM REGISTRATION REQUEST
+113->Procedure Marker (13): "145" :N8 UDM REGISTRATION RESPONSE
+114->Procedure Marker (14): "198" :N8 UDM GET MULTI DATA REQUEST
+115->Procedure Marker (15): "199" :N8 UDM GET MULTI DATA RESPONSE
+116->Procedure Marker (16): "150" :N8 UDM SUBSCRIBE REQUEST
+117->Procedure Marker (17): "151" :N8 UDM SUBSCRIBE RESPONSE
+118->Procedure Marker (18): "136" :N15 NPCF AM POLICY CONTROL CREATE REQUEST
+119->Procedure Marker (19): "137" :N15 NPCF AM POLICY CONTROL CREATE RESPONSE
+120->Procedure Marker (20): "2" :N1 NAS REGISTRATION ACCEPT
+121->Procedure Marker (21): "70" :N2 NGAP INITIAL CONTEXT SETUP REQUEST
+122->Procedure Marker (22): "71" :N2 NGAP INITIAL CONTEXT SETUP RESPONSE
+123->Procedure Marker (23): "3" :N1 NAS REGISTRATION COMPLETE
+124->Procedure Marker (24): "12" :N1 NAS CONFIGURATION UPDATE COMMAND
+165->Procedure Marker Cause Code (5): "201" :201=Created::Matches above Procedure Markers for added Marker info
+169->Procedure Marker Cause Code (9): "200" :200=Success::Matches above Procedure Markers for added Marker info
+173->Procedure Marker Cause Code (13): "201" :201=Created::Matches above Procedure Markers for added Marker info
+174->Procedure Marker Cause Code (14): "0:0:3" :3=0x00011=SMF Selection subscription data:Access & Mobility subscription data:::Matches above Procedure Markers for added Marker info
+175->Procedure Marker Cause Code (15): "200:0:3" :200=Success:3=0x00011=SMF Selection subscription data:Access & Mobility subscription data:::Matches above Procedure Markers for added Marker info
+176->Procedure Marker Cause Code (16): "0:0:3" :3=0x00011=SMF Selection subscription data:Access & Mobility subscription data:::Matches above Procedure Markers for added Marker info
+177->Procedure Marker Cause Code (17): "201" :201=Created::Matches above Procedure Markers for added Marker info
+179->Procedure Marker Cause Code (19): "201" :201=Created:Matches above Procedure Markers for added Marker info
+221->Current NR Cell: "460:02:00008ca00" :MCC:MNC:NR Cell Identity
+225->Timezone of Current Cell: "+08:00" :Timezone offset from UTC
+226->Last Seen TAI: "460:02:001965" :MCC:MNC:TAC
+227->RFSP Index to gNB: "2" :Subscriber prof ID for RAT/Frequency Selection Priority
+228->UE Security Capability: "f0f0" :UE security capability 3GPP TS 24.501, section 9.11.3.54
+229->5GS Network Feature Support: "02:0000" :5GS Network Feature Support 3GPP TS 24.501, section 9.11.3.5
+230->Registration Mobile Identity Type: "1" :SUCI
+231->Requested NSSAI: "01:d143a5+02:d143a5+03:d143a5" :Requested NSSAI(s) SST SSD
+232->Allowed NSSAI: "01:d143a5+02:d143a5+03:d143a5" :Allowed NSSAI(s) SST SSD
+236->Authorization Duration Time AUSF: "12" :Milliseconds
+237->Authorization Duration Time UE: "46" :Milliseconds
+239->RRC Establishment Cause: "3" :NGAP_MO_SIGNALLING_RRC_ESTAB_CAUSE
+241->Follow On Indicator: "1" :Follow-on Request Pending
+265->UE Emergency Capabilities: "2" :Non-Emergency Call
+271->Number of Secondary Records: "0" ::
+275->Active Access Type: "1" :3GPP Access Type
+280->Non 3GPP AMF UE NGAP Id: "18446744073709551615" ::
+281->N3IWF UE NGAP Id: "4294967295" ::
+303->Number of Secondary HTTP Proxy Records: "0" ::
+312->Procedure Access Type: "1" :3GPP Access Type
+------------------------------------------------------------
+
+
+*** 
 
 * Robot for CMM
 ** Keywords  for calltrace function
@@ -2006,10 +2177,10 @@ Extra Test Setup Calltracemy
     PCMD.Start Pcmd
     ${result}=    CMM Command    cmm callTraceJob create --userIdentity imsi --digits ${IOTA.IMSI4} --mode debug
     Set Test Variable    ${traceid}    ${result['traceId']}
-    CMM Command    cmm traceDataStatus list
-    CMM Command    cmm traceDataStatus show --imsi ${IOTA['IMSI4']} --traceID ${traceid}
-    CMM Command    cmm traceData list
-    Sleep  2
+    cmm command    cmm tracedatastatus list
+    cmm command    cmm tracedatastatus show --imsi ${iota['imsi4']} --traceid ${traceid}
+    cmm command    cmm tracedata list
+    sleep  2
 
 
 Extra Test Teardown Calltracemy
@@ -3039,3 +3210,134 @@ To disable the OOM-killer use the same command with the value 0:
 sudo -s sysctl -w vm.oom-kill = 0
 
 https://jiradc2.ext.net.nokia.com/browse/CMMG-2205
+
+* CMM trouble shooting
+** turn on debug mode in callTrace
+ CMM Command    cmm callTraceJob create --userIdentity imsi --digits 460020301100001 --mode debug
+
+cat /data-logs/protocolmonitor.log
+-------------------
+-1-0-337-0-460020301100001-21.100.46.201-0-21.100.0.1-0:Rcvd NGAP_UPLINK_NAS_TRANSPORT from GNB LNK IDX:1, local IP addr 21.100.46.201, remote IP addr 21.100.0.1, PLMN ID:460-02f ENB ID:36000
+^M
++++ 2021/10/14 22:04:43.914 MSGTRAP HIGHEST ACTIVE cpps:15051 E:1658799 S:33963 (CTagt.cpp 13946 C-cpps0 CMM21.8.0_B1_C1630 cmmman 10.244.3.68)
+
+46002-0-0--1-0:
+00 2e 40 45 00 00 04 00 0a 00 06 80 01 00 00 5b
+00 00 55 00 04 80 80 01 cc 00 26 00 19 18 7e 02
+00 00 00 00 06 7e 00 4c 01 00 07 f4 00 41 c0 c0
+01 51 50 02 08 00 00 79 40 0f 40 64 f0 20 00 00
+8c a0 00 64 f0 20 00 19 65
+^M
++++ 2021/10/14 22:04:43.914 MSGTRAP HIGHEST ACTIVE cpps:15051 E:1658810 S:33974 (AUEgnbMsgHdlr.cpp 891 C-cpps0 CMM21.8.0_B1_C1630 cmmman 10.244.3.68)
+
+-1-0-337-0-460020301100001-11.0.0.0-0-21.0.0.0-0:Rcvd Service request From UE:460020301100001 through link local IP addr 11.0.0.0, remote IP addr 21.0.0.0
+^M
++++ 2021/10/14 22:04:43.914 MSGTRAP HIGHEST ACTIVE cpps:15051 E:1658811 S:33975 (AUEgnbMsgHdlr.cpp 891 C-cpps0 CMM21.8.0_B1_C1630 cmmman 10.244.3.68)
+
+46002-0-0--1-0:
+7e 02 00 00 00 00 06 7e 00 4c 01 00 07 f4 00 41
+c0 c0 01 51 50 02 08 00
+^M
++++ 2021/10/14 22:04:43.915 MSGTRAP HIGHEST ACTIVE cpps:15051 E:1659082 S:34246 (AUEammMsgHdlr.cpp 6050 C-cpps0 CMM21.8.0_B1_C1630 cmmman 10.244.3.68)
+
+-1-0-337-0-460020301100001-11.0.0.0-0-21.0.0.0-0:Sent Service accept To UE:460020301100001 through link local IP addr 11.0.0.0, remote IP addr 21.0.0.0
+^M
++++ 2021/10/14 22:04:43.915 MSGTRAP HIGHEST ACTIVE cpps:15051 E:1659083 S:34247 (AUEammMsgHdlr.cpp 6050 C-cpps0 CMM21.8.0_B1_C1630 cmmman 10.244.3.68)
+
+46002-0-0--1-0:
+7e 02 00 00 00 00 07 7e 00 4e 50 02 08 00
+-----------------------------------
+
+** Verifying external connectivity
+cmm subnet create --subnetId 3 --ipv 4 --base "21.100.0.0" --subnetMask "255.255.0.0" --defaultGateway "21.100.0.1" --interfaceLabelL eth2
+
+#### amf dns query using ip
+cmm serviceIp create --poolType IPDS --poolId 0 --poolMemberId 0 --subnetLoc external --assignmentType fixed --niType DNS --svcIp 21.100.46.125
+
+cmm amfServiceIp create --name N2 --svcIpV4 21.100.46.201 --poolId 0
+
+cmm dns modify --priDnsIp 172.16.0.254 config  ### the dns serverip
+
+
+
+*** Pinging external links (AMF)
+**** ping enb with signalling interface and  n2 interface ip
+[root@ate-qa-necc0 default]# sudo cmm nbiPing list --pingTarget  21.100.0.1 --pingSourceIp 21.100.46.201 --pingInterval 2
++--------------+-------------------------------------------------------------------------+
+| nbiPing      | pingOutput                                                              |
++--------------+-------------------------------------------------------------------------+
+| 21.100.0.1~0 | PING 21.100.0.1 (21.100.0.1) from 21.100.46.201 : 56(84) bytes of data. |
+| 21.100.0.1~1 | 64 bytes from 21.100.0.1: icmp_seq=1 ttl=64 time=0.277 ms               |
+| 21.100.0.1~2 | 64 bytes from 21.100.0.1: icmp_seq=2 ttl=64 time=0.530 ms               |
+| 21.100.0.1~3 | 64 bytes from 21.100.0.1: icmp_seq=3 ttl=64 time=0.396 ms               |
+| 21.100.0.1~4 |                                                                         |
+| 21.100.0.1~5 | --- 21.100.0.1 ping statistics ---                                      |
+| 21.100.0.1~6 | 3 packets transmitted, 3 received, 0% packet loss, time 4029ms          |
+| 21.100.0.1~7 | rtt min/avg/max/mdev = 0.277/0.401/0.530/0.103 ms                       |
++--------------+-------------------------------------------------------------------------+
+[cmm@cmm-mme-necc1 ~]$ cmm nbiTraceroute list --trTarget  10.56.233.223 --trSourceIp 10.56.249.103
++-----------------+---------------------------------------------------------------------------+
+| nbiTraceroute   | trOutput                                                                  |
++-----------------+---------------------------------------------------------------------------+
+| 10.56.233.223~0 | traceroute to 10.56.233.223 (10.56.233.223), 15 hops max, 60 byte packets |
+| 10.56.233.223~1 |  1  gateway (10.56.249.1)  1.192 ms  1.137 ms  3.231 ms                   |
+| 10.56.233.223~2 |  2  10.56.233.223 (10.56.233.223)  0.901 ms  0.876 ms *                   |
+------------------------------------------------------------------------------------------------
+
+***** ping sbi interface
+cmm amfHttp2Ping list --amfClientIntf <list-item> --amfIntfInstance <integer> --amfRmtEndIp <string> --amfRmtEndIpPort <integer> 
+        [ --http2PingStatus <list-item> ] [ --http2PingTimeOut <integer> ] [ --numHttp2Ping <integer> ] [ --roundTripTime <integer> ]
+
+
+**** ping n2 interface from test machine run with enb simulator
+ping 21.100.46.201
+---------
+temme@gashpc-0:/local/ltemme/loadGen/NLGv4_210708_000536_9d3834f/RUN $ cat tfbase_5g.sim-enb.1-1
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Base Profile
+MME/AMF
+GNB
+                        <sctpConfigType>sctp_singlehome</sctpConfigType>
+                        <mmeS1apPort>38412</mmeS1apPort>
+                        <mmeS1apIpaddr1>21.100.46.201</mmeS1apIpaddr1>
+--------------------
+check the source ip of enb 
+tcpdump -i any host 21.100.46.201
+.....
+temme@gashpc-0:/local/ltemme/loadGen/NLGv4_210708_000536_9d3834f/RUN $ sudo tcpdump -i any host 21.100.46.201
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on any, link-type LINUX_SLL (Linux cooked), capture size 262144 bytes
+08:32:22.518308 IP 21.100.46.201.38412 > 21.100.0.1.3002: sctp (1) [DATA] (B)(E) [TSN: 2012595774] [SID: 1] [SSEQ 174] [PPID 0x3c]
+08:32:22.518577 IP 21.100.0.1.3002 > 21.100.46.201.38412: sctp (1) [SACK] [cum ack 2012595774] [a_rwnd 65536] [#gap acks 0] [#dup tsns 0] , (2) [DATA] (B)(E) [TSN: 998938675] [SID: 1] [SSEQ 205] [PPID 0x3c]
+..................................................
+
+*** check links
+use "cmm multiLink list --help" to list all the interface
+--amfIntfType {N2,N8,N11,N12,N14,N15,N17,N18,N20,N22,N26,NLg,NLs,Nnef,Nnrf,namf_Communications,namf_EventExposure,namf_Location,namf_MT,notification_AMF,notification_NRF,notification_NSSF,notification_PCF,notification_SMF,notification_UDM}
+
+ cmm amfMultiLink list --amfIntfType N2
+ cmm multiLink list --linkInterfaceType s11
+
+** pcap the wire
+*** ipds iomn setting
+ssh acrive ipds
+iomn ipds_*
+input:       pCmTt0p0n0v0e1s
+----------------------------------------
+t:interface   0:all interface
+n:protocol    0: all 
+p:ports       0: all ports
+v: ip filter  0:no filter
+e: trace enable  1:enable
+s: show configurateion
+--------------------------------------
+get pcap shell:
+--------------------------------------------------------
+
+*** ipds tcpdump from acrive ipds1
+agrant@master:/shared/tt_pcap$ cat get_pcap_ipds.sh
+kubectl  exec -it ate-qa-necc-0 -n npv-ate -- sudo ssh ipds1 tcpdump -s 0 -i any -w /var/tmp/trace2.pcap  net 21.100.0.0/16
+kubectl  exec -it ate-qa-necc-0 -n npv-ate -- sudo scp ipds1:/var/tmp/trace2.pcap /tmp/trace2.pcap
+kubectl  cp ate-qa-necc-0:/tmp/trace2.pcap -n npv-ate /shared/tt_pcap/trace2.pcap
+------------------------------------------------------------

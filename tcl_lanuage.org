@@ -169,6 +169,52 @@ set colours [dict create colour1 "black" colour2 "white"]
 set result [dict exists $colours colour1]
 puts $result
 
+* tcl bult-in function
+** regexp
+SYNOPSIS
+regexp ?switches? exp string ?matchVar? ?subMatchVar subMatchVar ...?
+DESCRIPTION
+Determines whether the regular expression exp matches part or all of string and returns 1 if it does, 0 if it doesn't, unless -inline is specified (see below). (Regular expression matching is described in the re_syntax reference page.)
+
+If additional arguments are specified after string then they are treated as the names of variables in which to return information about which part(s) of string matched exp. MatchVar will be set to the range of string that matched all of exp. The first subMatchVar will contain the characters in string that matched the leftmost parenthesized subexpression within exp, the next subMatchVar will contain the characters that matched the next parenthesized subexpression to the right in exp, and so on. 
+syntax: regexp <regexpress> <string variable>
+% set ss {baro}
+baro
+% regexp {bar} $ss
+1
+*** regular expression string without nested parenthesis
+% set ss {foo_123_barVVQQZ what}
+foo_123_barVVQQZ what
+% regexp {foo(.*bar)(\w*) (\w*)}  $ss e1 e2 e3 e4
+1
+% puts $e4  ### from the third leftmost parenthesis matching
+what
+% puts $e3  ### from the second leftmost parenthesis matching
+VVQQZ
+% puts $e2   ### from the leftmost parenthesis matching
+_123_bar
+% puts $e1  ### the whole match string
+foo_123_barVVQQZ what
+=====================
+*** regular expression string with nested parenthesis
+% regexp {foo(.*_(\d+)_(\w+) what)}  $ss e1 e2 e3 e4
+1
+% puts $e1    ### the whole match string
+foo_123_barVVQQZ what
+% puts $e2      ### from the leftmost parenthesis matching
+_123_barVVQQZ what
+% puts $e3   ### from the second leftmost parenthesis matching
+123
+% puts $e4   ### from the third leftmost parenthesis mathing
+barVVQQZ
+%
+===========================
+
+
+** regsub
+syntax: regsub <regexpression> <string varaible> <sub_with_what> <which variable to put the subsitution one>
+regsub -all {foo} $ss bar ss2  ###substitute the foo with bar in ss variable puts the results in ss2 
+
 * tcl function definition
 proc function_name {  }  ### the brace is a list which could be empty or not
 ** function without argument

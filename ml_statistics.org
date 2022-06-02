@@ -1,0 +1,593 @@
+* plot matplotlib.pyplot.plot
+** plot function(X, Y, ....)
+other parameter:
+color or c
+linestyle
+** axis function (the range of X axis, the range of Y axis)
+
+** numpy linspace
+linespace return a set which contain number elements from A to B with equal gap value
+np.linspace(A,B, number)
+
+xx = np.linspace(0, 20, 100)
+
+** scatter(X,Y)
+show the X Y sets with dot instead of line
+
+** example of plot
+----------------------------------------
+import matplotlib.pyplot as plt
+X_train = [[6], [8], [10], [14], [18]]
+y_train = [[7], [9], [13], [17.5], [18]]
+X_test = [[6], [8], [11], [16]]
+y_test = [[8], [12], [15], [18]]
+regressor = LinearRegression()
+regressor.fit(X_train, y_train)
+xx = np.linspace(0, 20, 100)
+print("xx is", xx)
+print("xx reshape is", xx.reshape(xx.shape[0],1))
+yy = regressor.predict(xx.reshape(xx.shape[0], 1))
+
+plt.plot(xx, yy)   #### draw a line with x,y sets
+syy= regressor.intercept_ + np.multiply(regressor.coef_,xx.reshape(xx.shape[0], 1))
+plt.plot(xx, syy ,c='y',linestyle='--')  #### draw another line with xx, syy in yellow color, it is the actual weights of linear regression modle
+print(" B is :", regressor.intercept_ + np.multiply(regressor.coef_,xx.reshape(xx.shape[0], 1)))
+
+plt.axis([0, 25, 0, 25])  #### the x range and y range
+plt.grid(True)             
+#plt.scatter(X_train, y_train)
+plt.show()                #### show the picture of curve
+-----------------------------------------------------------------------
+
+
+
+* sklearn preprocessing for pipe
+** standard Scaler
+Standardize features by removing the mean and scaling to unit variance
+The standard score of a sample x is calculated as:
+    z = (x - u) / s
+    u is the mean of the training samples or zero if with_mean=False, 
+    s is the standard deviation of the training samples or one if with_std=False.
+*** s formula
+s= sqareroot(1/n * Sum(i=1..n)[ (x-u)^2])
+
+
+** Polynomial Features
+Polynomial features is for linearregrssion preprocessing data.
+Poly = PolynomialFeatures(degree=2, include_bias=False) ### transfrom x to [x, x^2]
+Poly = PolynomialFeatures(degree=2, include_bias=True) ### transform x to [1, x, x^2]
+
+*** function PolynomialFeatures
+degree int, default=2, The degree of the polynomial features.
+include_biasbool, default=True If True (default), then include a bias column, the feature in which all polynomial powers are zero (i.e. a column of ones - acts as an intercept term in a linear model).
+
+
+** preprocessing data with Polynomial features and standard scaler  before linearregression
+*** polynomial features include_bias=False
+**** training
+-----------------------------------------------
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import PolynomialFeatures, StandardScaler
+df = pd.read_csv(Howell1, delimiter=';')
+
+# First we'll prepare our X data
+Poly = PolynomialFeatures(degree=2, include_bias=False)
+Scaler = StandardScaler()
+weight = Poly.fit_transform(df[ ['weight'] ])  #### transform this one colum parameter to 2 columns paramer such as [ x, x^2]
+
+weight_scaled = Scaler.fit_transform(weight)  #### standard scaler the  two columns weight
+X = pd.DataFrame(weight_scaled, columns = ['weight', 'weight_sq']) #### two columns w, w_sq
+X['male'] = df['male']  ####   X has three columns [weight, weight_sqr, male]
+LR = LinearRegression()
+y=df['height']
+LR.fit(X, y)            #### fit linearRegression with X[weight, weight_sqr, male] , y[height]
+print("linear regrssion intercept is: ", LR.intercept_, "coeff is: ", LR.coef_ )
+---------------------------------------
+from above, we can see that fit function only find out the parameter with X's three features
+x1 is weight, x2 is male/female, fit function will figure out a, b1, b2,b3
+f(X)= a +  b1* x1 + b2 * x1 ^2 + b3 * x2 
+----------------------------------------
+            weight     weight_sq   male
+            0.830633   0.845771     1
+            0.059514  -0.161333     0
+-------------------------------------------        
+
+linear regrssion intercept is:  136.22010237018273 coeff is:  [ 64.77466926 -39.97187571   4.32552806]
+a= 136.22010237018273, b1=64, b2=-39  b3=4.2 
+
+**** predict a dataset
+-------
+wt = np.array([[50]]) # 50kg male
+wt = Poly.transform(wt)
+wt= Scaler.transform(wt)
+male = np.array([[1]]) # male = 1
+wt = np.c_[wt, male] # Concatenates numpy arrays
+
+pred = round( LR.predict(wt)[0], 2)
+print(f'Height prediction for male with weight 50kg: {pred} cm')
+---------------------------------------------------------
+
+
+Height prediction for male with weight 50kg: 161.16 cm
+
+
+*** polynomial features include_bias=True without standard scaler
+**** training 
+=====================================
+LR2 = LinearRegression()
+Poly2 = PolynomialFeatures(degree=2)
+#X2 = pd.DataFrame(weight, columns = ['weight', 'weight_sq'])
+X2 =pd.DataFrame( Poly2.fit_transform(df[['weight']]), columns = ['con','weight', 'weight_sq'])
+print ("X2 is\n", X2)
+X2['male'] = df['male']
+print("type of X2 is",type(X2))
+LR2.fit(X2, y)
+print("X2 is\n",X2)
+print("linear regrssion2 inter is: ", LR2.intercept_, "coeff is: ", LR2.coef_ )
+-----------------------------
+====================================
+X2 is:
+ con     weight    weight_sq  male
+ 1.0  47.825606  2287.288637     1
+ 1.0  36.485807  1331.214076     0
+ 1.0  31.864838  1015.367901     0
+ 1.0  53.041915  2813.444694     1
+= ===================================
+linear regrssion2 inter is:  41.86420753439853 coeff is:  [ 0.          4.40474911 -0.04210531  4.32552806]
+f(X)= a +  b1* x1 + b2 * x1 ^2 + b3 * x2 
+a=41, b1=4.4 b2=-0.042 b3=4.3255
+
+**** predicting
+==========================
+wt2 = np.array([[50]]) # 50kg male
+wt2 = Poly2.transform(wt2)
+#wt= Scaler.transform(wt)
+male = np.array([[1]]) # male = 1
+wt2 = np.c_[wt2, male] # Concatenates numpy arrays
+
+red =  LR2.predict(wt2)
+print(f'Height prediction2 for male with weight 50kg: {red} cm')
+=================================
+ Height prediction2 for male with weight 50kg: 161.16392142
+
+we can see with or without standard scaler, the predicting is the same result.
+
+** pipelines for data preprocessing
+*** fit_transfrom to prepare features or features with degree
+        from sklearn.compose import ColumnTransformer
+        from sklearn.preprocessing import Binarizer
+
+**** pipeline for degree 2 
+        numerical_preprocess = Pipeline([ ( 'poly', PolynomialFeatures(degree=2, include_bias=False) ),
+                                  ( 'std_scaler', StandardScaler() ) ])
+        numerical_preprocess.fit_transform(df[ [ 'weight']])  ### will process the argument firstly with 'poly' then with 'std_scaler' just as before
+
+**** pipeline of Binarizer
+        categorical_preprocess = Pipeline([ ( 'label', Binarizer() ) ])
+        categorical_preprocess.fit_transform(df[ ['male']]) ###Binarize data (set feature values to 0 or 1) according to a threshold.
+
+**** combine two piplines  using ColumnTransformer's fit_transform
+        numerical_attributes = ["weight"]
+        categorical_attributes = ['male']
+
+        preprocess = ColumnTransformer([ ( "numerical", numerical_preprocess, numerical_attributes ), 
+                            ( "categorical", Binarizer(), categorical_attributes ) ]) 
+
+        preprocess.fit_transform(df[ ['weight', 'male']]) ### weight male as input, output: weight, weight_sqr, male
+        -------------------------------
+        preopocess result is 
+         [ [ 0.83063275  0.84577094  1.        ]
+          [ 0.05951381 -0.1613325   0.        ]
+           [-0.25471715 -0.49403644  0.        ]
+.......
+
+*** fit the model with the estimator type         
+        full_pipeline = Pipeline([ ("preprocess", preprocess), ('LR', LinearRegression(fit_intercept=True)) ])
+
+        X = df[ ['weight', 'male']]
+        y = df['height']
+        # Fitting the pipeline
+        full_pipeline.fit(X, y)
+
+
+*** predicting with peipline
+        # Instantiating our 50kg male subject to make a prediction on
+        subjectA = pd.DataFrame({'weight':[50], 'male':[1]})
+        # Making the prediction
+        print("predicting is\n",full_pipeline.predict(subjectA))
+
+
+*** evaluating model with pipeline
+==========
+Xpred = pd.DataFrame()
+Xpred['weight'] = np.linspace(5,60, num=10000)
+Xpred['male'] = np.random.binomial(100,0.5, size=10000)# Printing the R² of the weight^2 model
+print("degress 2 of holding data score is:",full_pipeline.score(X_holdout, y_holdout))
+print("degress 23 of holding data score is:",full_pipeline2.score(X_holdout, y_holdout))
+
+
+# Plotting the holdout set and the predictions
+plt.scatter(X_holdout['weight'], y_holdout['height'])        ### holdout's curve of x, y
+plt.scatter(Xpred['weight'], full_pipeline2.predict(Xpred))  ### model's curve of x,y
+#plt.show()
+=========================================================================
+
+
+** cross validation
+the splitting for train and test data is very critical
+
+
+*** K-fold Cross Validation
+[[./pic/cross_validation.png]][picture of cross validation of k folding ]]
+Cross validation is an even better strategy for model evaluation. To be clear, it is typically performed on the training set. The model with the best cross validation score 
+is typically the final model you choose.
+
+**** cross_score
+
+
+**** cross_validate
+ sklearn.model_selection.cross_validate(estimator, X, y=None, *, groups=None, scoring=None, cv=None, n_jobs=None, verbose=0, fit_params=None, pre_dispatch='2*n_jobs', return_train_score=False, return_estimator=False, error_score=nan)[source]
+
+    Evaluate metric(s) by cross-validation and also record fit/score times.
+
+    Parameters
+        estimatorestimator object implementing ‘fit’ The object to use to fit the data.
+
+        Xarray-like of shape (n_samples, n_features) The data to fit. Can be for example a list, or an array.
+
+        yarray-like of shape (n_samples,) or (n_samples, n_outputs), default=None 
+            The target variable to try to predict in the case of supervised learning.
+        groupsarray-like of shape (n_samples,), default=None
+            Group labels for the samples used while splitting the dataset into train/test set. Only used in conjunction with a “Group” cv instance (e.g., GroupKFold).
+
+        scoringstr, callable, list, tuple, or dict, default=None
+            Strategy to evaluate the performance of the cross-validated model on the test set.
+            If scoring represents a single score, one can use:
+                a single string (see The scoring parameter: defining model evaluation rules);
+                a callable (see Defining your scoring strategy from metric functions) that returns a single value.
+
+            If scoring represents multiple scores, one can use:
+                a list or tuple of unique strings;
+                a callable returning a dictionary where the keys are the metric names and the values are the metric scores;
+                a dictionary with metric names as keys and callables a values.
+
+
+        cvint, cross-validation generator or an iterable, default=None
+
+            Determines the cross-validation splitting strategy. Possible inputs for cv are:
+                None, to use the default 5-fold cross validation, int, to specify the number of folds in a (Stratified)KFold, CV splitter,
+
+                An iterable yielding (train, test) splits as arrays of indices.
+
+            For int/None inputs, if the estimator is a classifier and y is either binary or multiclass, StratifiedKFold is used. In all other cases, Fold is used. These splitters are instantiated with shuffle=False so the splits will be the same across calls.
+            Refer User Guide for the various cross-validation strategies that can be used here.
+            Changed in version 0.22: cv default value if None changed from 3-fold to 5-fold.
+    Returns
+        scoresdict of float arrays of shape (n_splits,)
+            Array of scores of the estimator for each run of the cross validation.
+            A dict of arrays containing the score/time arrays for each scorer is returned. The possible keys for this dict are:
+                test_score
+                    The score array for test scores on each cv split. Suffix _score in test_score changes to a specific metric like test_r2 or test_auc if there are multiple scoring metrics in the scoring parameter.
+                train_score
+                    The score array for train scores on each cv split. Suffix _score in train_score changes to a specific metric like train_r2 or train_auc if there are multiple scoring metrics in the scoring parameter. This is available only if return_train_score parameter is True.
+                fit_time
+                    The time for fitting the estimator on the train set for each cv split.
+                score_time
+                    The time for scoring the estimator on the test set for each cv split. (Note time for scoring on the train set is not included even if return_train_score is set to True
+                estimator
+                    The estimator objects for each cv split. This is available only if return_estimator parameter is set to True.
+
+**** example of  cross_validate
+cv_results = cross_validate(full_pipeline, X_train, y_train, cv=5, return_train_score=True, return_estimator=True)
+print("res is",cv_results['test_score'])
+print("res is",cv_results['train_score'])
+print("res is",cv_results['estimator'])
+
+
+*** LOOCV (leave one out cross validation)
+if you have 500 data points, you could train the model on 499 of them and make the predition on just 1 data point.
+We can see that LOOCV is a regression of K-fold Cross Validation.
+
+ disadvantage 1: computationally expensive
+ disadvantage 2: it does not balance the bias-variance tradeoff as well as k-fold as k=5 or 10 
+
+ it does not balance the bias-variance tradeoff as well as K-fold CV. As we saw with the validation set strategy, limiting the size of the training set introduced bias.
+ In contrast, LOOCV is an unbiased estimator since the training set is simply of size n-1. This sounds great, but remember a decrease in bias comes at a price; as bias decreases,
+ variance increases. It turns out that choosing k=5 or k=10 folds is better than LOOCV because it introduces less variance, while still reducing bias.
+
+See why the bias variance tradeoff is so important now?
+
+
+
+** bias/variance trade off
+Error = Bias ^2 + variance
+
+This equation is interesting, because it signals an important relationship between bias and variance: they have an inverse relationship.
+As you can see in the image below, as bias decreases, variance increases, and as vice-versa.
+
+The optimal model is the one that minimizes both bias and variance
+
+Error_Modelcomplex
+[[./pic/Error_Modelcomplex.png]][picture of model complex and Error  ]]
+
+
+* evaluating a machine learning model
+ when we have a learned model from the data, how to evaluate it
+Normally we evaluate it from the testing dataset X_test, Y_test which didn't use in training datasets.
+LinearRegression.score(X_test,Y_test) will  give out the R squre value based on the X, Y test datasets.
+
+
+
+** Metrics for Rgression model
+*** R Square/Adjusted R Square
+R Square measures how much of variability in dependent variable can be explained by the model.
+It is square of Correlation Coefficient(R) and that is why it is called R Square.
+
+R Square is calculated by the sum of squared of prediction error divided by the total sum of square which replace the calculated prediction with mean.
+R Square value is between 0 to 1 and bigger value indicates a better fit between prediction and actual value.
+If y¯  is the mean of the observed data:
+
+  y ¯ = 1/n ∑(i=1,n) yi 
+
+then the variability of the data set can be measured with two sums of squares formulas:
+
+    The total sum of squares (proportional to the variance of the data):
+
+       SStot = ∑(i=1,n)( yi − y¯ )^ 2    ### it means total variance
+
+    The sum of squares of residuals, also called the residual sum of squares:
+
+         SSres = ∑(i=1,n)( yi − fi )^ 2   ###it means model variance
+
+The most general definition of the coefficient of determination is
+    R2 = 1 − SSres/ SStot 
+
+****  LinearRegression Model
+------------------------------------------
+y=f(x)=a+bx 
+b = Cov(x,y)/Var(x)
+a = mean(y)- b*mean(x)
+-------------------------------------------
+Xm mean of X, Ym mean of Y
+***** formula of Cov(X,Y) 
+Cov(X,Y) = SUM[(Xi-Xm)*(Yi-Ym)]/(n-1)  ### i=1...n
+
+***** formula of Var(X) 
+Var(X) = SUM[(Xi-Xm)]/(n-1)  ### i=1...n
+
+
+***** example of sklearn LinearRegression's score 
+.score() returns 𝑅². Its first argument is also the modified input x_, not x. 
+The values of the weights are associated to .intercept_ and .coef_: 
+.intercept_ represents a, 
+.coef_ references the array that contains 𝑏₁ and 𝑏₂ respectively.
+---------------------------------------------------`-
+import numpy as np
+from sklearn.linear_model import LinearRegression
+def Rsqu(XX, YY, md):
+   SSres = ((md.predict(XX) -YY) ** 2)
+   SStot= ((np.mean(YY)-YY) **2)
+   return (1-np.matrix(SSres).sum()/np.matrix(SStot).sum())
+   
+X = [[6], [8], [10], [14], [18]]
+y = [[7], [9], [13], [17.5], [18]]
+X_test = [[8], [9], [11], [16], [12]]
+y_test = [[11], [8.5], [15], [18], [11]]
+model = LinearRegression()
+model.fit(X, y)
+
+print ('R-squared: %.4f' % model.score(X_test, y_test))
+print ('calcuated test R-squared: ' , Rsqu(X_test, y_test, model))
+print ('calcuated learning R-squared: ' , Rsqu(X, y, model))
+-------------------------------------------------------
+
+
+****  multiple LinearRegression Model
+***** multiple LinearRegression model function
+y=a+b1*x1+b2*x2+b3*x3+....+bn*xn
+xn is the feature number n
+Y=XB
+Xt transpose matrix of X
+B = (Xt* X)^(-1)* Xt* Y
+
+***** example of multiple LinearRegression model
+---------------------------------------------
+from sklearn.linear_model import LinearRegression
+X = [[6, 2], [8, 1], [10, 0], [14, 2], [18, 0]]
+y = [[7], [9], [13], [17.5], [18]]
+model = LinearRegression()
+model.fit(X, y)
+X_test = [[8, 2], [9, 0], [11, 2], [16, 2], [12, 0]]
+y_test = [[11], [8.5], [15], [18], [11]]
+predictions = model.predict(X_test)
+for i, prediction in enumerate(predictions):
+   print 'Predicted: %s, Target: %s' % (prediction, y_test[i])
+print 'R-squared: %.2f' % model.score(X_test, y_test)
+------------------------------------------------
+exact model with single LinearRegression model, just X set's two colums for two different feature value
+
+ 
+**** Polynomial regression
+***** Polynomial linearRegression model function
+y=a + b1*x+ b2*x^2
+
+
+***** example of polynomial linearRegression model
+--------------
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import PolynomialFeatures
+X_train = [[6], [8], [10], [14], [18]]
+y_train = [[7], [9], [13], [17.5], [18]]
+X_test = [[6], [8], [11], [16]]
+y_test = [[8], [12], [15], [18]]
+
+dratic_featurizer = PolynomialFeatures(degree=2)
+X_train_quadratic = quadratic_featurizer.fit_transform(X_train)
+X_test_quadratic = quadratic_featurizer.transform(X_test)
+print("X_train_quadratic is",X_train_quadratic )
+print("X_test_quadratic is",X_test_quadratic )
+
+regressor_quadratic = LinearRegression()    #### exact modle with degreee=1 linearRegression
+regressor_quadratic.fit(X_train_quadratic, y_train)
+print("fitting polynomial is ", regressor_quadratic.intercept_, "  ::coe is:",regressor_quadratic.coef_  )
+xx_quadratic = quadratic_featurizer.transform(xx.reshape(xx.shape[0], 1))
+
+plt.plot(xx, regressor_quadratic.predict(xx_quadratic), c='r',linestyle='--')
+
+--------------------------------------------------------------------------
+modle is the same, but data will be different for Polynomial degree=2
+PolynomialFeatures.fit_transform(X)  where X is one degree set
+[X^0   X^1   X^2]
+=================================
+python polynomial.py
+X_train_quadratic is [ [  1.   6.  36.]
+ [  1.   8.  64.]
+  [  1.  10. 100.]
+   [  1.  14. 196.]
+    [  1.  18. 324.]]
+X_test_quadratic is [ [  1.   6.  36.]
+     [  1.   8.  64.]
+      [  1.  11. 121.]
+       [  1.  16. 256.]]
+fitting polynomial is  [-8.39765458]   ::coe is: [ [ 0.          2.95615672 -0.08202292] ]
+==================================================
+from the above output, the learning model's formula is as follow:
+y=-8.397 + 2.956 * x - 0.082 * x^2
+
+
+**** compare two linear Regrssion degree 1 VS. degree 2
+using the code above together: based on the X-test and Y-test datasets
+------------------------------------------------------
+print( 'Simple linear regression r-squared', regressor.score(X_test, y_test))
+print( 'Quadraticn r-squared',regressor_quadratic.score(X_test_quadratic,y_test))
+print ("simple MSE",np.sum( (regressor.predict(X_test) -y_test) ** 2)/(len(X_test)))
+print ("quad MSE",np.sum((regressor_quadratic.predict(X_test_quadratic) -y_test) ** 2)/len(X_test))
+print ("mean of y_test:",np.sum( (np.mean(y_test) -y_test) ** 2)/len(y_test))
+----------------------------------------------------------
+========================
+Simple linear regression r-squared 0.809726797707665
+Quadraticn r-squared 0.8675443656345054   ### rsqu is the bigger the better
+simple MSE: 2.6043644563763353
+quad MSE: 1.8129864953777064              ### MSE is the less the better
+mean of y_test: 10.95
+======================
+
+***  Mean Square Error(MSE)/Root Mean Square Error(RMSE)
+While R Square is a relative measure of how well the model fits dependent variables, Mean Square Error is an absolute measure of the goodness for the fit.
+       MSE  =1/n ∑(i=1,n)( yi − fi )^ 2   ###it means model variance
+	 
+***  Mean Absolute Error(MAE)  
+ 
+** regularize the regression model
+f(x)= b1*x + b2*x^2.....   ####
+in fact b1 b2 ...is the less the better, so we will pental the big b value, if b is big, then cost function will be big
+Cost function will be (i=1,..n)sum (yi-y_)^2  + q*(i=1,..n)sum(|B|)   B=b1+b2  
+q is the presetting value to manify B 
+
+*** lasso regularization for linear regression model
+cost function as follow:
+(1 / (2 * n_samples)) * ||y - Xw||^2_2 + alpha * ||w||_1
+alpha is the presetting value, default =1.0
+
+
+
+*** ridge regularization for linear regression model
+cost function as follow:
+||y - Xw||^2_2 + alpha * ||w||^2_2
+
+*** elastic Net regularization for linear regression model 
+cost function as follow:
+1 / (2 * n_samples) * ||y - Xw||^2_2 + alpha * l1_ratio * ||w||_1 + 0.5 * alpha * (1 - l1_ratio) * ||w||^2_2
+
+If you are interested in controlling the L1 and L2 penalty separately, keep in mind that this is equivalent to:
+a * ||w||_1 + 0.5 * b * ||w||_2^2
+where:   alpha = a + b and l1_ratio = a / (a + b)
+
+If l1_ratio = 1, Elastic Net regularization is just L1 regularization (Lasso).
+If l1_ration =0, Elastic Net regularization is just L2 regularization (Ridge). 
+Otherwise, anything in between is a mixture of the two.
+
+Many actually argue that when making predictive models, it’s almost always preferable to have at least a little regularization, 
+so it might be worth keeping in mind when you’re modeling. Ridge regression is a great place to start, but if you think that
+ there might be useless features in your model, you might want to consider Elastic Net. Usually Elastic Net is always preferable 
+to Lasso regularization, since Lasso regularization can be erratic when the number of predictors is greater than the number
+ of observations (p > n), or when there’s multicollinearity (citing heavily from Hands On ML2 by Aurelien Geron here).
+
+
+* extracting and preprocessing data
+** sklearn.preprocessing.normalize
+--------------------------------------------
+from sklearn import preprocessing
+import numpy as np
+x_array = np.array([2,3,5,-6,7])
+normalized_arr = preprocessing.normalize([x_array],  norm='l2')
+print(normalized_arr)
+---------------------------------------------
+x / ||x||2  :  ||X||2=11.
+[ 0.18033393  0.27050089  0.45083482 -0.54100178  0.63116874]
+   
+[[./pic/normalize_dataset.png][picture of preprocessing of normalize dataset]]
+
+** extracting features from text
+*** the bag of words representation
+how to extract info from a word document?
+a collection of documents called corpus
+stop_words='english' means exclude the stop_words in english such as 'the' 'and' 'a' etc from vocabulary.
+
+**** CountVectorizer
+Convert a collection of raw documents to a matrix of token counts
+=========================================================
+corpus = ['The dog ate a sandwich and I ate a sandwich',  #doc 0
+          'The wizard transfigured a sandwich']           #doc 1
+#we can extract vocabulary from corpus's unique words.
+
+vectorizer = CountVectorizer(stop_words='english')
+
+X=vectorizer.fit_transform(corpus) ## fit vectorizer with corpus defined above
+print("vocabulary is ", vectorizer.vocabulary_)  ## get vocabulary of thie corpus
+
+print("X is \n",X)   ### X is the trasfromed vector with term index and frequency
+print("doc dem \n",X.todense())  ### the document showed with term index
+========================================
+
+-------------------------------------------------------------
+vocaulary is:
+'term word': term index
+{'dog': 1, 'ate': 0, 'sandwich': 2, 'wizard': 4, 'transfigured': 3}
+
+  
+X is ###the vectorized corpus documents
+##(doc[idx],term[idx])   term frequency
+  (0, 1)                  1                                                  
+  (0, 0)                  2                                                  
+  (0, 2)                  2
+  (1, 2)                  1                                                  
+  (1, 4)                  1                                                  
+  (1, 3)                  1
+  
+doc dem:
+#ate[0]  dog[1] sanwich[2]  trans[3]   wizard[4]
+[[2     1       2          0                0]    ### term frequency of document 0
+ [0     0       1          1                1]]   ### term frequency of document 1
+
+-----------------------------------------------------------------
+
+
+**** TfidfVectorize
+Convert a collection of raw documents to a matrix of TF-IDF features.
+***** tf value
+      tf(t,d) = [f(t,d) + 1]  / ||x||
+f(t,d) is the frequency of term t in document d and ||x|| is the L2 norm of the
+count vector as introducted before.
+
+***** tf value using logarithmically augmented term frequencies
+      tf(t,d) = log( f(t,d) + 1)
+
+***** tf value using logarithmically cacled term frequencise when sublinear_tf is True
+      ...
+***** inverse document frequency (IDF)
+      idf(t,D) = log [N / (1+|d:D and t:d|)]
+N is the total number of documents in the ocrpus
+d belong to D and t belong to d, is the number of document in the corpus that continan the term t.

@@ -1,0 +1,99 @@
+* four different types of ipv6 addresses
+** Main address (globally identified)
+using your ISP prefix + derivation of your network-interface MAC-address.
+
+
+** Temporary addresses
+based on your main address but with randomization to prevent tracking. (a new one is generated every so often)
+
+** Link-local address
+identified by starting with fe80:. (not usable globally, tied to routing)
+this link-local address is within a LAN, not cross the ip layer.
+every interface will have its own ipv6 link-local address.
+[root@allinone] ifconfig 
+-----------------------
+br-ens255f0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 10.56.233.135  netmask 255.255.255.128  broadcast 10.56.233.255
+        inet6 fe80::4c4c:51ff:fe46:948  prefixlen 64  scopeid 0x20<link>
+        ether d8:c4:97:a7:1e:83  txqueuelen 1000  (Ethernet)
+
+ens255f0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet6 fe80::dac4:97ff:fea7:1e83  prefixlen 64  scopeid 0x20<link>
+        ether d8:c4:97:a7:1e:83  txqueuelen 1000  (Ethernet
+
+lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+        inet6 ::1  prefixlen 128  scopeid 0x10<host>
+---------------------------
+
+you will have inet6 addr for each interface br-ens255f0 and ens255f0
+and in fact these two inet6 addresses could be the same.
+
+So for link-local address, it's very important that you add fe... address with interface to indicate them.
+
+
+*** check service bound to the address and port
+[root@allinone vagrantfiles]# netstat -lnp |grep -w 22
+tcp        0      0    0.0.0.0:22              0.0.0.0:*               LISTEN      2460/sshd
+tcp6       0      0    :::22                   :::*                    LISTEN      2460/sshd
+tcp and tcp6 means the service is both available in ipv4 and ipv6 addr.
+
+**** ipv4 
+***** loopback address
+127.0.0.1
+
+***** 0.0.0.0
+in ipv4, 0.0.0.0 means all the lo addr 127.0.0.1 and br-ens255f0 inet addr 10.56.233.135
+
+**** ipv6 
+***** loopback address
+::1
+
+***** ::: 
+::: means all the interface's ipv6 addr in this host, ::1  ,  fe80::dac4:97ff:fea7:1e83%ens255f0 , fe80::4c4c:51ff:fe46:948%br-ens255f0  
+
+*** ssh link-local address
+**** ssh the ipv6 adrdress in local host
+gramar like:   <ipv6 addr>%<interface name>
+ssh -6  fe80::dac4:97ff:fea7:1e83%ens255f0
+ssh -6  fe80::4c4c:51ff:fe46:948%br-ens255f0
+
+ssh ::1
+
+**** ssh the ipv6 adrdress in neighbor host within a LAN
+***** neighbor host's interface ipv6 address
+[cmm@175 ~]$ ifconfig
+eno1: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 10.56.233.175  netmask 255.255.255.128  broadcast 10.56.233.255
+        inet6 fe80::1de4:b494:c34f:13  prefixlen 64  scopeid 0x20<link>
+
+***** ssh to remote host
+gramar like:   <ipv6 addr of remote host>%<interface name of local host>
+[root@allinone] ssh cmm@fe80::1de4:b494:c34f:13%br-ens255f0
+since br-ens255f0 in allinone host and eno1 in 175 host are linked in layer two directly
+
+*** ipv6 route
+
+[root@allinone ~]# route -6 -n
+Kernel IPv6 routing table
+Destination                    Next Hop                   Flag Met Ref Use If
+fe80::/64                      ::                         U    256 7     21 br-ens255f0
+fe80::/64                      ::                         U    256 0      0 ens255f0
+================================
+here you can see all the fe80::/64 ipv6 local-link address will go through br-ens255f0 or ens255f0.
+so it's important to use <ipv6 addr>%<interface> for a complete address
+
+
+*** ping link-local address
+Gramar like: ping6 -I <interface-name> <ipv6 addr>
+**** ping host's own interface's addr
+[root@allinone ~]# ping6 -I br-ens255f0  fe80::4c4c:51ff:fe46:948
+PING fe80::4c4c:51ff:fe46:948(fe80::4c4c:51ff:fe46:948) from fe80::4c4c:51ff:fe46:948%br-ens255f0 br-ens255f0: 56 data bytes
+64 bytes from fe80::4c4c:51ff:fe46:948%br-ens255f0: icmp_seq=1 ttl=64 time=0.069 ms
+
+**** ping remote host's address
+ping6 -I br-ens255f0 fe80::1de4:b494:c34f:13
+
+**  Unique local address
+identified by starting with fd00:. (not usable globally, not tied to routing)
+

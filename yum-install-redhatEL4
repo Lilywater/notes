@@ -2034,3 +2034,11 @@ t3rt_codecs_result_t t3asn_S1AP_per_al_decode_S1APExtendedBitRate(t3rt_binary_st
        (asn2t3_per_decoder)&pdc_alS1APExtendedBitRate, home, ctx))
 ///////////////////////////
 
+
+
+proxy 
+cat /etc/yum.conf
+proxy=http://192.168.26.10:555
+
+cat /etc/environment
+export proxy=http://192.168.26.10:555

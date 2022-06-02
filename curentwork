@@ -1,0 +1,19 @@
+1.	console 口输出, debug模式
+a.	启动web 调用的微服务
+cd /home/DiagnosticSystem/DiagnosticSystem2.0/microservices
+nameko run cors_http_service:ServerService --config ./config/normal.yaml
+b.	启动data service的微服务
+
+cd /home/DiagnosticSystem/DiagnosticSystem2.0/microservices/dataservice
+nameko run data_service:DataService --config ../config/data_handler.yaml
+                              
+2.	后台跑, 无console 输出模式
+a.	启动web 调用的微服务
+port 8000
+cd /home/DiagnosticSystem/DiagnosticSystem2.0/microservices
+nohup nameko run cors_http_service:ServerService --config ../config/normal.yaml >/dev/null 2>nohup.out &
+b.	启动data service的微服务
+port 8003
+cd /home/DiagnosticSystem/DiagnosticSystem2.0/microservices/dataservice
+nohup nameko run data_service:DataService --config ../config/data_handler.yaml >/dev/null 2>nohup.out &
+

@@ -310,3 +310,20 @@ but the format has some problem:
 #curl "https://10.45.38.4/dana-na/auth/url_default/login.cgi" -H "Connection: keep-alive" -H "Cache-Control: max-age=0" -H "Origin: https://10.45.38.4" -H "Upgrade-Insecure-Requests: 1" -H "Content-Type: application/x-www-form-urlencoded" -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36" -H "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3" -H "Referer: https://10.45.38.4/dana-na/auth/url_default/welcome.cgi" -H "Accept-Encoding: gzip, deflate, br" -H "Accept-Language: en-US,en;q=0.9"   -b /tmp/esp_cook   --data "tz_offset=480^&username=glili^%^40nsn-intra^&password=^%^40WS3ed4rf^&realm=NSN+AD^&btnSubmit=Sign+In" --compressed --insecure -vv
 =====================
 the data 's "^" should be eliminated, you could see source code in chrome 
+
+*** get complicate webpage 
+somethimes some script could't be executed with curl or wget, so a mordern web browser like chrome or firefox is needed.
+**** in windows, write a batch file
+cat mp.bat
+---------------------------------------
+@echo off
+start "123"   "http://fund.eastmoney.com/manager/#dt14;mcreturnjson;ftall;pn50;pi1;scabbname;stasc"
+start "123"   "http://fund.eastmoney.com/manager/#dt14;mcreturnjson;ftall;pn50;pi2;scabbname;stasc"
+start "123"   "http://fund.eastmoney.com/manager/#dt14;mcreturnjson;ftall;pn50;pi3;scabbname;stasc"
+start "123"   "http://fund.eastmoney.com/manager/#dt14;mcreturnjson;ftall;pn50;pi4;scabbname;stasc"
+start "123"   "http://fund.eastmoney.com/manager/#dt14;mcreturnjson;ftall;pn50;pi5;scabbname;stasc"
+----------------------------------------------------------------------------
+
+double click the batch file, chrome will open all these 5 webpages in different tabs.
+add the extension "SingleFile" into Chrome
+when open all the tabs, right clicked the "SingleFile" button, save all tabs.

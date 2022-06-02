@@ -1,0 +1,293 @@
+Probability and Statistics are the foundational pillars of Data Science. In fact, the underlying principle of machine learning and artificial intelligence 
+is nothing but statistical mathematics and linear algebra. Often you will encounter situations, especially in Data Science.
+
+* Visualizing distribution of data displot with seaborn
+An early step in any effort to analyze or model data should be to understand how the variables are distributed. Techniques for distribution visualization can provide quick
+answers to many important questions. What range do the observations cover? What is their central tendency? Are they heavily skewed in one direction? Is there evidence for bimodality? 
+Are there significant outliers? Do the answers to these questions vary across subsets defined by other variables?
+
+The distributions module contains several functions designed to answer questions such as these. 
+The axes-level functions are histplot(), kdeplot(), ecdfplot(), and rugplot(). They are grouped together within the figure-level displot(), jointplot(), and pairplot() functions.
+
+There are several different approaches to visualizing a distribution, and each has its relative advantages and drawbacks. It is important to understand theses factors so
+that you can choose the best approach for your particular aim.
+
+
+
+** Plotting univariate histograms
+The most common approach to visualizing a distribution is the histogram. This is the default approach
+in displot(), which uses the same underlying code as histplot(). A histogram is a bar plot where the axis
+representing the data variable is divided into a set of discrete bins and the count of observations falling
+within each bin is shown using the height of the corresponding bar:
+
+penguins = sns.load_dataset("penguins")
+sns.displot(penguins, x="flipper_length")
+
+###peguins data as follow####
+   species     island  bill_length_mm  ...  flipper_length_mm  body_mass_g     sex
+0    Adelie  Torgersen            39.1  ...              181.0       3750.0    Male
+1    Adelie  Torgersen            39.5  ...              186.0       3800.0  Female
+2    Adelie  Torgersen            40.3  ...              195.0       3250.0  Female
+3    Adelie  Torgersen             NaN  ...                NaN          NaN     NaN
+4    Adelie  Torgersen            36.7  ...              193.0       3450.0  Female
+..      ...        ...             ...  ...                ...          ...     ...
+339  Gentoo     Biscoe             NaN  ...                NaN          NaN     NaN
+340  Gentoo     Biscoe            46.8  ...              215.0       4850.0  Female
+341  Gentoo     Biscoe            50.4  ...              222.0       5750.0    Male
+342  Gentoo     Biscoe            45.2  ...              212.0       5200.0  Female
+343  Gentoo     Biscoe            49.9  ...              213.0       5400.0    Male
+#################################
+
+
+This plot immediately affords a few insights about the flipper_length_mm variable. For instance, we can see that the most common flipper length is about 195 mm, 
+but the distribution appears bimodal, so this one number does not represent the data well
+
+count and feature data fipper_length_mm histogram, using seaborn:
+every histo has a x width, means the data fall between them such as(190,195), y is nealy 80
+means there are 80 data(fipper_length_mm) falls in between(190,195)
+
+[[./pic/histogran1.png][picture of histogram]]
+
+
+*** choosing the bin size
+    sns.displot(penguins, x="flipper_length_mm", binwidth=3)
+the above binwidth is 5, bins are 10
+
+[[./pic/histogran2_bin.png][picture of histogram_bin]]
+
+or set bins=10
+sns.displot(penguins, x="flipper_length_mm", bins=10)
+
+
+*** shrink bins
+make bins discret visually
+displot(penguns, x="fipper_legnth_mm",    shrink=.8)
+
+
+*** color histo based on some value
+sns.displot(penguins, x="flipper_length_mm", hue="species")
+[[./pic/histogram_color.png][picture of histogram color based on feature]]
+
+sns.displot(penguins, x="flipper_length_mm", hue="species", element="step")
+[[./pic/histogram_color_layer.png][picture of histogram color based on feature layered]]
+
+sns.displot(penguins, x="flipper_length_mm", hue="species", multiple="stack")
+[[./pic/histogram_color_stack.png][picture of histogram color based on feature stacked]]
+
+
+
+
+
+*** col
+sns.displot(penguins, x="flipper_length_mm", hue="sex", multiple="dodge")    
+[[./pic/histogram_col.png][picture of histogram color based col on feature]]
+
+
+sns.displot(penguins, x="flipper_length_mm", col="sex", multiple="dodge")
+
+[[./pic/histogram_col_split.png][picture of histogram color based col splitting on feature]]
+
+
+*** Normalized histogram statistics
+
+    
+**** y axis as density
+Density normalization scales the bars so that their areas sum to 1.
+As a result, the density axis is not directly interpretable.
+Sum[Y(density) * X(width )] = 1
+
+normalize as whole dataset
+sns.displot(penguins, x="flipper_length_mm", hue="species", stat="density")
+
+[[./pic/density_hist.png][picture of histogram density]]
+
+
+**** y axias as probabilty
+Probaility to normalize the bars to that their heights sum to 1. This makes most
+sense when the variable is discrete, but it is an option for all histograms:
+sum[Y(probability)] = 1
+
+left:  sns.displot(penguins, x="flipper_length_mm", hue="species", stat="density", common_norm=True)
+right: sns.displot(penguins, x="flipper_length_mm", hue="species", stat="density", common_norm=False)
+
+[[./pic/prob_heights_sum1.png][picture of histogram probability]]
+     
+     
+
+** Kernel density estimation
+
+A histogram aims to approximate the underlying probability density function that
+generated the data by binning and counting observations. Kernel density estimation
+(KDE) presents a different solution to the same problem. Rather than using discrete
+bins, a KDE plot smooths the observations with a Gaussian kernel, producing a
+continuous density estimate:
+
+sns.displot(penguins, x="flipper_length_mm", kind="kde")
+[[./pic/kernerl_density.png][picture of kernel density]]
+
+*** choosing smoothing bandwidth
+Much like with the bin size in the histogram, the ability of the KDE to accurately represent the data depends on the choice of smoothing bandwidth. An over-smoothed estimate might erase meaningful features, but an under-smoothed estimate can obscure the true shape within random noise. The easiest way to check the robustness of the estimate is to adjust the default bandwidth:
+
+sns.displot(penguins, x="flipper_length_mm", kind="kde",bw_adjust=.25)
+[[./pic/kernerl_density1.png][picture of kernel density smooth]]
+
+sns.displot(penguins, x="flipper_length_mm", kind="kde",bw_adjust=2)
+[[./pic/kernerl_density2.png][picture of kernel density not sommoth]]
+
+*** kde combied with hue
+sns.displot(penguins, x="flipper_length_mm",hue="species", kind="kde", multiple="stack")
+
+
+*** Kernel density estimation pitfalls
+
+KDE plots have many advantages. Important features of the data are easy to discern (central tendency, bimodality, skew), and they afford easy comparisons between subsets. But there are also situations where KDE poorly represents the underlying data. This is because the logic of KDE assumes that the underlying distribution is smooth and unbounded. One way this assumption can fail is when a varible reflects a quantity that is naturally bounded. If there are observations lying close to the bound (for example, small values of a variable that cannot be negative), the KDE curve may extend to unrealistic values:
+
+sns.displot(tips, x="total_bill", kind="kde")
+
+
+** Empirical cumulative distributions
+
+A third option for visualizing distributions computes the ¡°empirical cumulative distribution function¡± (ECDF). This plot draws a monotonically-increasing curve through each datapoint such that the height of the curve reflects the proportion of observations with a smaller value:
+
+sns.displot(penguins, x="flipper_length_mm", kind="ecdf")
+
+
+[[./pic/dv_ecdf.png][picture of ecdf]]
+
+The ECDF plot has two key advantages. Unlike the histogram or KDE, it directly represents each datapoint. That means there is no bin size or smoothing parameter to consider. Additionally, because the curve is monotonically increasing, it is well-suited for comparing multiple distributions:
+
+sns.displot(penguins, x="flipper_length_mm", hue="species", kind="ecdf")
+
+
+[[./pic/dv_ecdf1.png][picture of ecdf jue]]
+
+The major downside to the ECDF plot is that it represents the shape of the distribution less intuitively than a histogram or density curve. Consider how the bimodality of flipper lengths is immediately apparent in the histogram, but to see it in the ECDF plot, you must look for varying slopes. Nevertheless, with practice, you can learn to answer all of the important questions about a distribution by examining the ECDF, and doing so can be a powerful approach.
+
+
+* Visualizing bivariate distributions
+** bivariate histogram
+bivariate histogram bins the data within rectangles that tile the plot and then shows the count of observations within each rectangle with the fill color (analagous to a heatmap()).
+All of the examples so far have considered univariate distributions: distributions of a single variable, perhaps conditional on a second variable assigned to hue. Assigning a second variable to y, however, will plot a bivariate distribution:
+
+sns.displot(penguins, x="bill_length_mm", y="bill_depth_mm")
+[[./pic/bi_histogram.png][picture of bivariate histogram]]
+
+** bivariate KDE
+a bivariate KDE plot smoothes the (x, y) observations with a 2D Gaussian. The default representation
+then shows the contours of the 2D density:
+sns.displot(penguins, x="bill_length_mm", y="bill_depth_mm", kind="kde")
+[[./pic/bi_kde.png][picture of bivariate kde]]
+
+** combination with hue and kind
+sns.displot(penguins, x="bill_length_mm", y="bill_depth_mm", hue="species", kind="kde")
+
+
+
+Just as with univariate plots, the choice of bin size or smoothing bandwidth will determine how well the plot represents the underlying bivariate distribution. The same parameters apply, but they can be tuned for each variable by passing a pair of values:
+
+** combination with bidnwidth and colorbar
+sns.displot(penguins, x="bill_length_mm", y="bill_depth_mm", binwidth=(2, .5))
+
+
+To aid interpretation of the heatmap, add a colorbar to show the mapping between counts and color intensity:
+
+sns.displot(penguins, x="bill_length_mm", y="bill_depth_mm", binwidth=(2, .5), cbar=True)
+
+
+** kde (contours) thresh and number
+The meaning of the bivariate density contours is less straightforward. Because the density is not directly interpretable, the contours are drawn at iso-proportions of the density, meaning that each curve shows a level set such that some proportion p of the density lies below it. The p values are evenly spaced, with the lowest level contolled by the thresh parameter and the number controlled by levels:
+
+sns.displot(penguins, x="bill_length_mm", y="bill_depth_mm", kind="kde",level=7)
+thresh=.2, levels=4)
+
+
+[[./pic/contour_level.png][picture of contour level]]
+
+
+sns.displot(penguins, x="bill_length_mm", y="bill_depth_mm", kind="kde",level=7,thresh=.2)
+lowest level value could be set by thresh 0.2
+
+
+
+*** The levels parameter 
+sns.displot(penguins, x="bill_length_mm", y="bill_depth_mm", kind="kde", levels=[.01, .05, .1, .8])
+every contour's value is as .01, .05, .1, .8
+
+** histogram wtih same y value to compare different x feature
+The bivariate histogram allows one or both variables to be discrete. Plotting one discrete and one continuous variable offers another way to compare conditional univariate distributions:
+
+sns.displot(diamonds, x="price", y="clarity", log_scale=(True, False))
+sns.displot(diamonds, x="color", y="clarity")
+
+
+* plot_marginals, joinplot, relplot, rugplot with seaborn
+ The first is jointplot(), which augments a bivariate relatonal or distribution plot with the marginal distributions of the two variables. By default, jointplot() represents the bivariate distribution using scatterplot() and the marginal distributions using histplot():
+
+** jointplot for bi features
+sns.jointplot(data=penguins, x="bill_length_mm", y="bill_depth_mm")
+[[./pic/jointplot.png][picture of jointplot]]
+Similar to displot(), setting a different kind="kde" in jointplot() will change both the joint and marginal plots the use kdeplot():
+
+** joint plot for bi features of kde
+sns.jointplot(
+    data=penguins,
+    x="bill_length_mm", y="bill_depth_mm", hue="species",
+    kind="kde"
+)
+[[./pic/jointplot_kde.png][picture of jointplot kde]]
+
+jointplot() is a convenient interface to the JointGrid class, which offeres more flexibility when used directly:
+
+
+g = sns.JointGrid(data=penguins, x="bill_length_mm", y="bill_depth_mm")
+
+** joint plot with marginals
+g.plot_joint(sns.histplot)
+g.plot_marginals(sns.boxplot)
+
+
+[[./pic/jointplot_marginals.png][picture of jointplot with marginals]]
+
+
+** rug plot with displot
+A less-obtrusive way to show marginal distributions uses a ¡°rug¡± plot, which adds a small tick on the edge of the plot to represent each individual observation. This is built into displot():
+
+sns.displot(
+    penguins, x="bill_length_mm", y="bill_depth_mm",
+    kind="kde", rug=True
+)
+[[./pic/displot_rug.png][picture of displot with rug]]
+
+And the axes-level rugplot() function can be used to add rugs on the side of any other kind of plot:
+
+** rugplot with relplot
+replot show bi features value with x, y and using dots to show
+rupplot will append the rug 
+And the axes-level rugplot() function can be used to add rugs on the side of any other kind of plot:
+
+sns.relplot(data=penguins, x="bill_length_mm", y="bill_depth_mm")
+sns.rugplot(data=penguins, x="bill_length_mm", y="bill_depth_mm")
+
+
+[[./pic/replot_rug.png][picture of replot]]
+
+
+
+
+
+** pair plot
+pair with every two feature of datasets, if same feature, then use histogram
+sns.pairplot(penguins)
+
+
+[[./pic/pairplog.png][picture of pair plot]]
+
+
+** pair grid
+g = sns.PairGrid(penguins)
+g.map_upper(sns.histplot) ### upper right 6 graphs
+g.map_lower(sns.kdeplot, fill=True)  ### lower left  6 graphs
+g.map_diag(sns.histplot, kde=True)   ### 4 graphs in diag
+
+[[./pic/pairgrid.png][picture of pair grid]]   
+

@@ -1021,9 +1021,9 @@ U bit: 1 bit The (U)nordered bit, if set to ’1’, indicates that this is an
 unordered DATA chunk, and there is no Stream Sequence Number assigned to this DATA chunk. Therefore, the receiver MUST ignore the Stream Sequence Number field.
 After reassembly (if necessary), unordered DATA chunks MUST be dispatched to the upper layer by the receiver without any attempt to reorder.
 If an unordered user message is fragmented, each fragment of the message MUST have its U bit set to ’1’.
-B bit: 1 bit
+B bit: 1 bit  ### this is related to fragment by MTU limitation, it is the first fragment of a data SSN n
 The (B)eginning fragment bit, if set, indicates the first fragment of a user message.
-E bit: 1 bit
+E bit: 1 bit   ### this is related to fragment by MTU limitation, it is the end fragment of a data SSN n
 The (E)nding fragment bit, if set, indicates the last fragment of a user message.
 TSN: This value represents the TSN for this DATA chunk. The valid range of TSN is from 0 to 4294967295 (2**32 - 1). TSN wraps back to 0 after reaching 4294967295.
 

@@ -656,7 +656,7 @@ Xming.exe -ac :0 -clipboard -multiwindow
 
 wall  ---send message to all the terminal user
 
-* shell 变量和数组
+* shell variable and array
 
 参考文档：   http://bbs.chinaunix.net/viewthread.php?tid=218853&page=7#pid1617953
 http://bbs.chinaunix.net/thread-746472-1-1.html
@@ -749,6 +749,17 @@ digit1 digit2 digit
 比如重命名：mv file{,.bak}这表示
 mv file file.bak
 
+* shell array
+** iterate all the array element
+files=($(find ./ -name "*.tcl"))
+for item in ${files[*]}
+do 
+   echo $i
+done   
+
+** get array elment by index
+${files:0}
+${files:1}
 
 * shell command line argument
 ---------------
@@ -3275,6 +3286,9 @@ from here we can see that -exec will execute echo three times instead of once
     ps  -ef | grep $$ | grep -v grep - will look for current process ID in the list of running processes. Current process being shell, it will include shell.
 
     This is not 100% reliable as you might have OTHER processes whose ps listing includes the same number as shell's process ID, especially if that ID is a small # (e.g. if shell's PID is "5", you may find processes called "java5" or "perl5" in the same grep output!). Which presents the second problem to "ps" approach, on top of the shell name being not always reliable.
+*** get process with parent graph  
+  ps -aef --forest
+
 
 **    echo $SHELL
  The path to the current shell is in SHELL variable for any shell. The caveat for the last one is that if you launch a shell explicitly as a subprocess (e.g. it's not your login shell) you will get you login shell's value instead - if that's a possibility, use the ps or $0 approach.
@@ -3504,3 +3518,35 @@ ssh user@Server-1 "<command>" | ssh user@Server-2 "cat > output.txt"
 A ; B ---Run command A, then run command B.
 A && B ----Run B only if A succeeded
 A || B ----Run B only if A failed
+
+* awk  group technicque
+awk could process the group text using:
+RS:    The input record separator, by default a newline. could overide with "=" which cgrep output separated with
+FS:   The input field separator, a  space  by  default. 
+OFS         The output field separator, a space by default.
+ORS         The output record separator, by default a newline.
+
+
+
+cgrep +6 'TEMPLATE(MSPEC[^ \t\n]*)[ \t\n]*' 5g_messageTemplates.tcl
+input record separated with ==
+=-------------------
+set ::MSPEC::TEMPLATE(MSPEC_SUBSCRIPTIONDATA_APNCONFIGURATIONPROFILE_APNCONFIGURATION15_MIP6AGENTINFO) "{{
+                     MIP6AGENTINFO {
+                           {DESTINATIONREALM  %hss_subscriptiondata_apn15_miphomeagentrealm|EMPTY}
+========================================
+set ::MSPEC::TEMPLATE(MSPEC_SUBSCRIPTIONDATA_APNCONFIGURATIONPROFILE_APNCONFIGURATION15_SPECIFICAPNINFO1) "{{
+                           {SERVICESELECTION %hss_subscriptiondata_apn15_specificapninfo1_serviceselection|EMPTY}
+                              {MIPHOMEAGENTHOST {
+========================================
+set ::MSPEC::TEMPLATE(MSPEC_SUBSCRIPTIONDATA_APNCONFIGURATIONPROFILE_APNCONFIGURATION15_SPECIFICAPNINFO2) "{{
+                           {SERVICESELECTION %hss_subscriptiondata_apn15_specificapninfo2_serviceselection|EMPTY}
+                              {MIPHOMEAGENTHOST {
+-----------------------------------------------------------
+
+awk 'BEGIN {RS = "="; FS = "\r\n"; OFS = " "} {print $1,$2,$3,$4,$5,$6,$7}'
+field separator with \n
+
+set ::MSPEC::TEMPLATE(MSPEC_SUBSCRIPTIONDATA_APNCONFIGURATIONPROFILE_APNCONFIGURATION15_MIP6AGENTINFO) "{{ MIP6AGENTINFO { {DESTINATIONREALM  %hss_subscriptiondata_apn15_miphomeagentrealm|EMPTY}
+
+

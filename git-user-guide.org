@@ -100,6 +100,7 @@ brach is a serial of commit based on a path
 ** tag
 tag is the name of the commit, HEAD is also a tag.
 show tags in log graph
+
 -> git log --graph --decorate --oneline --simplify-by-decoration
 
   *   273d9b3 (HEAD -> integration, tag: lime-180514, tag: integration-180514, tag: integration-180513, m/integration) Merge of commits 5cd2b48 and f8810a9
@@ -112,7 +113,7 @@ show tags in log graph
  | * | \   c780d10 Merge of commits 01cd3bb and 0c11904
  | |\ \ \  
  | * \ \ \   01cd3bb Merge of commits a33811e and 2ce13e6
-             
+
 *** HEAD
 -> cat .git/HEAD
 ref: refs/heads/integration
@@ -134,6 +135,11 @@ FETCH_HEAD will be the head of this branch in the remote server with log --all
  | * 43b0348 (tag: integration-180709) PSSSW-82357: R3.1: Upgrade Sherpa to sherpa_top_b180702_v40030404.tra
  | | * 3871d17 (acos/release-lime, acos/continuous/release-lime) PSSSW-82356: R3.0: Upgrade Sherpa to sherpa_top_b180702_v40030404.tra
 
+
+** 
+
+
+** 
 
 ** git diff ~ (get different for a commit and its previous commit)
 git diff c780d10~ c780d10
@@ -176,6 +182,7 @@ git checkout <tagname>/<branchname>
 *** git diff
 git diff shows the diff between HEAD and the current project state
 git diff --cached will show the files differnece with remote rep.
+git diff origin HEAD
 
 **** between two <tagname>
 git diff HEAD..FETCH_HEAD <filename>
@@ -601,7 +608,7 @@ bafde95 Herbert HOESS   Thu May 10 21:28:53 2018 +0200  Merge of commits a33811e
 d89c318 Sangeetha Ravichandran  Thu May 10 13:57:43 2018 -0400  PSSSW-78693: OPSB5-sim
 
 
-***** git show whcih branch contains the commmit
+***** git show which branch contains the commmit
 -> git branch --contains 5cd2b48
  * integration
 
@@ -1176,3 +1183,106 @@ or in a file .git/config
 
 
 
+
+** figure out the current commit and commit history 
+*** show which commit you are currently on
+$git log -1
+commit 26df34c3368ec4b9eff8b3549427776a0f394fea
+Author: mme-Mack <keith.mack@nokia.com>
+Date:   Wed Jun 9 15:32:15 2021 -0500
+
+    Fix for IMR 141495: Handle a large RANAP message of size 8K
+
+
+
+*** show the history of commits as far as to current HEAD and branch 
+****  git log only show the branch in which currently on 's history
+
+ $ git log --graph --decorate   #### * commit 26df34c3368ec4b9eff8b3549427776a0f394fea (HEAD -> dev)
+ | Author: mme-Mack <keith.mack@nokia.com>
+ | Date:   Wed Jun 9 15:32:15 2021 -0500
+ |
+ |     Fix for IMR 141495: Handle a large RANAP message of size 8K
+ |
+ * commit 675b32328b98b3023f641d99fa4c73546d750c04
+ | Author: David Ahnen <dave.ahnen@nokia.com>
+ | Date:   Mon Jun 7 10:05:17 2021 -0500
+ |
+ |     Move fieldVersion dictionary to system SDT
+ |
+ * commit 1cbf7a1d5d373167af13a1d4cc11bf76167623e4
+ | Author: David Ahnen <dave.ahnen@nokia.com>
+ | Date:   Mon Jun 7 09:59:35 2021 -0500
+ |
+ |     tag0098 load
+
+
+****  git log --all 
+####don't use --all option unless you want to see other braches in the repository
+show all the braches commit history update to current HEAD 
+
+
+*** show different between local and remote
+****  git fetch remote changes
+git fetch origin  
+
+**** check the local source code 
+$ git status
+On branch dev
+Your branch is behind 'origin/dev' by 4 commits, and can be fast-forwarded.
+#### this means local version is dev, and remote version is origin/dev
+
+****  git log  remote version   "origin/dev"
+git log --decorate --graph origin/dev
+* commit 1c3bcffef3a37efca0db54027890013def6d5b93 (origin/dev)
+| Author: David Ahnen <dave.ahnen@nokia.com>
+| Date:   Sun Jun 13 07:54:17 2021 -0500
+|
+|     Update getspecs.bash to include TS29571_CommonData
+|
+* commit 468a1cf16538b485da8acbba453d84bf3bdfafb8
+| Author: David Ahnen <dave.ahnen@nokia.com>
+| Date:   Sat Jun 12 13:17:00 2021 -0500
+|
+|     Add getspecs.bash and (for now) ALL of the R15 yaml files it produced for the spec versions from 2018-12 through 2021-03
+|     We may not want to store the produced yaml files in the repository, since they are easy to create using the tool.
+|
+* commit 2612a60b1556f917112cc608fe19bcfcfaca609c
+| Author: mme-Mack <keith.mack@nokia.com>
+| Date:   Fri Jun 11 18:56:31 2021 -0500
+|
+|     CREF support for task RANAPRESET-IOTA-02 for testing f52064-01
+|     Added support for new SCCP connection-oriented primitive including PRI/Importance field:
+|     NCREFREQ and NCREFIND
+|
+* commit c5baf4ef7ea48cb91dd7de87caae2190264254ca
+| Author: mme-Mack <keith.mack@nokia.com>
+| Date:   Fri Jun 11 14:38:53 2021 -0500
+|
+|     IMR 141495: More fixes to Handle a large RANAP message of size 8K
+|     Increase Wllink message size to 9216
+|     Increase sigtran tcp socket read buffer to 9216
+|
+* commit 26df34c3368ec4b9eff8b3549427776a0f394fea (HEAD -> dev)
+| Author: mme-Mack <keith.mack@nokia.com>
+| Date:   Wed Jun 9 15:32:15 2021 -0500
+|
+|     Fix for IMR 141495: Handle a large RANAP message of size 8K
+|
+
+
+**** git log local version "dev"
+
+git log --decorate --graph ### or git log --decorate --graph dev
+
+* commit 26df34c3368ec4b9eff8b3549427776a0f394fea (HEAD -> dev)
+| Author: mme-Mack <keith.mack@nokia.com>
+| Date:   Wed Jun 9 15:32:15 2021 -0500
+|
+|     Fix for IMR 141495: Handle a large RANAP message of size 8K
+
+
+
+*** show newer commit
+
+git pull -X ours ### pull the files and keep local changes

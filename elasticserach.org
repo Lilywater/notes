@@ -1,10 +1,17 @@
-* upload data
-** create a database
+* upload data 
+
+
+** create a database in console
+*** create an index
 PUT employees
 
+
+*** create mapping of this index
 PUT employees/_mapping
 { "properties": { "date_of_birth": { "type": "date", "format": "dd/MM/yyyy" } } }
 
+
+*** upload many recoreds to the index using post _bulk
 POST _bulk
 { "index" : { "_index" : "employees", "_id" : "1" } }
 {"id":1,"name":"Huntlee Dargavel","email":"hdargavel0@japanpost.jp","gender":"male","ip_address":"58.11.89.193","date_of_birth":"11/09/1990","company":"Talane","position":"Research Associate","experience":7,"country":"China","phrase":"Multi-channelled coherent leverage","salary":180025}
@@ -15,7 +22,7 @@ POST _bulk
 { "index" : { "_index" : "employees", "_id" : "4" } }
 {"id" : 4,"name" : "Alan Thomas","email" : "athomas2@example.com","gender" : "male","ip_address" : "200.47.210.95","date_of_birth" : "11/12/1985","company" : "Yamaha","position" : "Resources Manager","experience" : 12,"country" : "China","phrase" : "Emulation of roots heuristic coherent systems","salary" : 300000}
 
-*** update one index
+** update a record with _doc id
 update one record with record id 5
 PUT employees/_doc/5
 {
@@ -88,6 +95,100 @@ Yamaha         |China          |1985-12-11T00:00:00.000Z|athomas2@example.com   
 google         |USA            |1995-12-12T00:00:00.000Z|mbordon@example.com    |12             |male           |5              |10.47.210.65   |Michael Bordon  |Emulation of roots heuristic coherent systems|Resources Manager      |300000         
 ------------------------------------------------------------------------------------------------------------------------------------------------
 
+
+* Delet data
+PUT dtest
+json data as follow:
+{"percent":0.1,"stcode":"002398","time_q":"2010_6","fcode":"900089","TentNub":125.31,"netVal":1324.53}
+{"percent":0.07,"stcode":"300171","time_q":"2010_6","fcode":"900089","TentNub":55.57,"netVal":899.12}
+
+** check the index 
+
+thie dtest is the index in es,  the data structure is stored as name dtest such as :
+ curl http://10.56.233.182:9200/dtest
+ {"dtest":{"aliases":{},"mappings":{"properties":{"TentNub":{"type":"float"},"fcode":{"type":"text","fields":{"keyword":{"type":"keyword","ignore_above":256}}},"netVal":{"type":"float"},"percent":{"type":"float"},"stcode":{"type":"text","fields":{"keyword":{"type":"keyword","ignore_above":256}}},"time_q":{"type":"text","fields":{"keyword":{"type":"keyword","ignore_above":256}}}}},"settings":{"index":{"creation_date":"1618389931944","number_of_shards":"1","number_of_replicas":"1","uuid":"sF5P0CNXReGZdBh_oqaC8g","version":{"created":"7030299"},"provided_name":"dtest"}}}}
+
+** check the document
+every record in this index, just two in this case
+
+[root@master dtest]# curl -XGET http://localhost:9200/_cat/indices?v
+health status index                uuid                   pri rep docs.count docs.deleted store.size pri.store.size
+green  open   dtest                sF5P0CNXReGZdBh_oqaC8g   1   1          2            0     19.4kb          9.7kb
+
+** check document with document id
+GET cmm/_doc/rumnbXgB9UL0kp5SPUdr
+{
+  "_index" : "cmm",
+  "_type" : "_doc",
+  "_id" : "rumnbXgB9UL0kp5SPUdr",
+  "_version" : 1,
+  "_seq_no" : 30798580,
+  "_primary_term" : 3,
+  "found" : true,
+  "_source" : {
+    "MMEName" : "mme001",
+    "CaseName" : "CMMG-9009",
+    "UnitName" : "cpps0",
+    "@timestamp" : "2020-10-11T16:59:20.000Z",
+    "Release" : "19.5",
+    "LogType" : {
+      "cpcfc" : {
+        "CfcTpye" : "CFCQ",
+        "CFCQ" : "49-250",
+        "Count" : 1
+      }
+    },
+    "type" : "perf"
+  }
+}
+
+
+
+** search all the document
+in kibana console:
+-----------------------
+POST dtest/_search
+{
+    "query": {
+        "match_all": {}
+    }
+}
+---------------
+in command line:
+--------------------------------------------------
+curl -XPOST "https://localhost:9200/_search" -d'
+  {
+       "query": {
+              "match_all": {}
+                   }
+                     }'
+-------------------------------
+
+** delete document using doc id
+GET cmm/_doc/rumnbXgB9UL0kp5SPUdr
+DELETE cmm/_doc/rumnbXgB9UL0kp5SPUdr
+curl -XDELETE http://10.56.233.182:9200/cmm/_doc/rumnbXgB9UL0kp5SPUdr
+
+
+** delete both structure(mapping) and the record
+*** firstly delete all the records
+POST <your_index_name>/_delete_by_query
+{
+    "query": {
+        "match_all": {}
+    }
+} 
+
+*** then delete the structure
+curl -XDELETE 'http://10.56.233.182:9200/dtest'
+{"acknowledged":true}
+#delete index:         curl -XDELETE 'localhost:9200/index_name'
+#delete all indices:   curl -XDELETE 'localhost:9200/_all'
+#delete document   :   curl -XDELETE 'localhost:9200/index_name/type_name/document_id'
+
+*** stroe data directory
+http://127.0.0.1:9200/_nodes/stats/fs?pretty
+"path" : "C:\\ProgramData\\Elastic\\Elasticsearch\\data\\nodes\\0"
 
 * Query
 ** match  
@@ -528,7 +629,7 @@ max          maximum score is used
 min          minimum score is used 
 replace      override the es's own query's score with boots's score
 
-*** function with script
+*** function with script in query
 ------------
 GET employees/_search
 {
@@ -565,6 +666,7 @@ GET employees/_search
       },
 ###########
 
+*** 
 *** function_score with field_value_factor
 
 We can make use of a field from the document to influence the score by using the “field_value_factor” function. This is in some ways a simple alternative to “script_score”. In our example, let us make use of the “experience” field value to influence our score as below
@@ -639,6 +741,28 @@ GET employees/_search
         } },
 ----------------------------------
 
+* _msearch Query
+normally we use _search to execute one clause in es.
+on order to execute multiple clause in es, _msearch used instead.
+=====================
+GET cmm/_msearch
+{"index": "cmm"}
+{"query": {"match_all": {}}}
+===============================
+note every clause must withine one line, it can't seprated as many lines.
+the first clause means which index to search, the second should be the query clause.
+
+
+===========
+GET my-index-000001/_msearch
+{ }      ### this means use my-index-000001 as index
+{"query" : {"match" : { "message": "this is a test"}}}   ### search message with "this is a test" in index my-index-000001
+{"index": "my-index-000002"}       #### use my-index-000002 as index
+{"query" : {"match_all" : {}}}     #### search all in index my-index-000002
+=============================
+
+
+
 * parent document
 ===================================
 "_source" : {
@@ -678,6 +802,7 @@ Pipeline: aggregations that take input from other aggregations instead of docume
     Rate
     Top metrics
     Percentiles
+nly:
     Scripted metric
     Value count
     Weighted avg
@@ -930,9 +1055,9 @@ result:
 +++++++++++++++++++++
 
 
-**** bucket sort aggregation
+**** bucket_sort using bucket name in aggregation
 Syntax:
-{
+"<bucket_sort_name>" :{
   "bucket_sort": {
     "sort": [
       { "sort_field_1": { "order": "asc" } },   
@@ -962,7 +1087,7 @@ POST /sales/_search
         "sales_bucket_sort": {
           "bucket_sort": {
             "sort": [
-              { "total_sales": { "order": "desc" } } 
+              { "total_sales": { "order": "desc" } }  ### total_sales is the aggregation bucket name 
             ],
             "size": 3                                
           } } } } } }
@@ -1002,3 +1127,458 @@ POST /sales/_search
    }
 }
 -----------------------
+**** bucket_script
+Syntax:
+"<bucket_script_name>" :{
+  "bucket_script": {
+      "buckets_path": {
+#           "<params name in scriipt>":  "<aggreation bucket name>"
+              "gain":  "sum_gain",
+               "year": "sum_year"
+              },
+      "script": "params.gain/params.year "
+                   }
+               },
+
+  
+
+
+*** bucket_sort with pipeline name(generated from the bucket_script)
+#####################
+ 
+"aggs": {
+     "fundmanager": {
+      "terms": { "field": "fd_manager.keyword",
+      "size":   26324   #### here the size is important, or it will not be the total data
+      },
+      "aggs": {
+           "ocpu_mang": { "avg": { "field": "fd_man_time" } },
+           "sum_gain": { "sum": { "field": "gainMargin" } },
+           "sum_year": { "sum": { "field": "f_totaltime"  } },
+           "year-percentage": {
+                     "bucket_script": {
+                        "buckets_path": {
+                          "gain":  "sum_gain",
+                           "year": "sum_year"
+                     },
+                    "script": "params.gain/params.year "
+                   }
+               },
+           "sales_bucket_sort": {
+              "bucket_sort": {
+            "sort": [
+              { "year-percentage": { "order": "desc" } }  ### bucket_sort using pipeline name in the aggregation
+            ],
+            "size": 20  ### get top 20 of the year-percentage
+          } }
+         }
+
+
+*** nested level 2 aggs field  
+  "aggs": {
+        "sales_per_month":{
+            "date_histogram":{ "field":"@timestamp", "fixed_interval":"10s", "time_zone":"UTC", "min_doc_count":1 },
+            "aggs": {
+             "Procedure": { "terms":{ "field":"LogType.cpMaf.Procedure.keyword", "size":4 } },
+             "total_fails": { "sum": { "field": "LogType.cpMaf.Fail" } },
+             "totals": { "sum": { "field": "LogType.cpMaf.Total" } },
+             "fail-percentage": {
+                 "bucket_script": {
+                    "buckets_path": {
+                      "fail":  "total_fails",
+                       "total": "totals"
+                 },
+                "script": "params.fail/params.total * 100"
+               }
+           }
+           } }   
+================================
+"aggregations" : {
+    "sales_per_month" : {
+      "buckets" : [
+        {
+          "key_as_string" : "2020-10-11T14:00:00.000Z",
+          "key" : 1602424800000,
+          "doc_count" : 38,
+          "Procedure" : {
+            "doc_count_error_upper_bound" : 0,
+            "sum_other_doc_count" : 34,
+            "buckets" : [
+              {
+                "key" : "Attach",
+                "doc_count" : 1
+              },
+              {
+                "key" : "Cancel Location",
+                "doc_count" : 1
+              },
+              {
+                "key" : "Context Release",
+                "doc_count" : 1
+              },
+              {
+                "key" : "Context Request",
+                "doc_count" : 1
+              }
+            ]
+          },
+          "totals" : {
+            "value" : 23607.0
+          },
+          "total_fails" : {
+            "value" : 292.0
+          },
+          "fail-percentage" : {
+            "value" : 1.2369212521709663
+          }
+        },
+
+*** nested pipeline aggregation and sorting
+pipeline generation then sort using pipeline
+pipeline generation of fail-percentage which is a scrpit calculated two fields total and fail 
+
+"aggs": {
+        "sales_per_month_L1":{
+            "date_histogram":{ "field":"@timestamp", "fixed_interval":"10s", "time_zone":"UTC", "min_doc_count":1 },
+             "aggs": {
+              "Procedure_L2": {
+                 "terms":{
+                        "field":"LogType.cpMaf.Procedure.keyword",
+                        "size":3
+                  },
+                "aggs": { 
+                 "Maf_total_L3":   { "avg": {     "field": "LogType.cpMaf.Total"    } },
+                 "Maf_fail_L3": { "avg": {      "field": "LogType.cpMaf.Fail"   }},
+                 "fail-percentage_L3": {
+                       "bucket_script": {
+                         "buckets_path": {
+                          "fail":  "Maf_fail_L3",
+                           "total": "Maf_total_L3"
+                 },
+                  "script": "params.fail/params.total * 100"
+                 }
+                },
+                "final_sort": {  "bucket_sort": { "sort": [ {"fail-percentage": {"order": "desc"}}      ] } }
+               #### bucket_sort with pipeline "fail-percentage"
+              }            
+            }
+              
+           }  
+        }   
+   },
+###########################
+    {
+       
+          "LogType" : {
+            "cpMaf" : {
+              "PerSec" : 0,
+              "Total" : 4,     ##LogType.cpMaf.Total
+              "Success" : 3,
+              "Percent" : 0.0,
+              "Fail" : 1,      ##LogType.cpMaf.Fail
+              "Procedure" : "SGS Page Request CS STMSI" ###LogType.cpMaf.Procedure.keyword
+            }
+          }
+        },
+        "fields" : {
+          "@timestamp" : [
+            "2020-10-11T14:00:00.000Z"
+          ]
+        }
+      },
+
+--------------------------
+       {
+          "key_as_string" : "2020-10-11T14:00:20.000Z",
+          "key" : 1602424820000,
+          "doc_count" : 36,
+          "Procedure" : {
+            "doc_count_error_upper_bound" : 0,
+            "sum_other_doc_count" : 33,
+            "buckets" : [ { "key" : "Attach", "doc_count" : 1, "L3" : { "value" : 78.0 }, "L3_p" : { "value" : 18.0 },
+                "fail-percentage" : { "value" : 23.076923076923077 } },
+              { "key" : "Cancel Location", "doc_count" : 1, "L3" : { "value" : 162.0 }, "L3_p" : { "value" : 0.0 }, "fail-percentage" : { "value" : 0.0 } },
+              { "key" : "Context Release", "doc_count" : 1, "L3" : { "value" : 8924.0 }, "L3_p" : { "value" : 0.0 }, "fail-percentage" : { "value" : 0.0 } }
+            ]
+          }
+
+*** nested aggregation search  
+POST /sales/_search
+{
+    "size": 0,
+    "aggs" : {
+        "sales_per_month" : {
+            "date_histogram" : { "field" : "date", "interval" : "month" }, ##L1 bucket based on date per month
+            "aggs": {
+                "total_sales": { "sum": { "field": "price" } }, ####aggs L2 total_sales
+                "t-shirts": {                                   ####aggs L2 t-shirts 
+                     "filter": { "term": { "type": "t-shirt" } },
+                     "aggs": { "sales": { "sum": { "field": "price" } } }
+                 },
+                "t-shirt-percentage": {                       #####aggs L2 t-shirt-percentage
+                    "bucket_script": {
+                        "buckets_path": {
+                          "tShirtSales": "t-shirts>sales",
+                          "totalSales": "total_sales"
+                        },
+                        "script": "params.tShirtSales / params.totalSales * 100"
+                    }
+                }
+            }
+        } } }
+
+*** count the aggregation doc_count in bucketes
+GET /cars/transactions/_search
+{
+    "size" : 0,
+    "aggs" : {
+        "colors" : {
+            "terms" : {
+              "field" : "color",
+              "order": {
+                "_count" : "asc" 
+              }
+            }
+        }
+    }
+}
+
+*** count a filed number
+"aggs" : {
+        "types_count" : { "value_count" :
+         { "field" : "fcode.keyword" } }
+    } 
+
+
+*** state the aggregation's nested aggreation
+keyword is "stats_bucket"
+"aggs": {
+    "stockL1": {
+      "terms": {
+        "field": "stcode.keyword",
+         "order":{ "num_L2":"asc" },
+        "size": 1126269
+      },
+      "aggs":{
+        "num_L2":{
+           "sum":{ "field":"TentNub" }
+        }
+      }
+    },
+    "sum_stat_buck": {
+      "stats_bucket": {
+        "buckets_path": "stockL1>num_L2" 
+      }
+    }
+  }
+===================================
+......
+     {
+          "key" : "000725",
+          "doc_count" : 1301,
+          "num_L2" : {
+            "value" : 590455.9006035272
+          }
+        }
+      ]
+    },
+    "sum_stat_buck" : {
+      "count" : 4313,
+      "min" : 0.0,
+      "max" : 590455.9006035272,
+      "avg" : 5143.283038988998,
+      "sum" : 2.2182979747159548E7
+    }
+  }
+}
+
+* kibana consle VS. curl
+  all operation to es(POST DELETE GET) could be passed to es via kibana console or curl
+
+** in kibana console:
+-----------------------
+POST dtest/_search
+{ "query": { "match_all": {} } } 
+----------------------------
+DELETE cmm/_doc/rumnbXgB9UL0kp5SPUdr
+
+
+** curl command line:
+--------------------------------------------------
+curl -XPOST "http://localhost:9200/_search" -d'
+  { "query": { "match_all": {} } }'
+-------------------------------
+
+curl -XDELETE http://10.56.233.182:9200/cmm/_doc/rumnbXgB9UL0kp5SPUdr
+
+
+*** curl exectute complicate clause using file
+ curl -XGET  http://10.56.233.182:9200/dtest/_search -H "Content-Type: application/json" -d @js_f.txt
+
+js_f.txt stored the query clause
+-------
+[root@master fdds]# cat js_f.txt
+{
+  "query": {
+      "exists":{
+               "field": "LogType"
+        }
+  }
+}
+----------------------------
+
+*  es search results field
+  "took" : 2,               ## how much time(in seconds) did the search take 
+  "timed_out" : false,      ## waiting for result timeout or not, should be false, or the result is no accurate
+  "_shards" : {
+    "total" : 1,
+    "successful" : 1,
+    "skipped" : 0,
+    "failed" : 0
+  },
+
+** shard 
+Each shard is an instance of Lucene index, which you can think of as a self-contianed search
+engine that indexes and handles queries for a subset of the data in an Elasticsearch cluster
+
+
+** "track_total_hits": true option
+GET dtest/_search
+{
+  "size": 0,
+    "track_total_hits": true,
+  "query": { "bool": { "must":[ { "exists": { "field": "time_q" } } ] } } } 
+-----------------------------------------------
+"hits" : {
+    "total" : { "value" : 492176, "relation" : "eq" },
+####gets all the document number is 492176
+
+
+**** "track_total_hits" default is false
+in default the hits value is 10000
+  "hits" : {
+    "total" : { "value" : 10000, "relation" : "gte" },
+
+
+GET dtest/_search
+{
+  "size": 0,
+    "track_total_hits": true,
+  "query": {
+    "bool": { "must":[ { "match": { "time_q": { "query" : "2010_12" }}} ] } }
+}
+===============================================
+  "hits" : {
+    "total" : {
+      "value" : 19061
+      "relation" : "gte"
+    }
+
+* logstash and elasticsearch
+su fund -c bin/elasticsearch > nohup.out 2>&1
+** logstash configuration
+*** logstash startup command
+bin/logstash --verbose -f dtoest
+-- path.data <dir/path>  ### this is optinal
+
+***  logstash configuration directory
+these input  filter output section could be in different files within the configration directory or all-in-one file dd.conf
+
+[root@master fdds]# cat dtest/dd.conf
+============================================
+input {
+  file {
+    path => "/root/Downloads/fdds/logstash_work/input/*"
+    start_position => "beginning"
+    sincedb_path => "/root/Downloads/fdds/logstash_work/sin/*"
+    sincedb_write_interval => 15
+    codec => json {charset => "UTF-8"}
+  }
+}
+
+filter {
+     mutate {
+        remove_field => ["@version", "message", "path", "host", "@timestamp"]
+      }
+}
+
+output {
+    stdout {}
+     elasticsearch {
+      hosts => ["10.56.233.182:9200"]
+      index => "dtest"
+    }
+}
+
+======================================================
+
+logstash will monitor the input->file->path, if there's any change to it, logstash will synchronize content to elasticsearch
+
+**** json file as input
+[root@master fdds]# head /root/Downloads/fdds/logstash_work/input/fin_res_3_50
+{"key":"600519", "doc_count":1679, "stValue_L2":7505325.098679543, "holdst_L2":6756.859968742356,  "rank":1,  "time_qt":"2020_3"}
+{"key":"601318", "doc_count":1158, "stValue_L2":5182594.7011060715, "holdst_L2":74888.14988593198,  "rank":2,  "time_qt":"2020_3"}
+{"key":"600276", "doc_count":1182, "stValue_L2":3741176.2489744425, "holdst_L2":40651.78003027104,  "rank":3,  "time_qt":"2020_3"}
+{"key":"000858", "doc_count":742, "stValue_L2":3375430.7229230404, "holdst_L2":29299.709926519543,  "rank":4,  "time_qt":"2020_3"}
+
+
+**** netsted fields in es
+{"timestamp": "2020-10-30 03:22:38", "olc": {"Total_Ltnc": 0, "Total_HighW": 0, "Total_Rcv": 2159, "Total_RspSucc": 2158, "Total_RspFail": 0, "Total_Discard": 0}, "CaseName": "CMMG-9007", "MMEName": "mme001", "Release": "20.0", "UnitName": "dbs3"}
+{"timestamp": "2020-10-30 03:22:38", "olc": {"DB": 0, "RdReq": 1073, "RdRsp": 0, "WrReq": 1028, "WrRsp": 0, "DelReq": 1, "GenCmd": 1}, "CaseName": "CMMG-9007", "MMEName": "mme001", "Release": "20.0", "UnitName": "dbs3"}
+{"timestamp": "2020-10-30 03:22:38", "olc": {"DB": 1, "RdReq": 1086, "RdRsp": 0, "WrReq": 1023, "WrRsp": 0, "DelReq": 6, "GenCmd": 1}, "CaseName": "CMMG-9007", "MMEName": "mme001", "Release": "20.0", "UnitName": "dbs3"}
+{"timestamp": "2020-10-30 03:22:38", "olc": {"Sum_RdReq": 2159, "Sum_RdRsp": 0, "Sum_WrReq": 2051, "Sum_WrRsp": 0, "Sum_DelReq": 7, "Sum_GenCmd": 2}, "CaseName": "CMMG-9007", "MMEName": "mme001", "Release": "20.0", "UnitName": "dbs3"}
+
+here field "olc" or field "olc.Total_Ltnc" could be refer to
+POST cmm/_search
+{ "query": { "exists":{ "field": "olc" } } }
+------------
+{
+        "_index" : "cmm",
+        "_type" : "_doc",
+        "_id" : "fMN2-HgB6I4yarDqwbov",
+        "_score" : 1.0,
+        "_source" : {
+          "type" : "perf",
+          "@timestamp" : "2020-10-30T03:22:16.000Z",
+          "Release" : "20.0",
+          "MMEName" : "mme001",
+          "olc" : {
+            "HighW" : 4371,
+            "Proc" : 213,
+            "Rcv" : 48,
+            "RspSucc" : 48,
+            "Discard" : 0,
+            "Ltnc" : 4,
+            "RspFail" : 0
+          },
+          "UnitName" : "dbs3",
+          "CaseName" : "CMMG-9004"
+        }
+      },
+      {
+        "_index" : "cmm",
+        "_type" : "_doc",
+        "_id" : "tcN2-HgB6I4yarDqwbgt",
+        "_score" : 1.0,
+        "_source" : {
+          "type" : "perf",
+          "@timestamp" : "2020-10-30T03:22:39.000Z",
+          "Release" : "20.0",
+          "MMEName" : "mme001",
+          "olc" : {
+            "HighW" : 314,
+            "Proc" : 214,
+            "Rcv" : 24,
+            "RspSucc" : 24,
+            "Discard" : 0,
+            "Ltnc" : 7,
+            "RspFail" : 0
+          },
+          "UnitName" : "dbs3",
+          "CaseName" : "CMMG-9004"
+        }
+      },
+-------------------------------
+or 
+{ "query": { "exists":{ "field": "olc.HighW" } } }
+
