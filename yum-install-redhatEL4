@@ -2042,3 +2042,6 @@ proxy=http://192.168.26.10:555
 
 cat /etc/environment
 export proxy=http://192.168.26.10:555
+
+epel source for packsage
+yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm

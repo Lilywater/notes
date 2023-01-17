@@ -1286,3 +1286,5 @@ git log --decorate --graph ### or git log --decorate --graph dev
 *** show newer commit
 
 git pull -X ours ### pull the files and keep local changes
+
+git reset --hard && git pull #### git pull remote files to override local changes 

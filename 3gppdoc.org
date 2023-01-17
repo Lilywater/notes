@@ -1,0 +1,5 @@
+* 3gpp documentation
+* rfc documentation
+if you don't know the detailed message definition, normally it's in rfc
+such as eap message mentioned in 3gpp doc, then you google "eap rfc"
+

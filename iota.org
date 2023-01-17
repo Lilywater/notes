@@ -2151,6 +2151,45 @@ STATE Processing;
                                 TASK 'UPMsgQueue::instance()->putMsgToQueue(wmsg)';
 -----------------------------------------------------------------------
 
+** IOTA itcl interface with simulator 
+in itcl command line:
+ltemme@lm601:/local/ltemme/iota $ cat amfn26sim1.init
+loadConfig amfn26sim1.cfg   ### load config of simulator configuration with the simultor instance name of SGW class
+MMESIM              amfn26sim1        amfn26sim1   ##### this line 
+#<itcl_classname>   <itcl obj>        <simulator object of SGW class>
+====================================================
+SGW::SGW( WISESIM_LWP& parnt,
+                ConfigurationBlock* config,
+                const RWCString& alias,
+                const RWCString& highestLevelPostMaster,
+                LTE *LTEComposite
+        )
+        :WiseSim(parnt, config, alias, highestLevelPostMaster, LTEComposite)
+        ,_sgwrtr(0)
+-------------------
+
+
+ltemme@lm601:/local/ltemme/iota $ cat amfn26sim1.cfg
+
+MME mme_net1 {
+        sgws {
+            amfn26sim1 {
+                localAddr = "172.16.46.111:2123"
+            }
+        }
+}
+
+SGW amfn26sim1 {
+        mmes {
+                mme_net1 { localAddr = "172.16.59.81:2123" }
+
+        }
+        mcc = $460
+        mnc = $02
+        mmec = $64
+        mmegi = $2328
+        ip = 172.16.59.81
+}
 
 ** IOTA itcl extension
 addCommand("loadConfig", ItclConfigLoadExtension)
@@ -2347,9 +2386,178 @@ STATE Processing;
                         ENDDECISION;
 
 
-*** iota simulator messageque on/off
-when recv a message and decode it, then rtr st will decide to put it to messageque or send to the actual dst simulator.
+*** iota simulator's message queue workmode 
+-----------------------------------------
+ * Name:        setWorkMode
+  * Parameters:  int workMode
+   *              MODE_SIMULATOR(0): Disable message queue. Only routing to simulators.
+    *              MODE_SCRIPTING(1): Enable message queue, not routing messages to simulators.
+     *              MODE_BOTH   (2): Enable message queue, and routing messages to simulators.
+      * Returns:     void
+       * Description: set the work mode of message queue.
+        */
+        void
+        Network::setWorkMode(int workMode)
+        {
+                _workMode = WorkMode(workMode);
+-----------------------------------------------------
+
+=====================================
+::itcl::body Scenario::start {} {
+        trace_
+                $_MSGQUEUE setWorkMode 1
+                 cleanup
+                if {([catch { eval $_script } err])
+  ...
+####  end
+                $_MSGQUEUE setWorkMode 0
+  =========================================              
+simulator fsm received unexpected message which should be route to scripting, since at the end of the scenariot start,
+workmode is 0
+=========================================================
+ERROR: Version received in XML header(v1.1.1) does not match simulator value(1.1.1
+ERROR: X1TRANSACTIONID received in XML header(3741800e-971b-4aa9-85f4-466d2b1adc7f) does not match simulator value(EMPTY)
+==========================================================
+
+*** http1 simulator router state processing  and msg2que on/off
+STATE Processing;
+
+        INPUT HTTP1;
+
+        /* Message may come from Script or AMF or http1_amf FSM */
+        DECISION 'SENDER';
+        (IPNETWORK):  //message from ipnetwork--AMF or script
+                TASK 'Value http1Type = rcvd_prim[BODY].type()';
+                DECISION ' http1Type.asSymbol() ';
+                (DATAREQ, DATARSP):
+                ....
+                  TASK 'rcvd_prim[BODY][DATA] = decodeDatareqPayload(env, rcvd_prim)';
+                  TASK 'LogOnlyMessage << "Message after decode:\\n" << rcvd_prim << "\\n"';
+                  TASK 'LogOnlyMessage.print()';
+
+                  TASK 'int workMode = IPNetwork::instance()->getWorkMode()';
+                  DECISION 'workMode == IPNetwork::MODE_SCRIPTING';
+                  (TRUE): // from script ,when start a scenerio, the workMode will be scripting,when a scenario end, it will be sim
+                   ### depend on message queue, if off , route to fsm 
+                                   DECISION 'HTTP1BLK(msg2que) == "off"';
+                                  (TRUE): 
+                                          /* route to simulator */ TASK 'Value http1msg = rcvd_prim';
+                                          CALL RouteToAmfFsm(http1msg);
+                                          NEXTSTATE -;
+                                   ELSE:  // from real AMF NE
+                                   ### fall through to scenario script
+                                           TASK 'WiseMsg *wmsg = new WiseMsg(rcvd_prim, TRUE)';
+                                           TASK 'UPMsgQueue::instance()->putMsgToQueue(wmsg)';
+                                           NEXTSTATE -; 
+
+                    ELSE:  //workmode is sim , fall to http1amf fsm
+        ELSE: //message from http1amf fsm,
+                     /* send it to IPNETWORK */
+                OUTPUT EXTERNAL rcvd_prim TO IPNETWORK;
+
+*** http2 amf(fsm) iota simulator nr102que messageque on/off
+the actual fsm can also process the message path, to upmsgqueue or to router  
+http2_amf.sd:
+-------------------------
+               DECISION 'nftype';
+                ("srs"):
+                        DECISION 'env[nr102que] == "on" && (workMode == IPNetwork::MODE_SCRIPTING)';
+                        (TRUE):
+                                /* change the HTTP2 type to HTTP2 */
+                                TASK 'Value http2msg = rcvd_prim';
+                                TASK 'http2msg.type(HTTP2)';
+                                TASK 'WiseMsg *wmsg = new WiseMsg(rcvd_prim, TRUE)';
+                                TASK 'UPMsgQueue::instance()->putMsgToQueue(wmsg)'; 
+                   ###message will be sent to msgqueue directly instead of ip network
+                                NEXTSTATE -;
+                        ELSE:
+                        ENDDECISION;
+                        TASK 'int msgtype = getMsgType(env, rcvd_prim)';
+                        DECISION 'msgtype';
+                        (NR10HEARTBEAT):
+                               ### start a timer to send message to ip network 
+----------------------------------------------------------
+ INPUT t_nr10_hb_req:   //t_ means timeout
+          OUTPUT EXTERNAL hdrmsg TO HTTP2BLK(ROUTER); ## send to router to goto ip network
+---------------------------------
+
+
+*** testing message which will process inside simulator such as heartbeat
+**** testing encode/decode of the message only without simulator fsm process
+in test.tcl file:
+===========
+    http2sim set nr102que "on"
+    http2sut set nr102que "on"
+    send http2sut -> http2sim -msg mme_nr10_restoration_hb_hdrframe_req -mapping ::c_ue
+    recv http2sut -> http2sim -msg mme_nr10_restoration_hb_hdrframe_req -mapping ::c_ue
+
+    send http2sut -> http2sim -msg mme_nr10_restoration_hb_dataframe_req -mapping ::c_ue
+    recv http2sut -> http2sim -msg mme_nr10_restoration_hb_dataframe_req -mapping ::c_ue
+
+    send http2sut -> http2sim -msg mme_nr10_restoration_hb_hdrframe_rsp -mapping ::c_ue
+    recv http2sut -> http2sim -type HEADERSFRAME -msg mme_nr10_restoration_hb_hdrframe_rsp -mapping ::c_ue
+=============
+
+**** testing only the response message which generated by simulator fsm, trigger it with script send req message
+####QQQ## # Test Restoration Heartbeat
+    http2sim set nr102que "off" // when receive request message, simulator will generate rsp 
+    http2sut set nr102que "on"
+    send http2sut -> http2sim -msg mme_nr10_restoration_hb_hdrframe_req -mapping ::c_ue  
+    send http2sut -> http2sim -msg mme_nr10_restoration_hb_dataframe_req -mapping ::c_ue  // receving request header and body, http2sim will generate message
+
+    recv http2sut <- http2sim -type HEADERSFRAME -msg mme_nr10_restoration_hb_hdrframe_rsp2 -mapping ::c_ue
+// http2sut's queue is on, so the rsp will be route to script instead of http2sut fsm
+
+**** testing only the request message which generated by simulator fsm  
+
+test.tcl file:
+===============================================
+    http2sut nr10hb  on -lname http2sut -rname http2sim   //generate the heartbeat request message in simulator http2sum and send to simulator http2sim
+    http2sim set nr102que "on"                           // http2sim receive the req message  in the script
+    http2sut set nr102que "on"                           //it doesn't matter if http2sut message queue is on/off since the sut won't get involved to receive msg 
+   recv http2sut -> http2sim -type HEADERSFRAME -msg mme_nr10_restoration_hb_hdrframe_req -mapping ::c_ue
+    recv http2sut -> http2sim -msg mme_nr10_restoration_hb_dataframe_req -mapping ::c_ue
+   ============================================
+ 
+
+**** testing both the request message which generated by simulator fsm and response message which generated by peer simulaotr fsm 
+test.tcl file:
+===============================================
+    http2sut nr10hb  on -lname http2sut -rname http2sim   //generate the heartbeat request message in simulator http2sum and send to simulator http2sim
+    http2sim set nr102que "off"                           // http2sim receive the req message and will generate rsp message since queue is off 
+    http2sut set nr102que "on"                           // when http2sut router get response message, it will route to script since queue is on
+    recv http2sut <- http2sim -type HEADERSFRAME -msg mme_nr10_restoration_hb_hdrframe_rsp2 -mapping ::c_ue
+   // http2sut will receive the message in script since the message queue is on
+    #recv * -> *  -abort false
+===============================================================
+
+**** testing the simulator handle message
+for a pair of simulators to test:
+turn off one simulator's message queue while turn on the other's.
+====================
+    http1sim set msg2que "off" ### sim get requst message from internal queue message,  it will send the rsp 
+                  ##message to ip network instead of fowarding this req message to uplayer scripts' message queue
+    http1sut set msg2que "on" ### sut is the initative one to send message firstly to message queue
+    send http1sut -> http1sim -msg keepalive_req -mapping ::c_ue
+    recv http1sut <- http1sim -type DATARSP -msg keepalive_rsp -mapping ::c_ue
+============================
+
+
+testing the message not through simulator but scripts:
+====================
+    http1sim set msg2que "on" ### sim get requst message from internal queue message,  it will forward the rsp 
+    http1sut set msg2que "on" ### sut is the initative one to send message firstly to message queue
+    send http1sut -> http1sim -msg keepalive_req -mapping ::c_ue   ###the message send/recved not passing ip network
+    recv http1sut -> http1sim -type DATAREQ -msg keepalive_req -mapping ::c_ue
+
+#### here it doesn't matter which simulator send req which send rsp
+    send http1sut -> http1sim -msg keepalive_rsp -mapping ::c_ue
+    recv http1sut -> http1sim -type DATARSP -msg keepalive_rsp -mapping ::c_ue
+============================
+
+
 **** messge queue on
+
 20:30:57.308 B [fivegx2sut.fivegx2rtr:(135.111.25.169:36160|19:1521)] fivegx2sut.fivegx2rtr handle message internal = FALSE
 20:30:57.308 T putMsgToQueue() >>
 
@@ -2427,8 +2635,9 @@ Http1Seq encoding
        }
 --------------------------------
 
+
 **** decode
-***** deocde timing
+***** deocde timing when  ipnetwork received a message  handleInBound
 02:19:58.861 T [http1sim-amfs-0:(135.111.25.169:48904|20:1661)] http1sim-amfs-0 >> Connection::sendToOwner()
 02:19:58.861 T [Http1358:(135.111.25.169:48904|380:1585)] Http1358 <- PH::messageHandler Primitive
 02:19:58.861 T [Http1358:(135.111.25.169:48904|380:1585)] Http1358 PH::messageHandler: msg from connection
@@ -2449,7 +2658,74 @@ Http1Seq encoding
 02:19:58.862 N seqLen = 703
 02:19:58.862 N input->cur = 1
 02:19:58.862 N Enter Http1Seq::decodeField
-***** 
+
+***** after decode, the rcvd message will be print out and  put to the msgque
+03:08:31.171 N Message after decode:  ### this is the message get from network the this template is generated
+###### by the decoding process which has no relation to the expected/match template in the scripting tcl file
+        HTTP1 template
+            BODY = -> DATARSP =
+                STATUSLINE =
+                    HTTPVERSION = HTTP/1.1
+                    STATUS = 200
+                HEADERFIELDS =
+                    CONTENTTYPE = text/xml
+                DATA = FIVEGLIX1 template
+                    BODY = -> KEEPALIVERSP =
+                        VERSION = v1.1.1
+                        MESSAGETIMESTAMP = 2022-06-10T08:35:51.613018Z
+03:08:31.171 T putMsgToQueue() >>
+03:08:31.171 T message count after: 1
+03:08:31.171 T << putMsgToQueue()
+
+
+*****  recv invoked in the tcl shell:
+scripting tcl shell:
+--------------------------------------
+  recv * -> * -abort false   ### this is receiving the actual message
+  #db update  keepalive_rsp2 -mapping ::c_ue
+  retrieve $_MSG -msg  keepalive_rsp2 -mapping ::c_ue  ## this is retrieve the msg with the expected message template keepalive_rsp2
+-----------------------------------------
+ recv http1sut <- http1sim -type DATARSP -msg keepalive_rsp -mapping ::c_ue
+## this will contain above two steps
+-----------------------
+03:08:31.172 T << getMsgFromQueue()
+03:08:31.175 U http1sim ---- DATARSP(KEEPALIVERSP) ---> http1sut
+ ### this is recv * -> * or  recv http1sut <- http1sim -type DATARSP -msg keepalive_rsp -mapping ::c_ue
+
+when the received msg template is matched with the expected msg template
+========================================
+>>>>>> RECV MESSAGE TEMPLATE: keepalive_rsp2
+=============================================
+
+
+recv * -> * action will trigger this 
+====================================
+03:24:54.185 T << getMsgFromQueue()
+03:24:54.188 U http1sim ---- DATARSP(KEEPALIVERSP) ---> http1sut
+====================================
+
+ retrieve $_MSG -msg  keepalive_rsp2 -mapping ::c_ue  will triger this:
+========================================
+>>>>>> RECV MESSAGE TEMPLATE: keepalive_rsp2
+=============================================
+
+***** retrieve function
+to assign the empty value in the recvd message template accrodingly
+for example, a receive message template like this:
+============================================
+keepalive_rsp2
+                     {MESSAGETIMESTAMP %abc} 
+### this abc could be assigned value when retrieve the real _MSG from the template 
+                     {VERSION "v1.1.1"}
+====================
+    recv * -> * -abort false
+     #db update  keepalive_rsp2 -mapping ::c_ue
+   ###before ::c_ue(abc) not defined
+    retrieve $_MSG -msg  keepalive_rsp2 -mapping ::c_ue
+    puts "abc is $::c_ue(abc)"  
+   ###after ::c_ue(abc) will be 2022-06-10T08:35:51.613018Z
+
+
 
 *** iota connection open
 **** TCPcliConn:open
@@ -2823,6 +3099,30 @@ end
 20:15:18.462 N decodeDatareqPayload: connname=http1simhttp1sut
 20:15:18.462 N messagename =ActivateTaskResponse
 
+* iota evoking function in tcl  script
+when send a message, tcl envoke a function named Message, it had to be an itcl::class name
+
+[Message #auto $mspec]
+
+::itcl::class Message {
+        inherit CommonMessage
+
+        constructor {args} {eval CommonMessage::constructor "message"} {
+            if {[lindex $args 0] == "set_msgtag"} {
+                ::set msgtag [lindex $args 1]
+                do_reftag $msgtag
+            } else {
+                eval do_construct $args
+            }
+        }
+
+
+./ctpapp/lte/base-w/msg/WiseMessage.tcl:80:     protected method do_construct {spec} @WISEMSG_const
+./ctpapp/lte/base-w/msg/WisemsgProxy.C:145:  if (ie->addMethod("WISEMSG_const", ItclWiseMsgExtension) == TCL_OK
+
+  if (ie->addMethod("WISEMSG_const",               ItclWiseMsgExtension) == TCL_OK
+                 ## this is the @<symbol>          this is the real c/c++ function
+
 * iota AKA implementation
 ** log 
 ----------------------------
@@ -2917,3 +3217,240 @@ nssf_r16_test start  ### the start is a method of the Scenario class,
         cleanup
         if {([catch { eval $_script  ### evaluate the script passed
 -----------------------------------
+
+* iota Symbol and RWCString
+** Symbol definition
+(gdb) bt
+#0  Sdt::operator[] (this=0x7fa609e5e280, symbol=...) at ../../../../../../../../iota/ctpapp/lte/wiseiota/com/Sdt.C:64
+
+(gdb) p symbol
+$1 = (const Symbol &) @0x7fa5dff89360: {static _symbol_table = 0xdc4ec0, static nil_ = 0xd9ff00, sp = 0x7fa608347550}
+## symbol is an instance of class Symbol, the memember variable are as above
+
+(gdb) p symbol.sp
+$2 = (const RWCString *) 0x7fa608347550
+## symbol.sp is a pointer of instace of RWCString
+## but from source code, it's very difficult to locate the definition of this RWCString class
+
+(gdb) ptype symbol.sp
+type = const struct RWCString {
+  private:
+    static size_t initialCapac;
+    static size_t resizeInc;
+    static size_t freeboard;
+    char *data_;
+
+  public:
+    RWCString(void);
+    RWCString(RWSize_T);
+.....
+
+*** locate the definition file
+~/IOTA_REp/6_iota/obj/linux_x86/iota/opt/rwtool/include/rw/cstring.h
+----------------------------
+class RWSExport RWCString
+{
+public:
+
+  enum stripType    {leading = 0x1, trailing = 0x2, both = 0x3};
+  enum caseCompare  {exact, ignoreCase};
+  enum scopeType    {one, all};
+
+  RWCString();                  // Null string
+  RWCString(RWSize_T ic);       // Suggested capacity
+  RWCString(const RWCString& S) // Copy constructor
+#ifndef RW_MULTI_THREAD
+  { data_ = S.data_; pref()->addReference(); }
+-----------------------------------------------
+./include/rw/rwwind.h:314:# define RWSExport __declspec(dllimport)
+
+
+### through ptype, we get the definition of symbol.sp, and *data_ seems to be the location to store the real string content.
+
+(gdb) ptype symbol.sp->data_
+type = char *
+### to verify this, ptype it,
+(gdb) p symbol.sp->data_
+$3 = 0x7fa608347588 "defptr"
+### print the char * memory address
+
+
+** sdt block variable
+http2blk.sdt 
+--------------------------------------------
+idefptr,         ReadWrite,      Dictionary
+--------------------------------------------
+
+#define HTTP2BLK(_v) env[_v]
+
+getDefPtr(Sdt& env, Value& msg)
+{
+        Symbol connname = msg[localName].printString() + msg[remoteName].printString();
+        GENMSGDEBUG("getDefptr: connname=" << connname << "\n");
+        if (HTTP2BLK(defptr).at(connname).isOrdinary() ) ### line 1674
+        {
+                return HTTP2BLK(defptr)[connname].asLong();
+##################     env[defptr][connname]
+        }
+----------------------------------
+*** callback trace of line 1674 HTTP2BLK(defptr) ------>   env[defptr]
+(gdb) bt
+#0  Dictionary::operator[] (this=0x7fa609e5cde0, key=...) at ../../../../../../../../iota/ctpapp/lte/wiseiota/com/Dictionary.C:246
+#1  0x00007fa602498c93 in operator[] (key=..., this=0x7fa609e5b4d0)
+    at ../../../../../../../../iota/ctpapp/lte/wiseiota/hdr/ValInline.h:801
+#2  Sdt::operator() (this=0x7fa609e5b4d0, symbol=...) at ../../../../../../../../iota/ctpapp/lte/wiseiota/com/Sdt.C:128
+#3  0x00007fa602498ba1 in Sdt::operator() (this=0x7fa609e5e280, symbol=...)
+    at ../../../../../../../../iota/ctpapp/lte/wiseiota/com/Sdt.C:101
+#4  0x00007fa602498d93 in Sdt::operator[] (this=0x7fa609e5e280, symbol=...)
+    at ../../../../../../../../iota/ctpapp/lte/wiseiota/com/Sdt.C:71
+#5  0x00007fa5de78eb21 in getDefPtr (env=..., msg=...) at ../../../../../../../../iota/ctpapp/lte/eps/sim/http2lib.C:1674
+
+
+*** source code of this
+## env[defptr] invoking operator[]
+Value& Sdt::operator[](const Symbol& symbol)
+{
+        // get dictionary entry
+        Value& rv = (*this)(symbol); ##line 71 invoking operator () of Sdt
+------------------------------------
+Value& Sdt::operator()(const Symbol& symbol)
+{
+        // get dictionary entry
+        DOE_Guard<ACE_Recursive_Thread_Mutex> foo(_SdtMutex);
+        Value rv = symbol_table.at(symbol);  
+    ...
+   return (*env)(symbol);  ## line 101
+...
+-----------------------
+class Sdt
+{
+        private:
+                Value symbol_table;
+                Sdt *env;
+----------------------------------------
+
+Value& Sdt::operator()(const Symbol& symbol)
+{
+        return symbol_table[symbol];  ###line 128, invoking Value::operator[]
+------------------------------------
+
+INLINE
+Value &
+Value::operator[](const Symbol & key)
+{
+        return rep->operator[](key); ## line801 of ValInline.h
+            ### it should invoke ValRep::operator[], but it is a virtual function, so it actually invoke Dictionary operator []
+}
+--------------
+Value & ValRep::operator[](const Symbol & key)
+----
+class Dictionary : public ValRep {
+        friend class    DictIter;       // need to get to the dictionary
+==========================
+Value & Dictionary::operator[](const Symbol &key)
+
+at last we got a Value type object for HTTP2BLK(defptr) ------>   env[defptr]
+
+*** callback trace of 1676 line
+                return HTTP2BLK(defptr)[connname].asLong();
+for env[defptr] return a Value object [conname]
+#0  Dictionary::operator[] (this=0x7f4e15e7ee30, key=...) at ../../../../../../../../iota/ctpapp/lte/wiseiota/com/Dictionary.C:246
+#1  0x00007f4e0e73e1a3 in Value::operator[] (this=<optimized out>, key=...)
+    at ../../../../../../../iota/ctpapp/lte/wiseiota/hdr/ValInline.h:801
+#2  0x00007f4e05411ba7 in getDefPtr (env=..., msg=...) at ../../../../../../../../iota/ctpapp/lte/eps/sim/http2lib.C:1676
+
+
+(gdb) p key.sp->data_
+$5 = 0x7f4ddce3cfa8 "http2suthttp2sim"  ####here conname is equal to string "http2suthttp2sim"
+ValRep::operator invoked by line 801 of Value::operator[], and Dictionary is the subclass of ValRep with overriding virtual
+function Dictionary::operator[], it still return a Value object.
+
+*** asLong function 
+b Value::asLong() const
+b SpecVal::asLong() const
+b WISEInt::asLong() const
+b WISEroot::asLong() const
+
+**** backtrace for asLong function
+----
+#0  WISEInt::asLong (this=0x7f4ddce88a10) at ../../../../../../../../iota/ctpapp/lte/wiseiota/hdr/WISEInt.h:62
+#1  0x00007f4e0e5c3729 in Value::asLong (this=<optimized out>)
+    at ../../../../../../../../../../../iota/ctpapp/lte/wiseiota/hdr/ValInline.h:495
+#2  0x00007f4e05411bb2 in getDefPtr (env=..., msg=...) at ../../../../../../../../iota/ctpapp/lte/eps/sim/http2lib.C:1676
+
+**** source code 
+INLINE long Value::asLong() const
+{
+        return rep->asLong();
+}
+-------
+class WISEInt : public ValRep {
+ long            asLong() const { return (long)rep; }
+-------------------
+class ValRep : public WISEroot{
+        // WISEroot Signature Member functions:
+        unsigned int            numOfElem() const;
+        long                    asLong() const;
+------------------------------
+class WISEroot
+{
+       virtual long            asLong() const;
+----------------------------
+/*
+ * WISEroot Signature Member functions:
+ */
+long WISEroot::asLong () const
+{
+        subclassResp("asLong");
+        return 0;
+}
+------------------------------
+GENMSGDEBUG("createDeflater: class HTTP2BLK=" << HTTP2BLK(defptr)[connname].className() << "\n");
+createDeflater: class HTTP2BLK=Value->SpecVal
+
+**** navigate virtual function inheritance from eclipse of c++ class
+select on the member function of the base class, ctrl + t , 
+for example, in file WISEroot.C
+long WISEroot::asLong () const
+------------------------------
+Types declaring 'asLong': 
+Wiseroot
+    PrintBuffer
+    ValRep
+       ByteString
+       Error
+       Plainfield
+       SpecVal
+       WISEInt
+    Value
+  ============================
+There are three classes override asLong function, PrintBuffer, ValRep, Value
+INLINE long Value::asLong() const
+{ return rep->asLong(); }
+Therere are five subclasses of class ValRep implemented asLong function
+long Error::asLong () const { (void) errorMessages.length(); // avoid warning about unused this.
+        return -1; }
+
+**** navigate type hierarchy of C++ class in eclipse
+F4 on the  class ValRep in eclipse, it will show type hierarchy both base and sub 
+WISEroot
+   ValRep 
+      Accessor
+      ArrayIDpool
+      ByteString
+      Dictionary
+      Error
+      IDpool
+      isupCircuit
+      Message
+        SS7Message
+      PlainField
+        ArrayField
+        Field
+      SortedVector
+      SpecVal
+      WISEInt
+      WISELLong
+      WISEmondo
+      WISEString
+      WISESymbol

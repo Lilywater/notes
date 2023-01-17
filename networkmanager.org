@@ -1,0 +1,78 @@
+readhat(centos) and ubuntu use networkmanager to manage network interface.
+** installation of network manager
+# dnf install NetworkManager
+ls /etc/NetworkManager/
+
+
+**  running it as server
+# systemctl is-active NetworkManager
+# systemctl is-enabled NetworkManager
+# systemctl status NetworkManager 
+# systemctl start/stop/reload NetworkManager 
+
+
+** client for network manger
+nmcli – a command-line tool used to configure networking.
+nmtui – a simple curses-based text user interface, which is also used to configure and manage newtwork interface connections
+
+nmcli connection show -a
+
+
+** network inteface confiugration files
+vi /etc/sysconfig/network-scripts/ifcfg-enp0s3
+=================
+TYPE=Ethernet
+PROXY_METHOD=none
+BROWSER_ONLY=no
+BOOTPROTO=none
+DEFROUTE=yes
+IPV4_FAILURE_FATAL=no
+IPV6INIT=yes
+IPV6_AUTOCONF=yes
+IPV6_DEFROUTE=yes
+IPV6_FAILURE_FATAL=no
+IPV6_ADDR_GEN_MODE=stable-privacy
+NAME=enp0s3
+UUID=e81c46b7-441a-4a63-b695-75d8fe633511
+DEVICE=enp0s3
+ONBOOT=yes
+IPADDR=192.168.0.110
+PREFIX=24
+GATEWAY=192.168.0.1
+DNS1=8.8.8.8
+PEERDNS=no
+=============
+
+** debug the networkmanager
+*** journal setting
+    To disable rate-limiting, edit the /etc/systemd/journald.conf file, uncomment the RateLimitBurst parameter in the [Journal] section, and set its value as 0:
+
+    RateLimitBurst=0
+
+    Restart the systemd-journald service.
+
+    # systemctl restart systemd-journald
+
+*** networkmanager log settings
+    Create the /etc/NetworkManager/conf.d/95-nm-debug.conf file with the following content:
+
+    [logging]
+    domains=ALL:TRACE
+
+    The domains parameter can contain multiple comma-separated domain:level pairs.
+
+    Restart the NetworkManager service.
+
+    # systemctl restart NetworkManager
+
+*** Verification
+
+    Query the systemd journal to display the journal entries of the NetworkManager unit:
+
+    # journalctl -u NetworkManager -b
+    ...
+    Jun 30 15:24:32 server NetworkManager[164187]: <debug> [1656595472.4939] active-connection[0x5565143c80a0]: update activation type from assume to managed
+    Jun 30 15:24:32 server NetworkManager[164187]: <trace> [1656595472.4939] device[55b33c3bdb72840c] (enp1s0): sys-iface-state: assume -> managed
+    Jun 30 15:24:32 server NetworkManager[164187]: <trace> [1656595472.4939] l3cfg[4281fdf43e356454,ifindex=3]: commit type register (type "update", source "device", existing a369f23014b9ede3) -> a369f23014b9ede3
+    Jun 30 15:24:32 server NetworkManager[164187]: <info>  [1656595472.4940] manager: NetworkManager state is now CONNECTED_SITE
+    ...

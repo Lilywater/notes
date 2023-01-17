@@ -927,6 +927,12 @@ Successfully remade target file `all'.
 there are too many built-in implicit rules, we could avoid it using make -r --debug=implict
 
 
+*** V=1 option
+this will print out the command makefile will execute
+    make VERBOSE=1 - did not work at least from my trials.
+    make --debug=j - works as well, but might also enable multi threaded building, causing extra output.
+
+
 *** jobs option
 This options prints the details of subprocesses invoked by make. It does not
 enable the basic option.
@@ -1775,6 +1781,58 @@ gcc preprocess option
 -E  Stop after the preprocessing stage; do not run the compiler proper.  The output is in the form of preprocessed source code, which is sent to output
 all macro will be expanded
 
+*** generate dependency files
+ If -MD is used in conjunction with -E, any -o switch is understood to specify the dependency output file, but if used
+            without -E, each -o is understood to specify a target object file.
+ -MMD
+    Like -MD except mention only user header files, not system header files.
+
+** gcc optimization option
+If you use multiple -O options, with or without level numbers, the last such option is the one that is effective
+or -O0 will always overide -O1/2/3 option?
+
+-O0 Reduce compilation time and make debugging produce the expected results.  This is the default. 
+
+-O/-O1 Optimize.  Optimizing compilation takes somewhat more time, and a lot more memory for a large function.
+           With -O, the compiler tries to reduce code size and execution time, without performing any optimizations that
+           take a great deal of compilation time.
+           -O turns on the following optimization flags:
+           -fauto-inc-dec -fcompare-elim -fcprop-registers -fdce -fdefer-pop -fdelayed-branch -fdse
+           -fguess-branch-probability -fif-conversion2 -fif-conversion -fipa-pure-const -fipa-profile -fipa-reference
+           -fmerge-constants -fsplit-wide-types -ftree-bit-ccp -ftree-builtin-call-dce -ftree-ccp -ftree-ch
+           -ftree-copyrename -ftree-dce -ftree-dominator-opts -ftree-dse -ftree-forwprop -ftree-fre -ftree-phiprop
+           -ftree-slsr -ftree-sra -ftree-pta -ftree-ter -funit-at-a-time
+           -O also turns on -fomit-frame-pointer on machines where doing so does not interfere with debugging.
+
+
+
+-O2 Optimize even more.  GCC performs nearly all supported optimizations that do not involve a space-speed tradeoff.
+           As compared to -O, this option increases both compilation time and the performance of the generated code.
+
+
+-O3 Optimize yet more.  -O3 turns on all optimizations specified by -O2 and also turns on the -finline-functions,
+           -funswitch-loops, -fpredictive-commoning, -fgcse-after-reload, -ftree-vectorize, -fvect-cost-model,
+           -ftree-partial-pre and -fipa-cp-clone options.
+
+
+
+-Os Optimize for size.  -Os enables all -O2 optimizations that do not typically increase code size.  It also
+           performs further optimizations designed to reduce code size.
+
+           -Os disables the following optimization flags: -falign-functions  -falign-jumps  -falign-loops -falign-labels
+           -freorder-blocks  -freorder-blocks-and-partition -fprefetch-loop-arrays  -ftree-vect-loop-version
+
+-Ofast
+           Disregard strict standards compliance.  -Ofast enables all -O3 optimizations.  It also enables optimizations
+           that are not valid for all standard-compliant programs.  It turns on -ffast-math and the Fortran-specific
+           -fno-protect-parens and -fstack-arrays.
+
+-Og Optimize debugging experience.  -Og enables optimizations that do not interfere with debugging. It should be the
+           optimization level of choice for the standard edit-compile-debug cycle, offering a reasonable level of
+           optimization while maintaining fast compilation and a good debugging experience.
+
+
+
 ** make
  Makefile 格式 ，语法：
 info make 详细文档
@@ -2125,3 +2183,104 @@ By default, make does print every command before executing it. This printing can
 If your makefile does not print the commands, then it is probably using one of these three mechanisms, and you have to actually inspect the makefile(s) to figure out which.
 
 As a workaround to avoid these echo-suppressing mechanisms, you could re-define the shell to be used to use a debug mode, for example like make SHELL="/bin/bash -x" target. Other shells have similar options. With that approach, it is not make printing the commands, but the shell itself
+
+* automake debugging
+** automake system
+./configure
+will generate the corresponding makefiles.
+
+** dot lo and  dot la files 
+Also, in projects using libtool, the use of silent rules can automatically enable the libtool’s --silent option:
+% cat Makefile.am
+lib_LTLIBRARIES = libx.la
+% make # Both make and libtool are verbose by default.
+...
+libtool: compile:  /umts6/atca/RHEL6.Xlcp/cross_120302/Xgcc/xgcc-i386/bin/i386-redhat-linux-gcc
+...  -O2 -Wframe-larger-than=1024 -g -O0 -MT librohc_comp_la-rohc_comp.lo 
+-MD -MP -MF .deps/librohc_comp_la-rohc_comp.Tpo -c rohc_comp.c  -fPIC -DPIC -o .libs/librohc_comp_la-rohc_comp.o 
+
+*** lo files
+wmm-iotarh6x32::6_iota:/wmm_nbu/glili/IOTA_REp/6_iota/obj/linux_x86/iota/3rd_party/rohc/ $cat librohc_comp_la-rohc_comp.lo   <
+===============================================
+# librohc_comp_la-rohc_comp.lo - a libtool object file
+# Generated by libtool (GNU libtool) 2.4.6
+#
+# Please DO NOT delete this file!
+# It is necessary for linking the library.
+
+# Name of the PIC object.
+pic_object='.libs/librohc_comp_la-rohc_comp.o'
+
+# Name of the non-PIC object
+non_pic_object=none
+===============================================
+*** -MT option
+-MT target
+           Change the target of the rule emitted by dependency generation.  By default CPP takes the name of
+           the main input file, deletes any directory components and any file suffix such as .c, and appends
+           the platform's usual object suffix such as .o  The result is the target.
+but -MT could modified the output object files as your wish
+
+*** -MP option
+ -MP This option instructs CPP to add a phony target for each dependency other than the main file,
+           causing each to depend on nothing.  These dummy rules work around errors make gives if you remove
+           header files without updating the Makefile to match.
+
+           This is typical output:
+                   test.o: test.c test.h
+                   test.h:
+
+*** -MF option
+       -MF file
+           When used with -M or -MM, specifies a file to write the dependencies to.  If no -MF switch is given
+           the preprocessor sends the rules to the same place it would have sent preprocessed output.
+
+           When used with the driver options -MD or -MMD, -MF overrides the default dependency output file.
+
+
+*** -MD option
+ -MD -MD is equivalent to -M -MF file, except that -E is not implied.  The driver determines file based
+           on whether an -o option is given.  If it is, the driver uses its argument but with a suffix of .d,
+           otherwise it takes the name of the input file, removes any directory components and suffix, and
+           applies a .d suffix.
+           If -MD is used in conjunction with -E, any -o switch is understood to specify the dependency output
+           file, but if used without -E, each -o is understood to specify a target object file.
+
+*** content of librohc_comp_la-rohc_comp.Tpo 
+librohc_comp_la-rohc_comp.lo: rohc_comp.c rohc_comp.h \
+ ../../src/common/rohc/rohc.h \
+
+mv -f .deps/libx.Tpo .deps/libx.Plo
+/bin/sh ./libtool --tag=CC --mode=link gcc -g -O2 -o libx.la -rpath
+  /usr/local/lib libx.lo
+libtool: link: gcc -shared .libs/libx.o -Wl,-soname -Wl,libx.so.0
+  -o .libs/libx.so.0.0.0
+libtool: link: cd .libs && rm -f libx.so && ln -s libx.so.0.0.0 libx.so
+...
+
+% make V=0
+  CC     libx.lo
+  CCLD   libx.la
+
+For Automake-generated Makefiles, the user may influence the verbosity at configure run time as well as at make run time:
+
+    Passing --enable-silent-rules to configure will cause build rules to be less verbose; the option --disable-silent-rules will cause normal verbose output.
+    At make run time, the default chosen at configure time may be overridden: 
+
+
+** automake system output the gcc command executed
+make V=1 
+will print the specific gcc command using such as :
+/umts6/atca/RHEL6.Xlcp/cross_120302/Xgcc/xgcc-i386/bin/i386-redhat-linux-gcc -L/umts6/atca/RHEL6.Xlcp/ver_180104/product_loc/rpms_only/xgcc-i386/usr/lib -DHAVE_CONFIG_H -I. -I../.. -I../../src/common -g -E -Wall -Wstrict-prototypes -Wextra -Wunreachable-code -Wunused-function -Wunused-variable -Wshadow -Wswitch-default -O2 -Wframe-larger-than=1024 -g -O0 -MT librohc_comp_la-rohc_comp.lo -MD -MP -MF .deps/librohc_comp_la-rohc_comp.Tpo -c rohc_comp.c  -fPIC -DPIC -o rohc_comp.e
+-std=gnu99 -DHAVE_CONFIG_H -I. -I../.. -I../../src/common -g -Wall -Wstrict-prototypes -Wextra -Wunreachable-code -Wunused-function -Wunused-variable -Wshadow -Wswitch-default -O0 -Wframe-larger-than=1024 -g -E -O0 -MT librohc_comp_la-rohc_comp.lo -MD -MP -MF .deps/librohc_comp_la-rohc_comp.Tpo -c rohc_comp.c  -fPIC -DPIC -o librohc_comp_la-rohc_comp.o
+
+** configure will override some options such as CFLAGS
+./configure #### this will use all the default value in configure.ac file
+##### override the options
+./configure CFLAGS="-g -O0" configure_cflags_for_lib="-O0 -Wframe-larger-than=1024"
+
+** configure with disable-silent-rules options
+./configure --disable-silent-rules
+### this will make output the verbose command used such as gcc -g -O2
+
+

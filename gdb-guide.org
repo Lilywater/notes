@@ -1,5 +1,24 @@
 * GNU GDB guide
+** gdb start with argument
+***  gdb option --args with a program and the program's own argument
+gdb --args ${IOTA}/bin/IOTA -f ${IOTA_LOGFILE} -c '
+EXP-EXECUTOR-FACTORY DEFAULT
+{
+        Package="Load"
+        Package="Rand"
+        Package="Bceval"
+        Package="Sleep"
+        Package="When"
+        Package="Resource"
+}'
 
+**** gdb start program with argument using -x
+If you are doing this often (e.g. when running GDB from a script), you might want to consider the following arguments to automate things further. First, you can place your GDB commands (such as 'run') in a text file and provide the filename to the -x argument. Second, you can have GDB exit after running your commands by providing the --batch argument. A full example:
+
+gdb -x commands.txt --batch --args executablename arg1 arg2 arg3
+
+
+** gdb command interactive 
 By default, gdb captures SIGPIPE of a process and pauses it. However, some program ignores SIGPIPE. So, the default behavour of gdb is not desired when debugging those program. To avoid gdb stopping in SIGPIPE, use the folloing command in gdb:
 (gdb)handle SIGPIPE nostop noprint pass
 
@@ -127,8 +146,17 @@ $8 = (int *) 0xbffff23c
         set *（（char *）（p+110））=‘b'；set *（int *）p=0xff；
 
 
-
-
+** gdb threads
+*** check how many threads are there in gdb
+(gdb) info threads
+  Id   Target Id         Frame
+  399  Thread 0xf677cb40 (LWP 29761) "IOTA" 0xf7719430 in __kernel_vsyscall ()
+....
+  385  Thread 0xf2307b40 (LWP 29775) "IOTA" 0xf7719430 in __kernel_vsyscall ()
+ * 384  Thread 0xef8ffb40 (LWP 29776) "IOTA" WiseBridge::CheckItOut ()
+    at ../../../../../../../../iota/ctpapp/lte/base-w/sim/WiseBridge.C:700
+  383  Thread 0xef6feb40 (LWP 29777) "IOTA" 0xf7719430 in __kernel_vsyscall ()
+// the star one is the current breakpoints of  threads
 
 
 * gdb tips
@@ -281,6 +309,13 @@ shell <shell command>
 
 
 ---------------
+* gdb debug into the sigmentation fault sigv
+** core dump file
+If you only have a core dump file, then you can only use gdb+ coredumpfile to trace the  signal event handler.
+** run time debug
+but when you can run it, you launch the program with gdb, then you let it go, continue, when sigv happend, you 
+backtrace the function stack it will show where exactly the program crashed.
+
 * https://access.redhat.com/knowledge/docs/en-US/Red_Hat_Enterprise_Linux/4/html/Debugging_with_gdb/
 (the most useful gdb doc)
 **  Debugging programs with multiple processes
@@ -417,11 +452,22 @@ This will only log the gdb message, not the program message.
 redirect the program's output
 set arg  arg1... argn  2>errlog>filename 2>errlog
 
+**  Convenience Variables defined in gdb
+in gdb, you can't define a local variable in the frame of the breakpoint function,
+since local variable will modify the stack of the current frame. 
+or allocate the memory in the heap is OK.
 
 set variable, you can define a variable in gdb, but can't define it's type.
+----------------
 set $ac=1
 ptype ac
 void
+-----------------
+
+------------------------
+set $i = 0   #### set gdb unique env variable, only for the simple ++ function.
+print bar[$i++]->contents
+----------------
 If a function return some value, 
 call function
 $1=tt
@@ -643,6 +689,128 @@ you get during debugging:
 
 
 
+* gdb for optimized value
+
+(gdb) print foo
+$1 = <optimized out>
+In this case, the 
+You are optimising it out. You can try compiling with -O0, then gdb will obey
+
+for a big project, you must compile all the files which been linked to a library with the same -O0 compilation option,
+if some use -O0, some use -O1, when link, there will be incompatible error.
+
+
+** volatile variable could be avoided optimized out
+*** Syntax of C's volatile Keyword
+
+**** a normal variable with volatile 
+To declare a variable volatile, include the keyword volatile before or after the data type in the variable definition. 
+For instance both of these declarations will declare an unsigned 16-bit integer variable to be a volatile integer:
+volatile uint16_t x; 
+uint16_t volatile y;
+
+**** pointer with volatile
+ Both of these declarations declare p_reg to be a pointer to a volatile unsigned 8-bit integer:
+volatile uint8_t * p_reg; 
+uint8_t volatile * p_reg;
+
+Volatile pointers to non-volatile data are very rare (I think I've used them once), but I'd better go ahead and give you the syntax:
+uint16_t * volatile p_x;
+
+And just for completeness, if you really must have a volatile pointer to a volatile variable, you'd write:
+uint16_t volatile * volatile p_y;
+
+
+
+* gdb for c++ function symbol
+c++ has class member function and template function and all kinds of override function with different argument
+mangle symbol 
+example: for the function asLong which belong to different class name 
+=====================================================================================================
+ 1 F C f    asLong            /wmm_nbu/glili/IOTA_REp/8_iota/iota/ctpapp/lte/wiseiota/com/ByteString.C
+               class:ByteString
+               ByteString::asLong() const
+  2 F   f    asLong            /wmm_nbu/glili/IOTA_REp/8_iota/iota/ctpapp/lte/wiseiota/com/Error.C
+               class:Error
+               Error::asLong () const
+  3 F   f    asLong            /wmm_nbu/glili/IOTA_REp/8_iota/iota/ctpapp/lte/wiseiota/com/SpecVal.C
+               class:SpecVal
+               SpecVal::asLong () const
+  4 F   f    asLong            /wmm_nbu/glili/IOTA_REp/8_iota/iota/ctpapp/lte/wiseiota/com/WISEroot.C
+               class:WISEroot
+               WISEroot::asLong () const
+  5 F   f    asLong            /wmm_nbu/glili/IOTA_REp/8_iota/iota/ctpapp/lte/wiseiota/hdr/PrintBufr.h
+               class:PrintBuffer
+               long  asLong() const { return verbosityV; }; // verbosity.
+  6 F   f    asLong            /wmm_nbu/glili/IOTA_REp/8_iota/iota/ctpapp/lte/wiseiota/hdr/ValInline.h
+               class:Value
+               Value::asLong() const
+==========================================
+
+** a member function with many different arguments
+(gdb) b Std:operator[]
+all those with different arguments member function would be set on a breakpoint
+2.4                         y     0x00007f93425b5a6c in Sdt::operator[](Value&)
+                                                   at ../../../../../../../iota/ctpapp/lte/wiseiota/hdr/Sdt.h:158
+2.5                         y     0x00007f9343642647 in Sdt::operator[](Symbol const&)
+                                                   at ../../../../../../../../iota/ctpapp/lte/wiseiota/com/Sdt.C:65
+2.6                         y     0x00007f9343642ae9 in Sdt::operator[](String const&)
+                                                   at ../../../../../../../../iota/ctpapp/lte/wiseiota/com/Sdt.C:135
+2.7                         y     0x00007f9343642b73 in Sdt::operator[](char const*)
+                                                   at ../../../../../../../../iota/ctpapp/lte/wiseiota/com/Sdt.C:142
+
+** if there's multiple class has the same name as a member function
+set breakpoint on them all
+b Error::asLong() const
+b  Value::asLong() const
+b  SpecVal::asLong() const
+b  WISEInt::asLong() const
+b  WISEroot::asLong() const
+===========================
+#0  WISEInt::asLong (this=0x7f931ceae210) at ../../../../../../../../iota/ctpapp/lte/wiseiota/hdr/WISEInt.h:62
+#1  0x00007f934238fd83 in Value::asLong (this=0x7f931ce6f158)
+    at ../../../../../../../../../../../iota/ctpapp/lte/wiseiota/hdr/ValInline.h:495
+#2  0x00007f9325c2cbb2 in getDefPtr (env=..., msg=...) at ../../../../../../../../iota/ctpapp/lte/eps/sim/http2lib.C:1676
+
+** demangle symbol 
+nm with -C option could get the demangled symbol name for c++ function
+ltemme@lm191:/local/ltemme/iota/iota_64/lib $ nm  -C libUmts.so |grep -i aslong
+000000000014f490 W Value::asLong() const
+                 U WISEroot::asLong() const
+---------------------------------------------------------------------------------
+ltemme@lm191:/local/ltemme/iota/iota_64/lib $ nm libUmts.so |grep -i aslong
+000000000014f490 W _ZNK5Value6asLongEv
+                 U _ZNK8WISEroot6asLongEv
+
+** set breakpoint for c++ member function
+*** using demangled name
+you need to give all the name showed by nm -C
+(gdb) b WISEroot::asLong() const
+Breakpoint 2 at 0x7feadefd7bf2: file ../../../../../../../../iota/ctpapp/lte/wiseiota/com/WISEroot.C, line 126.
+const here is very imprtant
+
+*** using mangled name 
+(gdb) b _ZNK5Value6asLongEv
+Breakpoint 4 at 0x7fead8478bb2: _ZNK5Value6asLongEv. (7 locations)
+
+*** error scenario
+-------------------------------------------
+(gdb) b WISEroot::asLong()
+Function "WISEroot::asLong()" not defined.
+(gdb) b asLong
+Make breakpoint pending on future shared library load? (y or [n]) n
+(gdb) b asLong() const
+Function "asLong() const" not defined.
+Make breakpoint pending on future shared library load? (y or [n]) n
+
+
+** gdb inline functions
+for gdb to step into inline function using
+CFLAGS += -fkeep-inline-functions
+
+
+** 
+
 * GNU Profiling Tool ---  GPROF
 Flat profile
 Profiling is an important aspect of software programming. Through profiling one can determine the parts in program code that are time consuming and need to be rewritten.
@@ -756,4 +924,108 @@ http://www.splint.org/manual/html/sec2.html
 
 
 * dynamic code analysis tool ----valgrind
+** ptype a kind of datatype(structure or class object)
+** using single quote to quote the member function name before parenthesis such as "("
+------------------------
+#include <stdio.h>
 
+enum class MyEnum {
+    VALUE_0 = 0,
+    VALUE_1 = 1
+};
+
+struct TestStruct {
+    template <MyEnum VALUE>
+    int getValue() {
+        if constexpr (VALUE == MyEnum::VALUE_0) {
+            return value_0;
+        } else /* VALUE == MyEnum::VALUE_1 */ {
+            return value_1;
+        }
+    }
+    
+    const int value_0 = 7;
+    const int value_1 = 9;
+};
+
+int main()
+{
+    TestStruct test;
+    test.template getValue<MyEnum::VALUE_0>();
+    test.template getValue<MyEnum::VALUE_1>();
+
+    return 0;
+}
+-------------------------------------------------------------------------
+If we use ptype on the object we get a list of methods on the object:
+
+(gdb) b 36
+Breakpoint 1 at 0x4004f7: file main.cpp, line 36.
+(gdb) r
+Starting program: /home/a.out
+
+Breakpoint 1, main () at main.cpp:36
+36          return 0;
+(gdb) ptype test
+type = struct TestStruct {
+    const int value_0;
+    const int value_1;
+  public:
+    int getValue<(MyEnum)1>(void);
+    int getValue<(MyEnum)0>(void);
+} 
+
+If we want to call this method: int getValue<(MyEnum)1>(void);
+We can call it by using the name exactly as shown, in single quotes.
+(gdb) p test.'getValue<(MyEnum)1>'()   
+### <objectname>->'<member functionname'(parameter)
+
+**  step into a single line with multiple function calls
+if we have a nested function calls within a single line, when command step, which function will it step in?
+------------------
+int foo(int vv) {
+ int c=11;
+return vv+c;
+ }
+
+int bar()
+{
+   int a=0; int b =0;
+  return a+b;
+
+}
+foo(bar())  ## when break at this line, step in default will into 
+
+*** default behavior is step into the inner most function call
+----------------------------
+Breakpoint 1, main () at b.cpp:27
+27        foo(bar());
+(gdb) s
+bar () at b.cpp:13
+13         int a=0;
+=======================================
+
+*** outer function will be step into use finish to finish the current inner function then step will into outer function 
+(gdb) finish
+Run till exit from #0  bar () at b.cpp:13
+0x0000000000400a41 in main () at b.cpp:27
+27        foo(bar());
+Value returned is $1 = 0
+(gdb) s
+foo (vv=0) at b.cpp:7
+7        int c=11;
+
+
+*** skip function/files 
+for example all third party files in /usr directory, you could ignore the entire directory to focus on your own code
+(gdb) skip dir /usr
+
+
+*** advance function
+when there are two many function calls within one line, you can advance to the outermost function
+(gdb) advance foo
+
+** allocate memory in gdb
+(gdb) print malloc(20)
+$1 = 0x820430
+examine the x 0x820430

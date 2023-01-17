@@ -1,12 +1,134 @@
-* four different types of ipv6 addresses
-** Main address (globally identified)
+* ipv4 VS. ipv6
+** the format of ipv6 address
+ipv6 address is a 8 group delineated delimited with colon(:)
+every group has 2 bytes with foramt fe80:::::::0001
+
+** ipv6 packet won't be fragmented by MTU value by ethernet
+Noramlly a ipv4 packet too long which exceed MTU value will be fragmented by ethernet,
+but for ipv6 packet if the value exceed MTU value, it will receive 
+In IPv6, routers do not fragment packets. When an IPv6 router receives a packet larger than the MTU of the outgoing
+interface, the router discards the packet and sends an ICMPv6 "Packet Too Big" message back to the sender. The message 
+includes the MTU value of the egress link, so the source can adjust the packet size and retransmit. This process is called
+Path MTU Discovery and is described in RFC 1981, Path MTU Discovery for IP Version 6
+if icmp6 packet is filtered by firewall, then it will disrupt the path mtu discovery.
+
+
+
+
+* ipv6 addresses 
+ipv6 has also network mask, it means the nework and host.
+2000::/3 it means the first three bits are network, the rest of 125 are the hosts
+** ipv6 addresses type
+*** Unicast
+the address only for one specific interface
+**** global unicast 2000::/3 
+012 ...............48bits  16 bits    64 bits
+001 global routing prefix  subnetid   InterfaceID
+
+
+**** link-local fe80::/10
+1111 1110 10  0.........0  interfaceID
+10       bits 54  bits     64 bits *derived from the MAC address
+
+       inet6 fe80::f816:3eff:fec0:c203  prefixlen 64  scopeid 0x20<link>
+        ether fa:16:3e:c0:c2:03
+
+
+**** loopback ::1/128
+
+**** unique local fc00::/7
+
+**** embedded ipv4 ::/80
+
+*** Multicast
+the address for muliple interface(within a Lan) 
+**** well-know ff00::/12
+Address     Function
+FF02::1     All Nodes Address
+FF02::2     All Routers Address
+
+**** Transient ff10::/12
+**** Solicited-Node ff02:0:0:0:0:1:ff00::/104
+a solicited node multicast address is a multicast with prefix ff02:0:0:0:0:1:ff(104 bits) 
+and the last 24 bits are copied from the last 6 hex digits from link-local address(which is derived from mac)
+
+
+
+*** Anycast
+Packets sent to an anycast address are delivered to the "closest" interface identified by that address. "Closest" typically
+means the one with the best routing metric according to the IPv6 routing protocol. Therefore, it is one-to-closest communication.
+
+
+** IPv6 Neighbor Discovery Protocol 
+ipv6 neighbor advertisement/solicit message which is similar to  ARP/RARP 
+As we have already learned - there is no broadcast in IPv6. There is no ARP as well. When a node needs to resolve the MAC address of a known IPv6 address,
+the device still needs to send a request. In this request packet, the destination IPv6 address is the solicited-node multicast address corresponding to
+the target IPv6 unicast address (for reference, in IPv4 ARP target address is 0.0.0.0), and the destination MAC address is the multicast MAC address 
+corresponding to the multicast address. Only the targeted node 'listens' to this solicited-node multicast address. Therefore the request will be processed 
+only by the targeted node and not by all node attached to the link as it happens with broadcasted ARP in IPv4. 
+
+ Neighbor or Neighbor node refers to IPv6 nodes that are on the same local segment or in the same layer 2 domain
+
+
+A host with ipv6 address 2607:5501:3000:1c33::2 want to get the mac address of ipv6 address  2607:5501:3000::1
+
+
+when ping6 a local-link address: ping6 fe80::82ac:ac00:6530:47f0%ens3  from ipv6 addr fe80::f816:3eff:fec0:c203
+first neighbor solicitation similar to ARP, who has a ipv6 address tell me with my own MAC fa:16:3e:c0:c2:03
+------------------------------------------------------
+ethenet   MAC:   fa:16:3e:c0:c2:03 > 54:4b:8c:8c:65:f0,
+ethertype IPv6  fe80::f816:3eff:fec0:c203 > FF02::1:6530:47f0: [icmp6 sum ok] ICMP6, neighbor solicitation, length 32, who has fe80::82ac:ac00:6530:47f0
+          source link-address option (1), length 8 (1): fa:16:3e:c0:c2:03
+--------------------------------------------------------------
+
+second neighbor advertisement to the solicitation message:
+----------------------------------------------
+ethernet mac 54:4b:8c:8c:65:f0 > fa:16:3e:49:53:73,
+ethertype IPv6  fe80::200:5eff:fe00:201 > fe80::f816:3eff:fe49:5373: [icmp6 sum ok] ICMP6, 
+neighbor advertisement, length 24, tgt is fe80::200:5eff:fe00:202, Flags [router, solicited]
+
+-------------------------------------------------------------------------------------------------------------------
+
+then icmp6 request and icmp6 response message exchage
+
+
+** Router Advertisement (RA)
+IPv6 routers attached to a local segment advertise their presence periodically via an ICMPv6 message called Router Advertisement (RA). The message 
+is destined to the all-nodes multicast address FF02::1 which means that every node on the segment receives and processes it. RA messages contain the 
+prefix and the prefix length used on this segment as well as other parameters such as MTU. Cisco routers advertise their presence on a segment every
+200 seconds by default. 
+
+
+the allocated global ipv6 address is  2607:5501:3000:2f8e::2 
+-----------------------------------------------------------
+16:21:14.187440 54:4b:8c:8c:65:f0 > 33:33:00:00:00:01, ethertype IPv6 (0x86dd), length 238: (hlim 255, next-header ICMPv6 (58) payload length: 184)
+ fe80::200:5eff:fe00:203 > ff02::1: [icmp6 sum ok] ICMP6, router advertisement, length 184
+        hop limit 64, Flags [none], pref medium, router lifetime 12s, reachable time 0ms, retrans timer 0ms
+          source link-address option (1), length 8 (1): 00:00:5e:00:02:03
+            0x0000:  0000 5e00 0203
+          prefix info option (3), length 32 (4): 2607:5501:1001::/48, Flags [onlink, auto], valid time 2592000s, pref. time 604800s
+          prefix info option (3), length 32 (4): 2607:5501:1002::/48, Flags [onlink, auto], valid time 2592000s, pref. time 604800s
+          prefix info option (3), length 32 (4): 2607:5501:1003::/48, Flags [onlink, auto], valid time 2592000s, pref. time 604800s
+          prefix info option (3), length 32 (4): 2607:5501:1004::/48, Flags [onlink, auto], valid time 2592000s, pref. time 604800s
+          prefix info option (3), length 32 (4): 2607:5501:3000::/48, Flags [onlink, auto], valid time 2592000s, pref. time 604800s
+---------------------------------------------------------------------------------------------------------
+012 ...............48bits  16 bits    64 bits
+001 global routing prefix  subnetid   InterfaceID
+2607:550a:3000             2f8e       2
+    
+
+** Router Solicitaion
+ipv6  src(fe80:20a...feaa:aaa) destip(ff02:;2)  icmpv6 type 133
+
+** four different type ipv6 address allocated by a network interface
+*** Main address (globally identified)
 using your ISP prefix + derivation of your network-interface MAC-address.
 
 
-** Temporary addresses
+*** Temporary addresses
 based on your main address but with randomization to prevent tracking. (a new one is generated every so often)
 
-** Link-local address
+*** Link-local address
 identified by starting with fe80:. (not usable globally, tied to routing)
 this link-local address is within a LAN, not cross the ip layer.
 every interface will have its own ipv6 link-local address.
@@ -31,7 +153,10 @@ and in fact these two inet6 addresses could be the same.
 
 So for link-local address, it's very important that you add fe... address with interface to indicate them.
 
+***  Unique local address
+identified by starting with fd00:. (not usable globally, not tied to routing)
 
+* IPV6 usage scenario
 *** check service bound to the address and port
 [root@allinone vagrantfiles]# netstat -lnp |grep -w 22
 tcp        0      0    0.0.0.0:22              0.0.0.0:*               LISTEN      2460/sshd
@@ -49,7 +174,8 @@ in ipv4, 0.0.0.0 means all the lo addr 127.0.0.1 and br-ens255f0 inet addr 10.56
 ***** loopback address
 ::1
 
-***** ::: 
+*****
+::: 
 ::: means all the interface's ipv6 addr in this host, ::1  ,  fe80::dac4:97ff:fea7:1e83%ens255f0 , fe80::4c4c:51ff:fe46:948%br-ens255f0  
 
 *** ssh link-local address
@@ -94,6 +220,4 @@ PING fe80::4c4c:51ff:fe46:948(fe80::4c4c:51ff:fe46:948) from fe80::4c4c:51ff:fe4
 **** ping remote host's address
 ping6 -I br-ens255f0 fe80::1de4:b494:c34f:13
 
-**  Unique local address
-identified by starting with fd00:. (not usable globally, not tied to routing)
 

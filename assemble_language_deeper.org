@@ -536,6 +536,25 @@ so the result of suc resev for heap is
 
 
 ** heap maximum
+for a 32bit program,4294967296 is the total memory space, there's a heap's maximum value equal to
+ 4G total - the stacksize* (thread number)
+every thread has a stack limit size by ulimit -s number
+
+use  top to examin the real memory usage:
+top -bd0.5 -o +%MEM -p `pidof IOTA` >/tmp/me.log
+----------------------------------------
+top - 21:08:59 up 7 days,  1:36,  5 users,  load average: 0.87, 0.85, 0.79
+Tasks:   1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+%Cpu(s): 25.1 us,  0.0 sy,  0.0 ni, 74.9 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st
+KiB Mem :  8009040 total,  2869408 free,  2227208 used,  2912424 buff/cache
+KiB Swap:  8384508 total,  8384508 free,        0 used.  5034304 avail Mem
+
+  PID USER      PR  NI       VIRT         RES    SHR   S  %CPU %MEM     TIME+ COMMAND
+12594 ltemme    24   4       4162532     309140  44304 S   0.0  3.9   0:13.78 IOTA
+-----------------------------------------------------------
+VIRT is the heap memory which has been used:   total -RES ##every thread share the heap but has its own stack memory
+RES is the stack memory which has been used:   RES < thread_num * (ulimt -s)
+
  0810c000=======================================
                  /|\
                   |   
@@ -610,6 +629,7 @@ void constack()
   static int d =0;
    int k=0;
     printf("%d MB resev suc \n",d++);
+// malloc(1024*1024) or new could allocat sapce from heap
    sleep(5);
    constack();
 }
@@ -672,6 +692,7 @@ bfb48000     84K rw---    [ stack ]
  b7f0c000      8K rw---    [ anon ]
  b7f1f000      8K rw---    [ anon ]
  bf15b000  10248K rw---    [ stack ]     10m
+
 
 
 ** kenerl sapce check
@@ -780,7 +801,91 @@ Stack is stored contiguously, for assemble laguage to count the address of every
 about 8-10M.  So if a recursive function with so huge local variable, it's very easy to lead stack overflow(Segmetation Fault).
 but for heap, all threads sharing the heap. it's dynamically allocated as every thread request.
 if need a very heap size, replace a thread with a process is a good choice, but every individual's thread only has a limited size stack.this is from OS configuration. ulimit -s
+===============
+void constack()
+{
+  char cc[1024*1024];
+  static int d =0;
+   int k=0;
+    printf("%d MB resev suc in thread %d \n",d++,  (unsigned int)pthread_self());
+   sleep(5);
+   constack();
+}
 
+void *thread(void *arg) {
+  char *ret;
+  printf("thread()%d  entered with argument '%s'\n", (unsigned int)pthread_self(), arg);
+  if ((ret = (char*) malloc(20)) == NULL) {
+    perror("malloc() error");
+    exit(2);
+  }
+  constack();
+  strcpy(ret, "This is a test");
+  pthread_exit(ret);
+}
+
+main() {
+  pthread_t thid;
+  pthread_t thid2;
+  void *ret;
+
+  if (pthread_create(&thid, NULL, thread, "thread 1") != 0) {
+    perror("pthread_create() error");
+    exit(1);
+  }
+
+  if (pthread_create(&thid2, NULL, thread, "thread 2") != 0) {
+    perror("pthread_create() error");
+    exit(1);
+ }
+ printf("start new line\n");
+  if (pthread_join(thid2, &ret) != 0) {
+    perror("pthread_create() error");
+   exit(3);
+ }
+
+  if (pthread_join(thid, &ret) != 0) {
+    perror("pthread_create() error");
+   exit(3);
+ }
+  printf("thread exited with '%s'\n", ret);
+}
+========================
+every thread will have about 10240 stack size
+with only one thread
+-----
+ltemme@lm191:/local/ltemme/iota/test/msgtest $ ./test
+thread()1499875072  entered with argument 'thread 1'
+0 MB resev suc in thread 1499875072
+1 MB resev suc in thread 1499875072
+2 MB resev suc in thread 1499875072
+3 MB resev suc in thread 1499875072
+4 MB resev suc in thread 1499875072
+5 MB resev suc in thread 1499875072
+6 MB resev suc in thread 1499875072
+Memory fault
+----------------
+with two threads:
+----------------------------------------
+thread()-1068095744  entered with argument 'thread 2'
+thread()-1059703040  entered with argument 'thread 1'
+0 MB resev suc in thread -1068095744
+0 MB resev suc in thread -1059703040
+1 MB resev suc in thread -1068095744
+1 MB resev suc in thread -1059703040
+2 MB resev suc in thread -1068095744
+2 MB resev suc in thread -1059703040
+3 MB resev suc in thread -1068095744
+3 MB resev suc in thread -1059703040
+4 MB resev suc in thread -1068095744
+4 MB resev suc in thread -1059703040
+5 MB resev suc in thread -1068095744
+5 MB resev suc in thread -1059703040
+6 MB resev suc in thread -1068095744
+6 MB resev suc in thread -1059703040
+7 MB resev suc in thread -1059703040
+Memory fault
+--------------------------------------------
 
 
 ** monitor a system's memory usage
